@@ -1,0 +1,12 @@
+# Devenv
+.devenv*
+devenv.local.nix
+.tmp
+.env.server
+
+# direnv
+.direnv
+.lazy.lua
+
+# pre-commit
+.pre-commit-config.yaml

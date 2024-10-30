@@ -11,6 +11,8 @@ import (
 
 type Middleware func(http.Handler) http.Handler
 
+type RouterOption func(*Router)
+
 type Router struct {
 	*http.ServeMux
 	toplevel   string
@@ -19,15 +21,27 @@ type Router struct {
 	notFound   http.Handler
 }
 
-func NewRouter(mx ...Middleware) *Router {
-	return &Router{
-		ServeMux:   &http.ServeMux{},
-		middleware: mx,
-		toplevel:   "",
-		routes:     []string{},
+func NewRouter(opts ...RouterOption) *Router {
+	r := &Router{
+		ServeMux:   http.NewServeMux(),
+		middleware: make([]Middleware, 0),
+		routes:     make([]string, 0),
+	}
+
+	for _, opt := range opts {
+		opt(r)
+	}
+
+	return r
+}
+
+func WithMiddleware(mw ...Middleware) RouterOption {
+	return func(r *Router) {
+		r.middleware = append(r.middleware, mw...)
 	}
 }
 
+// Add a middleware to the router stack
 func (r *Router) Use(mx ...Middleware) {
 	r.middleware = append(r.middleware, mx...)
 }
@@ -42,7 +56,16 @@ func (r *Router) Group(fn func(r *Router)) {
 	fn(router)
 }
 
+// Add a toplevel prefix
+func (r *Router) Prefix(pathStr string) {
+	r.toplevel = path.Join(r.toplevel, pathStr)
+}
+
 func (r *Router) Route(pathStr string, fn func(r *Router)) *Router {
+	if pathStr == "" {
+		panic("router: path cannot be empty")
+	}
+
 	route := &Router{
 		ServeMux:   r.ServeMux,
 		toplevel:   path.Join(r.toplevel, pathStr),
@@ -55,6 +78,10 @@ func (r *Router) Route(pathStr string, fn func(r *Router)) *Router {
 }
 
 func (r *Router) Mount(pathStr string, handler http.Handler) {
+	if pathStr == "" {
+		panic("router: mount path cannot be empty")
+	}
+
 	// Clean and join the path with toplevel
 	mountPath := path.Clean(path.Join(r.toplevel, pathStr))
 
@@ -63,20 +90,18 @@ func (r *Router) Mount(pathStr string, handler http.Handler) {
 		mountPath += "/"
 	}
 
-	// Create a wrapper handler that will:
-	// 1. Strip the prefix
-	// 2. Apply middleware
-	// 3. Handle both the exact path and paths underneath it
 	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Strip the mount path prefix from the request URL path
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, mountPath)
+		originalPath := r.URL.Path
 
-		// Ensure the stripped path starts with a slash
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, mountPath)
 		if !strings.HasPrefix(r.URL.Path, "/") {
 			r.URL.Path = "/" + r.URL.Path
 		}
 
 		handler.ServeHTTP(w, r)
+
+		// Restore original path
+		r.URL.Path = originalPath
 	})
 
 	// Apply middleware to the wrapped handler
@@ -165,14 +190,19 @@ func (r *Router) NotFound(fn http.HandlerFunc) {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	handler := http.Handler(r.ServeMux) // Default ServeMux handler
+	handler := r.ServeMux
 
-	// Apply all middleware defined through Use
-	slices.Reverse(r.middleware)
-	for _, m := range r.middleware {
-		handler = m(handler)
+	if handler == nil {
+		handler = http.DefaultServeMux
 	}
 
-	// Call the handler
-	handler.ServeHTTP(w, req)
+	finalHandler := http.Handler(handler)
+	middlewareCopy := slices.Clone(r.middleware)
+	slices.Reverse(middlewareCopy)
+
+	for _, m := range middlewareCopy {
+		finalHandler = m(finalHandler)
+	}
+
+	finalHandler.ServeHTTP(w, req)
 }

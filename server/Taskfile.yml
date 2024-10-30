@@ -1,0 +1,60 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Lists available commands
+    cmds:
+      - task -l
+  list:
+    desc: Lists available commands
+    cmds:
+      - task -l
+
+  migrate:create:
+    desc: Creates .sql migration files (Up and Down). Set name by appending with 'NAME=name_of_file'
+    cmds:
+      - goose -dir database/migrations create "{{.NAME}}" sql
+
+  migrate:
+    desc: Migrates UP the database
+    cmds:
+      - goose -dir database/migrations up
+
+  migrate:status:
+    desc: Get the status of your migrations
+    cmds:
+      - goose -dir database/migrations status
+
+  migrate:step:
+    desc: Migrates UP bt one step the database
+    cmds:
+      - goose -dir database/migrations up-by-one
+
+  migrate:rollback:
+    desc: Rollback the database by one step
+    cmds:
+      - goose -dir database/migrations down
+
+  run:
+    desc: Runs the app
+    cmds:
+      - task: swagger
+      - go run cmd/api/main.go
+    silent: true
+
+  dev:
+    desc: Hot reload. Watch for file changes and rebuild binary.
+    cmds:
+      - air
+    silent: true
+
+  routes:
+    desc: List all registered routes.
+    silent: true
+    cmds:
+      - go run cmd/route/main.go
+
+  swagger:
+    desc: Generates Swagger page for API reference
+    cmds:
+      - swag init -o internal/server/docs -g cmd/go8/main.go

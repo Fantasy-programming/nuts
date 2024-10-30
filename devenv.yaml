@@ -1,0 +1,7 @@
+inputs:
+  nixpkgs:
+    url: github:nixos/nixpkgs/nixpkgs-unstable
+
+# If you have more than one devenv you can merge them
+imports:
+  - ./server
