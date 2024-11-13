@@ -27,13 +27,13 @@ END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
--- 4: Add function on dbs
+-- 4: Add function on table
 CREATE TRIGGER update_users_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
--- 5: Add indexes
+-- 5: Add index
 CREATE UNIQUE INDEX users_email_key ON users (email);
 
 -- +goose Down

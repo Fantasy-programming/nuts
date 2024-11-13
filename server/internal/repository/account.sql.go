@@ -64,6 +64,19 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 	return i, err
 }
 
+const deleteAccount = `-- name: DeleteAccount :exec
+UPDATE accounts
+SET
+    deleted_at = current_timestamp
+WHERE id = $1
+RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at
+`
+
+func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAccount, id)
+	return err
+}
+
 const getAccountById = `-- name: GetAccountById :one
 SELECT
     id,
@@ -145,4 +158,58 @@ func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAcco
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateAccount = `-- name: UpdateAccount :one
+UPDATE accounts
+SET
+    name = coalesce($1, name),
+    type = coalesce($2, type),
+    balance = coalesce($3, balance),
+    currency = coalesce($4, currency),
+    color = coalesce($5, color),
+    meta = coalesce($6, meta),
+    updated_by = $7
+WHERE id = $8
+RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at
+`
+
+type UpdateAccountParams struct {
+	Name      *string         `json:"name"`
+	Type      NullACCOUNTTYPE `json:"type"`
+	Balance   pgtype.Numeric  `json:"balance"`
+	Currency  *string         `json:"currency"`
+	Color     NullCOLORENUM   `json:"color"`
+	Meta      []byte          `json:"meta"`
+	UpdatedBy *uuid.UUID      `json:"updated_by"`
+	ID        uuid.UUID       `json:"id"`
+}
+
+func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (Account, error) {
+	row := q.db.QueryRow(ctx, updateAccount,
+		arg.Name,
+		arg.Type,
+		arg.Balance,
+		arg.Currency,
+		arg.Color,
+		arg.Meta,
+		arg.UpdatedBy,
+		arg.ID,
+	)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Type,
+		&i.Balance,
+		&i.Currency,
+		&i.Color,
+		&i.Meta,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }

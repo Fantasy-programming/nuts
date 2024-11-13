@@ -56,6 +56,16 @@ func (ns NullACCOUNTTYPE) Value() (driver.Value, error) {
 	return string(ns.ACCOUNTTYPE), nil
 }
 
+func (e ACCOUNTTYPE) Valid() bool {
+	switch e {
+	case ACCOUNTTYPECash,
+		ACCOUNTTYPEMomo,
+		ACCOUNTTYPECredit:
+		return true
+	}
+	return false
+}
+
 type COLORENUM string
 
 const (
@@ -99,6 +109,16 @@ func (ns NullCOLORENUM) Value() (driver.Value, error) {
 	return string(ns.COLORENUM), nil
 }
 
+func (e COLORENUM) Valid() bool {
+	switch e {
+	case COLORENUMRed,
+		COLORENUMGreen,
+		COLORENUMBlue:
+		return true
+	}
+	return false
+}
+
 type Account struct {
 	ID        uuid.UUID          `json:"id"`
 	Name      string             `json:"name"`
@@ -116,10 +136,9 @@ type Account struct {
 
 type Category struct {
 	ID        uuid.UUID          `json:"id"`
-	UserID    uuid.UUID          `json:"user_id"`
 	Name      string             `json:"name"`
 	ParentID  *uuid.UUID         `json:"parent_id"`
-	IsDefault pgtype.Bool        `json:"is_default"`
+	IsDefault *bool              `json:"is_default"`
 	CreatedBy uuid.UUID          `json:"created_by"`
 	UpdatedBy *uuid.UUID         `json:"updated_by"`
 	CreatedAt time.Time          `json:"created_at"`
@@ -128,8 +147,8 @@ type Category struct {
 }
 
 type Currency struct {
-	Code string      `json:"code"`
-	Name pgtype.Text `json:"name"`
+	Code string  `json:"code"`
+	Name *string `json:"name"`
 }
 
 type Preference struct {
@@ -156,10 +175,10 @@ type Transaction struct {
 	Type                string             `json:"type"`
 	AccountID           uuid.UUID          `json:"account_id"`
 	CategoryID          uuid.UUID          `json:"category_id"`
-	Description         pgtype.Text        `json:"description"`
+	Description         *string            `json:"description"`
 	TransactionDatetime time.Time          `json:"transaction_datetime"`
 	Medium              string             `json:"medium"`
-	Location            pgtype.Text        `json:"location"`
+	Location            *string            `json:"location"`
 	Details             []byte             `json:"details"`
 	CreatedBy           *uuid.UUID         `json:"created_by"`
 	UpdatedBy           *uuid.UUID         `json:"updated_by"`
@@ -171,8 +190,8 @@ type Transaction struct {
 type User struct {
 	ID        uuid.UUID          `json:"id"`
 	Email     string             `json:"email"`
-	FirstName pgtype.Text        `json:"first_name"`
-	LastName  pgtype.Text        `json:"last_name"`
+	FirstName *string            `json:"first_name"`
+	LastName  *string            `json:"last_name"`
 	Password  string             `json:"password"`
 	CreatedAt time.Time          `json:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at"`

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type JWTAuth struct {
@@ -150,6 +151,13 @@ func FromContext(ctx context.Context) (jwt.Token, map[string]interface{}, error)
 	err, _ = ctx.Value(ErrorCtxKey).(error)
 
 	return token, claims, err
+}
+
+func GetID(r *http.Request) (uuid.UUID, error) {
+	_, claims, _ := FromContext(r.Context())
+	idStr := claims["id"].(string)
+
+	return uuid.Parse(idStr)
 }
 
 // TokenFromCookie tries to retreive the token string from a cookie named

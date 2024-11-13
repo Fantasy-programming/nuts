@@ -1,28 +1,21 @@
 package auth
 
 import (
-	"encoding/json"
-	"net/http"
+	"time"
+
+	"github.com/google/uuid"
 )
 
-type SignupResponse struct {
-	Message string `json:"message"`
-	Success bool   `json:"success"`
+type LoginResponse struct {
+	Token string `json:"token"`
+	User  UserProfile
 }
 
-func sendRes(w http.ResponseWriter, message string, success bool, code int) {
-	response := SignupResponse{
-		Message: message,
-		Success: success,
-	}
-
-	payload, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, message, code)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	w.Write(payload)
+type UserProfile struct {
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	FirstName *string   `json:"first_name"`
+	LastName  *string   `json:"last_name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

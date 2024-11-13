@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 tasks:
   default:
@@ -57,4 +57,4 @@ tasks:
   swagger:
     desc: Generates Swagger page for API reference
     cmds:
-      - swag init -o internal/server/docs -g cmd/go8/main.go
+      - swag init -o internal/server/docs -g cmd/api/main.go

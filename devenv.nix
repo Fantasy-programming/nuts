@@ -5,7 +5,10 @@
     pkgs.git
   ];
 
-  languages.deno.enable = true;
-  languages.deno.package = pkgs.deno;
-  languages.javascript.enable = true;
+  languages.javascript = {
+    enable = true;
+    package = pkgs.nodejs-slim_22;
+    pnpm.enable = true;
+    npm.enable = true;
+  };
 }

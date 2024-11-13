@@ -25,10 +25,10 @@ INSERT INTO users (
 `
 
 type CreateUserParams struct {
-	Email     string      `json:"email"`
-	FirstName pgtype.Text `json:"first_name"`
-	LastName  pgtype.Text `json:"last_name"`
-	Password  string      `json:"password"`
+	Email     string  `json:"email"`
+	FirstName *string `json:"first_name"`
+	LastName  *string `json:"last_name"`
+	Password  string  `json:"password"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -76,13 +76,13 @@ WHERE email = $1 LIMIT 1
 `
 
 type GetUserByEmailRow struct {
-	ID        uuid.UUID   `json:"id"`
-	Email     string      `json:"email"`
-	FirstName pgtype.Text `json:"first_name"`
-	LastName  pgtype.Text `json:"last_name"`
-	Password  string      `json:"password"`
-	CreatedAt time.Time   `json:"created_at"`
-	UpdatedAt time.Time   `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	FirstName *string   `json:"first_name"`
+	LastName  *string   `json:"last_name"`
+	Password  string    `json:"password"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -114,13 +114,13 @@ WHERE id = $1 LIMIT 1
 `
 
 type GetUserByIdRow struct {
-	ID        uuid.UUID   `json:"id"`
-	Email     string      `json:"email"`
-	FirstName pgtype.Text `json:"first_name"`
-	LastName  pgtype.Text `json:"last_name"`
-	Password  string      `json:"password"`
-	CreatedAt time.Time   `json:"created_at"`
-	UpdatedAt time.Time   `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	FirstName *string   `json:"first_name"`
+	LastName  *string   `json:"last_name"`
+	Password  string    `json:"password"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (GetUserByIdRow, error) {
@@ -160,13 +160,13 @@ type ListUsersParams struct {
 }
 
 type ListUsersRow struct {
-	ID        uuid.UUID   `json:"id"`
-	Email     string      `json:"email"`
-	FirstName pgtype.Text `json:"first_name"`
-	LastName  pgtype.Text `json:"last_name"`
-	Password  string      `json:"password"`
-	CreatedAt time.Time   `json:"created_at"`
-	UpdatedAt time.Time   `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	FirstName *string   `json:"first_name"`
+	LastName  *string   `json:"last_name"`
+	Password  string    `json:"password"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error) {
@@ -209,9 +209,9 @@ RETURNING id, email, first_name, last_name, password, created_at, updated_at, de
 `
 
 type UpdateUserParams struct {
-	Email     pgtype.Text        `json:"email"`
-	FirstName pgtype.Text        `json:"first_name"`
-	LastName  pgtype.Text        `json:"last_name"`
+	Email     *string            `json:"email"`
+	FirstName *string            `json:"first_name"`
+	LastName  *string            `json:"last_name"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	ID        uuid.UUID          `json:"id"`
 }

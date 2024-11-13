@@ -26,9 +26,9 @@ func (a *Account) Register() http.Handler {
 	router.Use(jwtauth.Authenticator())
 	router.Get("/", a.GetAccounts)
 	router.Post("/", a.CreateAccount)
-	router.Get("/:id", a.GetAccount)
-	router.Put("/:id", a.UpdateAccount)
-	router.Delete("/:id", a.DeleteAccount)
+	router.Get("/{id}", a.GetAccount)
+	router.Put("/{id}", a.UpdateAccount)
+	router.Delete("/{id}", a.DeleteAccount)
 
 	return router
 }

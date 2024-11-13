@@ -23,5 +23,7 @@ func (a *Auth) Register() http.Handler {
 	router := router.NewRouter()
 	router.Post("/login", a.Login)
 	router.Post("/signup", a.Signup)
+	router.Post("/logout", a.Logout)
+	router.Post("/refresh", a.Refresh)
 	return router
 }

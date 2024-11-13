@@ -16,6 +16,14 @@ var (
 	ErrIncompatibleVersion = errors.New("incompatible version of argon2")
 )
 
+var DefaultParams = &Params{
+	Memory:      64 * 1024,
+	Iterations:  3,
+	Parallelism: 2,
+	SaltLength:  16,
+	KeyLength:   32,
+}
+
 type Params struct {
 	Memory      uint32
 	Iterations  uint32

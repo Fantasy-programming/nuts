@@ -32,3 +32,23 @@ SELECT
     meta
 FROM accounts
 WHERE created_by = sqlc.arg('user_id');
+
+-- name: UpdateAccount :one
+UPDATE accounts
+SET
+    name = coalesce(sqlc.narg('name'), name),
+    type = coalesce(sqlc.narg('type'), type),
+    balance = coalesce(sqlc.narg('balance'), balance),
+    currency = coalesce(sqlc.narg('currency'), currency),
+    color = coalesce(sqlc.narg('color'), color),
+    meta = coalesce(sqlc.narg('meta'), meta),
+    updated_by = sqlc.arg('updated_by')
+WHERE id = sqlc.arg('id')
+RETURNING *;
+
+-- name: DeleteAccount :exec
+UPDATE accounts
+SET
+    deleted_at = current_timestamp
+WHERE id = sqlc.arg('id')
+RETURNING *;

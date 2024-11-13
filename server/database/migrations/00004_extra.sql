@@ -17,7 +17,7 @@ CREATE TABLE preferences (
     user_id UUID NOT NULL,
     locale VARCHAR(10) NOT NULL DEFAULT 'en',
     theme VARCHAR(10) NOT NULL DEFAULT 'light',
-    currency CHAR(3) NOT NULL REFERENCES currencies (code) DEFAULT "USD",
+    currency CHAR(3) NOT NULL DEFAULT 'USD' REFERENCES currencies (code),
     created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
     deleted_at TIMESTAMPTZ,

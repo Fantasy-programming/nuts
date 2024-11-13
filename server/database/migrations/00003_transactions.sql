@@ -1,9 +1,8 @@
 -- +goose Up
 
 CREATE TABLE categories (
-    id UUID NOT NULL DEFAULT (uuid_generate_v4()),
-    user_id UUID NOT NULL,
-    name VARCHAR(100) NOT NULL,     -- Name of the category
+    id UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
+    name VARCHAR(100) NOT NULL,
     parent_id UUID DEFAULT NULL,
     is_default BOOLEAN DEFAULT FALSE,
     created_by UUID NOT NULL,
