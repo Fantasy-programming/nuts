@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:17
+    restart: always
+    container_name: "nuts_postgres"
+    env_file:
+      - ../server/.env.server
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/create-dbs.sh:/docker-entrypoint-initdb.d/create-dbs.sh
+      - ../server/database/migrations:/docker-entrypoint-initdb.d # Run migrations on creation
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    image: "nuts/server"
+    container_name: "nuts_server"
+    env_file:
+      - ../server/.env.server
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+      args:
+        - API_PORT
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${API_PORT}:${API_PORT}"
+
+  client:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_URL: "http://localhost:8080" # Point to server API
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+
+volumes:
+  postgres_data:
