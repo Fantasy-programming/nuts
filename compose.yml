@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${DB_USER}", "-d", "${DB_NAME}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
@@ -45,11 +45,6 @@ services:
         condition: service_healthy
     networks:
       - nuts_internal
-    healthcheck:
-      test: ["CMD", "/app/health-check.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     deploy:
       restart_policy:
         condition: on-failure
@@ -89,11 +84,11 @@ services:
     networks:
       - nuts_internal
       - nuts_external
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:${API_PORT}/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
     deploy:
       resources:
         limits:
