@@ -62,7 +62,7 @@ services:
       context: ./server
       dockerfile: Dockerfile
       args:
-        - API_PORT
+        API_PORT: ${API_PORT}
     environment:
       API_PORT: ${API_PORT}
       API_REQUEST_LOG: ${API_REQUEST_LOG}
@@ -115,8 +115,8 @@ services:
       context: ./client
       dockerfile: Dockerfile
     environment:
-      - VITE_API_URL=http://server:${API_PORT}
-      - NODE_ENV=production
+      VITE_API_URL: http://server:${API_PORT}
+      NODE_ENV: production
     ports:
       - "3000:3000"
     depends_on:
