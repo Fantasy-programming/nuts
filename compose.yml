@@ -38,7 +38,7 @@ services:
       DB_PASS: ${DB_PASS}
       DB_SSL_MODE: ${DB_SSL_MODE:-prefer}
     build:
-      context: ../server/database/migrations
+      context: ./server/database/migrations
       dockerfile: Dockerfile
     depends_on:
       postgres:
@@ -59,15 +59,26 @@ services:
     image: "nuts/server"
     container_name: "nuts_server"
     build:
-      context: ../server
+      context: ./server
       dockerfile: Dockerfile
       args:
         - API_PORT
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=${DB_NAME}
-      - DB_SSL_MODE=${DB_SSL_MODE:-prefer}
+      API_PORT: ${API_PORT}
+      API_REQUEST_LOG: ${API_REQUEST_LOG}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      DB_HOST: postgres
+      DB_DRIVER: pgx
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_SSL_MODE: ${DB_SSL_MODE:-prefer}
+      DB_MAX_CONNECTION_POOL: ${DB_MAX_CONNECTION_POOL:-4}
+      DB_MAX_IDLE_CONNECTIONS: ${DB_MAX_IDLE_CONNECTIONS:-4}
+      DB_CONNECTIONS_MAX_LIFETIME: ${DB_CONNECTIONS_MAX_LIFETIME:-300s}
+      AUTH_SIGNINGKEY: ${AUTH_SIGNINGKEY}
+      AUTH_REFRESHKEY: ${AUTH_REFRESHKEY}
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,7 +112,7 @@ services:
     image: "nuts/client"
     container_name: "nuts_client"
     build:
-      context: ../client
+      context: ./client
       dockerfile: Dockerfile
     environment:
       - VITE_API_URL=http://server:${API_PORT}
