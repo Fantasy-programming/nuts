@@ -1,6 +1,8 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/Fantasy-Programming/nuts/internal/domain/accounts"
 	"github.com/Fantasy-Programming/nuts/internal/domain/auth"
 	"github.com/Fantasy-Programming/nuts/internal/domain/category"
@@ -23,4 +25,7 @@ func (s *Server) RegisterDomain() {
 	s.router.Mount("/category", CategoryDomain.Register())
 	s.router.Mount("/preferences", Preferences.Register())
 	s.router.Mount("/tags", TagsDomain.Register())
+	s.router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 }
