@@ -8,8 +8,6 @@ services:
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
-    ports:
-      - "${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,8 +16,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    networks:
-      - nuts_internal
     user: postgres
     ulimits:
       nproc: 65535
@@ -43,8 +39,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - nuts_internal
     deploy:
       restart_policy:
         condition: on-failure
@@ -59,6 +53,7 @@ services:
       args:
         API_PORT: ${API_PORT}
     environment:
+      API_HOST: ${API_HOST}
       API_PORT: ${API_PORT}
       API_REQUEST_LOG: ${API_REQUEST_LOG}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
@@ -79,17 +74,12 @@ services:
         condition: service_healthy
       migrations:
         condition: service_completed_successfully
-    ports:
-      - "${API_PORT}:${API_PORT}"
-    networks:
-      - nuts_internal
-      - nuts_external
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "${API_PORT}"]
+      test: ["CMD", "/usr/bin/local/healthcheck"]
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -110,18 +100,14 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
-    environment:
-      VITE_API_URL: http://server:${API_PORT}
-      NODE_ENV: production
-    ports:
-      - "3000:3000"
+      args:
+        VITE_API_URL: ${API_URL}
+        NODE_ENV: production
     depends_on:
       server:
         condition: service_healthy
-    networks:
-      - nuts_external
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "-q", "--spider", "http://0.0.0.0"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -133,12 +119,10 @@ services:
     security_opt:
       - no-new-privileges:true
     read_only: true
-
-networks:
-  nuts_internal:
-    internal: true # No external connectivity
-  nuts_external:
-    driver: bridge
+    tmpfs:
+      - /tmp:size=50M
+      - /var/cache/nginx:size=50M
+      - /var/run:size=50M
 
 volumes:
   postgres_data:
