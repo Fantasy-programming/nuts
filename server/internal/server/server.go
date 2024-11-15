@@ -70,6 +70,7 @@ func (s *Server) setCors() {
 		cors.Options{
 			AllowedOrigins: s.cfg.AllowedOrigins,
 			AllowedMethods: []string{
+				http.MethodOptions,
 				http.MethodHead,
 				http.MethodGet,
 				http.MethodPost,
