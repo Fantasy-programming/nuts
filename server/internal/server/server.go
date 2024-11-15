@@ -68,7 +68,8 @@ func (s *Server) Init() {
 func (s *Server) setCors() {
 	s.cors = cors.New(
 		cors.Options{
-			AllowedOrigins: s.cfg.AllowedOrigins,
+			// Just to test
+			AllowedOrigins: []string{"https://*", "http://*"},
 			AllowedMethods: []string{
 				http.MethodOptions,
 				http.MethodHead,
@@ -120,11 +121,11 @@ func (s *Server) NewRouter() {
 }
 
 func (s *Server) setGlobalMiddleware() {
+	s.router.Use(s.cors.Handler)
 	s.router.Use(middleware.RequestID)
 	s.router.Use(middleware.RealIP)
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
-	s.router.Use(s.cors.Handler)
 
 	s.router.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
