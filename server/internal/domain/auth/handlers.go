@@ -15,9 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const (
-	minPasswordLength = 13
-)
+const minPasswordLength = 13
 
 var (
 	ErrDefaultFailure = errors.New("Wrong email or password")
@@ -28,6 +26,7 @@ var (
 
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	var request LoginRequest
+	roles := []string{"user"}
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
@@ -53,35 +52,39 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := pass.GenerateToken(user.ID, a.config.SigningKey, time.Minute*5)
+	token, err := pass.GenerateToken(user.ID, roles, a.config.SigningKey, time.Minute*30)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
-	rtoken, err := pass.GenerateToken(user.ID, a.config.RefreshKey, time.Hour*24*7)
+	headerToken, signature, err := pass.SplitJWT(token)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
+	// Header+Payload
 	http.SetCookie(w, &http.Cookie{
-		Name:     "nutsToken",
-		Value:    rtoken,
-		Expires:  time.Now().Add(7 * 24 * time.Hour),
-		HttpOnly: true,
+		Name:     "nutsPayload",
+		Value:    headerToken,
+		Path:     "/",
+		Expires:  time.Now().Add(30 * time.Minute),
+		SameSite: http.SameSiteStrictMode,
+		// Secure:  true,
 	})
 
-	respond.Json(w, http.StatusOK, LoginResponse{
-		Token: token,
-		User: UserProfile{
-			Email:     user.Email,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-		},
+	// Signature
+	http.SetCookie(w, &http.Cookie{
+		Name:     "nutsSignature",
+		Value:    signature,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		// Secure:   true,
 	})
+
+	respond.Json(w, http.StatusOK, map[string]string{"message": "Login successful"})
 }
 
 // TODO: Make this a transaction (create user + defaults)
@@ -172,54 +175,6 @@ func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	// Respond with a success message
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Logged out successfully"))
-}
-
-func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("nutsToken")
-	if err != nil {
-		http.Error(w, "Refresh token not found", http.StatusUnauthorized)
-		return
-	}
-
-	refreshToken := cookie.Value
-
-	// we verify that the refreshtoken hasn't expired
-	claims, err := pass.VerifyRefreshToken(refreshToken, a.config.RefreshKey)
-	if err != nil {
-		http.Error(w, "Invalid or expired refresh token", http.StatusUnauthorized)
-		return
-	}
-
-	// Generate Access token
-	accessToken, err := pass.GenerateToken(claims.UserId, a.config.SigningKey, time.Minute*5)
-	if err != nil {
-		http.Error(w, "Failed to generate refresh token", http.StatusInternalServerError)
-		return
-	}
-
-	// NOTE: we should verify that the user is still active
-	// we generate a new access token + new refresh token (new refresh token is made if it will expire in 2 or less days)
-
-	if claims.ExpiresAt.Time.Sub(time.Now()) <= 48*time.Hour {
-		newRefreshToken, err := pass.GenerateToken(claims.UserId, a.config.RefreshKey, time.Hour*24*7)
-		if err != nil {
-			http.Error(w, "Failed to generate refresh token", http.StatusInternalServerError)
-			return
-		}
-
-		http.SetCookie(w, &http.Cookie{
-			Name:     "nutsToken",
-			Value:    newRefreshToken,
-			Path:     "/",
-			Expires:  time.Now().Add(7 * 24 * time.Hour), // Set the expiration time as needed
-			HttpOnly: true,
-			// Secure:   true,
-		})
-	}
-
-	respond.Json(w, http.StatusOK, map[string]string{
-		"token": accessToken,
-	})
 }
 
 func isStrongPassword(password string) bool {

@@ -1,11 +1,10 @@
 import { createContext } from "react";
-import type { AuthResponse, AuthResNullable } from "@/services/auth.types";
+import type { JWT } from "@/services/auth.types";
 
 export interface AuthContext {
   isLoggedIn: boolean;
-  user: AuthResponse | AuthResNullable;
-  storeUser: (newJwt: AuthResponse) => void;
-  storeJwt: (jwt: string) => void;
+  user: { user: JWT | null };
+  storeUser: () => void;
   logout: () => void;
 }
 

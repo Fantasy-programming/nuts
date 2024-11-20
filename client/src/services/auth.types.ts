@@ -44,14 +44,15 @@ export interface ErrorResponse {
   success: boolean;
 }
 
-export interface AuthResponse {
-  token: string;
-  user: User;
+export interface AuthNullable {
+  user: JWT | null;
 }
 
-export interface AuthResNullable {
-  token: string;
-  user: User | null;
+export interface JWT {
+  UserId: string;
+  exp: number;
+  iat: number;
+  roles: string[];
 }
 
 export interface RefreshAuthRes {

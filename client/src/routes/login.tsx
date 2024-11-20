@@ -23,8 +23,6 @@ import { toast } from "sonner";
 import { loginSchema, LoginFormValues } from "@/services/auth.types";
 import { authService } from "@/services/auth";
 import { useAuth } from "@/hooks/use-auth";
-import { setHeaderToken } from "@/lib/axios";
-import { sleep } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
@@ -56,16 +54,14 @@ function RouteComponent() {
   async function onSubmit(values: LoginFormValues) {
     try {
       setIsSubmitting(true);
-      const response = await authService.login(values);
-      auth.storeUser(response);
-      setHeaderToken(response.token);
+      await authService.login(values);
+      auth.storeUser();
 
       toast.success("Welcome back", {
         description: "Welcome to your account",
       });
 
       await router.invalidate();
-      // await sleep(1);
       await navigate({ to: "/dashboard/home" });
     } catch (error) {
       toast.error("Error", {

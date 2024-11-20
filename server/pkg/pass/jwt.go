@@ -2,6 +2,8 @@ package pass
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,19 +16,38 @@ type Claims struct {
 }
 
 // TODO: ADD Stuff on the claims
-func GenerateToken(id uuid.UUID, key string, duration time.Duration) (string, error) {
+func GenerateToken(id uuid.UUID, roles []string, key string, duration time.Duration) (string, error) {
 	expirationTime := time.Now().Add(duration)
 
-	claims := &Claims{
-		UserId: id,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-		},
+	claims := jwt.MapClaims{
+		"UserId": id,
+		"roles":  roles,
+		"iat":    time.Now().Unix(),
+		"exp":    expirationTime,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(key))
 	return tokenString, err
+}
+
+func SplitJWT(token string) (headerPayload string, signature string, err error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return "", "", fmt.Errorf("invalid JWT format")
+	}
+
+	headerPayload = strings.Join(parts[:2], ".") // header.payload
+	signature = parts[2]                         // signature
+	return headerPayload, signature, nil
+}
+
+func ReconstructJWT(headerPayload string, signature string) (string, error) {
+	if headerPayload == "" || signature == "" {
+		return "", fmt.Errorf("headerPayload and signature must not be empty")
+	}
+
+	return headerPayload + "." + signature, nil
 }
 
 func VerifyRefreshToken(tokenStr string, key string) (*Claims, error) {

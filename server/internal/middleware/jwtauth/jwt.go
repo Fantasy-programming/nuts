@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -34,7 +35,7 @@ var (
 )
 
 func Verifier(key string) func(http.Handler) http.Handler {
-	return Verify(key, TokenFromHeader, TokenFromCookie)
+	return Verify(key, TokenFromHeader, TokenDoubleCookie, TokenFromCookie)
 }
 
 func Verify(key string, findTokenFns ...func(r *http.Request) string) func(http.Handler) http.Handler {
@@ -123,6 +124,15 @@ func Authenticator() func(http.Handler) http.Handler {
 				return
 			}
 
+			// token is ok refresh the payload token (if exist)
+
+			cookie, err := r.Cookie("nutsPayload")
+
+			if err == nil {
+				cookie.Expires = time.Now().Add(30 * time.Minute)
+				http.SetCookie(w, cookie)
+			}
+
 			// Token is authenticated, pass it through
 			next.ServeHTTP(w, r)
 		}
@@ -170,6 +180,18 @@ func TokenFromCookie(r *http.Request) string {
 	return cookie.Value
 }
 
+// Get the token from the double cookie
+func TokenDoubleCookie(r *http.Request) string {
+	headerCookie, err1 := r.Cookie("nutsPayload")
+	signatureCookie, err2 := r.Cookie("nutsSignature")
+
+	if err1 != nil || err2 != nil {
+		return ""
+	}
+
+	return headerCookie.Value + "." + signatureCookie.Value
+}
+
 // TokenFromHeader tries to retreive the token string from the
 // "Authorization" reqeust header: "Authorization: BEARER T".
 func TokenFromHeader(r *http.Request) string {
@@ -179,21 +201,6 @@ func TokenFromHeader(r *http.Request) string {
 		return bearer[7:]
 	}
 	return ""
-}
-
-// TokenFromQuery tries to retreive the token string from the "jwt" URI
-// query parameter.
-//
-// To use it, build our own middleware handler, such as:
-//
-//	func Verifier(ja *JWTAuth) func(http.Handler) http.Handler {
-//		return func(next http.Handler) http.Handler {
-//			return Verify(ja, TokenFromQuery, TokenFromHeader, TokenFromCookie)(next)
-//		}
-//	}
-func TokenFromQuery(r *http.Request) string {
-	// Get token from query param named "jwt".
-	return r.URL.Query().Get("jwt")
 }
 
 // contextKey is a value for use with context.WithValue. It's used as
