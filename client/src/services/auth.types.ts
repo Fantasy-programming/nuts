@@ -49,6 +49,11 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface AuthResNullable {
+  token: string;
+  user: User | null;
+}
+
 export interface RefreshAuthRes {
   token: string;
 }

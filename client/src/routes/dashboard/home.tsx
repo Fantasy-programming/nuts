@@ -31,6 +31,7 @@ import { useDashboardStore } from "@/store/dashboard.store";
 import { DashboardGrid } from "@/components/layouts/dashboard-grid";
 import { ChartContainer } from "@/components/layouts/chart-card";
 import { Tooltip } from "@/components/ui/tooltip";
+import { AddChartDialog } from "@/components/add-chart";
 
 const accountData = [
   {
@@ -95,7 +96,7 @@ export const Route = createFileRoute("/dashboard/home")({
 });
 
 function RouteComponent() {
-  const { charts, chartOrder } = useDashboardStore();
+  const { charts, chartOrder, addChart } = useDashboardStore();
 
   const renderChart = (chart: (typeof charts)[0]) => {
     switch (chart.type) {
@@ -232,6 +233,7 @@ function RouteComponent() {
                 {renderChart(chart)}
               </ChartContainer>
             ))}
+            <AddChartDialog onAddChart={addChart} />
           </DashboardGrid>
         </div>
       </main>

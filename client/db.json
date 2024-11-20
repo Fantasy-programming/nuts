@@ -1,0 +1,65 @@
+{
+  "chartData": {
+    "balanceOverview": [
+      { "name": "Jan", "value": 4000 },
+      { "name": "Feb", "value": 3000 },
+      { "name": "Mar", "value": 6000 },
+      { "name": "Apr", "value": 8000 },
+      { "name": "May", "value": 7000 }
+    ],
+    "incomeVsExpenses": [
+      { "name": "Jan", "income": 4000, "expenses": 2400 },
+      { "name": "Feb", "income": 3000, "expenses": 1398 },
+      { "name": "Mar", "income": 2000, "expenses": 9800 },
+      { "name": "Apr", "income": 2780, "expenses": 3908 },
+      { "name": "May", "income": 1890, "expenses": 4800 }
+    ],
+    "expenseCategories": [
+      { "name": "Food", "value": 400 },
+      { "name": "Transport", "value": 300 },
+      { "name": "Shopping", "value": 300 },
+      { "name": "Bills", "value": 200 }
+    ]
+  },
+  "accounts": [
+    { "id": "1", "name": "Cash", "balance": 1234, "type": "cash" },
+    { "id": "2", "name": "Savings", "balance": 12345, "type": "savings" },
+    {
+      "id": "3",
+      "name": "Investments",
+      "balance": 34567,
+      "type": "investment"
+    },
+    { "id": "4", "name": "Credit", "balance": -2345, "type": "credit" }
+  ],
+  "transactions": [
+    {
+      "id": "1",
+      "date": "2024-03-15",
+      "description": "Grocery Shopping",
+      "category": "Food",
+      "amount": -120.5
+    },
+    {
+      "id": "2",
+      "date": "2024-03-14",
+      "description": "Salary Deposit",
+      "category": "Income",
+      "amount": 3000.0
+    },
+    {
+      "id": "3",
+      "date": "2024-03-13",
+      "description": "Electric Bill",
+      "category": "Utilities",
+      "amount": -85.2
+    },
+    {
+      "id": "4",
+      "date": "2024-03-12",
+      "description": "Restaurant",
+      "category": "Food",
+      "amount": -45.8
+    }
+  ]
+}

@@ -1,5 +1,4 @@
 import { api as axios } from "@/lib/axios";
-
 import { AuthResponse, LoginFormValues, SignupFormValues } from "./auth.types";
 
 const BASEURI = "/auth";
@@ -21,4 +20,4 @@ const logout = async () => {
   await axios.post(`${BASEURI}/logout`);
 };
 
-export default { signup, logout, login };
+export const authService = { signup, logout, login };

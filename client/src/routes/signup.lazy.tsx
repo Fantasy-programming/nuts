@@ -15,7 +15,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { SignupFormValues, signupSchema } from "@/services/auth.types";
-import authservice from "@/services/auth";
+import { authService } from "@/services/auth";
 
 export const Route = createLazyFileRoute("/signup")({
   component: RouteComponent,
@@ -35,10 +35,9 @@ function RouteComponent() {
   });
 
   async function onSubmit(values: SignupFormValues) {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-
-      await authservice.signup(values);
+      await authService.signup(values);
       toast.success("Account created successfully", {
         description: "You can now login into the system",
       });

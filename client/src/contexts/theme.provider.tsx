@@ -36,7 +36,7 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (theme: Theme) => {
-      sessionStorage.setItem(storageKey, theme);
+      localStorage.setItem(storageKey, theme);
       setTheme(theme);
     },
   };

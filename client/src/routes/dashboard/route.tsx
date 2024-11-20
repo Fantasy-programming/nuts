@@ -53,7 +53,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
 
-type ValidRoutes = ParseRoute<typeof routeTree>["fullPath"];
+export type ValidRoutes = ParseRoute<typeof routeTree>["fullPath"];
 type navStuff = {
   title: string;
   url: ValidRoutes;
@@ -196,9 +196,11 @@ function RouteComponent() {
                     <Users className="mr-2 h-4 w-4" />
                     Workspace settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Account settings
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Account settings
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuSub>

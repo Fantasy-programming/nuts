@@ -4,7 +4,7 @@ const BASEURL = import.meta.env.VITE_API_URL;
 
 console.log("RES:", BASEURL);
 
-type RefreshFn = () => Promise<string>;
+type RefreshFn = () => Promise<string | undefined>;
 type LogoutFn = () => void;
 
 const createAPI = (
@@ -61,7 +61,7 @@ export const removeHeaderToken = () => {
 };
 
 export const initAPI = (
-  refreshTokenFn: () => Promise<string>,
+  refreshTokenFn: () => Promise<string | undefined>,
   logoutFn: () => void,
 ) => {
   api = createAPI(refreshTokenFn, logoutFn);

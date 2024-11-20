@@ -10,14 +10,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Label } from "@/components/ui/label";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  redirect,
+  useNavigate,
+  useRouter,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { loginSchema, LoginFormValues } from "@/services/auth.types";
-import authservice from "@/services/auth";
+import { authService } from "@/services/auth";
 import { useAuth } from "@/hooks/use-auth";
 import { setHeaderToken } from "@/lib/axios";
+import { sleep } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
@@ -32,9 +39,11 @@ export const Route = createFileRoute("/login")({
 });
 
 function RouteComponent() {
+  const auth = useAuth();
+  const router = useRouter();
   const navigate = useNavigate({ from: "/login" });
-  const [isLoading, setIsLoading] = useState(false);
-  const { storeUser } = useAuth();
+  const isLoading = useRouterState({ select: (s) => s.isLoading });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -46,23 +55,29 @@ function RouteComponent() {
 
   async function onSubmit(values: LoginFormValues) {
     try {
-      setIsLoading(true);
-      const response = await authservice.login(values);
-      storeUser(response);
+      setIsSubmitting(true);
+      const response = await authService.login(values);
+      auth.storeUser(response);
       setHeaderToken(response.token);
+
       toast.success("Welcome back", {
         description: "Welcome to your account",
       });
-      navigate({ to: "/dashboard/home" });
+
+      await router.invalidate();
+      // await sleep(1);
+      await navigate({ to: "/dashboard/home" });
     } catch (error) {
       toast.error("Error", {
         description: "There was a problem logging you in",
       });
       console.log(error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   }
+
+  const isLoggingIn = isLoading || isSubmitting;
 
   return (
     <div className="container mx-auto py-10">
@@ -105,8 +120,8 @@ function RouteComponent() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "login in..." : "Login"}
+            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+              {isLoggingIn ? "login in..." : "Login"}
             </Button>
           </CardFooter>
         </form>
