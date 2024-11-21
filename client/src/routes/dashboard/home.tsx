@@ -1,17 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard, BarChart3, Users, Wallet } from "lucide-react";
-
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Line,
   LineChart,
@@ -29,42 +16,13 @@ import {
 } from "recharts";
 import { useDashboardStore } from "@/store/dashboard.store";
 import { DashboardGrid } from "@/components/layouts/dashboard-grid";
-import { ChartContainer } from "@/components/layouts/chart-card";
-import { Tooltip } from "@/components/ui/tooltip";
+import { ChartCard } from "@/components/layouts/chart-card";
 import { AddChartDialog } from "@/components/add-chart";
-
-const accountData = [
-  {
-    name: "Cash",
-    balance: "0.00",
-    color: "bg-orange-500",
-    icon: Wallet,
-  },
-  {
-    name: "Mikronet",
-    balance: "0.00",
-    color: "bg-green-600",
-    icon: CreditCard,
-  },
-  {
-    name: "Exness",
-    balance: "0.00",
-    color: "bg-gray-800",
-    icon: BarChart3,
-  },
-  {
-    name: "Work",
-    balance: "0.00",
-    color: "bg-teal-600",
-    icon: Users,
-  },
-  {
-    name: "Savings",
-    balance: "0.00",
-    color: "bg-blue-500",
-    icon: Wallet,
-  },
-];
+import {
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartContainer,
+} from "@/components/ui/chart";
 
 const lineData = [
   { name: "Jan", value: 400 },
@@ -107,7 +65,7 @@ function RouteComponent() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip />
+              <ChartTooltip content={<ChartTooltipContent />} />
               <Line type="monotone" dataKey="value" stroke="#8884d8" />
             </LineChart>
           </ResponsiveContainer>
@@ -119,7 +77,7 @@ function RouteComponent() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip />
+              <ChartTooltip content={<ChartTooltipContent />} />
               <Bar dataKey="value" fill="#8884d8" />
             </BarChart>
           </ResponsiveContainer>
@@ -131,7 +89,7 @@ function RouteComponent() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip />
+              <ChartTooltip content={<ChartTooltipContent />} />
               <Area
                 type="monotone"
                 dataKey="income"
@@ -169,12 +127,12 @@ function RouteComponent() {
                   />
                 ))}
               </Pie>
-              <Tooltip />
+              <ChartTooltip content={<ChartTooltipContent />} />
             </PieChart>
           </ResponsiveContainer>
         );
       default:
-        return null;
+        throw new Error("malformated chart data");
     }
   };
 
@@ -184,59 +142,17 @@ function RouteComponent() {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-        <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Building Your Application
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </header>
-      <main className="flex flex-1 overflow-y-auto">
-        <div className="container mx-auto p-6 space-y-8">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-            {accountData.map((account) => (
-              <Card key={account.name}>
-                <CardHeader
-                  className={`flex flex-row items-center justify-between space-y-0 ${account.color} text-white rounded-t-lg`}
-                >
-                  <CardTitle className="text-sm font-medium">
-                    {account.name}
-                  </CardTitle>
-                  <account.icon className="h-4 w-4" />
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="text-2xl font-bold">
-                    GHS {account.balance}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <DashboardGrid>
-            {orderedCharts.map((chart) => (
-              <ChartContainer key={chart.id} id={chart.id} title={chart.title}>
-                {renderChart(chart)}
-              </ChartContainer>
-            ))}
-            <AddChartDialog onAddChart={addChart} />
-          </DashboardGrid>
-        </div>
-      </main>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+      </div>
+      <DashboardGrid>
+        {orderedCharts.map((chart) => (
+          <ChartCard key={chart.id} id={chart.id} title={chart.title}>
+            <ChartContainer config={{}}>{renderChart(chart)}</ChartContainer>
+          </ChartCard>
+        ))}
+        <AddChartDialog onAddChart={addChart} />
+      </DashboardGrid>
     </>
   );
 }

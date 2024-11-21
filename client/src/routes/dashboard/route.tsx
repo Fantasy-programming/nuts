@@ -7,6 +7,7 @@ import {
 import { routeTree } from "@/routeTree.gen";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import {
   ChevronDown,
   CreditCard,
@@ -50,6 +51,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
 
@@ -237,7 +239,18 @@ function RouteComponent() {
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
-        <Outlet />
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumbs />
+          </div>
+        </header>
+        <main className="flex flex-1 overflow-y-auto">
+          <div className="container mx-auto p-6 space-y-8">
+            <Outlet />
+          </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 
-interface ChartContainerProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ChartCardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Unique identifier for the chart */
   id: string;
   /** Title of the chart */
@@ -29,7 +29,7 @@ interface ChartContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   onDragEnd?: () => void;
 }
 
-const ChartContainer = React.forwardRef<HTMLDivElement, ChartContainerProps>(
+const ChartCard = React.forwardRef<HTMLDivElement, ChartCardProps>(
   (
     {
       id,
@@ -116,6 +116,6 @@ const ChartContainer = React.forwardRef<HTMLDivElement, ChartContainerProps>(
   },
 );
 
-ChartContainer.displayName = "ChartContainer";
+ChartCard.displayName = "ChartCard";
 
-export { ChartContainer };
+export { ChartCard };
