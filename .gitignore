@@ -2,7 +2,6 @@
 .devenv*
 devenv.local.nix
 .tmp
-.env.server
 
 # direnv
 .direnv

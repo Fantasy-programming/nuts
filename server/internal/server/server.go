@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,13 +11,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
 	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/jackc/pgx/v5"
 )
+
+var embedMigrations embed.FS
 
 type Server struct {
 	cfg        *config.Config
