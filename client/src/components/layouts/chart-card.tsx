@@ -9,18 +9,6 @@ import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 interface ChartCardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Unique identifier for the chart */
   id: string;
-  /** Title of the chart */
-  title: string;
-  /** Whether to show the drag handle */
-  showDragHandle?: boolean;
-  /** Additional classes for the container */
-  containerClassName?: string;
-  /** Additional classes for the header */
-  headerClassName?: string;
-  /** Additional classes for the content */
-  contentClassName?: string;
-  /** Custom drag handle component */
-  dragHandleComponent?: React.ReactNode;
   /** Whether the chart is draggable */
   draggable?: boolean;
   /** Callback when drag starts */
@@ -29,17 +17,13 @@ interface ChartCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onDragEnd?: () => void;
 }
 
+
 const ChartCard = React.forwardRef<HTMLDivElement, ChartCardProps>(
   (
     {
       id,
       title,
       children,
-      showDragHandle = true,
-      containerClassName,
-      headerClassName,
-      contentClassName,
-      dragHandleComponent,
       draggable = true,
       onDragStart,
       onDragEnd,
@@ -48,6 +32,7 @@ const ChartCard = React.forwardRef<HTMLDivElement, ChartCardProps>(
     },
     ref,
   ) => {
+
     const {
       attributes,
       listeners,
@@ -78,7 +63,6 @@ const ChartCard = React.forwardRef<HTMLDivElement, ChartCardProps>(
         ref={setNodeRef}
         className={cn(
           "relative group",
-          containerClassName,
           isDragging && "opacity-50",
           className,
         )}
@@ -91,7 +75,6 @@ const ChartCard = React.forwardRef<HTMLDivElement, ChartCardProps>(
         <CardHeader
           className={cn(
             "flex flex-row items-center justify-between space-y-0 pb-2",
-            headerClassName,
           )}
         >
           <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -116,6 +99,77 @@ const ChartCard = React.forwardRef<HTMLDivElement, ChartCardProps>(
   },
 );
 
+interface ChartHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Title of the chart */
+  chartTitle: string | React.ReactNode;
+  /** Whether to show the drag handle */
+  showDragHandle?: boolean;
+  /** Custom drag handle component */
+  dragHandleComponent?: React.ReactNode;
+}
+
+
+
+
+const ChartHeader = React.forwardRef<HTMLDivElement, ChartHeaderProps>(
+  (
+    {
+      id,
+      title,
+      children,
+      chartTitle,
+      showDragHandle = true,
+      dragHandleComponent,
+      className,
+      ...props
+    },
+    ref,
+  ) => {
+
+    return (
+      <CardHeader
+        className={cn(
+          "flex flex-row items-center justify-between space-y-0 pb-2",
+          className
+        )}
+        ref={ref}
+        {...props}
+      >
+
+      </CardHeader>
+    )
+  }
+
 ChartCard.displayName = "ChartCard";
+
+const ChartCartdHandle = React.forwardRef<HTMLDivElement, ChartHeaderProps>(
+  (
+    {
+      id,
+      title,
+      children,
+      chartTitle,
+      showDragHandle = true,
+      dragHandleComponent,
+      className,
+      ...props
+    },
+    ref,
+  ) => {
+
+    return (
+      <CardHeader
+        className={cn(
+          "flex flex-row items-center justify-between space-y-0 pb-2",
+          className
+        )}
+        ref={ref}
+        {...props}
+      >
+
+      </CardHeader>
+    )
+  }
+
 
 export { ChartCard };
