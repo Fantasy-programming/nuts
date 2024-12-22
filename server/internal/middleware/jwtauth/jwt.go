@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -18,6 +17,11 @@ type JWTAuth struct {
 	signKey   interface{} // private-key
 	verifyKey interface{} // public-key, only used by RSA and ECDSA algorithms
 }
+
+var (
+	CookieHeader    = "nutsPayload"
+	CookieSignature = "nutsSignature"
+)
 
 var (
 	TokenCtxKey = &contextKey{"Token"}
@@ -35,7 +39,7 @@ var (
 )
 
 func Verifier(key string) func(http.Handler) http.Handler {
-	return Verify(key, TokenFromHeader, TokenDoubleCookie, TokenFromCookie)
+	return Verify(key, TokenFromHeader, TokenDoubleCookie)
 }
 
 func Verify(key string, findTokenFns ...func(r *http.Request) string) func(http.Handler) http.Handler {
@@ -78,7 +82,6 @@ func VerifyToken(key string, tokenString string) (jwt.Token, error) {
 
 		return []byte(key), nil
 	})
-	log.Println(err)
 	if err != nil {
 		return jwt.Token{}, ErrorReason(err)
 	}
@@ -125,11 +128,11 @@ func Authenticator() func(http.Handler) http.Handler {
 			}
 
 			// token is ok refresh the payload token (if exist)
-
-			cookie, err := r.Cookie("nutsPayload")
+			cookie, err := r.Cookie(CookieHeader)
 
 			if err == nil {
 				cookie.Expires = time.Now().Add(30 * time.Minute)
+				cookie.Path = "/"
 				http.SetCookie(w, cookie)
 			}
 
@@ -165,25 +168,16 @@ func FromContext(ctx context.Context) (jwt.Token, map[string]interface{}, error)
 
 func GetID(r *http.Request) (uuid.UUID, error) {
 	_, claims, _ := FromContext(r.Context())
-	idStr := claims["id"].(string)
+
+	idStr := claims["UserId"].(string)
 
 	return uuid.Parse(idStr)
 }
 
-// TokenFromCookie tries to retreive the token string from a cookie named
-// "jwt".
-func TokenFromCookie(r *http.Request) string {
-	cookie, err := r.Cookie("jwt")
-	if err != nil {
-		return ""
-	}
-	return cookie.Value
-}
-
-// Get the token from the double cookie
+// Get the token from the double cookie (signature + header)
 func TokenDoubleCookie(r *http.Request) string {
-	headerCookie, err1 := r.Cookie("nutsPayload")
-	signatureCookie, err2 := r.Cookie("nutsSignature")
+	headerCookie, err1 := r.Cookie(CookieHeader)
+	signatureCookie, err2 := r.Cookie(CookieSignature)
 
 	if err1 != nil || err2 != nil {
 		return ""
@@ -192,20 +186,16 @@ func TokenDoubleCookie(r *http.Request) string {
 	return headerCookie.Value + "." + signatureCookie.Value
 }
 
-// TokenFromHeader tries to retreive the token string from the
-// "Authorization" reqeust header: "Authorization: BEARER T".
+// Get the token in the bearer format from the authorization header
 func TokenFromHeader(r *http.Request) string {
-	// Get token from authorization header.
 	bearer := r.Header.Get("Authorization")
+
 	if len(bearer) > 7 && strings.ToUpper(bearer[0:6]) == "BEARER" {
 		return bearer[7:]
 	}
 	return ""
 }
 
-// contextKey is a value for use with context.WithValue. It's used as
-// a pointer so it fits in an interface{} without allocation. This technique
-// for defining context keys was copied from Go 1.7's new use of context in net/http.
 type contextKey struct {
 	name string
 }

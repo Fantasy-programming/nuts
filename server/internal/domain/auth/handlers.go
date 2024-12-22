@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
@@ -66,7 +67,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Header+Payload
 	http.SetCookie(w, &http.Cookie{
-		Name:     "nutsPayload",
+		Name:     jwtauth.CookieHeader,
 		Value:    headerToken,
 		Path:     "/",
 		Expires:  time.Now().Add(30 * time.Minute),
@@ -76,7 +77,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Signature
 	http.SetCookie(w, &http.Cookie{
-		Name:     "nutsSignature",
+		Name:     jwtauth.CookieSignature,
 		Value:    signature,
 		Path:     "/",
 		HttpOnly: true,
@@ -164,12 +165,21 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "nutsToken",
+		Name:     jwtauth.CookieHeader,
 		Value:    "",
 		Path:     "/",
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
-		Secure:   true,
+		// Secure:   true,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     jwtauth.CookieSignature,
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		// Secure:   true,
 	})
 
 	// Respond with a success message

@@ -17,13 +17,11 @@ type Claims struct {
 
 // TODO: ADD Stuff on the claims
 func GenerateToken(id uuid.UUID, roles []string, key string, duration time.Duration) (string, error) {
-	expirationTime := time.Now().Add(duration)
-
 	claims := jwt.MapClaims{
 		"UserId": id,
 		"roles":  roles,
 		"iat":    time.Now().Unix(),
-		"exp":    expirationTime,
+		"exp":    time.Now().Add(duration).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -33,6 +31,7 @@ func GenerateToken(id uuid.UUID, roles []string, key string, duration time.Durat
 
 func SplitJWT(token string) (headerPayload string, signature string, err error) {
 	parts := strings.Split(token, ".")
+
 	if len(parts) != 3 {
 		return "", "", fmt.Errorf("invalid JWT format")
 	}
