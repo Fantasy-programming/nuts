@@ -5,8 +5,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+} from '@/core/components/ui/card'
+import { Badge } from '@/core/components/ui/badge'
 
 export const Route = createFileRoute('/dashboard_/settings/news')({
   component: RouteComponent,

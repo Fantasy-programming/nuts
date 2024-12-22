@@ -21,6 +21,7 @@ import { Route as DashboardHomeImport } from './routes/dashboard/home'
 import { Route as DashboardAnalyticsImport } from './routes/dashboard/analytics'
 import { Route as DashboardAccountsImport } from './routes/dashboard/accounts'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard_/settings/route'
+import { Route as DashboardSettingsIndexImport } from './routes/dashboard_/settings/index'
 import { Route as DashboardSettingsWebhookImport } from './routes/dashboard_/settings/webhook'
 import { Route as DashboardSettingsTagsImport } from './routes/dashboard_/settings/tags'
 import { Route as DashboardSettingsPreferencesImport } from './routes/dashboard_/settings/preferences'
@@ -95,6 +96,12 @@ const DashboardSettingsRouteRoute = DashboardSettingsRouteImport.update({
   id: '/dashboard_/settings',
   path: '/dashboard/settings',
   getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardSettingsIndexRoute = DashboardSettingsIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardSettingsRouteRoute,
 } as any)
 
 const DashboardSettingsWebhookRoute = DashboardSettingsWebhookImport.update({
@@ -279,6 +286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsWebhookImport
       parentRoute: typeof DashboardSettingsRouteImport
     }
+    '/dashboard_/settings/': {
+      id: '/dashboard_/settings/'
+      path: '/'
+      fullPath: '/dashboard/settings/'
+      preLoaderRoute: typeof DashboardSettingsIndexImport
+      parentRoute: typeof DashboardSettingsRouteImport
+    }
   }
 }
 
@@ -313,6 +327,7 @@ interface DashboardSettingsRouteRouteChildren {
   DashboardSettingsPreferencesRoute: typeof DashboardSettingsPreferencesRoute
   DashboardSettingsTagsRoute: typeof DashboardSettingsTagsRoute
   DashboardSettingsWebhookRoute: typeof DashboardSettingsWebhookRoute
+  DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute
 }
 
 const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
@@ -325,6 +340,7 @@ const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
     DashboardSettingsPreferencesRoute: DashboardSettingsPreferencesRoute,
     DashboardSettingsTagsRoute: DashboardSettingsTagsRoute,
     DashboardSettingsWebhookRoute: DashboardSettingsWebhookRoute,
+    DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
   }
 
 const DashboardSettingsRouteRouteWithChildren =
@@ -351,13 +367,13 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings/preferences': typeof DashboardSettingsPreferencesRoute
   '/dashboard/settings/tags': typeof DashboardSettingsTagsRoute
   '/dashboard/settings/webhook': typeof DashboardSettingsWebhookRoute
+  '/dashboard/settings/': typeof DashboardSettingsIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexLazyRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupLazyRoute
-  '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/home': typeof DashboardHomeRoute
@@ -371,6 +387,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings/preferences': typeof DashboardSettingsPreferencesRoute
   '/dashboard/settings/tags': typeof DashboardSettingsTagsRoute
   '/dashboard/settings/webhook': typeof DashboardSettingsWebhookRoute
+  '/dashboard/settings': typeof DashboardSettingsIndexRoute
 }
 
 export interface FileRoutesById {
@@ -393,6 +410,7 @@ export interface FileRoutesById {
   '/dashboard_/settings/preferences': typeof DashboardSettingsPreferencesRoute
   '/dashboard_/settings/tags': typeof DashboardSettingsTagsRoute
   '/dashboard_/settings/webhook': typeof DashboardSettingsWebhookRoute
+  '/dashboard_/settings/': typeof DashboardSettingsIndexRoute
 }
 
 export interface FileRouteTypes {
@@ -416,12 +434,12 @@ export interface FileRouteTypes {
     | '/dashboard/settings/preferences'
     | '/dashboard/settings/tags'
     | '/dashboard/settings/webhook'
+    | '/dashboard/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/signup'
-    | '/dashboard/settings'
     | '/dashboard/accounts'
     | '/dashboard/analytics'
     | '/dashboard/home'
@@ -435,6 +453,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/preferences'
     | '/dashboard/settings/tags'
     | '/dashboard/settings/webhook'
+    | '/dashboard/settings'
   id:
     | '__root__'
     | '/'
@@ -455,6 +474,7 @@ export interface FileRouteTypes {
     | '/dashboard_/settings/preferences'
     | '/dashboard_/settings/tags'
     | '/dashboard_/settings/webhook'
+    | '/dashboard_/settings/'
   fileRoutesById: FileRoutesById
 }
 
@@ -520,7 +540,8 @@ export const routeTree = rootRoute
         "/dashboard_/settings/news",
         "/dashboard_/settings/preferences",
         "/dashboard_/settings/tags",
-        "/dashboard_/settings/webhook"
+        "/dashboard_/settings/webhook",
+        "/dashboard_/settings/"
       ]
     },
     "/dashboard/accounts": {
@@ -573,6 +594,10 @@ export const routeTree = rootRoute
     },
     "/dashboard_/settings/webhook": {
       "filePath": "dashboard_/settings/webhook.tsx",
+      "parent": "/dashboard_/settings"
+    },
+    "/dashboard_/settings/": {
+      "filePath": "dashboard_/settings/index.tsx",
       "parent": "/dashboard_/settings"
     }
   }

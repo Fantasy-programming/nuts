@@ -14,15 +14,16 @@ import {
   Area,
   Cell,
 } from "recharts";
-import { useDashboardStore } from "@/store/dashboard.store";
-import { DashboardGrid } from "@/components/layouts/dashboard-grid";
-import { ChartCard } from "@/components/layouts/chart-card";
-import { AddChartDialog } from "@/components/add-chart";
+import { useDashboardStore } from "@/features/dashboard/stores/dashboard.store";
+import { DashboardGrid } from "@/core/components/layouts/dashboard-grid";
+import { ChartCard, ChartCardDragHandle, ChartCardHeader, ChartCardTitle } from "@/core/components/layouts/chart-card";
+import { AddChartDialog } from "@/core/components/add-chart";
 import {
   ChartTooltip,
   ChartTooltipContent,
   ChartContainer,
-} from "@/components/ui/chart";
+} from "@/core/components/ui/chart";
+import { TimeRangePicker } from "@/core/components/time-range-picker";
 
 const lineData = [
   { name: "Jan", value: 400 },
@@ -143,11 +144,16 @@ function RouteComponent() {
   return (
     <>
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <TimeRangePicker />
       </div>
       <DashboardGrid>
         {orderedCharts.map((chart) => (
-          <ChartCard key={chart.id} id={chart.id} title={chart.title}>
+          <ChartCard key={chart.id} id={chart.id}>
+            <ChartCardHeader showDragHandle={true}>
+              <ChartCardTitle>{chart.title}</ChartCardTitle>
+              <ChartCardDragHandle />
+            </ChartCardHeader>
             <ChartContainer config={{}}>{renderChart(chart)}</ChartContainer>
           </ChartCard>
         ))}

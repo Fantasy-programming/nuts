@@ -1,13 +1,13 @@
 import {
   createFileRoute,
   Outlet,
-  ParseRoute,
+  type ParseRoute,
   redirect,
 } from "@tanstack/react-router";
-import { routeTree } from "@/routeTree.gen";
+import type { routeTree } from "@/routeTree.gen";
 import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { Breadcrumbs } from "@/core/components/breadcrumbs";
 import {
   ChevronDown,
   CreditCard,
@@ -22,11 +22,15 @@ import {
   SunMedium,
   Users,
   Wallet,
-  LucideIcon,
+  type LucideIcon,
 } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/core/components/ui/avatar";
+import { Separator } from "@/core/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +42,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/core/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -52,7 +56,7 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/core/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
 
 export type ValidRoutes = ParseRoute<typeof routeTree>["fullPath"];

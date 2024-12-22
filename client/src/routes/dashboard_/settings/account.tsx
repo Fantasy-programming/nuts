@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { Button } from "@/core/components/ui/button";
+import { Input } from "@/core/components/ui/input";
 import {
   Card,
   CardContent,
@@ -9,7 +9,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from "@/core/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,30 +20,49 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useSettingsStore } from '@/store/settings.store'
+} from "@/core/components/ui/alert-dialog";
+import { Label } from "@/core/components/ui/label";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/core/components/ui/avatar";
+import { useSettingsStore } from "@/features/preferences/stores/settings.store";
+import { userService } from "@/features/preferences/services/user";
 
-export const Route = createFileRoute('/dashboard_/settings/account')({
+export const Route = createFileRoute("/dashboard_/settings/account")({
   component: RouteComponent,
-})
+  loader: async () => {
+    const user = await userService.getMe();
+    return { user };
+  },
+  gcTime: 1000 * 60 * 5,
+  staleTime: 1000 * 60 * 2,
+  pendingComponent: () => <div>Loading account data...</div>,
+  pendingMs: 150,
+  pendingMinMs: 200,
+});
 
 function RouteComponent() {
-  const { profile, updateProfile, deleteAccount } = useSettingsStore()
-  const [avatar, setAvatar] = useState<File | null>(null)
+  const { profile, updateProfile, deleteAccount } = useSettingsStore();
+  const { user } = Route.useLoaderData();
+
+  // const [avatar, setAvatar] = useState<File | null>(null);
+
+  //todo: Third, allow the user to change the data (update)
+  // lastly: allow the user to delete his account
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file && file.size <= 5 * 1024 * 1024) {
-      setAvatar(file)
-      const reader = new FileReader()
+      setAvatar(file);
+      const reader = new FileReader();
       reader.onloadend = () => {
-        updateProfile({ avatar: reader.result as string })
-      }
-      reader.readAsDataURL(file)
+        updateProfile({ avatar: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -57,8 +76,8 @@ function RouteComponent() {
             <Avatar className="h-20 w-20">
               <AvatarImage src={profile.avatar} />
               <AvatarFallback>
-                {profile.firstName?.[0]}
-                {profile.lastName?.[0]}
+                {user.firstName?.[0]}
+                {user.lastName?.[0]}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -77,6 +96,14 @@ function RouteComponent() {
             </div>
           </div>
           <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="firstName">Email</Label>
+              <Input
+                id="email"
+                value={user.email}
+                onChange={(e) => updateProfile({ firstName: e.target.value })}
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="firstName">First Name</Label>
               <Input
@@ -131,5 +158,5 @@ function RouteComponent() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }

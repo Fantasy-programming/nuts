@@ -1,10 +1,10 @@
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/contexts/theme.provider";
-import { AuthContext } from "@/contexts/auth.context";
-import { QueryClient } from "@tanstack/react-query";
+import { Toaster } from "@/core/components/ui/sonner";
+import { ThemeProvider } from "@/features/preferences/contexts/theme.provider";
+import type { AuthContext } from "@/features/auth/contexts/auth.context";
+import type { QueryClient } from "@tanstack/react-query";
 
 interface RouterContext {
   queryClient: QueryClient;

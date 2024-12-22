@@ -15,9 +15,9 @@ import {
   Bell,
   Webhook,
   MessageSquare,
-  LucideIcon,
+  type LucideIcon,
 } from "lucide-react";
-import { ValidRoutes } from "@/routes/dashboard/route";
+import type { ValidRoutes } from "@/routes/dashboard/route";
 
 export const Route = createFileRoute("/dashboard_/settings")({
   component: RouteComponent,

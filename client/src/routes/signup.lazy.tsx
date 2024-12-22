@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/core/components/ui/button";
 import {
   Card,
   CardTitle,
@@ -6,16 +6,19 @@ import {
   CardHeader,
   CardFooter,
   CardDescription,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+} from "@/core/components/ui/card";
+import { Input } from "@/core/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/core/components/ui/label";
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { SignupFormValues, signupSchema } from "@/services/auth.types";
-import { authService } from "@/services/auth";
+import {
+  type SignupFormValues,
+  signupSchema,
+} from "@/features/auth/services/auth.types";
+import { authService } from "@/features/auth/services/auth";
 
 export const Route = createLazyFileRoute("/signup")({
   component: RouteComponent,
