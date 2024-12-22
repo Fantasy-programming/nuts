@@ -24,12 +24,7 @@ func (a *Account) GetAccounts(w http.ResponseWriter, r *http.Request) {
 		respond.Error(w, http.StatusInternalServerError, err)
 	}
 
-	payload, err := json.Marshal(accounts)
-	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, err)
-	}
-
-	respond.Json(w, http.StatusOK, payload)
+	respond.Json(w, http.StatusOK, accounts)
 }
 
 func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
@@ -127,13 +122,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := json.Marshal(account)
-	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	respond.Json(w, http.StatusOK, payload)
+	respond.Json(w, http.StatusOK, account)
 }
 
 func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {

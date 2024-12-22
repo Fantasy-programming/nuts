@@ -1,12 +1,12 @@
 package accounts
 
 type CreateAccountRequest struct {
+	Meta     *[]byte `json:"meta,omitempty" validate:"omitempty"`
 	Name     string  `json:"name" validate:"required"`
 	Type     string  `json:"type" validate:"required"`
-	Balance  float64 `json:"balance" validate:"required"`
 	Currency string  `json:"currency" validate:"required"`
 	Colors   string  `json:"color" validate:"required"`
-	Meta     *[]byte `json:"meta,omitempty" validate:"omitempty"`
+	Balance  float64 `json:"balance" validate:"required"`
 }
 
 type UpdateAccountRequest struct {

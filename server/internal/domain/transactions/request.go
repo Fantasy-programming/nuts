@@ -5,22 +5,22 @@ import (
 )
 
 type CreateAccountRequest struct {
+	Meta     *[]byte `json:"meta,omitempty" validate:"omitempty"`
 	Name     string  `json:"name" validate:"required"`
 	Type     string  `json:"type" validate:"required"`
-	Balance  float64 `json:"balance" validate:"required"`
 	Currency string  `json:"currency" validate:"required"`
 	Colors   string  `json:"color" validate:"required"`
-	Meta     *[]byte `json:"meta,omitempty" validate:"omitempty"`
+	Balance  float64 `json:"balance" validate:"required"`
 }
 
 type CreateTransactionRequest struct {
-	Amount              float64   `json:"amount"`
+	TransactionDatetime time.Time `json:"transaction_datetime"`
+	Description         *string   `json:"description"`
+	Location            *string   `json:"location"`
 	Type                string    `json:"type"`
 	AccountID           string    `json:"account_id"`
 	CategoryID          string    `json:"category_id"`
-	Description         *string   `json:"description"`
-	TransactionDatetime time.Time `json:"transaction_datetime"`
 	Medium              string    `json:"medium"`
-	Location            *string   `json:"location"`
 	Details             []byte    `json:"details"`
+	Amount              float64   `json:"amount"`
 }
