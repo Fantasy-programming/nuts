@@ -4,12 +4,7 @@
 CREATE TYPE "COLOR_ENUM" AS ENUM ('red', 'green', 'blue');
 CREATE TYPE "ACCOUNT_TYPE" AS ENUM ('cash', 'momo', 'credit');
 
--- 2: Tables 
-CREATE TABLE currencies (
-    code CHAR(3) PRIMARY KEY,
-    name TEXT
-);
-
+-- 2: Tables
 CREATE TABLE accounts (
     id UUID NOT NULL DEFAULT (uuid_generate_v4()),
     name VARCHAR(100) NOT NULL,
@@ -39,6 +34,5 @@ CREATE INDEX idx_accounts_currency ON accounts (currency);
 -- +goose Down
 DROP TRIGGER IF EXISTS update_accounts_updated_at ON accounts;
 DROP TABLE IF EXISTS accounts;
-DROP TABLE IF EXISTS currencies;
 DROP TYPE IF EXISTS COLOR_ENUM;
 DROP TYPE IF EXISTS ACCOUNT_TYPE;

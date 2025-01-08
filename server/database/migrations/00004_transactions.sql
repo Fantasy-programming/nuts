@@ -1,5 +1,6 @@
 -- +goose Up
 
+-- 1: Tables
 CREATE TABLE categories (
     id UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     name VARCHAR(100) NOT NULL,
@@ -27,10 +28,9 @@ CREATE TABLE transactions (
     type VARCHAR(10) NOT NULL CHECK (type IN ('transfer', 'income', 'expense')),
     account_id UUID NOT NULL REFERENCES accounts (id),
     category_id UUID NOT NULL REFERENCES categories (id),
-    description TEXT,
+    destination_account_id UUID REFERENCES accounts (id),
     transaction_datetime TIMESTAMPTZ NOT NULL,
-    medium VARCHAR(10) NOT NULL CHECK (medium IN ('cash', 'card', 'online')),
-    location TEXT,
+    description TEXT,
     details JSONB,
     created_by UUID REFERENCES users (id),
     updated_by UUID REFERENCES users (id),
