@@ -1,4 +1,4 @@
-import { JWT } from "@/services/auth.types";
+import { JWT } from "@/features/auth/services/auth.types";
 
 const decodeJWT = <T>(token: string): T => {
   const payloadBase64 = token.split(".")[1]; // Extract the payload part

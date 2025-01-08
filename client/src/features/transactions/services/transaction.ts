@@ -1,18 +1,15 @@
-import axios from "axios";
+import { api as axios } from "@/lib/axios";
+import { RecordCreateSchema, recordsSchema, RecordSchema } from "./transaction.types.ts";
 
-const api = axios.create({
-  baseURL: "http://localhost:3001",
-});
+export const getTransactions = async (): Promise<RecordSchema[]> => {
+  const { data } = await axios.get<RecordSchema[]>("/transaction/");
 
-export interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  category: string;
-  amount: number;
-}
 
-export const getTransactions = async (): Promise<Transaction[]> => {
-  const { data } = await api.get<Transaction[]>("/transactions");
+  return recordsSchema.parse(data)
+};
+
+export const createTransaction = async (transaction: RecordCreateSchema): Promise<RecordCreateSchema[]> => {
+  const { data } = await axios.post<RecordSchema[]>("/transaction/", transaction);
   return data;
 };
+

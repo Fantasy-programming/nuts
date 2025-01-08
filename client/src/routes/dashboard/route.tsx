@@ -103,7 +103,7 @@ const navMain: navStuff[] = [
 
 const plugins = [
   {
-    name: "Design Engineering",
+    name: "Properties",
     url: "#",
     icon: Frame,
   },
@@ -111,7 +111,7 @@ const plugins = [
 
 function RouteComponent() {
   const [theme, setTheme] = useState("light");
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
 
   return (
     <SidebarProvider>
@@ -182,11 +182,10 @@ function RouteComponent() {
                     </Avatar>
                     <div className="ml-3 flex flex-1 flex-col group-data-[collapsible=icon]:hidden">
                       <span className="text-sm font-semibold">
-                        {user.user?.first_name ?? "Nameless"}
-                        {user.user?.last_name ?? "User"}
+                        Nameless User
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {user.user?.email}
+                        rickrichard9@gmail.com
                       </span>
                     </div>
                     <ChevronDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />

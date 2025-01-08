@@ -1,5 +1,5 @@
 import { api as axios } from "@/lib/axios";
-import { AuthResponse, LoginFormValues, SignupFormValues } from "./auth.types";
+import { LoginFormValues, SignupFormValues } from "./auth.types";
 
 const BASEURI = "/auth";
 
