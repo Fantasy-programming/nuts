@@ -64,7 +64,7 @@ SET
     transaction_datetime = coalesce(sqlc.narg('transaction_datetime'), transaction_datetime),
     details = coalesce(sqlc.narg('details'), details),
     updated_by = sqlc.arg('updated_by')
-WHERE 
+WHERE
     id = sqlc.arg('id')
     AND deleted_at IS NULL
 RETURNING *;
@@ -77,20 +77,21 @@ RETURNING *;
 
 -- name: GetTransactionStats :one
 SELECT
-    COUNT(*) as total_count,
-    SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
-    SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expenses,
-    SUM(CASE WHEN type = 'transfer' THEN amount ELSE 0 END) as total_transfers
+    count(*) AS total_count,
+    sum(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS total_income,
+    sum(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS total_expenses,
+    sum(CASE WHEN type = 'transfer' THEN amount ELSE 0 END) AS total_transfers
 FROM transactions
-WHERE created_by = sqlc.arg('user_id')
-AND transaction_datetime BETWEEN sqlc.arg('start_date') AND sqlc.arg('end_date')
-AND deleted_at IS NULL;
+WHERE
+    created_by = sqlc.arg('user_id')
+    AND transaction_datetime BETWEEN sqlc.arg('start_date') AND sqlc.arg('end_date')
+    AND deleted_at IS NULL;
 
 -- name: GetCategorySpending :many
 SELECT
-    c.name as category_name,
-    SUM(t.amount) as total_amount,
-    COUNT(*) as transaction_count
+    c.name AS category_name,
+    sum(t.amount) AS total_amount,
+    count(*) AS transaction_count
 FROM transactions t
 JOIN categories c ON t.category_id = c.id
 WHERE

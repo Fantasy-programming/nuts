@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/pkg/pass"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -118,23 +120,76 @@ func ErrorReason(err error) error {
 // response for any unverified tokens and passes the good ones through. It's just fine
 // until you decide to write something similar and customize your client response.
 
-func Authenticator() func(http.Handler) http.Handler {
+func Authenticator(key string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		hfn := func(w http.ResponseWriter, r *http.Request) {
-			_, _, err := FromContext(r.Context())
+			_, claims, err := FromContext(r.Context())
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
-			// token is ok refresh the payload token (if exist)
-			cookie, err := r.Cookie(CookieHeader)
+			// extract the claims
+			userRawId, IdOk := claims["UserId"].(string)
+			rolesRaw, RolesOk := claims["roles"].([]interface{})
 
-			if err == nil {
-				cookie.Expires = time.Now().Add(30 * time.Minute)
-				cookie.Path = "/"
-				http.SetCookie(w, cookie)
+			log.Println(userRawId)
+
+			if !IdOk || !RolesOk {
+				http.Error(w, "User ID or Roles not found in claims", http.StatusUnauthorized)
+				return
 			}
+
+			// convert string to uuid
+			userId, err := uuid.Parse(userRawId)
+			if err != nil {
+				http.Error(w, "How is it possible", http.StatusInternalServerError)
+				return
+			}
+
+			// convert roles to string[]
+
+			roles := []string{}
+			for _, role := range rolesRaw {
+				if roleStr, ok := role.(string); ok {
+					roles = append(roles, roleStr)
+				} else {
+					log.Println("Invalid role type in claims")
+				}
+			}
+
+			// Refresh the JWT Token
+			token, err := pass.GenerateToken(userId, roles, key, time.Minute*30)
+			if err != nil {
+				log.Println("Auth: Failed to re-generate JWT", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			headerToken, signature, err := pass.SplitJWT(token)
+			if err != nil {
+				log.Println("Auth: Failed to split JWT", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     CookieHeader,
+				Value:    headerToken,
+				Path:     "/",
+				Expires:  time.Now().Add(30 * time.Minute),
+				SameSite: http.SameSiteStrictMode,
+				// Secure:  true, // Uncomment if using HTTPS
+			})
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     CookieSignature,
+				Value:    signature,
+				Path:     "/",
+				HttpOnly: true,
+				SameSite: http.SameSiteStrictMode,
+				// Secure:   true, // Uncomment if using HTTPS
+			})
 
 			// Token is authenticated, pass it through
 			next.ServeHTTP(w, r)

@@ -24,7 +24,7 @@ func Init(db *pgxpool.Pool, config *config.Config) *Transactions {
 func (a *Transactions) Register() http.Handler {
 	router := router.NewRouter()
 	router.Use(jwtauth.Verifier(a.config.SigningKey))
-	router.Use(jwtauth.Authenticator())
+	router.Use(jwtauth.Authenticator(a.config.SigningKey))
 	router.Get("/", a.GetTransactions)
 	router.Post("/", a.CreateTransaction)
 	router.Get("/{id}", a.GetTransaction)

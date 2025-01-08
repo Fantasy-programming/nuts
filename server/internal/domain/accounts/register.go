@@ -23,7 +23,7 @@ func Init(db *pgxpool.Pool, config *config.Config) *Account {
 func (a *Account) Register() http.Handler {
 	router := router.NewRouter()
 	router.Use(jwtauth.Verifier(a.config.SigningKey))
-	router.Use(jwtauth.Authenticator())
+	router.Use(jwtauth.Authenticator(a.config.SigningKey))
 	router.Get("/", a.GetAccounts)
 	router.Post("/", a.CreateAccount)
 	router.Get("/{id}", a.GetAccount)

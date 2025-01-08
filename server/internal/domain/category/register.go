@@ -23,7 +23,7 @@ func Init(db *pgxpool.Pool, config *config.Config) *Category {
 func (c *Category) Register() http.Handler {
 	router := router.NewRouter()
 	router.Use(jwtauth.Verifier(c.config.SigningKey))
-	router.Use(jwtauth.Authenticator())
+	router.Use(jwtauth.Authenticator(c.config.SigningKey))
 	router.Get("/", c.GetCategories)
 	router.Post("/", c.CreateCategories)
 	router.Put("/{id}", c.UpdateCategory)
