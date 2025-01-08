@@ -6,12 +6,10 @@ INSERT INTO transactions (
     category_id,
     description,
     transaction_datetime,
-    medium,
-    location,
     details,
     created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8
 ) RETURNING *;
 
 -- name: GetTransactionById :one
@@ -64,8 +62,6 @@ SET
     category_id = coalesce(sqlc.narg('category_id'), category_id),
     description = coalesce(sqlc.narg('description'), description),
     transaction_datetime = coalesce(sqlc.narg('transaction_datetime'), transaction_datetime),
-    medium = coalesce(sqlc.narg('medium'), medium),
-    location = coalesce(sqlc.narg('location'), location),
     details = coalesce(sqlc.narg('details'), details),
     updated_by = sqlc.arg('updated_by')
 WHERE 

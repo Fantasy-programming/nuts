@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
@@ -15,12 +16,14 @@ import (
 func (a *Account) GetAccounts(w http.ResponseWriter, r *http.Request) {
 	id, err := jwtauth.GetID(r)
 	if err != nil {
+		log.Println(err)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	accounts, err := a.queries.GetAccounts(r.Context(), &id)
 	if err != nil {
+		log.Println(err)
 		respond.Error(w, http.StatusInternalServerError, err)
 	}
 
@@ -31,27 +34,25 @@ func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
 	idString := r.PathValue("id")
 
 	if idString == "" {
+		log.Println("GetAccount: Missing :id")
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
 
 	finalId, err := uuid.Parse(idString)
 	if err != nil {
+		log.Println("GetAccount: Failed to parse uuid", err)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	account, err := a.queries.GetAccountById(r.Context(), finalId)
 	if err != nil {
+		log.Println("GetAccount: Failed to fetch accounts from db", err)
 		respond.Error(w, http.StatusInternalServerError, err)
 	}
 
-	payload, err := json.Marshal(account)
-	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, err)
-	}
-
-	respond.Json(w, http.StatusOK, payload)
+	respond.Json(w, http.StatusOK, account)
 }
 
 func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +60,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
+		log.Println("CreateAccount: Bad request", err, r.Body)
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
@@ -72,11 +74,13 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	var act repository.ACCOUNTTYPE
 	err = act.Scan(request.Type)
 	if err != nil {
+		log.Println("CreateAccount: Unsupported Account type", err, request.Type)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	if !act.Valid() {
+		log.Println("CreateAccount: Unsupported Account type", err, request.Type)
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
@@ -86,11 +90,13 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	var color repository.COLORENUM
 	err = color.Scan(request.Colors)
 	if err != nil {
+		log.Println("CreateAccount: Unsupported Color", err, request.Colors)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	if !color.Valid() {
+		log.Println("CreateAccount: Unsupported Color", err, request.Colors)
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
@@ -105,6 +111,11 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	// Get id from context
 	id, err := jwtauth.GetID(r)
+	if err != nil {
+		log.Println(err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		return
+	}
 
 	// save the account
 
@@ -118,6 +129,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		Color:     color,
 	})
 	if err != nil {
+		log.Println("CreateAccount: Failed to fetch from db", err)
 		respond.Error(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -129,17 +141,24 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 
 	if idStr == "" {
+		log.Println("UpdateAccount: Missing :id")
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
 
 	// Get id from context
 	accountID, err := uuid.Parse(idStr)
+	if err != nil {
+		log.Println("UpdateAccount: Invalid uuid", err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		return
+	}
 
 	var request CreateAccountRequest
 
 	err = json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
+		log.Println("UpdateAccount: Bad request", err, r.Body)
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
@@ -151,11 +170,14 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	var act repository.NullACCOUNTTYPE
 	err = act.Scan(request.Type)
 	if err != nil {
+
+		log.Println("UpdateAccount: Unsupported Account type", err, request.Type)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	if !act.ACCOUNTTYPE.Valid() {
+		log.Println("UpdateAccount: Unsupported Account type", err, request.Type)
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
@@ -163,11 +185,13 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	var color repository.NullCOLORENUM
 	err = color.Scan(request.Colors)
 	if err != nil {
+		log.Println("UpdateAccount: Unsupported Color type", err, request.Colors)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	if !color.COLORENUM.Valid() {
+		log.Println("UpdateAccount: Unsupported Color type", err, request.Colors)
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
@@ -179,6 +203,11 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID, err := jwtauth.GetID(r)
+	if err != nil {
+		log.Println(err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		return
+	}
 
 	account, err := a.queries.UpdateAccount(r.Context(), repository.UpdateAccountParams{
 		Name:      &request.Name,
@@ -191,32 +220,35 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		ID:        accountID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	payload, err := json.Marshal(account)
-	if err != nil {
+		log.Println("UpdateAccount: Failed to mutate db", err)
 		respond.Error(w, http.StatusInternalServerError, err)
+		return
 	}
 
-	respond.Json(w, http.StatusOK, payload)
+	respond.Json(w, http.StatusOK, account)
 }
 
 func (a *Account) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 
 	if idStr == "" {
+		log.Println("DeleteAccount: Missing :id")
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
 	// Get id from context
 	id, err := uuid.Parse(idStr)
+	if err != nil {
+		log.Println("DeleteAccount: Failed to parse uuid", err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		return
+	}
 
 	// delete the account
 	err = a.queries.DeleteAccount(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respond.Error(w, http.StatusInternalServerError, err)
 	}
 
-	w.WriteHeader(http.StatusOK)
+	respond.Status(w, http.StatusOK)
 }

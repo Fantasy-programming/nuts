@@ -1,7 +1,7 @@
 { pkgs,  ... }:
 
 {
-  packages = [ 
+  packages = [
     pkgs.git
   ];
 

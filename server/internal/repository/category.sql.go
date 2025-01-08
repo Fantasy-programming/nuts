@@ -215,7 +215,7 @@ communication_pc_subcategories AS (
         is_default,
         created_by
     )
-    SELECT 
+    SELECT
         subcat.name,
         pc.id,
         TRUE,

@@ -9,6 +9,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -21,13 +22,11 @@ INSERT INTO transactions (
     category_id,
     description,
     transaction_datetime,
-    medium,
-    location,
     details,
     created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, amount, type, account_id, category_id, description, transaction_datetime, medium, location, details, created_by, updated_by, created_at, updated_at, deleted_at
+    $1, $2, $3, $4, $5, $6, $7, $8
+) RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 `
 
 type CreateTransactionParams struct {
@@ -37,9 +36,7 @@ type CreateTransactionParams struct {
 	CategoryID          uuid.UUID      `json:"category_id"`
 	Description         *string        `json:"description"`
 	TransactionDatetime time.Time      `json:"transaction_datetime"`
-	Medium              string         `json:"medium"`
-	Location            *string        `json:"location"`
-	Details             []byte         `json:"details"`
+	Details             dto.Details    `json:"details"`
 	CreatedBy           *uuid.UUID     `json:"created_by"`
 }
 
@@ -51,8 +48,6 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.CategoryID,
 		arg.Description,
 		arg.TransactionDatetime,
-		arg.Medium,
-		arg.Location,
 		arg.Details,
 		arg.CreatedBy,
 	)
@@ -63,10 +58,9 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		&i.Type,
 		&i.AccountID,
 		&i.CategoryID,
-		&i.Description,
+		&i.DestinationAccountID,
 		&i.TransactionDatetime,
-		&i.Medium,
-		&i.Location,
+		&i.Description,
 		&i.Details,
 		&i.CreatedBy,
 		&i.UpdatedBy,
@@ -81,7 +75,7 @@ const deleteTransaction = `-- name: DeleteTransaction :exec
 UPDATE transactions
 SET deleted_at = current_timestamp
 WHERE id = $1
-RETURNING id, amount, type, account_id, category_id, description, transaction_datetime, medium, location, details, created_by, updated_by, created_at, updated_at, deleted_at
+RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 `
 
 func (q *Queries) DeleteTransaction(ctx context.Context, id uuid.UUID) error {
@@ -139,7 +133,7 @@ func (q *Queries) GetCategorySpending(ctx context.Context, arg GetCategorySpendi
 }
 
 const getTransactionById = `-- name: GetTransactionById :one
-SELECT id, amount, type, account_id, category_id, description, transaction_datetime, medium, location, details, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 FROM transactions
 WHERE
     id = $1
@@ -156,10 +150,9 @@ func (q *Queries) GetTransactionById(ctx context.Context, id uuid.UUID) (Transac
 		&i.Type,
 		&i.AccountID,
 		&i.CategoryID,
-		&i.Description,
+		&i.DestinationAccountID,
 		&i.TransactionDatetime,
-		&i.Medium,
-		&i.Location,
+		&i.Description,
 		&i.Details,
 		&i.CreatedBy,
 		&i.UpdatedBy,
@@ -208,7 +201,7 @@ func (q *Queries) GetTransactionStats(ctx context.Context, arg GetTransactionSta
 }
 
 const listTransactions = `-- name: ListTransactions :many
-SELECT id, amount, type, account_id, category_id, description, transaction_datetime, medium, location, details, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 FROM transactions
 WHERE
     created_by = $1
@@ -231,10 +224,9 @@ func (q *Queries) ListTransactions(ctx context.Context, userID *uuid.UUID) ([]Tr
 			&i.Type,
 			&i.AccountID,
 			&i.CategoryID,
-			&i.Description,
+			&i.DestinationAccountID,
 			&i.TransactionDatetime,
-			&i.Medium,
-			&i.Location,
+			&i.Description,
 			&i.Details,
 			&i.CreatedBy,
 			&i.UpdatedBy,
@@ -253,7 +245,7 @@ func (q *Queries) ListTransactions(ctx context.Context, userID *uuid.UUID) ([]Tr
 }
 
 const listTransactionsByAccount = `-- name: ListTransactionsByAccount :many
-SELECT id, amount, type, account_id, category_id, description, transaction_datetime, medium, location, details, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 FROM transactions
 WHERE
     account_id = $1
@@ -276,10 +268,9 @@ func (q *Queries) ListTransactionsByAccount(ctx context.Context, accountID uuid.
 			&i.Type,
 			&i.AccountID,
 			&i.CategoryID,
-			&i.Description,
+			&i.DestinationAccountID,
 			&i.TransactionDatetime,
-			&i.Medium,
-			&i.Location,
+			&i.Description,
 			&i.Details,
 			&i.CreatedBy,
 			&i.UpdatedBy,
@@ -298,7 +289,7 @@ func (q *Queries) ListTransactionsByAccount(ctx context.Context, accountID uuid.
 }
 
 const listTransactionsByCategory = `-- name: ListTransactionsByCategory :many
-SELECT id, amount, type, account_id, category_id, description, transaction_datetime, medium, location, details, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 FROM transactions
 WHERE
     category_id = $1
@@ -321,10 +312,9 @@ func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID uui
 			&i.Type,
 			&i.AccountID,
 			&i.CategoryID,
-			&i.Description,
+			&i.DestinationAccountID,
 			&i.TransactionDatetime,
-			&i.Medium,
-			&i.Location,
+			&i.Description,
 			&i.Details,
 			&i.CreatedBy,
 			&i.UpdatedBy,
@@ -343,7 +333,7 @@ func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID uui
 }
 
 const listTransactionsByDateRange = `-- name: ListTransactionsByDateRange :many
-SELECT id, amount, type, account_id, category_id, description, transaction_datetime, medium, location, details, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 FROM transactions
 WHERE
     created_by = $1
@@ -373,10 +363,9 @@ func (q *Queries) ListTransactionsByDateRange(ctx context.Context, arg ListTrans
 			&i.Type,
 			&i.AccountID,
 			&i.CategoryID,
-			&i.Description,
+			&i.DestinationAccountID,
 			&i.TransactionDatetime,
-			&i.Medium,
-			&i.Location,
+			&i.Description,
 			&i.Details,
 			&i.CreatedBy,
 			&i.UpdatedBy,
@@ -403,14 +392,12 @@ SET
     category_id = coalesce($4, category_id),
     description = coalesce($5, description),
     transaction_datetime = coalesce($6, transaction_datetime),
-    medium = coalesce($7, medium),
-    location = coalesce($8, location),
-    details = coalesce($9, details),
-    updated_by = $10
+    details = coalesce($7, details),
+    updated_by = $8
 WHERE 
-    id = $11
+    id = $9
     AND deleted_at IS NULL
-RETURNING id, amount, type, account_id, category_id, description, transaction_datetime, medium, location, details, created_by, updated_by, created_at, updated_at, deleted_at
+RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 `
 
 type UpdateTransactionParams struct {
@@ -420,9 +407,7 @@ type UpdateTransactionParams struct {
 	CategoryID          *uuid.UUID         `json:"category_id"`
 	Description         *string            `json:"description"`
 	TransactionDatetime pgtype.Timestamptz `json:"transaction_datetime"`
-	Medium              *string            `json:"medium"`
-	Location            *string            `json:"location"`
-	Details             []byte             `json:"details"`
+	Details             dto.Details        `json:"details"`
 	UpdatedBy           *uuid.UUID         `json:"updated_by"`
 	ID                  uuid.UUID          `json:"id"`
 }
@@ -435,8 +420,6 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		arg.CategoryID,
 		arg.Description,
 		arg.TransactionDatetime,
-		arg.Medium,
-		arg.Location,
 		arg.Details,
 		arg.UpdatedBy,
 		arg.ID,
@@ -448,10 +431,9 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		&i.Type,
 		&i.AccountID,
 		&i.CategoryID,
-		&i.Description,
+		&i.DestinationAccountID,
 		&i.TransactionDatetime,
-		&i.Medium,
-		&i.Location,
+		&i.Description,
 		&i.Details,
 		&i.CreatedBy,
 		&i.UpdatedBy,

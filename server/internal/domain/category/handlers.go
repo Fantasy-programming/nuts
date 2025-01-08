@@ -1,7 +1,6 @@
 package category
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
@@ -21,11 +20,7 @@ func (c *Category) GetCategories(w http.ResponseWriter, r *http.Request) {
 		respond.Error(w, http.StatusInternalServerError, err)
 	}
 
-	payload, err := json.Marshal(categories)
-	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, err)
-	}
-	respond.Json(w, http.StatusOK, payload)
+	respond.Json(w, http.StatusOK, categories)
 }
 func (c *Category) CreateCategories(w http.ResponseWriter, r *http.Request) {}
 func (c *Category) UpdateCategory(w http.ResponseWriter, r *http.Request)   {}

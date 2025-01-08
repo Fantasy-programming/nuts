@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -170,21 +171,20 @@ type Tag struct {
 }
 
 type Transaction struct {
-	ID                  uuid.UUID          `json:"id"`
-	Amount              pgtype.Numeric     `json:"amount"`
-	Type                string             `json:"type"`
-	AccountID           uuid.UUID          `json:"account_id"`
-	CategoryID          uuid.UUID          `json:"category_id"`
-	Description         *string            `json:"description"`
-	TransactionDatetime time.Time          `json:"transaction_datetime"`
-	Medium              string             `json:"medium"`
-	Location            *string            `json:"location"`
-	Details             []byte             `json:"details"`
-	CreatedBy           *uuid.UUID         `json:"created_by"`
-	UpdatedBy           *uuid.UUID         `json:"updated_by"`
-	CreatedAt           time.Time          `json:"created_at"`
-	UpdatedAt           time.Time          `json:"updated_at"`
-	DeletedAt           pgtype.Timestamptz `json:"deleted_at"`
+	ID                   uuid.UUID          `json:"id"`
+	Amount               pgtype.Numeric     `json:"amount"`
+	Type                 string             `json:"type"`
+	AccountID            uuid.UUID          `json:"account_id"`
+	CategoryID           uuid.UUID          `json:"category_id"`
+	DestinationAccountID *uuid.UUID         `json:"destination_account_id"`
+	TransactionDatetime  time.Time          `json:"transaction_datetime"`
+	Description          *string            `json:"description"`
+	Details              dto.Details        `json:"details"`
+	CreatedBy            *uuid.UUID         `json:"created_by"`
+	UpdatedBy            *uuid.UUID         `json:"updated_by"`
+	CreatedAt            time.Time          `json:"created_at"`
+	UpdatedAt            time.Time          `json:"updated_at"`
+	DeletedAt            pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type User struct {

@@ -17,7 +17,7 @@ func (s *Server) RegisterDomain() {
 	AuthDomain := auth.Init(s.db, s.cfg)
 	AccountDomain := accounts.Init(s.db, s.cfg)
 	TransactionDomain := transactions.Init(s.db, s.cfg)
-	CategoryDomain := category.Init(s.db)
+	CategoryDomain := category.Init(s.db, s.cfg)
 	Preferences := preferences.Init(s.db)
 	TagsDomain := tags.Init(s.db)
 

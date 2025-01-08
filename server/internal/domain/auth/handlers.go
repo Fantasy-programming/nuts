@@ -31,6 +31,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
+		log.Println("Login: Malformated request", err, r.Body)
 		respond.Error(w, http.StatusBadRequest, nil)
 		return
 	}
@@ -38,29 +39,34 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := a.queries.GetUserByEmail(r.Context(), request.Email)
 
 	if err != nil || user.Email != request.Email {
+		log.Println("Login: Failed login attempt", err, request)
 		respond.Error(w, http.StatusInternalServerError, ErrDefaultFailure)
 		return
 	}
 
 	res, err := pass.ComparePassAndHash(request.Password, user.Password)
 	if err != nil {
+		log.Println("Login: Incorrect password", err)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	if !res {
+		log.Println("Login: Incorrect password")
 		respond.Error(w, http.StatusInternalServerError, ErrDefaultFailure)
 		return
 	}
 
 	token, err := pass.GenerateToken(user.ID, roles, a.config.SigningKey, time.Minute*30)
 	if err != nil {
+		log.Println("Login: Failed to generate JWT", err)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	headerToken, signature, err := pass.SplitJWT(token)
 	if err != nil {
+		log.Println("Login: Failed to split JWT", err)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}

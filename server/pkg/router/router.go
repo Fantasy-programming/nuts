@@ -3,7 +3,6 @@ package router
 import (
 	"fmt"
 	"net/http"
-	"path"
 	p "path"
 	"slices"
 	"strings"
@@ -14,11 +13,11 @@ type Middleware func(http.Handler) http.Handler
 type RouterOption func(*Router)
 
 type Router struct {
+	notFound http.Handler
 	*http.ServeMux
 	toplevel   string
 	middleware []Middleware
 	routes     []string
-	notFound   http.Handler
 }
 
 func NewRouter(opts ...RouterOption) *Router {
@@ -58,7 +57,7 @@ func (r *Router) Group(fn func(r *Router)) {
 
 // Add a toplevel prefix
 func (r *Router) Prefix(pathStr string) {
-	r.toplevel = path.Join(r.toplevel, pathStr)
+	r.toplevel = p.Join(r.toplevel, pathStr)
 }
 
 func (r *Router) Route(pathStr string, fn func(r *Router)) *Router {
@@ -68,7 +67,7 @@ func (r *Router) Route(pathStr string, fn func(r *Router)) *Router {
 
 	route := &Router{
 		ServeMux:   r.ServeMux,
-		toplevel:   path.Join(r.toplevel, pathStr),
+		toplevel:   p.Join(r.toplevel, pathStr),
 		middleware: slices.Clone(r.middleware),
 		routes:     r.routes, // Inherit the routes
 	}
@@ -83,7 +82,7 @@ func (r *Router) Mount(pathStr string, handler http.Handler) {
 	}
 
 	// Clean and join the path with toplevel
-	mountPath := path.Clean(path.Join(r.toplevel, pathStr))
+	mountPath := p.Clean(p.Join(r.toplevel, pathStr))
 
 	// Ensure the path ends with a trailing slash if it's not root
 	if mountPath != "/" {
@@ -125,7 +124,7 @@ func (r *Router) Mount(pathStr string, handler http.Handler) {
 			// Join the mount path with the subroute path
 			// Remove the leading slash from routePath to avoid double slashes
 			routePath = strings.TrimPrefix(routePath, "/")
-			fullPath := path.Join(mountPath, routePath)
+			fullPath := p.Join(mountPath, routePath)
 
 			// Add the combined route to the parent router's routes
 			r.routes = append(r.routes, fmt.Sprintf("%s %s", method, fullPath))

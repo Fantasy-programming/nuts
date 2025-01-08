@@ -5,7 +5,7 @@
   env.GOOSE_DBSTRING="postgresql://test:secret@localhost:5432/nuts?sslmode=disable";
   env.PATH = "#{config.env.DEVENV_ROOT}/bin:$PATH";  # Just add the local bin to PATH
 
-  packages = [ 
+  packages = [
     pkgs.air
     pkgs.sqlc
     pkgs.go-task
@@ -15,6 +15,7 @@
   ];
 
   languages.go.enable = true;
+
   dotenv = {
     enable = true;
     filename = ".env.server";
@@ -26,7 +27,7 @@
     listen_addresses = "127.0.0.1";
     package = pkgs.postgresql_16;
     initialDatabases = [
-      { 
+      {
         name = "nuts";
       }
     ];

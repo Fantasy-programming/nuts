@@ -28,3 +28,7 @@ sql:
             go_type:
               import: "time"
               type: "Time"
+          - column: "transactions.details"
+            go_type:
+              import: "github.com/Fantasy-Programming/nuts/internal/repository/dto"
+              type: "Details"
