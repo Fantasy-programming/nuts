@@ -15,7 +15,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var embedMigrations embed.FS
@@ -23,7 +23,7 @@ var embedMigrations embed.FS
 type Server struct {
 	cfg        *config.Config
 	cors       *cors.Cors
-	db         *pgx.Conn
+	db         *pgxpool.Pool
 	router     *router.Router
 	httpServer *http.Server
 	Version    string
@@ -103,7 +103,7 @@ func (s *Server) NewDatabase() {
 		s.cfg.Pass,
 	)
 
-	conn, err := pgx.Connect(context.Background(), dsn)
+	conn, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -170,13 +170,13 @@ func gracefulShutdown(ctx context.Context, s *Server) error {
 		log.Println(err)
 	}
 
-	s.closeResources(ctx)
+	s.closeResources()
 
 	return nil
 }
 
-func (s *Server) closeResources(ctx context.Context) {
-	_ = s.db.Close(ctx)
+func (s *Server) closeResources() {
+	s.db.Close()
 }
 
 func start(s *Server) {

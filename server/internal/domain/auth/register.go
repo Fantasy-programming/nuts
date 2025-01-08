@@ -6,7 +6,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Auth struct {
@@ -14,7 +14,7 @@ type Auth struct {
 	config  *config.Config
 }
 
-func Init(db *pgx.Conn, config *config.Config) *Auth {
+func Init(db *pgxpool.Pool, config *config.Config) *Auth {
 	queries := repository.New(db)
 	return &Auth{queries, config}
 }

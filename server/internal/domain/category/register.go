@@ -7,7 +7,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Category struct {
@@ -15,7 +15,7 @@ type Category struct {
 	config  *config.Config
 }
 
-func Init(db *pgx.Conn, config *config.Config) *Category {
+func Init(db *pgxpool.Pool, config *config.Config) *Category {
 	queries := repository.New(db)
 	return &Category{queries, config}
 }

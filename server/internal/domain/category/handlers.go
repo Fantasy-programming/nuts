@@ -10,14 +10,16 @@ import (
 
 func (c *Category) GetCategories(w http.ResponseWriter, r *http.Request) {
 	id, err := jwtauth.GetID(r)
+	ctx := r.Context()
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
-	categories, err := c.queries.ListCategories(r.Context(), id)
+	categories, err := c.queries.ListCategories(ctx, id)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	respond.Json(w, http.StatusOK, categories)

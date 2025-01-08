@@ -11,20 +11,24 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 	"github.com/Fantasy-Programming/nuts/internal/utility/types"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	id, err := jwtauth.GetID(r)
+	ctx := r.Context()
+
 	if err != nil {
 		log.Println(err)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
-	transactions, err := a.queries.ListTransactions(r.Context(), &id)
+	transactions, err := a.queries.ListTransactions(ctx, &id)
 	if err != nil {
 		log.Println(err)
 		respond.Error(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	respond.Json(w, http.StatusOK, transactions)
@@ -32,6 +36,7 @@ func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 
 func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {
 	idString := r.PathValue("id")
+	ctx := r.Context()
 
 	if idString == "" {
 		log.Println("GetTransaction: Missing :id")
@@ -46,10 +51,11 @@ func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transaction, err := a.queries.GetTransactionById(r.Context(), finalId)
+	transaction, err := a.queries.GetTransactionById(ctx, finalId)
 	if err != nil {
 		log.Println(err)
 		respond.Error(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	respond.Json(w, http.StatusOK, transaction)
@@ -57,6 +63,7 @@ func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {
 
 func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	var request CreateTransactionRequest
+	ctx := r.Context()
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
@@ -90,7 +97,22 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	transaction, err := a.queries.CreateTransaction(r.Context(), repository.CreateTransactionParams{
+	tx, err := a.db.Begin(ctx)
+	if err != nil {
+		log.Println(err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		return
+	}
+
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && err != pgx.ErrTxClosed {
+			log.Println("CreateTransaction: Failed to rollback transaction", err)
+		}
+	}()
+
+	qtx := a.queries.WithTx(tx)
+
+	transaction, err := qtx.CreateTransaction(ctx, repository.CreateTransactionParams{
 		Amount:              amount,
 		Type:                request.Type,
 		AccountID:           accountID,
@@ -106,6 +128,17 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
+		ID:      accountID,
+		Balance: amount,
+	})
+
+	if err = tx.Commit(ctx); err != nil {
+		log.Println("CreateTransaction: Failed to commit transaction", err)
+		respond.Error(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	respond.Json(w, http.StatusOK, transaction)
 }
 
@@ -113,6 +146,7 @@ func (a *Transactions) UpdateTransaction(w http.ResponseWriter, r *http.Request)
 
 func (a *Transactions) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	idString := r.PathValue("id")
+	ctx := r.Context()
 
 	if idString == "" {
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
@@ -125,7 +159,7 @@ func (a *Transactions) DeleteTransaction(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = a.queries.DeleteTransaction(r.Context(), finalId)
+	err = a.queries.DeleteTransaction(ctx, finalId)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, err)
 		return

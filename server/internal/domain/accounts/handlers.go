@@ -15,16 +15,18 @@ import (
 
 func (a *Account) GetAccounts(w http.ResponseWriter, r *http.Request) {
 	id, err := jwtauth.GetID(r)
+	ctx := r.Context()
 	if err != nil {
 		log.Println(err)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
-	accounts, err := a.queries.GetAccounts(r.Context(), &id)
+	accounts, err := a.queries.GetAccounts(ctx, &id)
 	if err != nil {
 		log.Println(err)
 		respond.Error(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	respond.Json(w, http.StatusOK, accounts)
@@ -32,6 +34,7 @@ func (a *Account) GetAccounts(w http.ResponseWriter, r *http.Request) {
 
 func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
 	idString := r.PathValue("id")
+	ctx := r.Context()
 
 	if idString == "" {
 		log.Println("GetAccount: Missing :id")
@@ -46,10 +49,11 @@ func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := a.queries.GetAccountById(r.Context(), finalId)
+	account, err := a.queries.GetAccountById(ctx, finalId)
 	if err != nil {
 		log.Println("GetAccount: Failed to fetch accounts from db", err)
 		respond.Error(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	respond.Json(w, http.StatusOK, account)
@@ -57,6 +61,7 @@ func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
 
 func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	var request CreateAccountRequest
+	ctx := r.Context()
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
@@ -119,7 +124,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	// save the account
 
-	account, err := a.queries.CreateAccount(r.Context(), repository.CreateAccountParams{
+	account, err := a.queries.CreateAccount(ctx, repository.CreateAccountParams{
 		CreatedBy: &id,
 		Name:      request.Name,
 		Type:      act,
@@ -139,6 +144,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
+	ctx := r.Context()
 
 	if idStr == "" {
 		log.Println("UpdateAccount: Missing :id")
@@ -170,7 +176,6 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	var act repository.NullACCOUNTTYPE
 	err = act.Scan(request.Type)
 	if err != nil {
-
 		log.Println("UpdateAccount: Unsupported Account type", err, request.Type)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
@@ -209,7 +214,7 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := a.queries.UpdateAccount(r.Context(), repository.UpdateAccountParams{
+	account, err := a.queries.UpdateAccount(ctx, repository.UpdateAccountParams{
 		Name:      &request.Name,
 		Type:      act,
 		Currency:  &request.Currency,
@@ -230,6 +235,7 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 
 func (a *Account) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
+	ctx := r.Context()
 
 	if idStr == "" {
 		log.Println("DeleteAccount: Missing :id")
@@ -245,9 +251,10 @@ func (a *Account) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// delete the account
-	err = a.queries.DeleteAccount(r.Context(), id)
+	err = a.queries.DeleteAccount(ctx, id)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	respond.Status(w, http.StatusOK)

@@ -46,6 +46,12 @@ SET
 WHERE id = sqlc.arg('id')
 RETURNING *;
 
+-- name: UpdateAccountBalance :exec
+UPDATE accounts
+SET balance = balance + $2
+WHERE id = $1;
+
+
 -- name: DeleteAccount :exec
 UPDATE accounts
 SET

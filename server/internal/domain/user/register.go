@@ -7,7 +7,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type User struct {
@@ -15,7 +15,7 @@ type User struct {
 	config  *config.Config
 }
 
-func Init(db *pgx.Conn, config *config.Config) *User {
+func Init(db *pgxpool.Pool, config *config.Config) *User {
 	queries := repository.New(db)
 	return &User{queries, config}
 }

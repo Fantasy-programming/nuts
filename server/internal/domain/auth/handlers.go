@@ -27,6 +27,7 @@ var (
 
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	var request LoginRequest
+	ctx := r.Context()
 	roles := []string{"user"}
 
 	err := json.NewDecoder(r.Body).Decode(&request)
@@ -36,7 +37,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := a.queries.GetUserByEmail(r.Context(), request.Email)
+	user, err := a.queries.GetUserByEmail(ctx, request.Email)
 
 	if err != nil || user.Email != request.Email {
 		log.Println("Login: Failed login attempt", err, request)
@@ -97,6 +98,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 // TODO: Make this a transaction (create user + defaults)
 func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 	var request SignupRequest
+	ctx := r.Context()
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
@@ -120,7 +122,7 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check for existing user
-	existingUser, err := a.queries.GetUserByEmail(r.Context(), request.Email)
+	existingUser, err := a.queries.GetUserByEmail(ctx, request.Email)
 
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
@@ -146,7 +148,7 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 		Password: password,
 	}
 
-	user, err := a.queries.CreateUser(r.Context(), queryParam)
+	user, err := a.queries.CreateUser(ctx, queryParam)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		log.Println(err)
@@ -155,7 +157,7 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 
 	// Create default category
 
-	err = a.queries.CreateDefaultCategories(r.Context(), user.ID)
+	err = a.queries.CreateDefaultCategories(ctx, user.ID)
 	if err != nil {
 		log.Println(err)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)

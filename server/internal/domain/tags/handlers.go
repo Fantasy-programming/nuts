@@ -5,14 +5,14 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Tags struct {
 	queries *repository.Queries
 }
 
-func Init(db *pgx.Conn) *Tags {
+func Init(db *pgxpool.Pool) *Tags {
 	queries := repository.New(db)
 	return &Tags{queries}
 }
