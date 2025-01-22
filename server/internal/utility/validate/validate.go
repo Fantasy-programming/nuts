@@ -11,6 +11,7 @@ func Validate(v *validator.Validate, generic any) []string {
 	err := v.Struct(generic)
 	if err != nil {
 		var invalidValidationError *validator.InvalidValidationError
+
 		if errors.As(err, &invalidValidationError) {
 			fmt.Println(err)
 			return nil

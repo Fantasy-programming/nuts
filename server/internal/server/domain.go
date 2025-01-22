@@ -10,24 +10,63 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/domain/tags"
 	"github.com/Fantasy-Programming/nuts/internal/domain/transactions"
 	"github.com/Fantasy-Programming/nuts/internal/domain/user"
+	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 )
 
 func (s *Server) RegisterDomain() {
-	UserDomain := user.Init(s.db, s.cfg)
-	AuthDomain := auth.Init(s.db, s.cfg)
-	AccountDomain := accounts.Init(s.db, s.cfg)
-	TransactionDomain := transactions.Init(s.db, s.cfg)
-	CategoryDomain := category.Init(s.db, s.cfg)
-	Preferences := preferences.Init(s.db)
-	TagsDomain := tags.Init(s.db)
+	s.initAuth()
+	s.initUser()
+	s.initAccount()
+	s.initTransaction()
+	s.initCategory()
+	s.initPreferences()
+	s.initTags()
+	s.initVersion()
+	s.initHealth()
+}
 
+func (s *Server) initVersion() {
+	s.router.Get("/version", func(w http.ResponseWriter, r *http.Request) {
+		respond.Json(w, http.StatusOK, map[string]string{"version": s.Version})
+	})
+}
+
+func (s *Server) initAuth() {
+	AuthDomain := auth.Init(s.db, s.cfg, s.validator)
 	s.router.Mount("/auth", AuthDomain.Register())
-	s.router.Mount("/account", AccountDomain.Register())
+}
+
+func (s *Server) initUser() {
+	UserDomain := user.Init(s.db, s.cfg)
 	s.router.Mount("/user", UserDomain.Register())
+}
+
+func (s *Server) initAccount() {
+	AccountDomain := accounts.Init(s.db, s.cfg)
+	s.router.Mount("/account", AccountDomain.Register())
+}
+
+func (s *Server) initTransaction() {
+	TransactionDomain := transactions.Init(s.db, s.cfg)
 	s.router.Mount("/transaction", TransactionDomain.Register())
+}
+
+func (s *Server) initCategory() {
+	CategoryDomain := category.Init(s.db, s.cfg)
 	s.router.Mount("/category", CategoryDomain.Register())
+}
+
+func (s *Server) initPreferences() {
+	Preferences := preferences.Init(s.db)
 	s.router.Mount("/preferences", Preferences.Register())
+}
+
+func (s *Server) initTags() {
+	TagsDomain := tags.Init(s.db)
 	s.router.Mount("/tags", TagsDomain.Register())
+}
+
+func (s *Server) initHealth() {
 	s.router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

@@ -36,7 +36,7 @@ var (
 	ErrInvalid      = errors.New("token is invalid")
 	ErrNBFInvalid   = errors.New("token nbf validation failed")
 	ErrIATInvalid   = errors.New("token iat validation failed")
-	ErrNoTokenFound = errors.New("no token found")
+	ErrNoTokenFound = errors.New("JWT Token not found")
 	ErrAlgoInvalid  = errors.New("algorithm mismatch")
 )
 

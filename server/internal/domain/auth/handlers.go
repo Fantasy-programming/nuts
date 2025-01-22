@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
@@ -13,48 +12,54 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 	"github.com/Fantasy-Programming/nuts/pkg/pass"
+	ut "github.com/go-playground/universal-translator"
 	"github.com/jackc/pgx/v5"
 )
 
 const minPasswordLength = 13
 
-var (
-	ErrDefaultFailure = errors.New("Wrong email or password")
-	ErrEmailRequired  = errors.New("email is required")
-	ErrPassword       = errors.New("password doesn't meet the critera")
-	ErrExistingUser   = errors.New("user already exists")
-)
+var roles = []string{"user"}
 
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
-	var request LoginRequest
+	var req LoginRequest
 	ctx := r.Context()
-	roles := []string{"user"}
+	trans := ctx.Value("translator").(ut.Translator)
 
-	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Println("Login: Malformated request", err, r.Body)
-		respond.Error(w, http.StatusBadRequest, nil)
+		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
 		return
 	}
 
-	user, err := a.queries.GetUserByEmail(ctx, request.Email)
-
-	if err != nil || user.Email != request.Email {
-		log.Println("Login: Failed login attempt", err, request)
-		respond.Error(w, http.StatusInternalServerError, ErrDefaultFailure)
+	if err := a.validate.Validator.Struct(req); err != nil {
+		validationErrors := TranslateErrors(err, trans)
+		respond.Json(w, http.StatusBadRequest, validationErrors)
 		return
 	}
 
-	res, err := pass.ComparePassAndHash(request.Password, user.Password)
+	user, err := a.queries.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		log.Println("Login: Incorrect password", err)
+		log.Println("Login: Failed login attempt -- ", err, req)
+
+		if err == pgx.ErrNoRows {
+			respond.Error(w, http.StatusBadRequest, ErrWrongCred)
+			return
+		}
+
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		return
+	}
+
+	res, err := pass.ComparePassAndHash(req.Password, user.Password)
+	if err != nil {
+		log.Println("Login: Failed to call hashing function", err)
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	if !res {
 		log.Println("Login: Incorrect password")
-		respond.Error(w, http.StatusInternalServerError, ErrDefaultFailure)
+		respond.Error(w, http.StatusBadRequest, ErrWrongCred)
 		return
 	}
 
@@ -92,59 +97,51 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		// Secure:   true,
 	})
 
-	respond.Json(w, http.StatusOK, map[string]string{"message": "Login successful"})
+	respond.Status(w, http.StatusOK)
 }
 
 // TODO: Make this a transaction (create user + defaults)
 func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
-	var request SignupRequest
+	var req SignupRequest
 	ctx := r.Context()
+	trans := ctx.Value("translator").(ut.Translator)
 
-	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Println("Signup: Malformated request", err, r.Body)
 		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
-		log.Println(err)
 		return
 	}
 
-	// Validate the Request
-
-	if request.Email == "" {
-		respond.Error(w, http.StatusBadRequest, ErrEmailRequired)
-		log.Println(err)
-		return
-	}
-
-	if !isStrongPassword(request.Password) {
-		respond.Error(w, http.StatusBadRequest, ErrPassword)
-		log.Println(err)
+	if err := a.validate.Validator.Struct(req); err != nil {
+		validationErrors := TranslateErrors(err, trans)
+		respond.Json(w, http.StatusBadRequest, validationErrors)
 		return
 	}
 
 	// check for existing user
-	existingUser, err := a.queries.GetUserByEmail(ctx, request.Email)
+	_, err := a.queries.GetUserByEmail(ctx, req.Email)
 
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+	if err == nil {
 		log.Println(err)
-		return
-	}
-
-	if existingUser.Email == request.Email {
 		respond.Error(w, http.StatusConflict, ErrExistingUser)
-		log.Println(err)
 		return
 	}
 
-	password, err := pass.HashPassword(request.Password, pass.DefaultParams)
-	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+	if !errors.Is(err, pgx.ErrNoRows) {
 		log.Println(err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		return
+	}
+
+	password, err := pass.HashPassword(req.Password, pass.DefaultParams)
+	if err != nil {
+		log.Println(err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
 		return
 	}
 
 	queryParam := repository.CreateUserParams{
-		Email:    request.Email,
+		Email:    req.Email,
 		Password: password,
 	}
 
@@ -195,14 +192,14 @@ func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Logged out successfully"))
 }
 
-func isStrongPassword(password string) bool {
-	if len(password) < minPasswordLength {
-		return false
-	}
-	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString
-	hasLower := regexp.MustCompile(`[a-z]`).MatchString
-	hasNumber := regexp.MustCompile(`[0-9]`).MatchString
-	hasSpecial := regexp.MustCompile(`[!@#~$%^&*()+|_.,<>?{}]`).MatchString
-
-	return hasUpper(password) && hasLower(password) && hasNumber(password) && hasSpecial(password)
-}
+// func isStrongPassword(password string) bool {
+// 	if len(password) < minPasswordLength {
+// 		return false
+// 	}
+// 	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString
+// 	hasLower := regexp.MustCompile(`[a-z]`).MatchString
+// 	hasNumber := regexp.MustCompile(`[0-9]`).MatchString
+// 	hasSpecial := regexp.MustCompile(`[!@#~$%^&*()+|_.,<>?{}]`).MatchString
+//
+// 	return hasUpper(password) && hasLower(password) && hasNumber(password) && hasSpecial(password)
+// }

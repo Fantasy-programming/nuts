@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,13 +11,13 @@ import (
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/config"
+	"github.com/Fantasy-Programming/nuts/internal/middleware/translation"
+	"github.com/Fantasy-Programming/nuts/lib/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/cors"
 )
-
-var embedMigrations embed.FS
 
 type Server struct {
 	cfg        *config.Config
@@ -26,6 +25,7 @@ type Server struct {
 	db         *pgxpool.Pool
 	router     *router.Router
 	httpServer *http.Server
+	validator  *validation.Validator
 	Version    string
 }
 
@@ -61,8 +61,9 @@ func defaultServer() *Server {
 
 func (s *Server) Init() {
 	s.setCors()
-	s.NewRouter()
 	s.NewDatabase()
+	s.NewValidator()
+	s.NewRouter()
 	s.setGlobalMiddleware()
 	s.RegisterDomain()
 }
@@ -122,12 +123,20 @@ func (s *Server) NewRouter() {
 	s.router = r
 }
 
+func (s *Server) NewValidator() {
+	s.validator = validation.New()
+}
+
 func (s *Server) setGlobalMiddleware() {
 	s.router.Use(s.cors.Handler)
 	s.router.Use(middleware.RequestID)
 	s.router.Use(middleware.RealIP)
-	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
+	s.router.Use(translation.I18nMiddleware(s.validator, nil))
+
+	if s.cfg.RequestLog {
+		s.router.Use(middleware.Logger)
+	}
 
 	s.router.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
