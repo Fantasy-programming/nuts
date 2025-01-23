@@ -1,30 +1,38 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
-	p "path"
+	"path"
 	"slices"
 	"strings"
+	"sync"
 )
 
-type Middleware func(http.Handler) http.Handler
+type (
+	Middleware   func(http.Handler) http.Handler
+	RouterOption func(*Router)
+)
 
-type RouterOption func(*Router)
+type Route struct {
+	Method string
+	Path   string
+}
 
 type Router struct {
 	notFound http.Handler
 	*http.ServeMux
-	toplevel   string
-	middleware []Middleware
-	routes     []string
+	routes      map[string]struct{}
+	prefix      string
+	middleware  []Middleware
+	routesMutex sync.RWMutex
 }
 
+// Create a new router instance
 func NewRouter(opts ...RouterOption) *Router {
 	r := &Router{
 		ServeMux:   http.NewServeMux(),
 		middleware: make([]Middleware, 0),
-		routes:     make([]string, 0),
+		routes:     make(map[string]struct{}),
 	}
 
 	for _, opt := range opts {
@@ -34,6 +42,7 @@ func NewRouter(opts ...RouterOption) *Router {
 	return r
 }
 
+// Router option to create router with given top middleware
 func WithMiddleware(mw ...Middleware) RouterOption {
 	return func(r *Router) {
 		r.middleware = append(r.middleware, mw...)
@@ -56,24 +65,25 @@ func (r *Router) Group(fn func(r *Router)) {
 }
 
 // Add a toplevel prefix
-func (r *Router) Prefix(pathStr string) {
-	r.toplevel = p.Join(r.toplevel, pathStr)
+func (r *Router) Prefix(prefix string) {
+	r.prefix = path.Clean(r.prefix + "/" + prefix)
 }
 
+// Create a subrouter
 func (r *Router) Route(pathStr string, fn func(r *Router)) *Router {
 	if pathStr == "" {
 		panic("router: path cannot be empty")
 	}
 
-	route := &Router{
+	subRouter := &Router{
 		ServeMux:   r.ServeMux,
-		toplevel:   p.Join(r.toplevel, pathStr),
+		prefix:     path.Join(r.prefix, pathStr),
 		middleware: slices.Clone(r.middleware),
-		routes:     r.routes, // Inherit the routes
+		routes:     r.routes,
 	}
 
-	fn(route)
-	return route
+	fn(subRouter)
+	return subRouter
 }
 
 func (r *Router) Mount(pathStr string, handler http.Handler) {
@@ -81,30 +91,26 @@ func (r *Router) Mount(pathStr string, handler http.Handler) {
 		panic("router: mount path cannot be empty")
 	}
 
-	// Clean and join the path with toplevel
-	mountPath := p.Clean(p.Join(r.toplevel, pathStr))
+	mountPath := path.Clean(path.Join(r.prefix, pathStr))
 
 	// Ensure the path ends with a trailing slash if it's not root
 	if mountPath != "/" {
 		mountPath += "/"
 	}
 
-	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		originalPath := r.URL.Path
+	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		originalPath := req.URL.Path
+		req.URL.Path = strings.TrimPrefix(req.URL.Path, mountPath)
 
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, mountPath)
-		if !strings.HasPrefix(r.URL.Path, "/") {
-			r.URL.Path = "/" + r.URL.Path
+		if !strings.HasPrefix(req.URL.Path, "/") {
+			req.URL.Path = "/" + req.URL.Path
 		}
 
-		handler.ServeHTTP(w, r)
-
-		// Restore original path
-		r.URL.Path = originalPath
+		handler.ServeHTTP(w, req)
+		req.URL.Path = originalPath
 	})
 
-	// Apply middleware to the wrapped handler
-	finalHandler := r.wrap(wrappedHandler.ServeHTTP, nil)
+	finalHandler := r.wrap(wrappedHandler, nil)
 
 	// Register the handler for both the exact path and any paths underneath it
 	r.Handle(mountPath, finalHandler)
@@ -112,95 +118,116 @@ func (r *Router) Mount(pathStr string, handler http.Handler) {
 
 	// If the mounted handler is a Router, copy its routes
 	if subRouter, ok := handler.(*Router); ok {
-		subRoutes := subRouter.ListRoutes()
-		for _, route := range subRoutes {
-			// Split the route into method and path
-			parts := strings.SplitN(route, " ", 2)
-			if len(parts) != 2 {
+		subRouter.routesMutex.RLock()
+		defer subRouter.routesMutex.RUnlock()
+
+		for route := range subRouter.routes {
+			methodPath := strings.SplitN(route, " ", 2)
+			if len(methodPath) != 2 {
 				continue
 			}
-			method, routePath := parts[0], parts[1]
+			method, routePath := methodPath[0], methodPath[1]
+			fullPath := path.Join(mountPath, strings.TrimPrefix(routePath, "/"))
+			r.addRoute(method, fullPath)
 
-			// Join the mount path with the subroute path
-			// Remove the leading slash from routePath to avoid double slashes
-			routePath = strings.TrimPrefix(routePath, "/")
-			fullPath := p.Join(mountPath, routePath)
-
-			// Add the combined route to the parent router's routes
-			r.routes = append(r.routes, fmt.Sprintf("%s %s", method, fullPath))
 		}
+
 	}
 }
 
+// Router Get Method
 func (r *Router) Get(path string, fn http.HandlerFunc, mx ...Middleware) {
 	r.handle(http.MethodGet, path, fn, mx)
 }
 
+// Router Post method
 func (r *Router) Post(path string, fn http.HandlerFunc, mx ...Middleware) {
 	r.handle(http.MethodPost, path, fn, mx)
 }
 
+// Router Put method
 func (r *Router) Put(path string, fn http.HandlerFunc, mx ...Middleware) {
 	r.handle(http.MethodPut, path, fn, mx)
 }
 
+// Router Delete method
 func (r *Router) Delete(path string, fn http.HandlerFunc, mx ...Middleware) {
 	r.handle(http.MethodDelete, path, fn, mx)
 }
 
+// Router Head method
 func (r *Router) Head(path string, fn http.HandlerFunc, mx ...Middleware) {
 	r.handle(http.MethodHead, path, fn, mx)
 }
 
+// Router Options method
 func (r *Router) Options(path string, fn http.HandlerFunc, mx ...Middleware) {
 	r.handle(http.MethodOptions, path, fn, mx)
 }
 
-func (r *Router) All(path string, fn http.HandlerFunc, mx ...Middleware) {
-	p := p.Clean(r.toplevel + path)
-	r.Handle(p, r.wrap(fn, mx))
+// Router All method
+func (r *Router) All(pathStr string, fn http.HandlerFunc, mx ...Middleware) {
+	cleanPath := path.Clean(r.prefix + pathStr)
+	r.Handle(cleanPath, r.wrap(fn, mx))
 }
 
-func (r *Router) handle(method, path string, fn http.HandlerFunc, mx []Middleware) {
-	p := p.Clean(r.toplevel + path)
+func (r *Router) handle(method, pathStr string, fn http.HandlerFunc, mx []Middleware) {
+	cleanPath := path.Clean(r.prefix + pathStr)
+	r.Handle(method+" "+cleanPath, r.wrap(fn, mx))
+	r.addRoute(method, cleanPath)
+}
 
-	r.Handle(method+" "+p, r.wrap(fn, mx))
-	r.routes = append(r.routes, method+" "+p)
+func (r *Router) addRoute(method, path string) {
+	r.routesMutex.Lock()
+	defer r.routesMutex.Unlock()
+	r.routes[method+" "+path] = struct{}{}
 }
 
 func (r *Router) ListRoutes() []string {
-	return slices.Clone(r.routes)
+	r.routesMutex.RLock()
+	defer r.routesMutex.RUnlock()
+
+	routes := make([]string, 0, len(r.routes))
+	for route := range r.routes {
+		routes = append(routes, route)
+	}
+	return routes
 }
 
-func (r *Router) wrap(fn http.HandlerFunc, mx []Middleware) (out http.Handler) {
-	out, mx = http.Handler(fn), append(slices.Clone(r.middleware), mx...)
+func (r *Router) wrap(fn http.HandlerFunc, mw []Middleware) http.Handler {
+	handler := http.Handler(fn)
 
-	slices.Reverse(mx)
-
-	for _, m := range mx {
-		out = m(out)
+	for i := len(mw) - 1; i >= 0; i-- {
+		handler = mw[i](handler)
 	}
 
-	return
+	for i := len(r.middleware) - 1; i >= 0; i-- {
+		handler = r.middleware[i](handler)
+	}
+
+	return handler
 }
 
 func (r *Router) NotFound(fn http.HandlerFunc) {
-	r.All("/", fn)
+	r.notFound = fn
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	handler := r.ServeMux
+	handler, pattern := r.ServeMux.Handler(req)
 
-	if handler == nil {
-		handler = http.DefaultServeMux
+	if pattern == "" {
+		if r.notFound != nil {
+			r.notFound.ServeHTTP(w, req)
+		} else {
+			http.Error(w, "404 page not found", http.StatusNotFound)
+		}
+		return
 	}
 
-	finalHandler := http.Handler(handler)
-	middlewareCopy := slices.Clone(r.middleware)
-	slices.Reverse(middlewareCopy)
+	finalHandler := handler
 
-	for _, m := range middlewareCopy {
-		finalHandler = m(finalHandler)
+	for i := len(r.middleware) - 1; i >= 0; i-- {
+		finalHandler = r.middleware[i](finalHandler)
 	}
 
 	finalHandler.ServeHTTP(w, req)

@@ -152,7 +152,7 @@ func (s *Server) Config() *config.Config {
 func (s *Server) Run() {
 	s.httpServer = &http.Server{
 		Addr:              s.cfg.Api.Host + ":" + s.cfg.Api.Port,
-		Handler:           s.router.ServeMux,
+		Handler:           s.router,
 		ReadHeaderTimeout: s.cfg.ReadHeaderTimeout,
 	}
 
