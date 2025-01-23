@@ -1,3 +1,4 @@
+// This package helps in forming common Response and Errors
 package respond
 
 import (
@@ -6,58 +7,70 @@ import (
 	"net/http"
 )
 
-func Errors(w http.ResponseWriter, statusCode int, errors []string) {
+type ErrorResponse struct {
+	Status  string          `json:"status"`
+	Message string          `json:"message"`
+	Errors  json.RawMessage `json:"errors"`
+}
+
+// Returns A pack of errors
+func Errors(w http.ResponseWriter, statusCode int, message error, errors interface{}) {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(statusCode)
 
-	if errors == nil {
-		write(w, nil)
-		return
+	log.Println("Error: ", message, errors)
+
+	var errData json.RawMessage
+
+	if errors != nil {
+		// Marshal errors to json.RawMessage
+		data, err := json.Marshal(errors)
+		if err != nil {
+			log.Println("Error marshaling errors:", err)
+			write(w, nil)
+			return
+		}
+		errData = data
 	}
 
-	p := map[string][]string{
-		"message": errors,
-	}
-	data, err := json.Marshal(p)
-	if err != nil {
-		log.Println(err)
+	response := ErrorResponse{
+		Status:  "error",
+		Message: message.Error(),
+		Errors:  errData,
 	}
 
-	if string(data) == "null" {
-		return
-	}
-
-	write(w, data)
+	writeJSON(w, response)
 }
 
-func Error(w http.ResponseWriter, statusCode int, message error) {
+// Returns one error
+func Error(w http.ResponseWriter, statusCode int, message error, err error) {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(statusCode)
+	log.Println("Error: ", err)
 
-	var p map[string]string
-	if message == nil {
+	response := ErrorResponse{
+		Status:  "error",
+		Message: message.Error(),
+	}
+
+	writeJSON(w, response)
+}
+
+// Helper function to write JSON responses
+func writeJSON(w http.ResponseWriter, data interface{}) {
+	res, err := json.Marshal(data)
+	if err != nil {
+		log.Println("Error marshaling response:", err)
 		write(w, nil)
 		return
 	}
-
-	p = map[string]string{
-		"message": message.Error(),
-	}
-	data, err := json.Marshal(p)
-	if err != nil {
-		log.Println(err)
-	}
-
-	if string(data) == "null" {
-		return
-	}
-
-	write(w, data)
+	write(w, res)
 }
 
+// Helper function to write response
 func write(w http.ResponseWriter, data []byte) {
 	_, err := w.Write(data)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error writing response:", err)
 	}
 }

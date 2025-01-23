@@ -3,7 +3,6 @@ package auth
 import (
 	"regexp"
 
-	"github.com/Fantasy-Programming/nuts/lib/validation"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 )
@@ -51,15 +50,4 @@ func registerTranslations(v *validator.Validate, trans ut.Translator, translatio
 			},
 		)
 	}
-}
-
-func TranslateErrors(err error, trans ut.Translator) validation.ValidationErrors {
-	var validationErrors validation.ValidationErrors
-	for _, err := range err.(validator.ValidationErrors) {
-		validationErrors = append(validationErrors, validation.ValidationError{
-			Field:   err.Field(),
-			Message: err.Translate(trans),
-		})
-	}
-	return validationErrors
 }

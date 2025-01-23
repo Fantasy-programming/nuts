@@ -42,12 +42,12 @@ func (s *Server) initUser() {
 }
 
 func (s *Server) initAccount() {
-	AccountDomain := accounts.Init(s.db, s.cfg)
+	AccountDomain := accounts.Init(s.db, s.cfg, s.validator)
 	s.router.Mount("/account", AccountDomain.Register())
 }
 
 func (s *Server) initTransaction() {
-	TransactionDomain := transactions.Init(s.db, s.cfg)
+	TransactionDomain := transactions.Init(s.db, s.cfg, s.validator)
 	s.router.Mount("/transaction", TransactionDomain.Register())
 }
 

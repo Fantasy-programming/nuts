@@ -9,16 +9,17 @@ import (
 )
 
 func (c *Category) GetCategories(w http.ResponseWriter, r *http.Request) {
-	id, err := jwtauth.GetID(r)
+	userID, err := jwtauth.GetID(r)
 	ctx := r.Context()
+
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
-	categories, err := c.queries.ListCategories(ctx, id)
+	categories, err := c.queries.ListCategories(ctx, userID)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 

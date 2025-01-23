@@ -11,6 +11,7 @@ import (
 )
 
 type Auth struct {
+	db       *pgxpool.Pool
 	queries  *repository.Queries
 	config   *config.Config
 	validate *validation.Validator
@@ -18,7 +19,7 @@ type Auth struct {
 
 func Init(db *pgxpool.Pool, config *config.Config, validate *validation.Validator) *Auth {
 	queries := repository.New(db)
-	return &Auth{queries, config, validate}
+	return &Auth{db, queries, config, validate}
 }
 
 func (a *Auth) Register() http.Handler {
@@ -27,7 +28,6 @@ func (a *Auth) Register() http.Handler {
 	router.Post("/signup", a.Signup)
 	router.Post("/logout", a.Logout)
 
-	// setup validation
 	a.registerValidations()
 	return router
 }

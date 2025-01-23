@@ -6,18 +6,20 @@ import (
 	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/lib/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Account struct {
-	queries *repository.Queries
-	config  *config.Config
+	queries  *repository.Queries
+	config   *config.Config
+	validate *validation.Validator
 }
 
-func Init(db *pgxpool.Pool, config *config.Config) *Account {
+func Init(db *pgxpool.Pool, config *config.Config, validate *validation.Validator) *Account {
 	queries := repository.New(db)
-	return &Account{queries, config}
+	return &Account{queries, config, validate}
 }
 
 func (a *Account) Register() http.Handler {
@@ -30,5 +32,6 @@ func (a *Account) Register() http.Handler {
 	router.Put("/{id}", a.UpdateAccount)
 	router.Delete("/{id}", a.DeleteAccount)
 
+	a.registerValidations()
 	return router
 }

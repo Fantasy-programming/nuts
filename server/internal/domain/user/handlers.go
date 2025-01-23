@@ -13,13 +13,13 @@ func (u *User) GetInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	user, err := u.queries.GetUserById(ctx, id)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 

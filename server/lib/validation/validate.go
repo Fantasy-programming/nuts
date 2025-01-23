@@ -1,7 +1,9 @@
 package validation
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/go-playground/locales"
 	"github.com/go-playground/locales/en"
@@ -21,18 +23,12 @@ type ValidationError struct {
 
 type ValidationErrors []ValidationError
 
-type ErrorResponse struct {
-	Status  string           `json:"status"`
-	Message string           `json:"message"`
-	Errors  ValidationErrors `json:"errors"`
-}
-
-func NewErrorResponse(message string, errors ValidationErrors) ErrorResponse {
-	return ErrorResponse{
-		Status:  "error",
-		Message: message,
-		Errors:  errors,
+func (ve ValidationErrors) Error() string {
+	var errMsg string
+	for _, v := range ve {
+		errMsg += fmt.Sprintf("Field '%s': %s\n", v.Field, v.Message)
 	}
+	return errMsg
 }
 
 type Validator struct {
@@ -78,4 +74,25 @@ func (v *Validator) GetTranslator(lang string) (ut.Translator, error) {
 	}
 
 	return trans, nil
+}
+
+func TranslateErrors(err error, trans ut.Translator) ValidationErrors {
+	var validationErrors ValidationErrors
+	for _, err := range err.(validator.ValidationErrors) {
+		validationErrors = append(validationErrors, ValidationError{
+			Field:   err.Field(),
+			Message: err.Translate(trans),
+		})
+	}
+	return validationErrors
+}
+
+func ParseAndValidate(r *http.Request, req interface{}, validator *Validator, trans ut.Translator) error {
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		return fmt.Errorf("malformed request: %w", err)
+	}
+	if err := validator.Validator.Struct(req); err != nil {
+		return TranslateErrors(err, trans)
+	}
+	return nil
 }

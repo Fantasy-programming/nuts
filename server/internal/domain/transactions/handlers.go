@@ -15,19 +15,17 @@ import (
 )
 
 func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
-	id, err := jwtauth.GetID(r)
+	userID, err := jwtauth.GetID(r)
 	ctx := r.Context()
 
 	if err != nil {
-		log.Println(err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
-	transactions, err := a.queries.ListTransactions(ctx, &id)
+	transactions, err := a.queries.ListTransactions(ctx, &userID)
 	if err != nil {
-		log.Println(err)
-		respond.Error(w, http.StatusInternalServerError, err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
@@ -35,26 +33,21 @@ func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {
-	idString := r.PathValue("id")
 	ctx := r.Context()
-
-	if idString == "" {
-		log.Println("GetTransaction: Missing :id")
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
+	trscID, err := parseUUID(r, "id")
+	if err != nil {
+		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
 		return
 	}
 
-	finalId, err := uuid.Parse(idString)
+	transaction, err := a.queries.GetTransactionById(ctx, trscID)
 	if err != nil {
-		log.Println("GetTransaction: Invalid uuid")
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
-		return
-	}
+		if err == pgx.ErrNoRows {
+			respond.Error(w, http.StatusNotFound, ErrNoTransactions, err)
+			return
+		}
 
-	transaction, err := a.queries.GetTransactionById(ctx, finalId)
-	if err != nil {
-		log.Println(err)
-		respond.Error(w, http.StatusInternalServerError, err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
@@ -65,42 +58,36 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 	var request CreateTransactionRequest
 	ctx := r.Context()
 
-	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
-		log.Println("CreateTransaction: Bad request", err, r.Body)
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
 		return
 	}
 
 	// Validate
-
 	amount := types.Numeric(request.Amount)
 
 	accountID, err := uuid.Parse(request.AccountID)
 	if err != nil {
-		log.Println("CreateTransaction: Invalid uuid", err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	categoryID, err := uuid.Parse(request.CategoryID)
 	if err != nil {
-		log.Println("CreateTransaction: Invalid uuid", err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	id, err := jwtauth.GetID(r)
 	if err != nil {
 		log.Println(err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	tx, err := a.db.Begin(ctx)
 	if err != nil {
-		log.Println(err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
@@ -123,19 +110,21 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 		CreatedBy:           &id,
 	})
 	if err != nil {
-		log.Println("CreateTransaction: Failed to mutate db", err)
-		respond.Error(w, http.StatusInternalServerError, err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
-	qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
+	err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
 		ID:      accountID,
 		Balance: amount,
 	})
+	if err != nil {
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		return
+	}
 
 	if err = tx.Commit(ctx); err != nil {
-		log.Println("CreateTransaction: Failed to commit transaction", err)
-		respond.Error(w, http.StatusInternalServerError, err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
@@ -145,24 +134,18 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 func (a *Transactions) UpdateTransaction(w http.ResponseWriter, r *http.Request) {}
 
 func (a *Transactions) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
-	idString := r.PathValue("id")
 	ctx := r.Context()
 
-	if idString == "" {
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
+	trscID, err := parseUUID(r, "id")
+	if err != nil {
+		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
 		return
 	}
 
-	finalId, err := uuid.Parse(idString)
-	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+	if err = a.queries.DeleteTransaction(ctx, trscID); err != nil {
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
-	}
 
-	err = a.queries.DeleteTransaction(ctx, finalId)
-	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, err)
-		return
 	}
 
 	respond.Status(w, http.StatusOK)

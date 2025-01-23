@@ -6,19 +6,21 @@ import (
 	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/lib/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Transactions struct {
-	db      *pgxpool.Pool
-	queries *repository.Queries
-	config  *config.Config
+	db       *pgxpool.Pool
+	queries  *repository.Queries
+	config   *config.Config
+	validate *validation.Validator
 }
 
-func Init(db *pgxpool.Pool, config *config.Config) *Transactions {
+func Init(db *pgxpool.Pool, config *config.Config, validate *validation.Validator) *Transactions {
 	queries := repository.New(db)
-	return &Transactions{db, queries, config}
+	return &Transactions{db, queries, config, validate}
 }
 
 func (a *Transactions) Register() http.Handler {

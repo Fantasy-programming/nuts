@@ -11,6 +11,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/lib/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/pass"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/jackc/pgx/v5"
@@ -20,60 +21,55 @@ const minPasswordLength = 13
 
 var roles = []string{"user"}
 
+// TODO: Improve error logging
+// TODO: Translate responses too
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	ctx := r.Context()
 	trans := ctx.Value("translator").(ut.Translator)
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Println("Login: Malformated request", err, r.Body)
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
+		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
 		return
 	}
 
 	if err := a.validate.Validator.Struct(req); err != nil {
-		validationErrors := TranslateErrors(err, trans)
-		respond.Json(w, http.StatusBadRequest, validationErrors)
+		validationErrors := validation.TranslateErrors(err, trans)
+		respond.Errors(w, http.StatusBadRequest, message.ErrValidation, validationErrors)
 		return
 	}
 
 	user, err := a.queries.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		log.Println("Login: Failed login attempt -- ", err, req)
-
 		if err == pgx.ErrNoRows {
-			respond.Error(w, http.StatusBadRequest, ErrWrongCred)
+			respond.Error(w, http.StatusBadRequest, ErrWrongCred, err)
 			return
 		}
 
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	res, err := pass.ComparePassAndHash(req.Password, user.Password)
 	if err != nil {
-		log.Println("Login: Failed to call hashing function", err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	if !res {
-		log.Println("Login: Incorrect password")
-		respond.Error(w, http.StatusBadRequest, ErrWrongCred)
+		respond.Error(w, http.StatusBadRequest, ErrWrongCred, nil)
 		return
 	}
 
 	token, err := pass.GenerateToken(user.ID, roles, a.config.SigningKey, time.Minute*30)
 	if err != nil {
-		log.Println("Login: Failed to generate JWT", err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	headerToken, signature, err := pass.SplitJWT(token)
 	if err != nil {
-		log.Println("Login: Failed to split JWT", err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
@@ -100,21 +96,19 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	respond.Status(w, http.StatusOK)
 }
 
-// TODO: Make this a transaction (create user + defaults)
 func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 	var req SignupRequest
 	ctx := r.Context()
 	trans := ctx.Value("translator").(ut.Translator)
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Println("Signup: Malformated request", err, r.Body)
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest)
+		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
 		return
 	}
 
 	if err := a.validate.Validator.Struct(req); err != nil {
-		validationErrors := TranslateErrors(err, trans)
-		respond.Json(w, http.StatusBadRequest, validationErrors)
+		validationErrors := validation.TranslateErrors(err, trans)
+		respond.Errors(w, http.StatusBadRequest, message.ErrValidation, validationErrors)
 		return
 	}
 
@@ -122,21 +116,18 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 	_, err := a.queries.GetUserByEmail(ctx, req.Email)
 
 	if err == nil {
-		log.Println(err)
-		respond.Error(w, http.StatusConflict, ErrExistingUser)
+		respond.Error(w, http.StatusConflict, ErrExistingUser, nil)
 		return
 	}
 
 	if !errors.Is(err, pgx.ErrNoRows) {
-		log.Println(err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	password, err := pass.HashPassword(req.Password, pass.DefaultParams)
 	if err != nil {
-		log.Println(err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
@@ -145,25 +136,43 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 		Password: password,
 	}
 
-	user, err := a.queries.CreateUser(ctx, queryParam)
+	tx, err := a.db.Begin(ctx)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
-		log.Println(err)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		return
+	}
+
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && err != pgx.ErrTxClosed {
+			log.Println("Signup: Failed to rollback transaction", err)
+		}
+	}()
+
+	qtx := a.queries.WithTx(tx)
+
+	user, err := qtx.CreateUser(ctx, queryParam)
+	if err != nil {
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	// Create default category
-
-	err = a.queries.CreateDefaultCategories(ctx, user.ID)
+	err = qtx.CreateDefaultCategories(ctx, user.ID)
 	if err != nil {
-		log.Println(err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError)
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		return
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
 	response := struct {
 		message string
 	}{message: "User created Successfully"}
+
+	respond.JsonResponse(w, http.StatusCreated, "User created Successfully", nil)
 
 	respond.Json(w, http.StatusCreated, response)
 }
@@ -188,18 +197,5 @@ func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Respond with a success message
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Logged out successfully"))
+	respond.JsonResponse(w, http.StatusOK, "Logged out successfully", nil)
 }
-
-// func isStrongPassword(password string) bool {
-// 	if len(password) < minPasswordLength {
-// 		return false
-// 	}
-// 	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString
-// 	hasLower := regexp.MustCompile(`[a-z]`).MatchString
-// 	hasNumber := regexp.MustCompile(`[0-9]`).MatchString
-// 	hasSpecial := regexp.MustCompile(`[!@#~$%^&*()+|_.,<>?{}]`).MatchString
-//
-// 	return hasUpper(password) && hasLower(password) && hasNumber(password) && hasSpecial(password)
-// }
