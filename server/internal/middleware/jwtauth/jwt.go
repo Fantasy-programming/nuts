@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/pkg/pass"
+	pjwt "github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -130,10 +130,8 @@ func Authenticator(key string) func(http.Handler) http.Handler {
 			}
 
 			// extract the claims
-			userRawId, IdOk := claims["UserId"].(string)
+			userRawId, IdOk := claims["id"].(string)
 			rolesRaw, RolesOk := claims["roles"].([]interface{})
-
-			log.Println(userRawId)
 
 			if !IdOk || !RolesOk {
 				http.Error(w, "User ID or Roles not found in claims", http.StatusUnauthorized)
@@ -159,14 +157,14 @@ func Authenticator(key string) func(http.Handler) http.Handler {
 			}
 
 			// Refresh the JWT Token
-			token, err := pass.GenerateToken(userId, roles, key, time.Minute*30)
+			token, err := pjwt.GenerateToken(userId, roles, key, time.Minute*30)
 			if err != nil {
 				log.Println("Auth: Failed to re-generate JWT", err)
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
 
-			headerToken, signature, err := pass.SplitJWT(token)
+			headerToken, signature, err := pjwt.SplitJWT(token)
 			if err != nil {
 				log.Println("Auth: Failed to split JWT", err)
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -224,7 +222,7 @@ func FromContext(ctx context.Context) (jwt.Token, map[string]interface{}, error)
 func GetID(r *http.Request) (uuid.UUID, error) {
 	_, claims, _ := FromContext(r.Context())
 
-	idStr := claims["UserId"].(string)
+	idStr := claims["id"].(string)
 
 	return uuid.Parse(idStr)
 }

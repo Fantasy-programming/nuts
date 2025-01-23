@@ -3,9 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { createTransaction } from "@/features/transactions/services/transaction";
 import { RecordsDialog, RecordsTable } from "./-components/Records/Records";
-import { RecordCreateSchema } from "@/features/transactions/services/transaction.types";
+import type { RecordCreateSchema } from "@/features/transactions/services/transaction.types";
 import { Suspense } from "react";
-
 
 export const Route = createFileRoute("/dashboard/records")({
   component: RouteComponent,
@@ -25,7 +24,6 @@ function RouteComponent() {
   const onSubmit = (values: RecordCreateSchema) => {
     createMutation.mutate(values);
   };
-
 
   return (
     <div className="space-y-8">

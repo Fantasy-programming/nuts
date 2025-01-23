@@ -12,6 +12,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 	"github.com/Fantasy-Programming/nuts/lib/validation"
+	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/pkg/pass"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/jackc/pgx/v5"
@@ -61,13 +62,13 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := pass.GenerateToken(user.ID, roles, a.config.SigningKey, time.Minute*30)
+	token, err := jwt.GenerateToken(user.ID, roles, a.config.SigningKey, time.Minute*30)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return
 	}
 
-	headerToken, signature, err := pass.SplitJWT(token)
+	headerToken, signature, err := jwt.SplitJWT(token)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
 		return

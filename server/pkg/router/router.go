@@ -79,16 +79,27 @@ func (r *Router) Route(pathStr string, fn func(r *Router)) *Router {
 		ServeMux:   r.ServeMux,
 		prefix:     path.Join(r.prefix, pathStr),
 		middleware: slices.Clone(r.middleware),
-		routes:     r.routes,
+		routes:     make(map[string]struct{}),
 	}
 
 	fn(subRouter)
+
+	r.routesMutex.Lock()
+	defer r.routesMutex.Unlock()
+	for route := range subRouter.routes {
+		r.routes[route] = struct{}{}
+	}
+
 	return subRouter
 }
 
 func (r *Router) Mount(pathStr string, handler http.Handler) {
-	if pathStr == "" {
-		panic("router: mount path cannot be empty")
+	if handler == nil {
+		panic("router: mounted handler cannot be nil")
+	}
+
+	if strings.TrimSpace(pathStr) == "" {
+		panic("router: mount path cannot be empty or whitespace")
 	}
 
 	mountPath := path.Clean(path.Join(r.prefix, pathStr))
@@ -213,7 +224,7 @@ func (r *Router) NotFound(fn http.HandlerFunc) {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	handler, pattern := r.ServeMux.Handler(req)
+	handler, pattern := r.Handler(req)
 
 	if pattern == "" {
 		if r.notFound != nil {

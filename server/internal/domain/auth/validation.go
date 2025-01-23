@@ -18,6 +18,11 @@ type LoginRequest struct {
 }
 
 func (a *Auth) registerValidations() {
+	// nil checks
+	if a.validate == nil || a.validate.Validator == nil {
+		return
+	}
+
 	// Register custom validations
 	a.validate.Validator.RegisterValidation("strong_password", validateStrongPassword)
 

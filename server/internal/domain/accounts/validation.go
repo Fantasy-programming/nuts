@@ -78,6 +78,11 @@ func parseMeta(meta *[]byte) []byte {
 
 // Register translations for all supported languages
 func (a *Account) registerValidations() {
+	// nil checks
+	if a.validate == nil || a.validate.Validator == nil {
+		return
+	}
+
 	for lang, trans := range translations {
 		translator, _ := a.validate.GetTranslator(lang)
 		registerTranslations(a.validate.Validator, translator, trans)

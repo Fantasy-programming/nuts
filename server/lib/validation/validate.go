@@ -2,6 +2,7 @@ package validation
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -93,6 +94,26 @@ func ParseAndValidate(r *http.Request, req interface{}, validator *Validator, tr
 	}
 	if err := validator.Validator.Struct(req); err != nil {
 		return TranslateErrors(err, trans)
+	}
+	return nil
+}
+
+func Validate(v *validator.Validate, generic any) []string {
+	err := v.Struct(generic)
+	if err != nil {
+		var invalidValidationError *validator.InvalidValidationError
+
+		if errors.As(err, &invalidValidationError) {
+			fmt.Println(err)
+			return nil
+		}
+
+		var errs []string
+		for _, err := range err.(validator.ValidationErrors) {
+			errs = append(errs, fmt.Sprintf("%s is %s with type %s", err.StructField(), err.Tag(), err.Type()))
+		}
+
+		return errs
 	}
 	return nil
 }
