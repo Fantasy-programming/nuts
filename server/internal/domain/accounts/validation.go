@@ -16,7 +16,7 @@ type CreateAccountRequest struct {
 	Type     string  `json:"type" validate:"required"`
 	Currency string  `json:"currency" validate:"required"`
 	Colors   string  `json:"color" validate:"required"`
-	Balance  float64 `json:"balance" validate:"required"`
+	Balance  float64 `json:"balance" validate:"gte=0"`
 }
 
 type UpdateAccountRequest struct {

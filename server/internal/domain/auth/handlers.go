@@ -169,13 +169,7 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := struct {
-		message string
-	}{message: "User created Successfully"}
-
 	respond.JsonResponse(w, http.StatusCreated, "User created Successfully", nil)
-
-	respond.Json(w, http.StatusCreated, response)
 }
 
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
