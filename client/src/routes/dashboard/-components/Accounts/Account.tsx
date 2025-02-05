@@ -10,11 +10,8 @@ import {
 } from "@/core/components/ui/card";
 import { Button } from "@/core/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/core/components/ui/dialog";
 import {
   Form,
@@ -34,8 +31,11 @@ import {
 import { Input } from "@/core/components/ui/input";
 import { Account, accountService } from "@/features/accounts/services/account";
 import { accountFormSchema, AccountSchema, AccountSubmit } from "./Account.type";
+import { Plus } from "lucide-react";
+import { ResponsiveDialog } from "@/core/components/ui/dialog-sheet";
 
-export function AccountList() {
+export function AccountList({ onSubmit }: { onSubmit: AccountSubmit }) {
+
   const { data: accounts, error, isFetching } = useSuspenseQuery({
     queryKey: ["accounts"],
     queryFn: accountService.getAccounts,
@@ -46,12 +46,15 @@ export function AccountList() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {
-        accounts?.map((account) => (
-          <AccountCard key={account.id} account={account} />
-        ))
-      }
+    <div className="overflow-hidden w-full flex-1">
+      <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-5 md:overflow-x-hidden no-scrollbar">
+        {
+          accounts?.map((account) => (
+            <AccountCard key={account.id} account={account} />
+          ))
+        }
+        <AccountDialog onSubmit={onSubmit} />
+      </div>
     </div>
   )
 }
@@ -59,7 +62,7 @@ export function AccountList() {
 
 export function AccountCard({ account }: { account: Account }) {
   return (
-    <Card key={account.id}>
+    <Card key={account.id} className="min-w-[280px] md:min-w-0 flex-shrink-0 md:w-auto">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{account.name}</CardTitle>
       </CardHeader>
@@ -77,17 +80,25 @@ export function AccountDialog({ onSubmit }: { onSubmit: AccountSubmit }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>Add Account</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
+    <ResponsiveDialog open={isOpen} onOpenChange={setIsOpen}>
+      <ResponsiveDialog.Trigger>
+        <Card className="border-dotted min-w-[280px] md:min-w-0 hover:border-gray-800">
+          <CardContent className="p-0">
+            <div className="w-full h-25 text-gray-400 hover:text-gray-800 flex items-center justify-center">
+              <div className="flex gap-2 items-center justify-center">
+                <Plus className="size-3" />
+                <span>Create Account</span></div>
+            </div>
+          </CardContent>
+        </Card>
+      </ResponsiveDialog.Trigger>
+      <ResponsiveDialog.Content>
+        <DialogHeader className="md:p-0 px-4">
           <DialogTitle>Create New Account</DialogTitle>
         </DialogHeader>
         <AccountForm onSubmit={onSubmit} modalChange={setIsOpen} />
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialog.Content>
+    </ResponsiveDialog>
   );
 }
 
@@ -112,7 +123,7 @@ export function AccountForm({ onSubmit, modalChange }: { onSubmit: AccountSubmit
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onsubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onsubmit)} className="space-y-4 md:p-0 p-4">
         <FormField
           control={form.control}
           name="name"

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/core/components/ui/card";
 import { Button } from "@/core/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";

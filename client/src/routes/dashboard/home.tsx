@@ -23,7 +23,7 @@ import {
   ChartTooltipContent,
   ChartContainer,
 } from "@/core/components/ui/chart";
-import { TimeRangePicker } from "@/core/components/time-range-picker";
+// import { TimeRangePicker } from "@/core/components/time-range-picker";
 
 const lineData = [
   { name: "Jan", value: 400 },
@@ -144,8 +144,11 @@ function RouteComponent() {
   return (
     <>
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <TimeRangePicker />
+        <div className="flex flex-col gap-2">
+          <h2 className="text-3xl font-bold tracking-tight">Good Morning Nameless</h2>
+          <p className="text-gray-400">This is your financial report</p>
+        </div>
+        {/* <TimeRangePicker /> */}
       </div>
       <DashboardGrid>
         {orderedCharts.map((chart) => (

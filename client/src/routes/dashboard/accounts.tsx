@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { accountService } from "@/features/accounts/services/account";
 
-import { AccountDialog, AccountList } from "./-components/Accounts/Account";
+import { AccountList } from "./-components/Accounts/Account";
 import { AccountSchema } from "./-components/Accounts/Account.type";
 import { Suspense } from "react";
 
@@ -26,13 +26,9 @@ function RouteComponent() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Accounts</h2>
-        <AccountDialog onSubmit={onSubmit} />
-      </div>
+    <div className=" h-full flex flex-col space-y-8">
       <Suspense fallback={<div>loading...</div>}>
-        <AccountList />
+        <AccountList onSubmit={onSubmit} />
       </Suspense>
     </div>
   );

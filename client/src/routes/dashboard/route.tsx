@@ -7,30 +7,32 @@ import {
 import type { routeTree } from "@/routeTree.gen";
 import { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { Breadcrumbs } from "@/core/components/breadcrumbs";
 import {
   ChevronDown,
-  CreditCard,
+  ChartColumn,
   Frame,
-  Layout,
+  LayoutGrid,
   LogOut,
   Moon,
   Nut,
-  BarChart3,
+  ArrowRightLeft,
   Settings,
   Sun,
   SunMedium,
   Users,
+  Plus,
   Wallet,
   type LucideIcon,
+  Bell,
 } from "lucide-react";
+
 
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@/core/components/ui/avatar";
-import { Separator } from "@/core/components/ui/separator";
+// import { Separator } from "@/core/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +53,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarGroupLabel,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
@@ -58,6 +61,8 @@ import {
   SidebarTrigger,
 } from "@/core/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
+import { Button } from "@/core/components/ui/button";
+import MobileBurger from "@/core/components/layouts/mobile-burger";
 
 export type ValidRoutes = ParseRoute<typeof routeTree>["fullPath"];
 type navStuff = {
@@ -82,7 +87,7 @@ const navMain: navStuff[] = [
   {
     title: "Dashboard",
     url: "/dashboard/home",
-    icon: Layout,
+    icon: LayoutGrid,
   },
   {
     title: "Accounts",
@@ -90,14 +95,14 @@ const navMain: navStuff[] = [
     icon: Wallet,
   },
   {
-    title: "Records",
+    title: "Transactions",
     url: "/dashboard/records",
-    icon: BarChart3,
+    icon: ArrowRightLeft,
   },
   {
     title: "Analytics",
     url: "/dashboard/analytics",
-    icon: CreditCard,
+    icon: ChartColumn,
   },
 ];
 
@@ -134,6 +139,7 @@ function RouteComponent() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
+            <SidebarGroupLabel>General</SidebarGroupLabel>
             <SidebarMenu>
               {navMain.map((item) => (
                 <SidebarMenuItem>
@@ -151,13 +157,14 @@ function RouteComponent() {
               ))}
             </SidebarMenu>
           </SidebarGroup>
-          <Separator />
+          {/* <Separator /> */}
           <SidebarGroup>
+            <SidebarGroupLabel>Plugins</SidebarGroupLabel>
             <SidebarMenu>
               {plugins.map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild className="px-4">
-                    <Link href={item.url} className="flex items-center">
+                    <Link to={item.url} className="flex items-center">
                       <item.icon className="size-4" />
                       <span className="ml-2">{item.name}</span>
                     </Link>
@@ -185,7 +192,7 @@ function RouteComponent() {
                         Nameless User
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        rickrichard9@gmail.com
+                        rickrichard80@gmail.com
                       </span>
                     </div>
                     <ChevronDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
@@ -241,16 +248,22 @@ function RouteComponent() {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="overflow-hidden">
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumbs />
+          <div className="flex items-center gap-2 px-4 justify-between w-full">
+            <SidebarTrigger className="hidden sm:block" />
+            <MobileBurger />
+            <div className="flex items-center gap-6">
+              <Bell className="size-5" />
+              <Button className="sm:flex items-center gap-2  hidden">
+                <Plus className="size-4" />
+                <span >Add transactions</span>
+              </Button>
+            </div>
           </div>
         </header>
-        <main className="flex flex-1 overflow-y-auto">
-          <div className="container mx-auto p-6 space-y-8">
+        <main className="flex flex-1 overflow-hidden">
+          <div className="p-6 space-y-8 h-full w-full overflow-y-auto">
             <Outlet />
           </div>
         </main>
