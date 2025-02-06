@@ -20,13 +20,16 @@ import (
 )
 
 type Server struct {
-	cfg        *config.Config
-	cors       *cors.Cors
-	db         *pgxpool.Pool
-	router     *router.Router
+	Version string
+	cfg     *config.Config
+
+	db *pgxpool.Pool
+
+	cors      *cors.Cors
+	router    *router.Router
+	validator *validation.Validator
+
 	httpServer *http.Server
-	validator  *validation.Validator
-	Version    string
 }
 
 type Options func(opts *Server) error

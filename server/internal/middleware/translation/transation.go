@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Fantasy-Programming/nuts/lib/validation"
 	ut "github.com/go-playground/universal-translator"
@@ -26,6 +27,20 @@ func GetTranslator(r *http.Request, v *validation.Validator, langFunc func(*http
 	if lang == "" && langFunc != nil {
 		// Check user preferences from database/session
 		lang = langFunc(r)
+	}
+
+	if lang != "" {
+		// For example, if lang == "en-US,en;q=0.5", split by comma and take the first segment.
+		parts := strings.Split(lang, ",")
+
+		if len(parts) > 0 {
+			lang = strings.TrimSpace(parts[0])
+		}
+
+		// Optionally, normalize to two-letter language code
+		if len(lang) > 2 {
+			lang = lang[:2]
+		}
 	}
 
 	trans, err := v.GetTranslator(lang)
