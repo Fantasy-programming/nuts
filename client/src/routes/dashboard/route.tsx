@@ -32,7 +32,6 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/core/components/ui/avatar";
-// import { Separator } from "@/core/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,13 +57,13 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-  SidebarTrigger,
 } from "@/core/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/core/components/ui/button";
 import MobileBurger from "@/core/components/layouts/mobile-burger";
 
 export type ValidRoutes = ParseRoute<typeof routeTree>["fullPath"];
+
 type navStuff = {
   title: string;
   url: ValidRoutes;
@@ -72,7 +71,7 @@ type navStuff = {
 };
 
 export const Route = createFileRoute("/dashboard")({
-  component: RouteComponent,
+  component: DashboardWrapper,
   beforeLoad: ({ context, location }) => {
     if (!context.auth.isLoggedIn) {
       throw redirect({
@@ -114,19 +113,19 @@ const plugins = [
   },
 ];
 
-function RouteComponent() {
+function DashboardWrapper() {
   const [theme, setTheme] = useState("light");
   const { logout } = useAuth();
 
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
+    <SidebarProvider className="bg-gray-100">
+      <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0" >
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" tooltip="Nuts Finance">
                 <div className="flex items-center gap-2">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <div className="flex aspect-square items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
                     <Nut className="size-4" />
                   </div>
                   <span className="font-semibold group-data-[collapsible=icon]:hidden">
@@ -146,18 +145,17 @@ function RouteComponent() {
                   <SidebarMenuButton
                     asChild
                     tooltip={item.title}
-                    className="px-4"
+                    className="px-6"
                   >
-                    <Link to={item.url} className="flex items-center">
-                      {item.icon && <item.icon className="size-4" />}
-                      <span className="ml-2">{item.title}</span>
+                    <Link to={item.url} className="flex text-sm font-medium items-center w-full justify-start hover:bg-white gap-3 hover:shadow-sm transition-all">
+                      {item.icon && <item.icon className="size-4 font-medium stroke-2" />}
+                      <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroup>
-          {/* <Separator /> */}
           <SidebarGroup>
             <SidebarGroupLabel>Plugins</SidebarGroupLabel>
             <SidebarMenu>
@@ -248,25 +246,27 @@ function RouteComponent() {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
-      <SidebarInset className="overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4 justify-between w-full">
-            <SidebarTrigger className="hidden sm:block" />
-            <MobileBurger />
-            <div className="flex items-center gap-6">
-              <Bell className="size-5" />
-              <Button className="sm:flex items-center gap-2  hidden">
-                <Plus className="size-4" />
-                <span >Add transactions</span>
-              </Button>
+      <SidebarInset className="overflow-hidden p-2 bg-gray-100">
+        <div className="h-full rounded-xl bg-white shadow-sm border border-gray-200">
+          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+            <div className="flex items-center gap-2 px-4 justify-between w-full">
+              <div className="hidden sm:block" />
+              <MobileBurger />
+              <div className="flex items-center gap-6">
+                <Bell className="size-5" />
+                <Button className="sm:flex items-center  gap-2  hidden">
+                  <Plus className="size-4" />
+                  <span >Add transactions</span>
+                </Button>
+              </div>
             </div>
-          </div>
-        </header>
-        <main className="flex flex-1 overflow-hidden">
-          <div className="p-6 space-y-8 h-full w-full overflow-y-auto">
-            <Outlet />
-          </div>
-        </main>
+          </header>
+          <main className="flex flex-1 overflow-hidden">
+            <div className="p-6 space-y-8 h-full w-full overflow-y-auto">
+              <Outlet />
+            </div>
+          </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

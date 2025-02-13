@@ -16,7 +16,7 @@ import {
 } from "recharts";
 import { useDashboardStore } from "@/features/dashboard/stores/dashboard.store";
 import { DashboardGrid } from "./-components/Dashboard/dashboard-grid";
-import { ChartCard, ChartCardDragHandle, ChartCardHeader, ChartCardTitle } from "@/routes/dashboard_/settings/-components/chart-card";
+import { ChartCard, ChartCardHandle, ChartCardHeader, ChartCardMenu, ChartCardTitle } from "@/core/components/chart-card";
 import { AddChartDialog } from "@/core/components/add-chart/add-chart";
 import {
   ChartTooltip,
@@ -152,12 +152,14 @@ function RouteComponent() {
       </div>
       <DashboardGrid>
         {orderedCharts.map((chart) => (
-          <ChartCard key={chart.id} id={chart.id}>
-            <ChartCardHeader showDragHandle={true}>
-              <ChartCardTitle>{chart.title}</ChartCardTitle>
-              <ChartCardDragHandle />
-            </ChartCardHeader>
-            <ChartContainer config={{}}>{renderChart(chart)}</ChartContainer>
+          <ChartCard key={chart.id} size={chart.size} isLocked={chart.isLocked} id={chart.id}>
+            <ChartCardMenu>
+              <ChartCardHeader>
+                <ChartCardTitle>{chart.title}</ChartCardTitle>
+                <ChartCardHandle />
+              </ChartCardHeader>
+              <ChartContainer config={{}}>{renderChart(chart)}</ChartContainer>
+            </ChartCardMenu>
           </ChartCard>
         ))}
         <AddChartDialog onAddChart={addChart} />
