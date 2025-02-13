@@ -15,9 +15,9 @@ import {
   Cell,
 } from "recharts";
 import { useDashboardStore } from "@/features/dashboard/stores/dashboard.store";
-import { DashboardGrid } from "@/core/components/layouts/dashboard-grid";
-import { ChartCard, ChartCardDragHandle, ChartCardHeader, ChartCardTitle } from "@/core/components/layouts/chart-card";
-import { AddChartDialog } from "@/core/components/add-chart";
+import { DashboardGrid } from "./-components/Dashboard/dashboard-grid";
+import { ChartCard, ChartCardDragHandle, ChartCardHeader, ChartCardTitle } from "@/routes/dashboard_/settings/-components/chart-card";
+import { AddChartDialog } from "@/core/components/add-chart/add-chart";
 import {
   ChartTooltip,
   ChartTooltipContent,

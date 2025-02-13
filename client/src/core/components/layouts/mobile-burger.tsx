@@ -1,6 +1,6 @@
 import { Button } from "../ui/button"
 import { useSidebar } from "../ui/sidebar"
-import Burger from "@/core/components/icons/Burger"
+import Burger from "@/core/assets/icons/Burger"
 
 const MobileBurger = () => {
   const { toggleSidebar } = useSidebar()

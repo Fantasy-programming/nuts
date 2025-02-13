@@ -18,7 +18,7 @@ import {
 } from '@/core/components/ui/dialog';
 import { Input } from '@/core/components/ui/input';
 import { Label } from '@/core/components/ui/label';
-import { IconPicker } from '@/core/components/icon-picker';
+import IconPicker from '@/core/components/icon-picker';
 import {
   Table,
   TableBody,

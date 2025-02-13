@@ -9,11 +9,7 @@ const signup = async (credentials: SignupFormValues) => {
 };
 
 const login = async (credentials: LoginFormValues) => {
-  const response = await axios.post<AuthResponse>(
-    `${BASEURI}/login`,
-    credentials,
-  );
-  return response.data;
+  await axios.post(`${BASEURI}/login`, credentials);
 };
 
 const logout = async () => {

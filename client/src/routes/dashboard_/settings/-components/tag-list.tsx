@@ -22,9 +22,8 @@ import {
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 import { Label } from '@/core/components/ui/label';
-import { IconPicker } from '@/core/components/icon-picker';
+import IconPicker, { renderIcon } from '@/core/components/icon-picker';
 import { MoreHorizontal, Pencil, Trash } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
 import { useSettingsStore } from '@/features/preferences/stores/settings.store';
 
 export function TagList() {
@@ -45,10 +44,6 @@ export function TagList() {
     }
   };
 
-  const renderIcon = (iconName: string) => {
-    const Icon = LucideIcons[iconName as keyof typeof LucideIcons];
-    return Icon ? <Icon className="h-4 w-4" /> : null;
-  };
 
   return (
     <>
@@ -64,7 +59,7 @@ export function TagList() {
             <TableRow key={tag.id}>
               <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
-                  {renderIcon(tag.icon)}
+                  {renderIcon(tag.icon, { className: "h-4 w-4 shrink-0" })}
                   {tag.name}
                 </div>
               </TableCell>
