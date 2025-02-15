@@ -3,9 +3,11 @@ import {
   Outlet,
   type ParseRoute,
   redirect,
+  useNavigate
 } from "@tanstack/react-router";
 import type { routeTree } from "@/routeTree.gen";
 import { useState } from "react";
+import { useHotkeys } from 'react-hotkeys-hook'
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   ChevronDown,
@@ -61,6 +63,10 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/core/components/ui/button";
 import MobileBurger from "@/core/components/layouts/mobile-burger";
+import { RecordsDialog } from "./-components/Records/records-dialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createTransaction } from "@/features/transactions/services/transaction";
+import { RecordCreateSchema } from "@/features/transactions/services/transaction.types";
 
 export type ValidRoutes = ParseRoute<typeof routeTree>["fullPath"];
 
@@ -107,15 +113,60 @@ const navMain: navStuff[] = [
 
 const plugins = [
   {
-    name: "Properties",
+    name: "Real Estate",
     url: "#",
     icon: Frame,
   },
 ];
 
 function DashboardWrapper() {
+  const queryClient = useQueryClient();
   const [theme, setTheme] = useState("light");
+  const navigate = useNavigate();
   const { logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const createMutation = useMutation({
+    mutationFn: createTransaction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    },
+  });
+
+  const onSubmit = (values: RecordCreateSchema) => {
+    createMutation.mutate(values);
+  };
+
+  const onLogout = async () => {
+    await logout()
+    navigate({ to: "/login" })
+  }
+
+  useHotkeys('g+d', () => {
+    navigate({ to: "/dashboard/home" })
+  }, [])
+
+  useHotkeys('g+c', () => {
+    navigate({ to: "/dashboard/accounts" })
+  }, [])
+
+  useHotkeys('g+t', () => {
+    navigate({ to: "/dashboard/records" })
+  }, [])
+
+  useHotkeys('g+a', () => {
+    navigate({ to: "/dashboard/analytics" })
+  }, [])
+
+
+  useHotkeys('g+s', () => {
+    navigate({ to: "/dashboard/settings/account" })
+  }, [])
+
+  useHotkeys('c', () => {
+    setIsOpen(!isOpen)
+  }, [isOpen])
+
 
   return (
     <SidebarProvider className="bg-gray-100">
@@ -235,7 +286,7 @@ function DashboardWrapper() {
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => logout()}>
+                  <DropdownMenuItem onClick={() => onLogout()}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign out
                   </DropdownMenuItem>
@@ -254,10 +305,11 @@ function DashboardWrapper() {
               <MobileBurger />
               <div className="flex items-center gap-6">
                 <Bell className="size-5" />
-                <Button className="sm:flex items-center  gap-2  hidden">
-                  <Plus className="size-4" />
-                  <span >Add transactions</span>
-                </Button>
+                <RecordsDialog onSubmit={onSubmit} open={isOpen} onOpenChange={setIsOpen}>
+                  <Button className="sm:flex items-center  gap-2  hidden">
+                    <Plus className="size-4" />
+                    <span >Add transactions</span>
+                  </Button></RecordsDialog>
               </div>
             </div>
           </header>

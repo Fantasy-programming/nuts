@@ -34,6 +34,7 @@ import { accountFormSchema, AccountSchema, AccountSubmit } from "./Account.type"
 import { Plus } from "lucide-react";
 import { ResponsiveDialog } from "@/core/components/ui/dialog-sheet";
 
+
 export function AccountList({ onSubmit }: { onSubmit: AccountSubmit }) {
 
   const { data: accounts, error, isFetching } = useSuspenseQuery({

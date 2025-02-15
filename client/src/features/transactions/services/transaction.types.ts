@@ -41,6 +41,15 @@ export const recordSchema = z.discriminatedUnion("type", [
 
 export const recordsSchema = recordSchema.array()
 
+export const grouppedRecordsSchema = z.object({
+  id: z.string(),
+  date: z.coerce.date(),
+  total: z.number(),
+  transactions: recordsSchema
+})
+
+export const grouppedRecordsArraySchema = grouppedRecordsSchema.array()
+
 export const recordCreateSchema = z.discriminatedUnion("type", [
   recordTransferSchema.omit(createOmits),
   recordStandardSchema.omit(createOmits),
@@ -50,5 +59,7 @@ export const recordCreateSchema = z.discriminatedUnion("type", [
 }));
 
 export type RecordSchema = z.infer<typeof recordSchema>
+export type GrouppedRecordsSchema = z.infer<typeof grouppedRecordsSchema>
+export type GrouppedRecordsArraySchema = z.infer<typeof grouppedRecordsArraySchema>
 export type RecordCreateSchema = z.infer<typeof recordCreateSchema>
 export type RecordsSubmit = (values: RecordCreateSchema) => void

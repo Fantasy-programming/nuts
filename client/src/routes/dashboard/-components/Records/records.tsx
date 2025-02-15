@@ -1,4 +1,3 @@
-import * as React from "react"
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -12,6 +11,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronRight, Filter } from "lucide-react"
+import { getTransactions } from "@/features/transactions/services/transaction";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { Button } from "@/core/components/ui/button"
 import { Checkbox } from "@/core/components/ui/checkbox"
@@ -24,27 +25,36 @@ import {
 import { Input } from "@/core/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/core/components/ui/table"
 import { RecordsFilters } from "./records-filters"
-import type { Transaction, TransactionGroup } from "./records.type"
+import type { RecordSchema } from "@/features/transactions/services/transaction.types";
+import { useMemo, useState, useEffect, Fragment } from "react";
 
-interface TransactionTableProps {
-  groups: TransactionGroup[]
-}
 
-export const RecordsTable = ({ groups }: TransactionTableProps) => {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
-  const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set())
-  const [showFilters, setShowFilters] = React.useState(false)
+export const RecordsTable = () => {
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [rowSelection, setRowSelection] = useState({})
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
+  const [showFilters, setShowFilters] = useState(false)
 
-  const [categoryFilters, setCategoryFilters] = React.useState<string[]>([])
-  const [accountFilters, setAccountFilters] = React.useState<string[]>([])
-  const [dateRangeFilter, setDateRangeFilter] = React.useState<string>("")
-  const [searchFilter, setSearchFilter] = React.useState("")
+  const [categoryFilters, setCategoryFilters] = useState<string[]>([])
+  const [accountFilters, setAccountFilters] = useState<string[]>([])
+  const [dateRangeFilter, setDateRangeFilter] = useState<string>("")
+  const [searchFilter, setSearchFilter] = useState("")
 
-  const allTransactions = React.useMemo(() => {
-    return groups.flatMap((group) =>
+
+  const { data: transactions, error, isFetching } = useSuspenseQuery({
+    queryKey: ["transactions"],
+    queryFn: getTransactions,
+  });
+
+  if (error && !isFetching) {
+    throw error
+  }
+
+
+  const allTransactions = useMemo(() => {
+    return transactions.flatMap((group) =>
       group.transactions.map((transaction) => ({
         ...transaction,
         groupId: group.id,
@@ -52,9 +62,9 @@ export const RecordsTable = ({ groups }: TransactionTableProps) => {
         groupTotal: group.total,
       })),
     )
-  }, [groups])
+  }, [transactions])
 
-  const columns: ColumnDef<Transaction & { groupId: string; groupDate: string; groupTotal: string }>[] = [
+  const columns: ColumnDef<RecordSchema & { groupId: string; groupDate: Date; groupTotal: number }>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -81,8 +91,8 @@ export const RecordsTable = ({ groups }: TransactionTableProps) => {
       header: "Description",
       cell: ({ row }) => (
         <div className="flex items-center space-x-2">
-          {row.original.avatarUrl && (
-            <img src={row.original.avatarUrl || "/placeholder.svg"} alt="" className="h-8 w-8 rounded-full" />
+          {row.original.details.payment_status && (
+            <img src={"/placeholder.svg"} alt="" className="h-8 w-8 rounded-full" />
           )}
           <span>{row.getValue("description")}</span>
         </div>
@@ -153,8 +163,8 @@ export const RecordsTable = ({ groups }: TransactionTableProps) => {
     }
   }
 
-  const filteredGroups = React.useMemo(() => {
-    return groups
+  const filteredGroups = useMemo(() => {
+    return transactions
       .map((group) => {
         const filteredTransactions = group.transactions.filter((transaction) => {
           const matchesSearch = searchFilter
@@ -162,8 +172,8 @@ export const RecordsTable = ({ groups }: TransactionTableProps) => {
               String(value).toLowerCase().includes(searchFilter.toLowerCase()),
             )
             : true
-          const matchesCategory = categoryFilters.length === 0 || categoryFilters.includes(transaction.category)
-          const matchesAccount = accountFilters.length === 0 || accountFilters.includes(transaction.account)
+          const matchesCategory = categoryFilters.length === 0 || categoryFilters.includes(transaction.category_id)
+          const matchesAccount = accountFilters.length === 0 || accountFilters.includes(transaction.account_id)
           return matchesSearch && matchesCategory && matchesAccount
         })
         return {
@@ -172,7 +182,7 @@ export const RecordsTable = ({ groups }: TransactionTableProps) => {
         }
       })
       .filter((group) => group.transactions.length > 0)
-  }, [groups, searchFilter, categoryFilters, accountFilters])
+  }, [transactions, searchFilter, categoryFilters, accountFilters])
 
   const handleCategoryChange = (values: string[]) => {
     setCategoryFilters(values)
@@ -194,11 +204,11 @@ export const RecordsTable = ({ groups }: TransactionTableProps) => {
     table.resetColumnFilters()
   }
 
-  const categories = React.useMemo(() => Array.from(new Set(allTransactions.map((t) => t.category))), [allTransactions])
+  const categories = useMemo(() => Array.from(new Set(allTransactions.map((t) => t.category_id))), [allTransactions])
 
-  const accounts = React.useMemo(() => Array.from(new Set(allTransactions.map((t) => t.account))), [allTransactions])
+  const accounts = useMemo(() => Array.from(new Set(allTransactions.map((t) => t.account_id))), [allTransactions])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (searchFilter || categoryFilters.length > 0 || accountFilters.length > 0) {
       setOpenGroups(new Set(filteredGroups.map((g) => g.id)))
     }
@@ -294,7 +304,7 @@ export const RecordsTable = ({ groups }: TransactionTableProps) => {
           </TableHeader>
           <TableBody>
             {filteredGroups.map((group) => (
-              <React.Fragment key={group.id}>
+              <Fragment key={group.id}>
                 <TableRow>
                   <TableCell colSpan={table.getVisibleLeafColumns().length} className="p-0">
                     <div className="bg-background rounded-md mx-2 my-1 border">
@@ -331,7 +341,7 @@ export const RecordsTable = ({ groups }: TransactionTableProps) => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className="font-medium">{group.date}</span>
+                              <span className="font-medium">{group.date.getDate()}</span>
                             </TableCell>
                             {table
                               .getVisibleLeafColumns()
@@ -364,7 +374,7 @@ export const RecordsTable = ({ groups }: TransactionTableProps) => {
                     </div>
                   </TableCell>
                 </TableRow>
-              </React.Fragment>
+              </Fragment>
             ))}
           </TableBody>
         </Table>

@@ -1,11 +1,10 @@
 import { api as axios } from "@/lib/axios";
-import { RecordCreateSchema, recordsSchema, RecordSchema } from "./transaction.types.ts";
+import { RecordCreateSchema, grouppedRecordsArraySchema, RecordSchema, GrouppedRecordsArraySchema } from "./transaction.types.ts";
 
-export const getTransactions = async (): Promise<RecordSchema[]> => {
-  const { data } = await axios.get<RecordSchema[]>("/transaction/");
+export const getTransactions = async (): Promise<GrouppedRecordsArraySchema> => {
+  const { data } = await axios.get<GrouppedRecordsArraySchema>("/transaction/");
 
-
-  return recordsSchema.parse(data)
+  return grouppedRecordsArraySchema.parse(data)
 };
 
 export const createTransaction = async (transaction: RecordCreateSchema): Promise<RecordCreateSchema[]> => {

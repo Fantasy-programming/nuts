@@ -18,6 +18,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { ValidRoutes } from "@/routes/dashboard/route";
+import { useNavigate } from "@tanstack/react-router";
+import { useHotkeys } from 'react-hotkeys-hook'
 
 export const Route = createFileRoute("/dashboard_/settings")({
   component: RouteComponent,
@@ -56,6 +58,16 @@ const settingsLinks: navStuff[] = [
 ];
 
 function RouteComponent() {
+
+
+  const navigate = useNavigate();
+
+
+  useHotkeys('ctrl+esc', () => {
+    navigate({ to: "/dashboard/home" })
+  }, [])
+
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-2 mb-8">
