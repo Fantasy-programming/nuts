@@ -29,7 +29,13 @@ func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond.Json(w, http.StatusOK, transactions)
+	groupped, err := groupTransactions(transactions)
+	if err != nil {
+		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		return
+	}
+
+	respond.Json(w, http.StatusOK, groupped)
 }
 
 func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {

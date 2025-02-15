@@ -2,4 +2,4 @@ package transactions
 
 import "errors"
 
-var ErrNoTransactions = errors.New("No transaction with given ID")
+var ErrNoTransactions = errors.New("no transaction with given ID")
