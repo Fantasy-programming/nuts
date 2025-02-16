@@ -23,7 +23,7 @@ function RouteComponent() {
       <div className='flex flex-col gap-6'>
         <div>Buttons</div>
         <Button>Primary button</Button>
-        <Button variant="destructive">Destructive button</Button>
+        <Button variant="destructive" className='grain-effect animate-grain'>Destructive button</Button>
         <Button variant="secondary">Secondary button</Button>
         <Button variant="outline">Outline button</Button>
       </div>

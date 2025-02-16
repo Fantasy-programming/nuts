@@ -169,7 +169,7 @@ function DashboardWrapper() {
 
 
   return (
-    <SidebarProvider className="bg-gray-100">
+    <SidebarProvider className="bg-[#f8f8f8]">
       <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0" >
         <SidebarHeader>
           <SidebarMenu>
@@ -198,7 +198,7 @@ function DashboardWrapper() {
                     tooltip={item.title}
                     className="px-6"
                   >
-                    <Link to={item.url} className="flex text-sm font-medium items-center w-full justify-start hover:bg-white gap-3 hover:shadow-sm transition-all">
+                    <Link to={item.url} className="flex text-sm  items-center w-full text-gray-950/60 justify-start hover:bg-[#FEFEFE_!important] gap-3 hover:shadow-sm transition-all">
                       {item.icon && <item.icon className="size-4 font-medium stroke-2" />}
                       <span>{item.title}</span>
                     </Link>
@@ -297,8 +297,8 @@ function DashboardWrapper() {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
-      <SidebarInset className="overflow-hidden p-2 bg-gray-100">
-        <div className="h-full rounded-xl bg-white shadow-sm border border-gray-200">
+      <SidebarInset className="overflow-hidden p-2 bg-[#f8f8f8]">
+        <div className="h-full bg-[#fefefe] rounded-xl shadow-sm border border-[#f8f8f8] border-[2px] border-[15_15_15/50%] shadow-[0_6px_12px_rgba(0,0,0,0.19),0_6px_6px_rgba(0,0,0,0.23),inset_1px_1px_1px_0_rgba(255,255,255,0.05),inset_-1px_-1px_1px_0_rgba(255,255,255,0.05)] ">
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex items-center gap-2 px-4 justify-between w-full">
               <div className="hidden sm:block" />
