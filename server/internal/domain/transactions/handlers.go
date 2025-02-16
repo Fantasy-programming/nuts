@@ -71,7 +71,6 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 
 	// Validate
 	amount := types.Numeric(request.Amount)
-
 	accountID, err := uuid.Parse(request.AccountID)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)

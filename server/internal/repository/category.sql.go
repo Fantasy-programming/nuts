@@ -69,7 +69,8 @@ WITH parent_categories AS (
         ('Financial Expenses', TRUE, $1),
         ('Investments', TRUE, $1),
         ('Income', TRUE, $1),
-        ('Others', TRUE, $1)
+        ('Others', TRUE, $1),
+        ('Transfers', TRUE, $1)
     RETURNING id, name
 ),
 food_subcategories AS (

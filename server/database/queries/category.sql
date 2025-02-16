@@ -74,7 +74,8 @@ WITH parent_categories AS (
         ('Financial Expenses', TRUE, sqlc.arg('user_id')),
         ('Investments', TRUE, sqlc.arg('user_id')),
         ('Income', TRUE, sqlc.arg('user_id')),
-        ('Others', TRUE, sqlc.arg('user_id'))
+        ('Others', TRUE, sqlc.arg('user_id')),
+        ('Transfers', TRUE, sqlc.arg('user_id'))
     RETURNING id, name
 ),
 food_subcategories AS (

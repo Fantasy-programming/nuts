@@ -85,9 +85,9 @@ func (q *Queries) DeleteTransaction(ctx context.Context, id uuid.UUID) error {
 
 const getCategorySpending = `-- name: GetCategorySpending :many
 SELECT
-    c.name as category_name,
-    SUM(t.amount) as total_amount,
-    COUNT(*) as transaction_count
+    c.name AS category_name,
+    sum(t.amount) AS total_amount,
+    count(*) AS transaction_count
 FROM transactions t
 JOIN categories c ON t.category_id = c.id
 WHERE
@@ -165,14 +165,15 @@ func (q *Queries) GetTransactionById(ctx context.Context, id uuid.UUID) (Transac
 
 const getTransactionStats = `-- name: GetTransactionStats :one
 SELECT
-    COUNT(*) as total_count,
-    SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
-    SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expenses,
-    SUM(CASE WHEN type = 'transfer' THEN amount ELSE 0 END) as total_transfers
+    count(*) AS total_count,
+    sum(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS total_income,
+    sum(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS total_expenses,
+    sum(CASE WHEN type = 'transfer' THEN amount ELSE 0 END) AS total_transfers
 FROM transactions
-WHERE created_by = $1
-AND transaction_datetime BETWEEN $2 AND $3
-AND deleted_at IS NULL
+WHERE
+    created_by = $1
+    AND transaction_datetime BETWEEN $2 AND $3
+    AND deleted_at IS NULL
 `
 
 type GetTransactionStatsParams struct {
@@ -394,7 +395,7 @@ SET
     transaction_datetime = coalesce($6, transaction_datetime),
     details = coalesce($7, details),
     updated_by = $8
-WHERE 
+WHERE
     id = $9
     AND deleted_at IS NULL
 RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
