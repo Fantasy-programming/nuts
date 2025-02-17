@@ -6,9 +6,11 @@ import { DateTimePicker } from '@/core/components/ui/datetime';
 
 import { Label } from '@/core/components/ui/label';
 import { Button } from "@/core/components/ui/button";
+import { Root } from "@radix-ui/react-visually-hidden";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,7 +38,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/core/components/ui/tabs";
 import { Input } from "@/core/components/ui/input";
 import { accountService } from "@/features/accounts/services/account";
-import { RecordsSubmit, RecordSchema, recordCreateSchema } from "@/features/transactions/services/transaction.types";
+import { RecordsSubmit, RecordCreateSchema, recordCreateSchema } from "@/features/transactions/services/transaction.types";
 import { categoryService } from "@/features/categories/services/category";
 import { Textarea } from "@/core/components/ui/textarea";
 import {
@@ -67,6 +69,9 @@ export function RecordsDialog({ onSubmit, children, open, onOpenChange }: Dialog
       <DialogContent >
         <DialogHeader>
           <DialogTitle>Create New Transaction</DialogTitle>
+          <Root>
+            <DialogDescription>Record a new transaction</DialogDescription>
+          </Root>
         </DialogHeader>
         <RecordsForm onSubmit={onSubmit} modalChange={onOpenChange} />
       </DialogContent>
@@ -93,7 +98,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
   const [editingTransaction, setEditingTransaction] = useState<ParsedTransaction | null>(null);
 
 
-  const form = useForm<RecordSchema>({
+  const form = useForm<RecordCreateSchema>({
     resolver: zodResolver(recordCreateSchema),
     defaultValues: {
       type: "expense",
@@ -126,7 +131,10 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
   });
 
 
-  function handleSubmit(values: RecordSchema) {
+  const transfertCatID = categories?.find((cat) => cat.name === "Transfers")?.id;
+
+  function handleSubmit(values: RecordCreateSchema) {
+    console.log(values)
     onSubmit(values)
     modalChange(false)
     form.reset()
@@ -134,9 +142,41 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
 
   const handleTabChange = (value: string) => {
     setTransactionType(value as "expense" | "income" | "transfer");
-    form.reset({
-      type: value as 'expense' | 'income' | 'transfer'
-    })
+
+
+    form.reset(
+      value === "transfer"
+        ? {
+          type: "transfer",
+          amount: 0,
+          transaction_datetime: new Date(),
+          description: "",
+          category_id: transfertCatID,
+          account_id: "",
+          destination_account_id: "", // Required for transfers
+          details: {
+            payment_medium: "",
+            location: "",
+            note: "",
+            payment_status: "completed",
+          },
+        }
+        : {
+          type: value as "expense" | "income",
+          amount: 0,
+          transaction_datetime: new Date(),
+          description: "",
+          category_id: "",
+          account_id: "",
+          details: {
+            payment_medium: "",
+            location: "",
+            note: "",
+            payment_status: "completed",
+          },
+        }
+    );
+
   }
 
 
@@ -172,6 +212,9 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
     );
     setEditingTransaction(null);
   };
+
+  console.log(form.formState.errors)
+
 
   return (
     <Tabs
@@ -237,6 +280,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                     <Input
                       type="number"
                       step="0.01"
+                      min={0}
                       placeholder="0.00"
                       {...field}
                       onChange={e => field.onChange(parseFloat(e.target.value))}
@@ -260,9 +304,11 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="food">Food</SelectItem>
-                      <SelectItem value="transport">Transport</SelectItem>
-                      <SelectItem value="utilities">Utilities</SelectItem>
+                      {categories?.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -342,6 +388,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                     <Input
                       type="number"
                       step="0.01"
+                      min={0}
                       placeholder="0.00"
                       {...field}
                       onChange={e => field.onChange(parseFloat(e.target.value))}
@@ -365,9 +412,11 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="salary">Salary</SelectItem>
-                      <SelectItem value="investment">Investment</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {categories?.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -439,7 +488,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
 
             <FormField
               control={form.control}
-              name="destinationAccountId"
+              name="destination_account_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>To Account</FormLabel>
@@ -472,6 +521,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                     <Input
                       type="number"
                       step="0.01"
+                      min={0}
                       placeholder="0.00"
                       {...field}
                       onChange={e => field.onChange(parseFloat(e.target.value))}

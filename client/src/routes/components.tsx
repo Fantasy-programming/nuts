@@ -7,7 +7,6 @@ export const Route = createFileRoute('/components')({
 
 function RouteComponent() {
   return (
-
     <div className='flex gap-4 p-12'>
       <div className='flex flex-col gap-6'>
         <div>Buttons</div>

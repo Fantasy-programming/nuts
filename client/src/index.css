@@ -5,10 +5,8 @@
 @plugin "tailwindcss-animate";
 
 
-
-
 :root {
-  --background: hsl(0 0% 100%);
+  --background: oklch(97.91% 0 0);
   --foreground: hsl(20 14.3% 4.1%);
   --card: hsl(0 0% 100%);
   --card-foreground: hsl(20 14.3% 4.1%);
@@ -33,11 +31,11 @@
   --chart-4: hsl(43 74% 66%);
   --chart-5: hsl(27 87% 67%);
   --radius: 0.5rem;
-  --sidebar: hsl(0 0% 98%);
+  --sidebar: oklch(97.91% 0 0);
   --sidebar-foreground: hsl(240 5.3% 26.1%);
   --sidebar-primary: hsl(240 5.9% 10%);
   --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
+  --sidebar-accent: oklch(99.7% 0 0);
   --sidebar-accent-foreground: hsl(240 5.9% 10%);
   --sidebar-border: hsl(220 13% 91%);
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
@@ -146,7 +144,7 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  --color-sidebar: var(--sidebar-background);
+  --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-accent-foreground);
@@ -156,5 +154,3 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
 }
-
-

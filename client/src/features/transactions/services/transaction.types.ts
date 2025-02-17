@@ -9,19 +9,19 @@ const recordDetailsSchema = z.object({
 
 const baseRecordSchema = z.object({
   id: z.string(),
-  amount: z.number(),
+  amount: z.coerce.number(),
   transaction_datetime: z.coerce.date(),
   description: z.string().min(1, "Description is required"),
   category_id: z.string().min(1, "Category is required"),
   account_id: z.string().min(1, "Account is required"),
-  details: recordDetailsSchema,
+  details: recordDetailsSchema.optional(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date()
 })
 
 const recordTransferSchema = baseRecordSchema.extend({
   type: z.literal("transfer"),
-  destinationAccountId: z.string().min(1, "Destination account is required"),
+  destination_account_id: z.string().min(1, "Destination account is required"),
 });
 
 const recordStandardSchema = baseRecordSchema.extend({

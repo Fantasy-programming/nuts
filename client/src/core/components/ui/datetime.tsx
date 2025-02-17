@@ -1,5 +1,4 @@
 import { Button, buttonVariants } from '@/core/components/ui/button';
-import type { CalendarProps } from '@/core/components/ui/calendar';
 import { Input } from '@/core/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/core/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -233,7 +232,7 @@ function Calendar({
   showOutsideDays = true,
   yearRange = 50,
   ...props
-}: CalendarProps & { yearRange?: number }) {
+}: React.ComponentProps<typeof DayPicker> & { yearRange?: number }) {
   const MONTHS = React.useMemo(() => {
     let locale: Pick<Locale, 'options' | 'localize' | 'formatLong'> = enUS;
     const { options, localize, formatLong } = props.locale || {};
@@ -667,7 +666,7 @@ type DateTimePickerProps = {
    * Show the default month and time when popup the calendar. Default is the current Date().
    **/
   defaultPopupValue?: Date;
-} & Pick<CalendarProps, 'locale' | 'weekStartsOn' | 'showWeekNumber' | 'showOutsideDays'>;
+} & Pick<React.ComponentProps<typeof DayPicker>, 'locale' | 'weekStartsOn' | 'showWeekNumber' | 'showOutsideDays'>;
 
 type DateTimePickerRef = {
   value?: Date;

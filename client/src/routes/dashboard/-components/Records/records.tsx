@@ -91,7 +91,7 @@ export const RecordsTable = () => {
       header: "Description",
       cell: ({ row }) => (
         <div className="flex items-center space-x-2">
-          {row.original.details.payment_status && (
+          {row.original?.details?.payment_status && (
             <img src={"/placeholder.svg"} alt="" className="h-8 w-8 rounded-full" />
           )}
           <span>{row.getValue("description")}</span>
@@ -274,33 +274,44 @@ export const RecordsTable = () => {
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px]">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={table.getIsAllPageRowsSelected()}
-                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                    aria-label="Select all"
-                    className="translate-y-[2px]"
-                  />
-                  <button onClick={toggleAllGroups} className="p-1">
-                    {openGroups.size === filteredGroups.length ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </TableHead>
-              {table
-                .getVisibleLeafColumns()
-                .slice(1)
-                .map((column) => (
-                  <TableHead key={column.id} className={column.id === "amount" ? "text-right" : ""}>
-                    {flexRender(column.columnDef.header, {})}
+            {/* <TableRow> */}
+            {/*   <TableHead className="w-[50px]"> */}
+            {/*     <div className="flex items-center space-x-2"> */}
+            {/*       <Checkbox */}
+            {/*         checked={table.getIsAllPageRowsSelected()} */}
+            {/*         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} */}
+            {/*         aria-label="Select all" */}
+            {/*         className="translate-y-[2px]" */}
+            {/*       /> */}
+            {/*       <button onClick={toggleAllGroups} className="p-1"> */}
+            {/*         {openGroups.size === filteredGroups.length ? ( */}
+            {/*           <ChevronDown className="h-4 w-4" /> */}
+            {/*         ) : ( */}
+            {/*           <ChevronRight className="h-4 w-4" /> */}
+            {/*         )} */}
+            {/*       </button> */}
+            {/*     </div> */}
+            {/*   </TableHead> */}
+            {/*   {table */}
+            {/*     .getVisibleLeafColumns() */}
+            {/*     .slice(1) */}
+            {/*     .map((column) => ( */}
+            {/*       <TableHead key={column.id} className={column.id === "amount" ? "text-right" : ""}> */}
+            {/*         {flexRender(column.columnDef.header, {})} */}
+            {/*       </TableHead> */}
+            {/*     ))} */}
+            {/* </TableRow> */}
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
-            </TableRow>
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
             {filteredGroups.map((group) => (

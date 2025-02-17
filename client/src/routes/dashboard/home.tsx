@@ -4,7 +4,6 @@ import {
   LineChart,
   PieChart,
   Pie,
-  ResponsiveContainer,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -23,7 +22,6 @@ import {
   ChartTooltipContent,
   ChartContainer,
 } from "@/core/components/ui/chart";
-// import { TimeRangePicker } from "@/core/components/time-range-picker";
 
 const lineData = [
   { name: "Jan", value: 400 },
@@ -61,76 +59,68 @@ function RouteComponent() {
     switch (chart.type) {
       case "line":
         return (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={lineData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Line type="monotone" dataKey="value" stroke="#8884d8" />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart data={lineData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Line type="monotone" dataKey="value" stroke="#8884d8" />
+          </LineChart>
         );
       case "bar":
         return (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={lineData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="value" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarChart data={lineData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Bar dataKey="value" fill="#8884d8" />
+          </BarChart>
         );
       case "area":
         return (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={areaData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Area
-                type="monotone"
-                dataKey="income"
-                stackId="1"
-                stroke="#8884d8"
-                fill="#8884d8"
-              />
-              <Area
-                type="monotone"
-                dataKey="expenses"
-                stackId="1"
-                stroke="#82ca9d"
-                fill="#82ca9d"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <AreaChart data={areaData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Area
+              type="monotone"
+              dataKey="income"
+              stackId="1"
+              stroke="#8884d8"
+              fill="#8884d8"
+            />
+            <Area
+              type="monotone"
+              dataKey="expenses"
+              stackId="1"
+              stroke="#82ca9d"
+              fill="#82ca9d"
+            />
+          </AreaChart>
         );
       case "pie":
         return (
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-                label
-              >
-                {pieData.map((_entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <ChartTooltip content={<ChartTooltipContent />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <PieChart>
+            <Pie
+              data={pieData}
+              cx="50%"
+              cy="50%"
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+              label
+            >
+              {pieData.map((_entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
+              ))}
+            </Pie>
+            <ChartTooltip content={<ChartTooltipContent />} />
+          </PieChart>
         );
       default:
         throw new Error("malformated chart data");
@@ -148,7 +138,6 @@ function RouteComponent() {
           <h2 className="text-3xl font-bold tracking-tight">Good Morning Nameless</h2>
           <p className="text-gray-400">This is your financial report</p>
         </div>
-        {/* <TimeRangePicker /> */}
       </div>
       <DashboardGrid>
         {orderedCharts.map((chart) => (

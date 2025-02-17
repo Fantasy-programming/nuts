@@ -13,6 +13,7 @@ import { createFileRoute } from '@tanstack/react-router'
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as SignupImport } from './routes/signup'
 import { Route as LoginImport } from './routes/login'
 import { Route as ComponentsImport } from './routes/components'
 import { Route as DashboardRouteImport } from './routes/dashboard/route'
@@ -35,16 +36,9 @@ import { Route as DashboardSettingsAccountImport } from './routes/dashboard_/set
 
 // Create Virtual Routes
 
-const SignupLazyImport = createFileRoute('/signup')()
 const ForgotPasswordLazyImport = createFileRoute('/forgot-password')()
 
 // Create/Update Routes
-
-const SignupLazyRoute = SignupLazyImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRoute,
-} as any).lazy(() => import('./routes/signup.lazy').then((d) => d.Route))
 
 const ForgotPasswordLazyRoute = ForgotPasswordLazyImport.update({
   id: '/forgot-password',
@@ -53,6 +47,12 @@ const ForgotPasswordLazyRoute = ForgotPasswordLazyImport.update({
 } as any).lazy(() =>
   import('./routes/forgot-password.lazy').then((d) => d.Route),
 )
+
+const SignupRoute = SignupImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const LoginRoute = LoginImport.update({
   id: '/login',
@@ -204,18 +204,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupImport
+      parentRoute: typeof rootRoute
+    }
     '/forgot-password': {
       id: '/forgot-password'
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordLazyImport
-      parentRoute: typeof rootRoute
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupLazyImport
       parentRoute: typeof rootRoute
     }
     '/dashboard_/settings': {
@@ -383,8 +383,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/components': typeof ComponentsRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/forgot-password': typeof ForgotPasswordLazyRoute
-  '/signup': typeof SignupLazyRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
@@ -406,8 +406,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/components': typeof ComponentsRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/forgot-password': typeof ForgotPasswordLazyRoute
-  '/signup': typeof SignupLazyRoute
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/home': typeof DashboardHomeRoute
@@ -430,8 +430,8 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/components': typeof ComponentsRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/forgot-password': typeof ForgotPasswordLazyRoute
-  '/signup': typeof SignupLazyRoute
   '/dashboard_/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
@@ -456,8 +456,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/components'
     | '/login'
-    | '/forgot-password'
     | '/signup'
+    | '/forgot-password'
     | '/dashboard/settings'
     | '/dashboard/accounts'
     | '/dashboard/analytics'
@@ -478,8 +478,8 @@ export interface FileRouteTypes {
     | '/'
     | '/components'
     | '/login'
-    | '/forgot-password'
     | '/signup'
+    | '/forgot-password'
     | '/dashboard/accounts'
     | '/dashboard/analytics'
     | '/dashboard/home'
@@ -500,8 +500,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/components'
     | '/login'
-    | '/forgot-password'
     | '/signup'
+    | '/forgot-password'
     | '/dashboard_/settings'
     | '/dashboard/accounts'
     | '/dashboard/analytics'
@@ -525,8 +525,8 @@ export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   ComponentsRoute: typeof ComponentsRoute
   LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
   ForgotPasswordLazyRoute: typeof ForgotPasswordLazyRoute
-  SignupLazyRoute: typeof SignupLazyRoute
   DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren
 }
 
@@ -535,8 +535,8 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   ComponentsRoute: ComponentsRoute,
   LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
   ForgotPasswordLazyRoute: ForgotPasswordLazyRoute,
-  SignupLazyRoute: SignupLazyRoute,
   DashboardSettingsRouteRoute: DashboardSettingsRouteRouteWithChildren,
 }
 
@@ -554,8 +554,8 @@ export const routeTree = rootRoute
         "/dashboard",
         "/components",
         "/login",
-        "/forgot-password",
         "/signup",
+        "/forgot-password",
         "/dashboard_/settings"
       ]
     },
@@ -578,11 +578,11 @@ export const routeTree = rootRoute
     "/login": {
       "filePath": "login.tsx"
     },
+    "/signup": {
+      "filePath": "signup.tsx"
+    },
     "/forgot-password": {
       "filePath": "forgot-password.lazy.tsx"
-    },
-    "/signup": {
-      "filePath": "signup.lazy.tsx"
     },
     "/dashboard_/settings": {
       "filePath": "dashboard_/settings/route.tsx",

@@ -1,28 +1,28 @@
-import { Button } from "@/core/components/ui/button";
-import {
-  Card,
-  CardTitle,
-  CardContent,
-  CardHeader,
-  CardDescription,
-} from "@/core/components/ui/card";
-import { Input } from "@/core/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Label } from "@/core/components/ui/label";
-import { createLazyFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import {
-  type SignupFormValues,
-  signupSchema,
-} from "@/features/auth/services/auth.types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { authService } from "@/features/auth/services/auth";
-import { Separator } from "@/core/components/ui/separator";
+import { type SignupFormValues, signupSchema } from "@/features/auth/services/auth.types";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 
-export const Route = createLazyFileRoute("/signup")({
+import { Card, CardTitle, CardContent, CardHeader, CardDescription } from "@/core/components/ui/card";
+import { Separator } from "@/core/components/ui/separator";
+import { Label } from "@/core/components/ui/label";
+import { Button } from "@/core/components/ui/button";
+import { Input } from "@/core/components/ui/input";
+
+export const Route = createFileRoute("/signup")({
   component: RouteComponent,
+  beforeLoad: ({ context, location }) => {
+    if (context.auth.isLoggedIn) {
+      throw redirect({
+        to: "/dashboard/home",
+        search: { redirect: location.href },
+      });
+    }
+  },
 });
 
 function RouteComponent() {
@@ -40,17 +40,18 @@ function RouteComponent() {
 
   async function onSubmit(values: SignupFormValues) {
     setIsLoading(true);
+
     try {
       await authService.signup(values);
       toast.success("Account created successfully", {
         description: "You can now login into the system",
       });
-      navigate({ to: "/login" });
+      await navigate({ to: "/login" });
     } catch (error) {
       toast.error("Error", {
         description: "There was a problem creating your account.",
       });
-      console.error(error);
+      console.log(error)
     } finally {
       setIsLoading(false);
     }

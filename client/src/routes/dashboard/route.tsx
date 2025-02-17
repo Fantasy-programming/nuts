@@ -3,8 +3,10 @@ import {
   Outlet,
   type ParseRoute,
   redirect,
-  useNavigate
+  useNavigate,
+  useRouterState,
 } from "@tanstack/react-router";
+import { cn } from "@/lib/utils"
 import type { routeTree } from "@/routeTree.gen";
 import { useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook'
@@ -68,7 +70,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTransaction } from "@/features/transactions/services/transaction";
 import { RecordCreateSchema } from "@/features/transactions/services/transaction.types";
 
-export type ValidRoutes = ParseRoute<typeof routeTree>["fullPath"];
+export type ValidRoutes = ParseRoute<typeof routeTree>["to"];
 
 type navStuff = {
   title: string;
@@ -121,9 +123,11 @@ const plugins = [
 
 function DashboardWrapper() {
   const queryClient = useQueryClient();
-  const [theme, setTheme] = useState("light");
   const navigate = useNavigate();
+  const router = useRouterState();
   const { logout } = useAuth();
+
+  const [theme, setTheme] = useState("light");
   const [isOpen, setIsOpen] = useState(false);
 
   const createMutation = useMutation({
@@ -169,7 +173,7 @@ function DashboardWrapper() {
 
 
   return (
-    <SidebarProvider className="bg-[#f8f8f8]">
+    <SidebarProvider>
       <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0" >
         <SidebarHeader>
           <SidebarMenu>
@@ -192,13 +196,17 @@ function DashboardWrapper() {
             <SidebarGroupLabel>General</SidebarGroupLabel>
             <SidebarMenu>
               {navMain.map((item) => (
-                <SidebarMenuItem>
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     tooltip={item.title}
                     className="px-6"
                   >
-                    <Link to={item.url} className="flex text-sm  items-center w-full text-gray-950/60 justify-start hover:bg-[#FEFEFE_!important] gap-3 hover:shadow-sm transition-all">
+                    <Link to={item.url} className={cn(
+                      "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                      router.location.pathname === item.url ? "bg-sidebar-accent shadow-sm" : ""
+                    )}
+                    >
                       {item.icon && <item.icon className="size-4 font-medium stroke-2" />}
                       <span>{item.title}</span>
                     </Link>
@@ -297,8 +305,8 @@ function DashboardWrapper() {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
-      <SidebarInset className="overflow-hidden p-2 bg-[#f8f8f8]">
-        <div className="h-full bg-[#fefefe] rounded-xl shadow-sm border border-[#f8f8f8] border-[2px] border-[15_15_15/50%] shadow-[0_6px_12px_rgba(0,0,0,0.19),0_6px_6px_rgba(0,0,0,0.23),inset_1px_1px_1px_0_rgba(255,255,255,0.05),inset_-1px_-1px_1px_0_rgba(255,255,255,0.05)] ">
+      <SidebarInset className="overflow-hidden">
+        <div className="h-full bg-[#fefefe] m-2 rounded-xl shadow-sm border-background border-2">
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex items-center gap-2 px-4 justify-between w-full">
               <div className="hidden sm:block" />
@@ -314,7 +322,7 @@ function DashboardWrapper() {
             </div>
           </header>
           <main className="flex flex-1 overflow-hidden">
-            <div className="p-6 space-y-8 h-full w-full overflow-y-auto">
+            <div className="px-6 py-2 space-y-8 h-full w-full overflow-y-auto">
               <Outlet />
             </div>
           </main>

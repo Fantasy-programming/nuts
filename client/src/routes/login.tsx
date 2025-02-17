@@ -1,27 +1,18 @@
-import { Button } from "@/core/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
-import { Input } from "@/core/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Label } from "@/core/components/ui/label";
-import { Separator } from "@/core/components/ui/separator";
-import { authService } from "@/features/auth/services/auth";
-import { motion } from "framer-motion"
-import { useAuth } from "@/features/auth/hooks/use-auth";
-import {
-  createFileRoute,
-  Link,
-  redirect,
-  useNavigate,
-  useRouter,
-  useRouterState,
-} from "@tanstack/react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import {
-  type LoginFormValues,
-  loginSchema
-} from "@/features/auth/services/auth.types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { authService } from "@/features/auth/services/auth";
+import { motion } from "framer-motion"
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { createFileRoute, Link, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
+import { Button } from "@/core/components/ui/button";
+import { Input } from "@/core/components/ui/input";
+import { Label } from "@/core/components/ui/label";
+import { Separator } from "@/core/components/ui/separator";
+import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth.types";
 
 
 export const Route = createFileRoute("/login")({
