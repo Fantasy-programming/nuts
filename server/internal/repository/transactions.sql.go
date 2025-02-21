@@ -19,25 +19,27 @@ INSERT INTO transactions (
     amount,
     type,
     account_id,
+    destination_account_id,
     category_id,
     description,
     transaction_datetime,
     details,
     created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 `
 
 type CreateTransactionParams struct {
-	Amount              pgtype.Numeric `json:"amount"`
-	Type                string         `json:"type"`
-	AccountID           uuid.UUID      `json:"account_id"`
-	CategoryID          uuid.UUID      `json:"category_id"`
-	Description         *string        `json:"description"`
-	TransactionDatetime time.Time      `json:"transaction_datetime"`
-	Details             dto.Details    `json:"details"`
-	CreatedBy           *uuid.UUID     `json:"created_by"`
+	Amount               pgtype.Numeric `json:"amount"`
+	Type                 string         `json:"type"`
+	AccountID            uuid.UUID      `json:"account_id"`
+	DestinationAccountID *uuid.UUID     `json:"destination_account_id"`
+	CategoryID           uuid.UUID      `json:"category_id"`
+	Description          *string        `json:"description"`
+	TransactionDatetime  time.Time      `json:"transaction_datetime"`
+	Details              dto.Details    `json:"details"`
+	CreatedBy            *uuid.UUID     `json:"created_by"`
 }
 
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
@@ -45,6 +47,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.Amount,
 		arg.Type,
 		arg.AccountID,
+		arg.DestinationAccountID,
 		arg.CategoryID,
 		arg.Description,
 		arg.TransactionDatetime,

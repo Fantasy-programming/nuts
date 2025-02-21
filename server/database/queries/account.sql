@@ -18,7 +18,9 @@ SELECT
     type,
     balance,
     currency,
-    meta
+    meta,
+    created_by,
+    updated_at
 FROM accounts
 WHERE id = $1 LIMIT 1;
 

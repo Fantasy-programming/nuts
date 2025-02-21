@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./features/auth/contexts/auth.provider";
 import { router, queryClient } from "./router"
 
-
 function RouterWrapper() {
   const auth = useAuth();
   return <RouterProvider router={router} context={{ auth }} />;

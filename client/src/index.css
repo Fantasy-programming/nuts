@@ -3,12 +3,13 @@
 @custom-variant dark (&:is(.dark *));
 @variant dark (&:where(.dark, .dark *));
 @plugin "tailwindcss-animate";
+@plugin "tailwind-corner-smoothing";
 
 
 :root {
   --background: oklch(97.91% 0 0);
   --foreground: hsl(20 14.3% 4.1%);
-  --card: hsl(0 0% 100%);
+  --card: oklch(99.7% 0 0);
   --card-foreground: hsl(20 14.3% 4.1%);
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(20 14.3% 4.1%);

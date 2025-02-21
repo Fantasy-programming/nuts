@@ -1,11 +1,4 @@
-import {
-  createFileRoute,
-  Outlet,
-  type ParseRoute,
-  redirect,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
+import { createFileRoute, Outlet, type ParseRoute, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils"
 import type { routeTree } from "@/routeTree.gen";
 import { useState } from "react";
@@ -31,11 +24,7 @@ import {
 } from "lucide-react";
 
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/core/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -306,7 +295,7 @@ function DashboardWrapper() {
         <SidebarRail />
       </Sidebar>
       <SidebarInset className="overflow-hidden">
-        <div className="h-full bg-[#fefefe] m-2 rounded-xl shadow-sm border-background border-2">
+        <div className="h-full bg-card m-2 rounded-xl smooth-corners-sm shadow-sm border-background border-2">
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex items-center gap-2 px-4 justify-between w-full">
               <div className="hidden sm:block" />

@@ -7,6 +7,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -84,18 +85,22 @@ SELECT
     type,
     balance,
     currency,
-    meta
+    meta,
+    created_by,
+    updated_at
 FROM accounts
 WHERE id = $1 LIMIT 1
 `
 
 type GetAccountByIdRow struct {
-	ID       uuid.UUID      `json:"id"`
-	Name     string         `json:"name"`
-	Type     ACCOUNTTYPE    `json:"type"`
-	Balance  pgtype.Numeric `json:"balance"`
-	Currency string         `json:"currency"`
-	Meta     []byte         `json:"meta"`
+	ID        uuid.UUID      `json:"id"`
+	Name      string         `json:"name"`
+	Type      ACCOUNTTYPE    `json:"type"`
+	Balance   pgtype.Numeric `json:"balance"`
+	Currency  string         `json:"currency"`
+	Meta      []byte         `json:"meta"`
+	CreatedBy *uuid.UUID     `json:"created_by"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountByIdRow, error) {
@@ -108,6 +113,8 @@ func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountB
 		&i.Balance,
 		&i.Currency,
 		&i.Meta,
+		&i.CreatedBy,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

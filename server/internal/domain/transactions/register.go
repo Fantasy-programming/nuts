@@ -29,6 +29,7 @@ func (a *Transactions) Register() http.Handler {
 	router.Use(jwtauth.Authenticator(a.config.SigningKey))
 	router.Get("/", a.GetTransactions)
 	router.Post("/", a.CreateTransaction)
+	router.Post("/transfert", a.CreateTransfert)
 	router.Get("/{id}", a.GetTransaction)
 	router.Put("/{id}", a.UpdateTransaction)
 	router.Delete("/{id}", a.DeleteTransaction)

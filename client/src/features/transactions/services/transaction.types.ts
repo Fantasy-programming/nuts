@@ -55,7 +55,7 @@ export const recordCreateSchema = z.discriminatedUnion("type", [
   recordStandardSchema.omit(createOmits),
 ]).transform((record) => ({
   ...record,
-  amount: record.type !== "income" && record.amount > 0 ? -record.amount : record.amount,
+  amount: record.type === "expense" && record.amount > 0 ? -record.amount : record.amount,
 }));
 
 export type RecordSchema = z.infer<typeof recordSchema>
