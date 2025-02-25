@@ -5,8 +5,6 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
-	ut "github.com/go-playground/universal-translator"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
@@ -74,31 +72,4 @@ func parseMeta(meta *[]byte) []byte {
 		return []byte(*meta)
 	}
 	return nil
-}
-
-// Register translations for all supported languages
-func (a *Account) registerValidations() {
-	// nil checks
-	if a.validate == nil || a.validate.Validator == nil {
-		return
-	}
-
-	for lang, trans := range translations {
-		translator, _ := a.validate.GetTranslator(lang)
-		registerTranslations(a.validate.Validator, translator, trans)
-	}
-}
-
-func registerTranslations(v *validator.Validate, trans ut.Translator, translations []TranslationKey) {
-	for _, t := range translations {
-		v.RegisterTranslation(t.Tag, trans,
-			func(ut ut.Translator) error {
-				return ut.Add(t.Tag, t.Message, true)
-			},
-			func(ut ut.Translator, fe validator.FieldError) string {
-				t, _ := ut.T(fe.Tag(), fe.Field())
-				return t
-			},
-		)
-	}
 }

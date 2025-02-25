@@ -1,0 +1,19 @@
+{
+  "validation.required": "Le champ {{.Field}} est obligatoire",
+  "validation.email": "Veuillez saisir une adresse e-mail valide pour {{.Field}}",
+  "validation.min": "Le {{.Field}} doit contenir au moins {{.Param}} caractères",
+  "validation.max": "Le {{.Field}} ne peut pas dépasser {{.Param}} caractères",
+  "validation.strong_password": "Le mot de passe doit contenir au moins une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial",
+  "validation.unique_email": "Cet e-mail est déjà enregistré",
+
+  "auth.wrong_credentials": "Nom d'utilisateur ou mot de passe incorrect",
+  "auth.email_required": "L'e-mail est obligatoire",
+  "auth.password_required": "Le mot de passe ne répond pas aux critères",
+  "auth.user_exists": "Cet utilisateur existe déjà",
+  "auth.logout_success": "Déconnecté avec succès",
+  "auth.user_created": "Utilisateur créé avec succès",
+
+  "error.bad_request": "Format de requête incorrect",
+  "error.internal": "Une erreur interne s'est produite",
+  "error.validation": "La validation a échoué"
+}
