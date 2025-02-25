@@ -20,6 +20,9 @@ type Claims struct {
 // GenerateToken creates a JWT with the given user ID, roles, signing key, and duration.
 // Returns the signed token string or an error if signing fails.
 func GenerateToken(userID uuid.UUID, roles []string, key string, duration time.Duration) (string, error) {
+	if userID == uuid.Nil {
+		return "", errors.New("userID must not be empty")
+	}
 	if len(key) == 0 {
 		return "", errors.New("signing key must not be empty")
 	}
@@ -64,7 +67,7 @@ func ReconstructJWT(headerPayload string, signature string) (string, error) {
 
 // VerifyToken verifies a JWT string and returns the claims if valid.
 // The signing key must match the key used to sign the token.
-func VerifyRefreshToken(tokenStr string, key string) (*Claims, error) {
+func VerifyToken(tokenStr string, key string) (*Claims, error) {
 	if len(key) == 0 {
 		return nil, errors.New("signing key must not be empty")
 	}
