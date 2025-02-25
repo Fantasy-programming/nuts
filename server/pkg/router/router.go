@@ -1,38 +1,44 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"path"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
 )
 
-type (
-	Middleware   func(http.Handler) http.Handler
-	RouterOption func(*Router)
+// Common errors that can occur during routing operations
+var (
+	ErrEmptyPath    = fmt.Errorf("router: path cannot be empty")
+	ErrNilHandler   = fmt.Errorf("router: handler cannot be nil")
+	ErrInvalidPath  = fmt.Errorf("router: path must start with /")
+	ErrInvalidMount = fmt.Errorf("router: mount path must not be empty or whitespace")
 )
 
-type Route struct {
-	Method string
-	Path   string
-}
+// Middleware defines a function that wraps an http.Handler
+type Middleware func(http.Handler) http.Handler
 
+// RouterOption defines a function that configures a Router
+type RouterOption func(*Router)
+
+// Router represents an HTTP router with middleware support
+// that leverages Go 1.22's enhanced ServeMux capabilities
 type Router struct {
-	notFound http.Handler
-	*http.ServeMux
-	routes      map[string]struct{}
-	prefix      string
-	middleware  []Middleware
-	routesMutex sync.RWMutex
+	mux        *http.ServeMux
+	notFound   http.Handler
+	prefix     string
+	middleware []Middleware
+	mu         sync.RWMutex
 }
 
-// Create a new router instance
+// NewRouter creates a new router instance with optional configuration
 func NewRouter(opts ...RouterOption) *Router {
 	r := &Router{
-		ServeMux:   http.NewServeMux(),
-		middleware: make([]Middleware, 0),
-		routes:     make(map[string]struct{}),
+		mux:        http.NewServeMux(),
+		middleware: make([]Middleware, 0, 10),
 	}
 
 	for _, opt := range opts {
@@ -42,29 +48,40 @@ func NewRouter(opts ...RouterOption) *Router {
 	return r
 }
 
-// Router option to create router with given top middleware
+// WithMiddleware returns a RouterOption that adds middleware to the router
 func WithMiddleware(mw ...Middleware) RouterOption {
 	return func(r *Router) {
 		r.middleware = append(r.middleware, mw...)
 	}
 }
 
-// Add a middleware to the router stack
-func (r *Router) Use(mx ...Middleware) {
-	r.middleware = append(r.middleware, mx...)
+// WithNotFound returns a RouterOption that sets the not found handler
+func WithNotFound(handler http.Handler) RouterOption {
+	return func(r *Router) {
+		r.notFound = handler
+	}
 }
 
+// Add a middleware to the router stack
+func (r *Router) Use(mw ...Middleware) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.middleware = append(r.middleware, mw...)
+}
+
+// Group creates a new router group with the given middleware and prefix
 func (r *Router) Group(fn func(r *Router)) {
 	router := &Router{
-		ServeMux:   r.ServeMux,
+		mux:        r.mux,
+		notFound:   r.notFound,
+		prefix:     r.prefix,
 		middleware: slices.Clone(r.middleware),
-		routes:     r.routes,
 	}
 
 	fn(router)
 }
 
-// Add a toplevel prefix
+// Add a prefix to the router
 func (r *Router) Prefix(prefix string) {
 	r.prefix = path.Clean(r.prefix + "/" + prefix)
 }
@@ -76,30 +93,27 @@ func (r *Router) Route(pathStr string, fn func(r *Router)) *Router {
 	}
 
 	subRouter := &Router{
-		ServeMux:   r.ServeMux,
+		mux:        r.mux,
 		prefix:     path.Join(r.prefix, pathStr),
 		middleware: slices.Clone(r.middleware),
-		routes:     make(map[string]struct{}),
 	}
 
 	fn(subRouter)
-
-	r.routesMutex.Lock()
-	defer r.routesMutex.Unlock()
-	for route := range subRouter.routes {
-		r.routes[route] = struct{}{}
-	}
-
 	return subRouter
 }
 
-func (r *Router) Mount(pathStr string, handler http.Handler) {
+func (r *Router) Mount(pathStr string, handler http.Handler) error {
 	if handler == nil {
-		panic("router: mounted handler cannot be nil")
+		return ErrNilHandler
 	}
 
 	if strings.TrimSpace(pathStr) == "" {
-		panic("router: mount path cannot be empty or whitespace")
+		return ErrInvalidMount
+	}
+
+	// Ensure the path starts with /
+	if pathStr[0] != '/' {
+		pathStr = "/" + pathStr
 	}
 
 	mountPath := path.Clean(path.Join(r.prefix, pathStr))
@@ -109,114 +123,101 @@ func (r *Router) Mount(pathStr string, handler http.Handler) {
 		mountPath += "/"
 	}
 
+	// Create a wrapper that adjusts the request path before passing to the handler
 	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Save original path
 		originalPath := req.URL.Path
+
+		// Strip the mount path prefix from the request path
 		req.URL.Path = strings.TrimPrefix(req.URL.Path, mountPath)
 
+		// Ensure the modified path starts with a slash
 		if !strings.HasPrefix(req.URL.Path, "/") {
 			req.URL.Path = "/" + req.URL.Path
 		}
 
+		// Call the handler with the modified path
 		handler.ServeHTTP(w, req)
+
+		// Restore original path
 		req.URL.Path = originalPath
 	})
 
-	finalHandler := r.wrap(wrappedHandler, nil)
+	// Apply middleware to the wrapped handler
+	finalHandler := r.wrap(wrappedHandler)
 
-	// Register the handler for both the exact path and any paths underneath it
-	r.Handle(mountPath, finalHandler)
-	r.Handle(mountPath+"*", finalHandler)
+	// Register the handler for both exact path and wildcard pattern
+	r.mux.Handle(mountPath, finalHandler)
+	r.mux.Handle(mountPath+"*", finalHandler)
 
-	// If the mounted handler is a Router, copy its routes
-	if subRouter, ok := handler.(*Router); ok {
-		subRouter.routesMutex.RLock()
-		defer subRouter.routesMutex.RUnlock()
-
-		for route := range subRouter.routes {
-			methodPath := strings.SplitN(route, " ", 2)
-			if len(methodPath) != 2 {
-				continue
-			}
-			method, routePath := methodPath[0], methodPath[1]
-			fullPath := path.Join(mountPath, strings.TrimPrefix(routePath, "/"))
-			r.addRoute(method, fullPath)
-
-		}
-
-	}
+	return nil
 }
 
 // Router Get Method
-func (r *Router) Get(path string, fn http.HandlerFunc, mx ...Middleware) {
-	r.handle(http.MethodGet, path, fn, mx)
+func (r *Router) Get(path string, fn http.HandlerFunc) error {
+	return r.handle(http.MethodGet, path, fn)
 }
 
 // Router Post method
-func (r *Router) Post(path string, fn http.HandlerFunc, mx ...Middleware) {
-	r.handle(http.MethodPost, path, fn, mx)
+func (r *Router) Post(path string, fn http.HandlerFunc) error {
+	return r.handle(http.MethodPost, path, fn)
 }
 
 // Router Put method
-func (r *Router) Put(path string, fn http.HandlerFunc, mx ...Middleware) {
-	r.handle(http.MethodPut, path, fn, mx)
+func (r *Router) Put(path string, fn http.HandlerFunc) error {
+	return r.handle(http.MethodPut, path, fn)
 }
 
 // Router Delete method
-func (r *Router) Delete(path string, fn http.HandlerFunc, mx ...Middleware) {
-	r.handle(http.MethodDelete, path, fn, mx)
+func (r *Router) Delete(path string, fn http.HandlerFunc) error {
+	return r.handle(http.MethodDelete, path, fn)
 }
 
 // Router Head method
-func (r *Router) Head(path string, fn http.HandlerFunc, mx ...Middleware) {
-	r.handle(http.MethodHead, path, fn, mx)
+func (r *Router) Head(path string, fn http.HandlerFunc) error {
+	return r.handle(http.MethodHead, path, fn)
 }
 
 // Router Options method
-func (r *Router) Options(path string, fn http.HandlerFunc, mx ...Middleware) {
-	r.handle(http.MethodOptions, path, fn, mx)
+func (r *Router) Options(path string, fn http.HandlerFunc) error {
+	return r.handle(http.MethodOptions, path, fn)
 }
 
-// Router All method
-func (r *Router) All(pathStr string, fn http.HandlerFunc, mx ...Middleware) {
-	cleanPath := path.Clean(r.prefix + pathStr)
-	r.Handle(cleanPath, r.wrap(fn, mx))
-}
+func (r *Router) handle(method, path string, handler http.HandlerFunc) error {
+	if path == "" {
+		panic(ErrEmptyPath)
+	}
 
-func (r *Router) handle(method, pathStr string, fn http.HandlerFunc, mx []Middleware) {
-	cleanPath := path.Clean(r.prefix + pathStr)
-	r.Handle(method+" "+cleanPath, r.wrap(fn, mx))
-	r.addRoute(method, cleanPath)
-}
+	// Ensure path starts with /
+	if path[0] != '/' {
+		path = "/" + path
+	}
 
-func (r *Router) addRoute(method, path string) {
-	r.routesMutex.Lock()
-	defer r.routesMutex.Unlock()
-	r.routes[method+" "+path] = struct{}{}
+	// Use Go 1.22's method-specific pattern
+	pattern := method + " " + r.prefix + path
+	r.mux.Handle(pattern, r.wrap(handler))
+	return nil
 }
 
 func (r *Router) ListRoutes() []string {
-	r.routesMutex.RLock()
-	defer r.routesMutex.RUnlock()
-
-	routes := make([]string, 0, len(r.routes))
-	for route := range r.routes {
-		routes = append(routes, route)
-	}
-	return routes
+	v := reflect.ValueOf(r.mux).Elem()
+	routes := v.FieldByName("mux121").FieldByName("m")
+	fmt.Println(routes)
+	route2 := make([]string, 0, 1)
+	return route2
 }
 
-func (r *Router) wrap(fn http.HandlerFunc, mw []Middleware) http.Handler {
-	handler := http.Handler(fn)
+func (r *Router) wrap(handler http.Handler) http.Handler {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-	for i := len(mw) - 1; i >= 0; i-- {
-		handler = mw[i](handler)
-	}
+	h := handler
 
 	for i := len(r.middleware) - 1; i >= 0; i-- {
-		handler = r.middleware[i](handler)
+		h = r.middleware[i](h)
 	}
 
-	return handler
+	return h
 }
 
 func (r *Router) NotFound(fn http.HandlerFunc) {
@@ -224,22 +225,20 @@ func (r *Router) NotFound(fn http.HandlerFunc) {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	handler, pattern := r.Handler(req)
 
+	handler, pattern := r.mux.Handler(req)
 	if pattern == "" {
-		if r.notFound != nil {
-			r.notFound.ServeHTTP(w, req)
-		} else {
-			http.Error(w, "404 page not found", http.StatusNotFound)
-		}
+		r.handleNotFound(w, req)
 		return
 	}
 
-	finalHandler := handler
+	handler.ServeHTTP(w, req)
+}
 
-	for i := len(r.middleware) - 1; i >= 0; i-- {
-		finalHandler = r.middleware[i](finalHandler)
+func (r *Router) handleNotFound(w http.ResponseWriter, req *http.Request) {
+	if r.notFound != nil {
+		r.notFound.ServeHTTP(w, req)
+		return
 	}
-
-	finalHandler.ServeHTTP(w, req)
+	http.Error(w, "404 page not found", http.StatusNotFound)
 }
