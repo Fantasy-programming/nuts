@@ -6,18 +6,22 @@ import (
 	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 )
 
 type Category struct {
-	queries *repository.Queries
-	config  *config.Config
+	queries  *repository.Queries
+	config   *config.Config
+	log      *zerolog.Logger
+	validate *validation.Validator
 }
 
-func Init(db *pgxpool.Pool, config *config.Config) *Category {
+func Init(db *pgxpool.Pool, config *config.Config, validate *validation.Validator, logger *zerolog.Logger) *Category {
 	queries := repository.New(db)
-	return &Category{queries, config}
+	return &Category{queries, config, logger, validate}
 }
 
 func (c *Category) Register() http.Handler {

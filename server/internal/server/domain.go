@@ -25,49 +25,49 @@ func (s *Server) RegisterDomain() {
 	s.initHealth()
 }
 
-func (s *Server) initVersion() {
-	s.router.Get("/version", func(w http.ResponseWriter, r *http.Request) {
-		respond.Json(w, http.StatusOK, map[string]string{"version": s.Version})
-	})
-}
-
 func (s *Server) initAuth() {
-	AuthDomain := auth.Init(s.db, s.cfg, s.validator)
+	AuthDomain := auth.Init(s.db, s.cfg, s.validator, s.i18n, s.logger)
 	s.router.Mount("/auth", AuthDomain.Register())
 }
 
 func (s *Server) initUser() {
-	UserDomain := user.Init(s.db, s.cfg)
+	UserDomain := user.Init(s.db, s.cfg, s.validator, s.logger)
 	s.router.Mount("/user", UserDomain.Register())
 }
 
 func (s *Server) initAccount() {
-	AccountDomain := accounts.Init(s.db, s.cfg, s.validator)
+	AccountDomain := accounts.Init(s.db, s.cfg, s.validator, s.logger)
 	s.router.Mount("/account", AccountDomain.Register())
 }
 
 func (s *Server) initTransaction() {
-	TransactionDomain := transactions.Init(s.db, s.cfg, s.validator)
+	TransactionDomain := transactions.Init(s.db, s.cfg, s.validator, s.logger)
 	s.router.Mount("/transaction", TransactionDomain.Register())
 }
 
 func (s *Server) initCategory() {
-	CategoryDomain := category.Init(s.db, s.cfg)
+	CategoryDomain := category.Init(s.db, s.cfg, s.validator, s.logger)
 	s.router.Mount("/category", CategoryDomain.Register())
 }
 
 func (s *Server) initPreferences() {
-	Preferences := preferences.Init(s.db)
+	Preferences := preferences.Init(s.db, s.cfg, s.validator, s.logger)
 	s.router.Mount("/preferences", Preferences.Register())
 }
 
 func (s *Server) initTags() {
-	TagsDomain := tags.Init(s.db)
+	TagsDomain := tags.Init(s.db, s.validator, s.logger)
 	s.router.Mount("/tags", TagsDomain.Register())
 }
 
 func (s *Server) initHealth() {
 	s.router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+	})
+}
+
+func (s *Server) initVersion() {
+	s.router.Get("/version", func(w http.ResponseWriter, r *http.Request) {
+		respond.Json(w, http.StatusOK, map[string]string{"version": s.Version}, s.logger)
 	})
 }

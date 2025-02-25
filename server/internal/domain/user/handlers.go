@@ -13,13 +13,29 @@ func (u *User) GetInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     u.log,
+			Details:    nil,
+		})
 		return
 	}
 
 	user, err := u.queries.GetUserById(ctx, id)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     u.log,
+			Details:    id,
+		})
 		return
 	}
 
@@ -29,7 +45,7 @@ func (u *User) GetInfo(w http.ResponseWriter, r *http.Request) {
 		LastName:  user.LastName,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
-	})
+	}, u.log)
 }
 
 func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {}

@@ -23,45 +23,94 @@ func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    userID,
+		})
 		return
 	}
 
 	transactions, err := a.queries.ListTransactions(ctx, &userID)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    userID,
+		})
 		return
 	}
 
 	groupped, err := groupTransactions(transactions)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    nil,
+		})
 		return
 	}
 
-	respond.Json(w, http.StatusOK, groupped)
+	respond.Json(w, http.StatusOK, groupped, a.log)
 }
 
 func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	trscID, err := parseUUID(r, "id")
 	if err != nil {
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    r.URL.Path,
+		})
 		return
 	}
 
 	transaction, err := a.queries.GetTransactionById(ctx, trscID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			respond.Error(w, http.StatusNotFound, ErrNoTransactions, err)
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusNotFound,
+				ClientErr:  ErrNoTransactions,
+				ActualErr:  err,
+				Logger:     a.log,
+				Details:    trscID,
+			})
 			return
 		}
 
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    trscID,
+		})
+
 		return
 	}
 
-	respond.Json(w, http.StatusOK, transaction)
+	respond.Json(w, http.StatusOK, transaction, a.log)
 }
 
 func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +118,16 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
+
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    r.Body,
+		})
 		return
 	}
 
@@ -78,26 +136,58 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 	accountID, err := uuid.Parse(request.AccountID)
 
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	categoryID, err := uuid.Parse(request.CategoryID)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	id, err := jwtauth.GetID(r)
 	if err != nil {
 		log.Println(err)
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	tx, err := a.db.Begin(ctx)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
@@ -122,7 +212,15 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 		CreatedBy:           &id,
 	})
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
@@ -131,16 +229,32 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 		Balance: amount,
 	})
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	if err = tx.Commit(ctx); err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
-	respond.Json(w, http.StatusOK, transaction)
+	respond.Json(w, http.StatusOK, transaction, a.log)
 }
 
 func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +262,15 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    r.Body,
+		})
 		return
 	}
 
@@ -158,37 +280,85 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 	// Parse UUIDs
 	accountID, err := uuid.Parse(request.AccountID)
 	if err != nil {
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	destAccountID, err := uuid.Parse(request.DestinationAccountID)
 	if err != nil {
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	if accountID == destAccountID {
-		respond.Error(w, http.StatusBadRequest, ErrSameAccount, nil)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  ErrSameAccount,
+			ActualErr:  nil,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	categoryID, err := uuid.Parse(request.CategoryID)
 	if err != nil {
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	userID, err := jwtauth.GetID(r)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	// Start transaction
 	tx, err := a.db.Begin(ctx)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -202,13 +372,29 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("source:", sourceAcc.CreatedBy)
 
 	if err != nil || *sourceAcc.CreatedBy != userID {
-		respond.Error(w, http.StatusNotFound, ErrSrcAccNotFound, nil)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusNotFound,
+			ClientErr:  ErrSrcAccNotFound,
+			ActualErr:  nil,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	destAcc, err := qtx.GetAccountById(ctx, destAccountID)
 	if err != nil || *destAcc.CreatedBy != userID {
-		respond.Error(w, http.StatusNotFound, ErrDestAccNotFound, nil)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusNotFound,
+			ClientErr:  ErrDestAccNotFound,
+			ActualErr:  nil,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
@@ -217,7 +403,15 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 	newBalance := sourceAcc.Balance
 	newBalance.Int = new(big.Int).Add(newBalance.Int, amountOut.Int)
 	if newBalance.Int == nil || newBalance.Int.Sign() < 0 {
-		respond.Error(w, http.StatusBadRequest, ErrLowBalance, nil)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  ErrLowBalance,
+			ActualErr:  nil,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
@@ -235,7 +429,15 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 		CreatedBy:            &userID,
 	})
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
@@ -245,7 +447,15 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 		Balance: amountOut,
 	})
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
@@ -254,16 +464,32 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 		Balance: amountIn,
 	})
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
 	if err = tx.Commit(ctx); err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    request,
+		})
 		return
 	}
 
-	respond.Json(w, http.StatusOK, transaction)
+	respond.Json(w, http.StatusOK, transaction, a.log)
 }
 
 func (a *Transactions) UpdateTransaction(w http.ResponseWriter, r *http.Request) {}
@@ -273,12 +499,28 @@ func (a *Transactions) DeleteTransaction(w http.ResponseWriter, r *http.Request)
 
 	trscID, err := parseUUID(r, "id")
 	if err != nil {
-		respond.Error(w, http.StatusBadRequest, message.ErrBadRequest, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    r.URL.Path,
+		})
 		return
 	}
 
 	if err = a.queries.DeleteTransaction(ctx, trscID); err != nil {
-		respond.Error(w, http.StatusInternalServerError, message.ErrInternalError, err)
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    trscID,
+		})
 		return
 
 	}

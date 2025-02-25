@@ -3,7 +3,6 @@ package auth
 import (
 	"regexp"
 
-	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -19,18 +18,12 @@ type LoginRequest struct {
 
 func (a *Auth) registerValidations() {
 	// nil checks
-	if a.validate == nil || a.validate.Validator == nil {
+	if a.v == nil || a.v.Validator == nil {
 		return
 	}
 
 	// Register custom validations
-	a.validate.Validator.RegisterValidation("strong_password", validateStrongPassword)
-
-	// Register translations for all supported languages
-	for lang, trans := range translations {
-		translator, _ := a.validate.GetTranslator(lang)
-		registerTranslations(a.validate.Validator, translator, trans)
-	}
+	a.v.Validator.RegisterValidation("strong_password", validateStrongPassword)
 }
 
 func validateStrongPassword(fl validator.FieldLevel) bool {
@@ -41,18 +34,4 @@ func validateStrongPassword(fl validator.FieldLevel) bool {
 	hasSpecial := regexp.MustCompile(`[!@#~$%^&*()+|_.,<>?{}]`).MatchString(password)
 
 	return hasUpper && hasLower && hasNumber && hasSpecial
-}
-
-func registerTranslations(v *validator.Validate, trans ut.Translator, translations []TranslationKey) {
-	for _, t := range translations {
-		v.RegisterTranslation(t.Tag, trans,
-			func(ut ut.Translator) error {
-				return ut.Add(t.Tag, t.Message, true)
-			},
-			func(ut ut.Translator, fe validator.FieldError) string {
-				t, _ := ut.T(fe.Tag(), fe.Field())
-				return t
-			},
-		)
-	}
 }

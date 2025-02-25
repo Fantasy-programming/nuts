@@ -6,9 +6,10 @@ import (
 	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/lib/validation"
+	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 )
 
 type Transactions struct {
@@ -16,11 +17,12 @@ type Transactions struct {
 	queries  *repository.Queries
 	config   *config.Config
 	validate *validation.Validator
+	log      *zerolog.Logger
 }
 
-func Init(db *pgxpool.Pool, config *config.Config, validate *validation.Validator) *Transactions {
+func Init(db *pgxpool.Pool, config *config.Config, validate *validation.Validator, logger *zerolog.Logger) *Transactions {
 	queries := repository.New(db)
-	return &Transactions{db, queries, config, validate}
+	return &Transactions{db, queries, config, validate, logger}
 }
 
 func (a *Transactions) Register() http.Handler {
