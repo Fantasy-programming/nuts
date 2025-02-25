@@ -1,13 +1,5 @@
 import { api as axios } from "@/lib/axios";
-
-export interface Account {
-  id: string;
-  name: string;
-  balance: number;
-  type: "cash" | "savings" | "investment" | "credit";
-  color: string;
-  currency: string;
-}
+import { Account, AccountCreate } from "./account.types";
 
 const getAccounts = async (): Promise<Account[]> => {
   const { data } = await axios.get<Account[]>("/account/");
@@ -15,7 +7,7 @@ const getAccounts = async (): Promise<Account[]> => {
 };
 
 const createAccount = async (
-  account: Omit<Account, "id">,
+  account: AccountCreate,
 ): Promise<Account> => {
   const data = await axios.post<Account>("/account/", account);
   return data.data;

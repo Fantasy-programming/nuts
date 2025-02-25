@@ -134,7 +134,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
   const transfertCatID = categories?.find((cat) => cat.name === "Transfers")?.id;
 
   function handleSubmit(values: RecordCreateSchema) {
-    console.log(values)
+
     onSubmit(values)
     modalChange(false)
     form.reset()
@@ -213,7 +213,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
     setEditingTransaction(null);
   };
 
-  console.log(form.formState.errors)
+
 
 
   return (

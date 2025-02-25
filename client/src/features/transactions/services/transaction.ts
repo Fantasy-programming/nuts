@@ -3,6 +3,7 @@ import { RecordCreateSchema, grouppedRecordsArraySchema, RecordSchema, GrouppedR
 
 export const getTransactions = async (): Promise<GrouppedRecordsArraySchema> => {
   const { data } = await axios.get<GrouppedRecordsArraySchema>("/transaction/");
+  console.log(data)
   return grouppedRecordsArraySchema.parse(data)
 };
 

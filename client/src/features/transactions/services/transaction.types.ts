@@ -1,4 +1,7 @@
 import * as z from "zod";
+import { categorySchema } from "@/features/categories/services/category.types";
+import { accountSchema } from "@/features/accounts/services/account.types";
+
 
 const recordDetailsSchema = z.object({
   payment_medium: z.string().optional(),
@@ -12,16 +15,15 @@ const baseRecordSchema = z.object({
   amount: z.coerce.number(),
   transaction_datetime: z.coerce.date(),
   description: z.string().min(1, "Description is required"),
-  category_id: z.string().min(1, "Category is required"),
-  account_id: z.string().min(1, "Account is required"),
+  category: categorySchema,
+  account: accountSchema,
   details: recordDetailsSchema.optional(),
-  created_at: z.coerce.date(),
   updated_at: z.coerce.date()
 })
 
 const recordTransferSchema = baseRecordSchema.extend({
   type: z.literal("transfer"),
-  destination_account_id: z.string().min(1, "Destination account is required"),
+  destination_account: accountSchema,
 });
 
 const recordStandardSchema = baseRecordSchema.extend({
@@ -30,7 +32,6 @@ const recordStandardSchema = baseRecordSchema.extend({
 
 const createOmits = {
   id: true,
-  created_at: true,
   updated_at: true
 } as const;
 
@@ -51,8 +52,24 @@ export const grouppedRecordsSchema = z.object({
 export const grouppedRecordsArraySchema = grouppedRecordsSchema.array()
 
 export const recordCreateSchema = z.discriminatedUnion("type", [
-  recordTransferSchema.omit(createOmits),
-  recordStandardSchema.omit(createOmits),
+  recordTransferSchema.omit({
+    ...createOmits,
+    category: true,
+    account: true,
+    destination_account: true
+  }).extend({
+    category_id: z.string().min(1, "Category is required"),
+    account_id: z.string().min(1, "Account is required"),
+    destination_account_id: z.string().min(1, "Destination account is required"),
+  }),
+  recordStandardSchema.omit({
+    ...createOmits,
+    category: true,
+    account: true
+  }).extend({
+    category_id: z.string().min(1, "Category is required"),
+    account_id: z.string().min(1, "Account is required"),
+  }),
 ]).transform((record) => ({
   ...record,
   amount: record.type === "expense" && record.amount > 0 ? -record.amount : record.amount,

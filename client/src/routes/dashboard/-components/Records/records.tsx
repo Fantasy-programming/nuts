@@ -172,8 +172,8 @@ export const RecordsTable = () => {
               String(value).toLowerCase().includes(searchFilter.toLowerCase()),
             )
             : true
-          const matchesCategory = categoryFilters.length === 0 || categoryFilters.includes(transaction.category_id)
-          const matchesAccount = accountFilters.length === 0 || accountFilters.includes(transaction.account_id)
+          const matchesCategory = categoryFilters.length === 0 || categoryFilters.includes(transaction.category.id)
+          const matchesAccount = accountFilters.length === 0 || accountFilters.includes(transaction.account.id)
           return matchesSearch && matchesCategory && matchesAccount
         })
         return {
@@ -204,9 +204,9 @@ export const RecordsTable = () => {
     table.resetColumnFilters()
   }
 
-  const categories = useMemo(() => Array.from(new Set(allTransactions.map((t) => t.category_id))), [allTransactions])
+  const categories = useMemo(() => Array.from(new Set(allTransactions.map((t) => t.category.id))), [allTransactions])
 
-  const accounts = useMemo(() => Array.from(new Set(allTransactions.map((t) => t.account_id))), [allTransactions])
+  const accounts = useMemo(() => Array.from(new Set(allTransactions.map((t) => t.account.id))), [allTransactions])
 
   useEffect(() => {
     if (searchFilter || categoryFilters.length > 0 || accountFilters.length > 0) {
@@ -274,34 +274,34 @@ export const RecordsTable = () => {
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            {/* <TableRow> */}
-            {/*   <TableHead className="w-[50px]"> */}
-            {/*     <div className="flex items-center space-x-2"> */}
-            {/*       <Checkbox */}
-            {/*         checked={table.getIsAllPageRowsSelected()} */}
-            {/*         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} */}
-            {/*         aria-label="Select all" */}
-            {/*         className="translate-y-[2px]" */}
-            {/*       /> */}
-            {/*       <button onClick={toggleAllGroups} className="p-1"> */}
-            {/*         {openGroups.size === filteredGroups.length ? ( */}
-            {/*           <ChevronDown className="h-4 w-4" /> */}
-            {/*         ) : ( */}
-            {/*           <ChevronRight className="h-4 w-4" /> */}
-            {/*         )} */}
-            {/*       </button> */}
-            {/*     </div> */}
-            {/*   </TableHead> */}
-            {/*   {table */}
-            {/*     .getVisibleLeafColumns() */}
-            {/*     .slice(1) */}
-            {/*     .map((column) => ( */}
-            {/*       <TableHead key={column.id} className={column.id === "amount" ? "text-right" : ""}> */}
-            {/*         {flexRender(column.columnDef.header, {})} */}
-            {/*       </TableHead> */}
-            {/*     ))} */}
-            {/* </TableRow> */}
-            {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow> 
+               <TableHead className="w-[50px]"> 
+                 <div className="flex items-center space-x-2"> 
+                   <Checkbox 
+                     checked={table.getIsAllPageRowsSelected()} 
+                     onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} 
+                     aria-label="Select all" 
+                     className="translate-y-[2px]" 
+                   /> 
+                   <button onClick={toggleAllGroups} className="p-1"> 
+                     {openGroups.size === filteredGroups.length ? ( 
+                       <ChevronDown className="h-4 w-4" /> 
+                     ) : ( 
+                       <ChevronRight className="h-4 w-4" /> 
+                     )} 
+                   </button> 
+                 </div> 
+               </TableHead> 
+               {table 
+                 .getVisibleLeafColumns() 
+                 .slice(1) 
+                 .map((column) => ( 
+                   <TableHead key={column.id} className={column.id === "amount" ? "text-right" : ""}> 
+                     {flexRender(column.columnDef.header, {})} 
+                   </TableHead> 
+                 ))} 
+             </TableRow>
+             {/* {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
@@ -311,7 +311,7 @@ export const RecordsTable = () => {
                   </TableHead>
                 ))}
               </TableRow>
-            ))}
+            ))}  */}
           </TableHeader>
           <TableBody>
             {filteredGroups.map((group) => (
