@@ -14,6 +14,15 @@ import (
 var (
 	ErrInvalidHash         = errors.New("the encoded hash is not in the correct format")
 	ErrIncompatibleVersion = errors.New("incompatible version of argon2")
+	ErrInvalidPassword     = errors.New("password cannot be empty")
+
+	// Minimum and maximum parameter bounds
+	MinMemory      uint32 = 8 * 1024    // 8MB minimum
+	MaxMemory      uint32 = 1024 * 1024 // 1GB maximum
+	MinIterations  uint32 = 1
+	MaxIterations  uint32 = 100
+	MinParallelism uint8  = 1
+	MaxParallelism uint8  = 255
 )
 
 // DefaultParams sets the default parameters for Argon2 hashing.
@@ -34,11 +43,34 @@ type Params struct {
 	KeyLength   uint32
 }
 
+// ValidateParams validates the Argon2 parameters are within acceptable bounds.
+func ValidateParams(p *Params) error {
+	if p.Memory < MinMemory || p.Memory > MaxMemory {
+		return fmt.Errorf("memory must be between %d and %d", MinMemory, MaxMemory)
+	}
+	if p.Iterations < MinIterations || p.Iterations > MaxIterations {
+		return fmt.Errorf("iterations must be between %d and %d", MinIterations, MaxIterations)
+	}
+	if p.Parallelism < MinParallelism || p.Parallelism > MaxParallelism {
+		return fmt.Errorf("parallelism must be between %d and %d", MinParallelism, MaxParallelism)
+	}
+	if p.SaltLength < 16 || p.KeyLength < 32 {
+		return fmt.Errorf("salt length must be at least 16 and key length at least 32")
+	}
+	return nil
+}
+
 // HashPassword hashes a password using Argon2 and the specified parameters.
 // It returns the encoded hash or an error if hashing fails.
 func HashPassword(password string, params *Params) (string, error) {
+	if password == "" {
+		return "", ErrInvalidPassword
+	}
 	if params == nil {
 		params = DefaultParams
+	}
+	if err := ValidateParams(params); err != nil {
+		return "", fmt.Errorf("invalid parameters: %w", err)
 	}
 
 	// Generate a random salt
