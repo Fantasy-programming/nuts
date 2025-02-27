@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/internal/middleware/i18n"
+	"github.com/Fantasy-Programming/nuts/internal/utility/log"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/rs/zerolog"
 )
@@ -45,7 +46,13 @@ func Error(opts ErrorOptions) {
 		Message: message,
 	}
 
-	opts.Logger.Error().Int("status_code", opts.StatusCode).Err(opts.ActualErr).Interface("details", opts.Details).Msg("Error response")
+	// Add stack trace to the log entry
+	log.WithStackTrace(opts.Logger.Error()).
+		Int("status_code", opts.StatusCode).
+		Err(opts.ActualErr).
+		Interface("details", opts.Details).
+		Msg("Error response")
+
 	json.NewEncoder(opts.W).Encode(response)
 }
 
@@ -62,7 +69,12 @@ func Errors(opts ErrorOptions) {
 		Error:   opts.ActualErr,
 	}
 
-	opts.Logger.Error().Int("status_code", opts.StatusCode).Err(opts.ActualErr).Interface("details", opts.Details).Msg("Error response")
+	// Add stack trace to the log entry
+	log.WithStackTrace(opts.Logger.Error()).
+		Int("status_code", opts.StatusCode).
+		Err(opts.ActualErr).
+		Interface("details", opts.Details).
+		Msg("Error response")
 
 	json.NewEncoder(opts.W).Encode(response)
 }
