@@ -19,6 +19,7 @@ SELECT
     balance,
     currency,
     meta,
+    color,
     created_by,
     updated_at
 FROM accounts
@@ -31,7 +32,9 @@ SELECT
     type,
     balance,
     currency,
-    meta
+    color,
+    meta,
+    updated_at
 FROM accounts
 WHERE created_by = sqlc.arg('user_id');
 

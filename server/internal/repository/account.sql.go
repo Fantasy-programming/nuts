@@ -86,6 +86,7 @@ SELECT
     balance,
     currency,
     meta,
+    color,
     created_by,
     updated_at
 FROM accounts
@@ -99,6 +100,7 @@ type GetAccountByIdRow struct {
 	Balance   pgtype.Numeric `json:"balance"`
 	Currency  string         `json:"currency"`
 	Meta      []byte         `json:"meta"`
+	Color     COLORENUM      `json:"color"`
 	CreatedBy *uuid.UUID     `json:"created_by"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }
@@ -113,6 +115,7 @@ func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountB
 		&i.Balance,
 		&i.Currency,
 		&i.Meta,
+		&i.Color,
 		&i.CreatedBy,
 		&i.UpdatedAt,
 	)
@@ -126,18 +129,22 @@ SELECT
     type,
     balance,
     currency,
-    meta
+    color,
+    meta,
+    updated_at
 FROM accounts
 WHERE created_by = $1
 `
 
 type GetAccountsRow struct {
-	ID       uuid.UUID      `json:"id"`
-	Name     string         `json:"name"`
-	Type     ACCOUNTTYPE    `json:"type"`
-	Balance  pgtype.Numeric `json:"balance"`
-	Currency string         `json:"currency"`
-	Meta     []byte         `json:"meta"`
+	ID        uuid.UUID      `json:"id"`
+	Name      string         `json:"name"`
+	Type      ACCOUNTTYPE    `json:"type"`
+	Balance   pgtype.Numeric `json:"balance"`
+	Currency  string         `json:"currency"`
+	Color     COLORENUM      `json:"color"`
+	Meta      []byte         `json:"meta"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAccountsRow, error) {
@@ -155,7 +162,9 @@ func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAcco
 			&i.Type,
 			&i.Balance,
 			&i.Currency,
+			&i.Color,
 			&i.Meta,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

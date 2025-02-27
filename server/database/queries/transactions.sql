@@ -22,12 +22,45 @@ WHERE
 LIMIT 1;
 
 -- name: ListTransactions :many
-SELECT *
+SELECT
+    transactions.id,
+    transactions.amount, 
+    transactions.type,
+    transactions.destination_account_id,
+    transactions.transaction_datetime,
+    transactions.description,
+    transactions.details,
+    transactions.updated_at,
+    sqlc.embed(categories),
+    sqlc.embed(accounts)
 FROM transactions
+JOIN categories ON transactions.category_id = categories.id
+JOIN accounts ON transactions.account_id = accounts.id
 WHERE
-    created_by = sqlc.arg('user_id')
-    AND deleted_at IS NULL
-ORDER BY transaction_datetime DESC;
+    transactions.created_by = sqlc.arg('user_id')
+    AND transactions.deleted_at IS NULL
+    AND (sqlc.narg('type')::text IS NULL OR transactions.type = sqlc.narg('type'))
+    AND (sqlc.narg('start_date')::timestamptz IS NULL OR transactions.transaction_datetime >= sqlc.narg('start_date')::timestamptz)
+    AND (sqlc.narg('end_date')::timestamptz IS NULL OR transactions.transaction_datetime <= sqlc.narg('end_date')::timestamptz)
+    AND (sqlc.narg('account_id')::uuid IS NULL OR transactions.account_id = sqlc.narg('account_id')::uuid)
+ORDER BY transactions.transaction_datetime DESC
+LIMIT CASE 
+    WHEN sqlc.narg('limit')::integer IS NULL THEN 50 
+    ELSE sqlc.narg('limit')::integer 
+END
+OFFSET sqlc.arg('offset')::integer;
+
+
+-- SELECT    
+    
+-- FROM transactions
+-- JOIN categories ON transactions.category_id = categories.id
+-- JOIN accounts ON transactions.account_id = accounts.id
+-- LEFT JOIN accounts ON transactions.destination_account_id = accounts.id
+-- WHERE
+--     transactions.created_by = sqlc.arg('user_id')
+--     AND transactions.deleted_at IS NULL
+-- ORDER BY transactions.transaction_datetime DESC;
 
 -- name: ListTransactionsByAccount :many
 SELECT *
@@ -49,8 +82,8 @@ ORDER BY transaction_datetime DESC;
 SELECT *
 FROM transactions
 WHERE
-    created_by = sqlc.arg('user_id')
-    AND transaction_datetime BETWEEN sqlc.arg('start_date') AND sqlc.arg('end_date')
+    created_by = sqlc.arg('user_id')::uuid
+    AND transaction_datetime BETWEEN sqlc.arg('start_date')::timestamptz AND sqlc.arg('end_date')::timestamptz
     AND deleted_at IS NULL
 ORDER BY transaction_datetime DESC;
 
@@ -85,7 +118,7 @@ SELECT
 FROM transactions
 WHERE
     created_by = sqlc.arg('user_id')
-    AND transaction_datetime BETWEEN sqlc.arg('start_date') AND sqlc.arg('end_date')
+    AND transaction_datetime BETWEEN sqlc.arg('start_date')::timestamptz AND sqlc.arg('end_date')::timestamptz
     AND deleted_at IS NULL;
 
 -- name: GetCategorySpending :many

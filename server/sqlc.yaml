@@ -32,3 +32,7 @@ sql:
             go_type:
               import: "github.com/Fantasy-Programming/nuts/internal/repository/dto"
               type: "Details"
+          - column: "transactions.destination_accounts_vw"
+            go_type:
+              import: "github.com/Fantasy-Programming/nuts/internal/repository"
+              type: "Account"

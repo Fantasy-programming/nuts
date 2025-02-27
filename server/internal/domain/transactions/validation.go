@@ -22,14 +22,51 @@ func parseUUID(r *http.Request, paramName string) (uuid.UUID, error) {
 	return uuid.Parse(idStr)
 }
 
-type Group struct {
-	ID           string                   `json:"id"`
-	Date         string                   `json:"date"`         // e.g., "October 19 2029 - 2"
-	Total        float64                  `json:"total"`        // e.g., "$700.00"
-	Transactions []repository.Transaction `json:"transactions"` // your Transaction type
+type EnhancedTransaction struct {
+	repository.ListTransactionsRow
+	DestinationAccount *repository.GetAccountsRow `json:"destination_account,omitempty"`
 }
 
-func groupTransactions(transactions []repository.Transaction) (group []Group, err error) {
+type Group struct {
+	ID           string                `json:"id"`
+	Date         string                `json:"date"`  // e.g., "October 19 2029 - 2"
+	Total        float64               `json:"total"` // e.g., "$700.00"
+	Transactions []EnhancedTransaction `json:"transactions"`
+}
+
+// createAccountMap creates a map of account IDs to account objects for efficient lookups
+func createAccountMap(accounts []repository.GetAccountsRow) map[uuid.UUID]repository.GetAccountsRow {
+	accountMap := make(map[uuid.UUID]repository.GetAccountsRow, len(accounts))
+	for _, account := range accounts {
+		accountMap[account.ID] = account
+	}
+	return accountMap
+}
+
+// enhanceTransactionsWithDestAccounts replaces destination account IDs with actual account objects
+func enhanceTransactionsWithDestAccounts(
+	transactions []repository.ListTransactionsRow,
+	accountMap map[uuid.UUID]repository.GetAccountsRow,
+) []EnhancedTransaction {
+	enhanced := make([]EnhancedTransaction, len(transactions))
+
+	for i, t := range transactions {
+		enhanced[i] = EnhancedTransaction{
+			ListTransactionsRow: t,
+		}
+
+		// If there's a destination account ID, look it up in the map
+		if t.DestinationAccountID != nil {
+			if destAcc, ok := accountMap[*t.DestinationAccountID]; ok {
+				enhanced[i].DestinationAccount = &destAcc
+			}
+		}
+	}
+
+	return enhanced
+}
+
+func groupEnhancedTransactions(transactions []EnhancedTransaction) (group []Group, err error) {
 	// We'll group by a formatted date string.
 	groupsMap := make(map[string]*Group)
 
@@ -41,9 +78,9 @@ func groupTransactions(transactions []repository.Transaction) (group []Group, er
 			group.Transactions = append(group.Transactions, t)
 		} else {
 			groupsMap[dateKey] = &Group{
-				ID:           uuid.New().String(), // You can implement your own unique ID generator
-				Date:         dateKey,             // We'll append the count later
-				Transactions: []repository.Transaction{t},
+				ID:           uuid.New().String(),
+				Date:         dateKey,
+				Transactions: []EnhancedTransaction{t},
 			}
 		}
 	}
@@ -53,7 +90,6 @@ func groupTransactions(transactions []repository.Transaction) (group []Group, er
 	for _, group := range groupsMap {
 		var sum float64
 		for _, t := range group.Transactions {
-
 			val, err := numericToFloat64(t.Amount)
 			if err != nil {
 				return nil, err
@@ -61,7 +97,6 @@ func groupTransactions(transactions []repository.Transaction) (group []Group, er
 			sum += val
 		}
 
-		// Append the transaction count to the date
 		group.Total = sum
 		groups = append(groups, *group)
 	}

@@ -35,7 +35,8 @@ func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transactions, err := a.queries.ListTransactions(ctx, &userID)
+	// Get Accounts
+	accounts, err := a.queries.GetAccounts(ctx, &userID)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -49,7 +50,30 @@ func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupped, err := groupTransactions(transactions)
+	// Create account map for faster lookups
+	accountMap := createAccountMap(accounts)
+
+	transactions, err := a.queries.ListTransactions(ctx, repository.ListTransactionsParams{
+		UserID: &userID,
+	})
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     a.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	// Enhance transactions with destination account data
+	enhancedTransactions := enhanceTransactionsWithDestAccounts(transactions, accountMap)
+
+	// Group the enhanced transactions
+	grouped, err := groupEnhancedTransactions(enhancedTransactions)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -63,7 +87,7 @@ func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond.Json(w, http.StatusOK, groupped, a.log)
+	respond.Json(w, http.StatusOK, grouped, a.log)
 }
 
 func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {

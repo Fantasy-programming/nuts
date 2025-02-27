@@ -175,7 +175,7 @@ SELECT
 FROM transactions
 WHERE
     created_by = $1
-    AND transaction_datetime BETWEEN $2 AND $3
+    AND transaction_datetime BETWEEN $2::timestamptz AND $3::timestamptz
     AND deleted_at IS NULL
 `
 
@@ -205,38 +205,105 @@ func (q *Queries) GetTransactionStats(ctx context.Context, arg GetTransactionSta
 }
 
 const listTransactions = `-- name: ListTransactions :many
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT
+    transactions.id,
+    transactions.amount, 
+    transactions.type,
+    transactions.destination_account_id,
+    transactions.transaction_datetime,
+    transactions.description,
+    transactions.details,
+    transactions.updated_at,
+    categories.id, categories.name, categories.parent_id, categories.is_default, categories.created_by, categories.updated_by, categories.created_at, categories.updated_at, categories.deleted_at,
+    accounts.id, accounts.name, accounts.type, accounts.balance, accounts.currency, accounts.color, accounts.meta, accounts.created_by, accounts.updated_by, accounts.created_at, accounts.updated_at, accounts.deleted_at
 FROM transactions
+JOIN categories ON transactions.category_id = categories.id
+JOIN accounts ON transactions.account_id = accounts.id
 WHERE
-    created_by = $1
-    AND deleted_at IS NULL
-ORDER BY transaction_datetime DESC
+    transactions.created_by = $1
+    AND transactions.deleted_at IS NULL
+    AND ($2::text IS NULL OR transactions.type = $2)
+    AND ($3::timestamptz IS NULL OR transactions.transaction_datetime >= $3::timestamptz)
+    AND ($4::timestamptz IS NULL OR transactions.transaction_datetime <= $4::timestamptz)
+    AND ($5::uuid IS NULL OR transactions.account_id = $5::uuid)
+ORDER BY transactions.transaction_datetime DESC
+LIMIT CASE 
+    WHEN $7::integer IS NULL THEN 50 
+    ELSE $7::integer 
+END
+OFFSET $6::integer
 `
 
-func (q *Queries) ListTransactions(ctx context.Context, userID *uuid.UUID) ([]Transaction, error) {
-	rows, err := q.db.Query(ctx, listTransactions, userID)
+type ListTransactionsParams struct {
+	UserID    *uuid.UUID         `json:"user_id"`
+	Type      *string            `json:"type"`
+	StartDate pgtype.Timestamptz `json:"start_date"`
+	EndDate   pgtype.Timestamptz `json:"end_date"`
+	AccountID *uuid.UUID         `json:"account_id"`
+	Offset    int32              `json:"offset"`
+	Limit     *int32             `json:"limit"`
+}
+
+type ListTransactionsRow struct {
+	ID                   uuid.UUID      `json:"id"`
+	Amount               pgtype.Numeric `json:"amount"`
+	Type                 string         `json:"type"`
+	DestinationAccountID *uuid.UUID     `json:"destination_account_id"`
+	TransactionDatetime  time.Time      `json:"transaction_datetime"`
+	Description          *string        `json:"description"`
+	Details              dto.Details    `json:"details"`
+	UpdatedAt            time.Time      `json:"updated_at"`
+	Category             Category       `json:"category"`
+	Account              Account        `json:"account"`
+}
+
+func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]ListTransactionsRow, error) {
+	rows, err := q.db.Query(ctx, listTransactions,
+		arg.UserID,
+		arg.Type,
+		arg.StartDate,
+		arg.EndDate,
+		arg.AccountID,
+		arg.Offset,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Transaction{}
+	items := []ListTransactionsRow{}
 	for rows.Next() {
-		var i Transaction
+		var i ListTransactionsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Amount,
 			&i.Type,
-			&i.AccountID,
-			&i.CategoryID,
 			&i.DestinationAccountID,
 			&i.TransactionDatetime,
 			&i.Description,
 			&i.Details,
-			&i.CreatedBy,
-			&i.UpdatedBy,
-			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.DeletedAt,
+			&i.Category.ID,
+			&i.Category.Name,
+			&i.Category.ParentID,
+			&i.Category.IsDefault,
+			&i.Category.CreatedBy,
+			&i.Category.UpdatedBy,
+			&i.Category.CreatedAt,
+			&i.Category.UpdatedAt,
+			&i.Category.DeletedAt,
+			&i.Account.ID,
+			&i.Account.Name,
+			&i.Account.Type,
+			&i.Account.Balance,
+			&i.Account.Currency,
+			&i.Account.Color,
+			&i.Account.Meta,
+			&i.Account.CreatedBy,
+			&i.Account.UpdatedBy,
+			&i.Account.CreatedAt,
+			&i.Account.UpdatedAt,
+			&i.Account.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -249,6 +316,8 @@ func (q *Queries) ListTransactions(ctx context.Context, userID *uuid.UUID) ([]Tr
 }
 
 const listTransactionsByAccount = `-- name: ListTransactionsByAccount :many
+    
+
 SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 FROM transactions
 WHERE
@@ -257,6 +326,17 @@ WHERE
 ORDER BY transaction_datetime DESC
 `
 
+// SELECT
+// FROM transactions
+// JOIN categories ON transactions.category_id = categories.id
+// JOIN accounts ON transactions.account_id = accounts.id
+// LEFT JOIN accounts ON transactions.destination_account_id = accounts.id
+// WHERE
+//
+//	transactions.created_by = sqlc.arg('user_id')
+//	AND transactions.deleted_at IS NULL
+//
+// ORDER BY transactions.transaction_datetime DESC;
 func (q *Queries) ListTransactionsByAccount(ctx context.Context, accountID uuid.UUID) ([]Transaction, error) {
 	rows, err := q.db.Query(ctx, listTransactionsByAccount, accountID)
 	if err != nil {
@@ -340,16 +420,16 @@ const listTransactionsByDateRange = `-- name: ListTransactionsByDateRange :many
 SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 FROM transactions
 WHERE
-    created_by = $1
-    AND transaction_datetime BETWEEN $2 AND $3
+    created_by = $1::uuid
+    AND transaction_datetime BETWEEN $2::timestamptz AND $3::timestamptz
     AND deleted_at IS NULL
 ORDER BY transaction_datetime DESC
 `
 
 type ListTransactionsByDateRangeParams struct {
-	UserID    *uuid.UUID `json:"user_id"`
-	StartDate time.Time  `json:"start_date"`
-	EndDate   time.Time  `json:"end_date"`
+	UserID    uuid.UUID `json:"user_id"`
+	StartDate time.Time `json:"start_date"`
+	EndDate   time.Time `json:"end_date"`
 }
 
 func (q *Queries) ListTransactionsByDateRange(ctx context.Context, arg ListTransactionsByDateRangeParams) ([]Transaction, error) {

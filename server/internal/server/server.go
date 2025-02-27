@@ -128,10 +128,8 @@ func (s *Server) setCors() {
 }
 
 func (s *Server) ListRoutes() {
-	routes := s.router.ListRoutes()
-	for _, route := range routes {
-		fmt.Println(route)
-	}
+	s.router.ListRoutes()
+
 }
 
 func (s *Server) NewDatabase() {
