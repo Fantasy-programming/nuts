@@ -1,0 +1,18 @@
+---
+import { getEntry, render } from "astro:content";
+import Layout from "../layouts/Layout.astro";
+
+const privacyPage = await getEntry("page", "privacy")!!;
+const { Content } = await render(privacyPage);
+---
+
+<Layout
+  title={privacyPage.data.title}
+  description={privacyPage.data.description}
+>
+  <div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <article class="prose prose-lg mx-auto">
+      <Content />
+    </article>
+  </div>
+</Layout>

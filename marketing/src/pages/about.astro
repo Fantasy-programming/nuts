@@ -1,0 +1,20 @@
+---
+import { getEntry, render } from "astro:content";
+import Layout from "../layouts/Layout.astro";
+
+const aboutPage = await getEntry("page", "about")!!;
+const { Content } = await render(aboutPage);
+---
+
+<Layout title={aboutPage.data.title} description={aboutPage.data.description}>
+  <div class="bg-white py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+      <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+        {aboutPage.data.title}
+      </h1>
+      <article class="mt-6 prose prose-indigo prose-lg text-gray-500">
+        <Content />
+      </article>
+    </div>
+  </div>
+</Layout>

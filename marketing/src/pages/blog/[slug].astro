@@ -1,0 +1,95 @@
+---
+import { getCollection, getEntry, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+
+export async function getStaticPaths() {
+  const blogEntries = await getCollection("blog");
+
+  return blogEntries.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const params = Astro.params;
+
+const post = await getEntry('blog', params.slug);
+if (!post) {
+  return
+}
+const { Content } = await render(post);
+---
+<Layout title={`${post.data.title} - Nut Finance App`}>
+  <article class="bg-white overflow-hidden">
+    <div class="relative max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+      <div class="hidden lg:block bg-gray-50 absolute top-0 bottom-0 left-3/4 w-screen"></div>
+      <div class="mx-auto text-base max-w-prose lg:grid lg:grid-cols-2 lg:gap-8 lg:max-w-none">
+        <div>
+          <h2 class="text-base text-primary-600 font-semibold tracking-wide uppercase">Blog</h2>
+          <h3 class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">{post.data.title}</h3>
+          <div class="mt-4 flex items-center">
+            <div class="flex-shrink-0">
+              <span class="sr-only">{post.data.author}</span>
+              <div class="h-10 w-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
+                {post.data.author.split(' ').map(name => name[0]).join('')}
+              </div>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm font-medium text-gray-900">{post.data.author}</p>
+              <div class="flex space-x-1 text-sm text-gray-500">
+                <time datetime={post.data.pubDate.toLocaleDateString()}>
+              {
+                post.data.pubDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            }
+                </time>
+                <span aria-hidden="true">&middot;</span>
+                <span>5 min read</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-8 lg:grid lg:grid-cols-2 lg:gap-8">
+        <div class="relative lg:row-start-1 lg:col-start-2">
+          <div class="relative text-base mx-auto max-w-prose lg:max-w-none">
+            <figure>
+              <div class="aspect-w-12 aspect-h-7 lg:aspect-none">
+                <img class="rounded-lg shadow-lg object-cover object-center" src={post.data.image} alt={post.data.title} width="1184" height="1376">
+              </div>
+            </figure>
+          </div>
+        </div>
+        <div class="mt-8 lg:mt-0">
+          <div class="text-base max-w-prose mx-auto lg:max-w-none">
+            <div class="prose prose-green prose-lg text-gray-500 mx-auto lg:max-w-none">
+              <Content />
+            </div>
+          </div>
+          <div class="mt-8 flex justify-between">
+            <a href="/blog" class="text-primary-600 hover:text-primary-500 font-medium">
+              &larr; Back to blog
+            </a>
+            <div class="flex space-x-4">
+              <a href="#" class="text-gray-400 hover:text-gray-500">
+                <span class="sr-only">Share on Twitter</span>
+                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+                </svg>
+              </a>
+              <a href="#" class="text-gray-400 hover:text-gray-500">
+                <span class="sr-only">Share on LinkedIn</span>
+                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clip-rule="evenodd" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+</Layout>
