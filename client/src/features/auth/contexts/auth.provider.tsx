@@ -27,21 +27,40 @@ const SessionExpiredModal: React.FC<SessionExpiredModalProps> = ({ onLogin }) =>
   </div>
 );
 
-
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<AuthNullable>(() => {
     const jwt = getAuthCookie();
     return jwt ? { user: jwt } : defaultState;
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
   const isLoggedIn = user.user !== null;
 
+  const login = useCallback(async (credentials: { email: string; password: string }) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      await authService.login(credentials);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Login failed'));
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
+      setIsLoading(true);
+      setError(null);
       await authService.logout();
       setUser(defaultState);
-    } catch (error) {
-      console.error("Logout failed:", error);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Logout failed'));
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -67,9 +86,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       user,
       storeUser,
       logout,
+      login,
       isLoggedIn,
+      isLoading,
+      error,
     }),
-    [user, storeUser, logout, isLoggedIn]
+    [user, storeUser, logout, login, isLoggedIn, isLoading, error]
   );
 
   return (

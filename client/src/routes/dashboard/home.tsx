@@ -22,6 +22,8 @@ import {
   ChartTooltipContent,
   ChartContainer,
 } from "@/core/components/ui/chart";
+import { Spinner } from "@/core/components/ui/spinner";
+import { Suspense } from "react";
 
 const lineData = [
   { name: "Jan", value: 400 },
@@ -147,7 +149,11 @@ function RouteComponent() {
                 <ChartCardTitle>{chart.title}</ChartCardTitle>
                 <ChartCardHandle />
               </ChartCardHeader>
-              <ChartContainer config={{}}>{renderChart(chart)}</ChartContainer>
+              <ChartContainer config={{}}>
+                <Suspense fallback={<Spinner />}>
+                  {renderChart(chart)}
+                </Suspense>
+              </ChartContainer>
             </ChartCardMenu>
           </ChartCard>
         ))}

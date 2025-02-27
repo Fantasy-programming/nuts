@@ -5,6 +5,7 @@ import { accountService } from "@/features/accounts/services/account";
 import { AccountList } from "./-components/Accounts/Account";
 import { AccountSchema } from "./-components/Accounts/Account.type";
 import { Suspense } from "react";
+import { Spinner } from "@/core/components/ui/spinner";
 
 export const Route = createFileRoute("/dashboard/accounts")({
   component: RouteComponent,
@@ -27,7 +28,7 @@ function RouteComponent() {
 
   return (
     <div className=" h-full flex flex-col space-y-8">
-      <Suspense fallback={<div>loading...</div>}>
+      <Suspense fallback={<Spinner />}>
         <AccountList onSubmit={onSubmit} />
       </Suspense>
     </div>
