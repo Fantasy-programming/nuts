@@ -27,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RecordsFilters } from "./records-filters"
 import type { RecordSchema } from "@/features/transactions/services/transaction.types";
 import { useMemo, useState, useEffect, Fragment } from "react";
+import { formatDate } from "@/lib/date";
 
 
 export const RecordsTable = () => {
@@ -67,21 +68,24 @@ export const RecordsTable = () => {
   const columns: ColumnDef<RecordSchema & { groupId: string; groupDate: Date; groupTotal: number }>[] = [
     {
       id: "select",
+      size: 15,
+      maxSize: 15,
+      minSize: 15,
       header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-          className="translate-y-[2px]"
-        />
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+            className="translate-y-[2px]"
+          />
       ),
       cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-          className="translate-y-[2px]"
-        />
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+            className="translate-y-[2px]"
+          />
       ),
       enableSorting: false,
       enableHiding: false,
@@ -89,6 +93,9 @@ export const RecordsTable = () => {
     {
       accessorKey: "description",
       header: "Description",
+      size: 150,
+      maxSize: 150,
+      minSize: 150,
       cell: ({ row }) => (
         <div className="flex items-center space-x-2">
           {row.original?.details?.payment_status && (
@@ -100,27 +107,32 @@ export const RecordsTable = () => {
     },
     {
       accessorKey: "amount",
-      header: () => <div className="text-right">Amount</div>,
+      header: () => <>Amount</>,
+      size: 150,
+      maxSize: 150,
+      minSize: 150,
       cell: ({ row }) => {
         const amount = Number.parseFloat(row.getValue("amount"))
         const formatted = new Intl.NumberFormat("en-US", {
           style: "currency",
           currency: "USD",
         }).format(amount)
-        return <div className="text-right font-medium">{formatted}</div>
+        return <div className="font-medium">{formatted}</div>
       },
     },
     {
-      accessorKey: "date",
-      header: "Date",
-    },
-    {
-      accessorKey: "category",
+      accessorKey: "category.name",
       header: "Category",
+      size: 150,
+      maxSize: 150,
+      minSize: 150,
     },
     {
-      accessorKey: "account",
+      accessorKey: "account.name",
       header: "Account",
+      size: 150,
+      maxSize: 150,
+      minSize: 150,
     },
   ]
 
@@ -275,43 +287,47 @@ export const RecordsTable = () => {
         <Table>
           <TableHeader>
             <TableRow> 
-               <TableHead className="w-[50px]"> 
-                 <div className="flex items-center space-x-2"> 
-                   <Checkbox 
-                     checked={table.getIsAllPageRowsSelected()} 
-                     onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} 
-                     aria-label="Select all" 
-                     className="translate-y-[2px]" 
-                   /> 
-                   <button onClick={toggleAllGroups} className="p-1"> 
-                     {openGroups.size === filteredGroups.length ? ( 
-                       <ChevronDown className="h-4 w-4" /> 
-                     ) : ( 
-                       <ChevronRight className="h-4 w-4" /> 
-                     )} 
-                   </button> 
-                 </div> 
-               </TableHead> 
-               {table 
-                 .getVisibleLeafColumns() 
-                 .slice(1) 
-                 .map((column) => ( 
-                   <TableHead key={column.id} className={column.id === "amount" ? "text-right" : ""}> 
-                     {flexRender(column.columnDef.header, {})} 
-                   </TableHead> 
-                 ))} 
-             </TableRow>
-             {/* {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}  */}
+              {table 
+                .getVisibleLeafColumns() 
+                .slice(1) 
+                .map((column) => {
+                  
+                  return (
+                    column.id === "description" ? (
+                      <>
+                                  
+                  <TableHead key={column.id} style={{ width: column.getSize() + 30}}>
+                     <div className="pl-4 w-[50px] flex items-center space-x-2"> 
+                <div className="flex items-center space-x-1"> 
+                  <Checkbox 
+                    checked={table.getIsAllPageRowsSelected()} 
+                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} 
+                    aria-label="Select all" 
+                    className="translate-y-[2px]" 
+                  /> 
+                  <button onClick={toggleAllGroups} className="p-1"> 
+                    {openGroups.size === filteredGroups.length ? ( 
+                      <ChevronDown className="h-4 w-4" /> 
+                    ) : ( 
+                      <ChevronRight className="h-4 w-4" /> 
+                    )} 
+                  </button> 
+                </div> 
+                <span>
+                  {flexRender(column.columnDef.header, {})} </span>
+              </div> 
+                  
+                  </TableHead></> 
+                        
+                      ) : (
+                                  <TableHead key={column.id} style={{ width: column.getSize()}}>
+                    {flexRender(column.columnDef.header, {})} 
+                  </TableHead> 
+
+                      )
+                    )
+                })} 
+            </TableRow>
           </TableHeader>
           <TableBody>
             {filteredGroups.map((group) => (
@@ -319,60 +335,62 @@ export const RecordsTable = () => {
                 <TableRow>
                   <TableCell colSpan={table.getVisibleLeafColumns().length} className="p-0">
                     <div className="bg-background rounded-md mx-2 my-1 border">
-                      <Table>
-                        <TableBody>
-                          <TableRow className="bg-muted/50">
-                            <TableCell className="w-[50px]">
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  checked={group.transactions.every((t) =>
-                                    table
-                                      .getRowModel()
-                                      .rows.find((r) => r.original.id === t.id)
-                                      ?.getIsSelected(),
-                                  )}
-                                  onCheckedChange={(value) =>
-                                    group.transactions.forEach((t) => {
-                                      const row = table.getRowModel().rows.find((r) => r.original.id === t.id)
-                                      if (row) {
-                                        row.toggleSelected(!!value)
-                                      }
-                                    })
-                                  }
-                                  aria-label={`Select group ${group.id}`}
-                                  className="translate-y-[2px]"
-                                />
-                                <button onClick={() => toggleGroup(group.id)} className="p-1">
-                                  {openGroups.has(group.id) ? (
-                                    <ChevronDown className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4" />
-                                  )}
-                                </button>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-medium">{group.date.getDate()}</span>
-                            </TableCell>
-                            {table
-                              .getVisibleLeafColumns()
-                              .slice(2)
-                              .map((column) => (
-                                <TableCell key={column.id} className={column.id === "account" ? "text-right" : ""}>
-                                  {column.id === "account" && <span className="font-medium">{group.total}</span>}
-                                </TableCell>
-                              ))}
-                          </TableRow>
-                          {openGroups.has(group.id) &&
-                            group.transactions.map((transaction) => {
+                      {/* Group header as custom div instead of table row */}
+                      <div className="flex items-center p-2 bg-muted/50">
+                        <div className="w-[50px] flex items-center space-x-1 pl-2">
+                          <Checkbox
+                            checked={group.transactions.every((t) =>
+                              table
+                                .getRowModel()
+                                .rows.find((r) => r.original.id === t.id)
+                                ?.getIsSelected(),
+                            )}
+                            onCheckedChange={(value) =>
+                              group.transactions.forEach((t) => {
+                                const row = table.getRowModel().rows.find((r) => r.original.id === t.id)
+                                if (row) {
+                                  row.toggleSelected(!!value)
+                                }
+                              })
+                            }
+                            aria-label={`Select group ${group.id}`}
+                            className="translate-y-[2px]"
+                          />
+                          <button onClick={() => toggleGroup(group.id)} className="p-1">
+                            {openGroups.has(group.id) ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        <div className="flex-1 font-medium">
+                          {formatDate(group.date)}
+                        </div>
+                        <div className="text-right font-medium mr-4">
+                          {new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: "USD",
+                          }).format(group.total)}
+                        </div>
+                      </div>
+
+                      {/* Subtable for transactions */}
+                      {openGroups.has(group.id) && (
+                        <Table>
+                          <TableBody>
+                            {group.transactions.map((transaction) => {
                               const row = table.getRowModel().rows.find((r) => r.original.id === transaction.id)
                               if (!row) return null
                               return (
                                 <TableRow key={transaction.id} data-state={row.getIsSelected() && "selected"}>
-                                  {row.getVisibleCells().map((cell) => (
+                                  {row.getVisibleCells().map((cell, cellIndex) => (
                                     <TableCell
                                       key={cell.id}
-                                      className={cell.column.id === "amount" ? "text-right" : ""}
+                                      style={{
+                                        width: cell.column.getSize()
+                                      }}
+                                      className={cellIndex === 0 ? "pl-4" : ""}
                                     >
                                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </TableCell>
@@ -380,8 +398,9 @@ export const RecordsTable = () => {
                                 </TableRow>
                               )
                             })}
-                        </TableBody>
-                      </Table>
+                          </TableBody>
+                        </Table>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
