@@ -100,6 +100,11 @@ const navMain: navStuff[] = [
     url: "/dashboard/analytics",
     icon: ChartColumn,
   },
+  {
+    title: "Plugins",
+    url: "/dashboard/plugins",
+    icon: ChartColumn,
+  },
 ];
 
 const plugins = [

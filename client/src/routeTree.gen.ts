@@ -20,9 +20,11 @@ import { Route as DashboardRouteImport } from './routes/dashboard/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as DashboardIndexImport } from './routes/dashboard/index'
 import { Route as DashboardRecordsImport } from './routes/dashboard/records'
+import { Route as DashboardPluginsImport } from './routes/dashboard/plugins'
 import { Route as DashboardHomeImport } from './routes/dashboard/home'
 import { Route as DashboardAnalyticsImport } from './routes/dashboard/analytics'
 import { Route as DashboardAccountsImport } from './routes/dashboard/accounts'
+import { Route as DashboardSplatImport } from './routes/dashboard/$'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard_/settings/route'
 import { Route as DashboardSettingsIndexImport } from './routes/dashboard_/settings/index'
 import { Route as DashboardSettingsWebhookImport } from './routes/dashboard_/settings/webhook'
@@ -90,6 +92,12 @@ const DashboardRecordsRoute = DashboardRecordsImport.update({
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 
+const DashboardPluginsRoute = DashboardPluginsImport.update({
+  id: '/plugins',
+  path: '/plugins',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+
 const DashboardHomeRoute = DashboardHomeImport.update({
   id: '/home',
   path: '/home',
@@ -105,6 +113,12 @@ const DashboardAnalyticsRoute = DashboardAnalyticsImport.update({
 const DashboardAccountsRoute = DashboardAccountsImport.update({
   id: '/accounts',
   path: '/accounts',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+
+const DashboardSplatRoute = DashboardSplatImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 
@@ -225,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof rootRoute
     }
+    '/dashboard/$': {
+      id: '/dashboard/$'
+      path: '/$'
+      fullPath: '/dashboard/$'
+      preLoaderRoute: typeof DashboardSplatImport
+      parentRoute: typeof DashboardRouteImport
+    }
     '/dashboard/accounts': {
       id: '/dashboard/accounts'
       path: '/accounts'
@@ -244,6 +265,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/dashboard/home'
       preLoaderRoute: typeof DashboardHomeImport
+      parentRoute: typeof DashboardRouteImport
+    }
+    '/dashboard/plugins': {
+      id: '/dashboard/plugins'
+      path: '/plugins'
+      fullPath: '/dashboard/plugins'
+      preLoaderRoute: typeof DashboardPluginsImport
       parentRoute: typeof DashboardRouteImport
     }
     '/dashboard/records': {
@@ -329,17 +357,21 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 interface DashboardRouteRouteChildren {
+  DashboardSplatRoute: typeof DashboardSplatRoute
   DashboardAccountsRoute: typeof DashboardAccountsRoute
   DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
   DashboardHomeRoute: typeof DashboardHomeRoute
+  DashboardPluginsRoute: typeof DashboardPluginsRoute
   DashboardRecordsRoute: typeof DashboardRecordsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardSplatRoute: DashboardSplatRoute,
   DashboardAccountsRoute: DashboardAccountsRoute,
   DashboardAnalyticsRoute: DashboardAnalyticsRoute,
   DashboardHomeRoute: DashboardHomeRoute,
+  DashboardPluginsRoute: DashboardPluginsRoute,
   DashboardRecordsRoute: DashboardRecordsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
@@ -386,9 +418,11 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/forgot-password': typeof ForgotPasswordLazyRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
+  '/dashboard/$': typeof DashboardSplatRoute
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/home': typeof DashboardHomeRoute
+  '/dashboard/plugins': typeof DashboardPluginsRoute
   '/dashboard/records': typeof DashboardRecordsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/settings/account': typeof DashboardSettingsAccountRoute
@@ -408,9 +442,11 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/forgot-password': typeof ForgotPasswordLazyRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/home': typeof DashboardHomeRoute
+  '/dashboard/plugins': typeof DashboardPluginsRoute
   '/dashboard/records': typeof DashboardRecordsRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/settings/account': typeof DashboardSettingsAccountRoute
@@ -433,9 +469,11 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/forgot-password': typeof ForgotPasswordLazyRoute
   '/dashboard_/settings': typeof DashboardSettingsRouteRouteWithChildren
+  '/dashboard/$': typeof DashboardSplatRoute
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/home': typeof DashboardHomeRoute
+  '/dashboard/plugins': typeof DashboardPluginsRoute
   '/dashboard/records': typeof DashboardRecordsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard_/settings/account': typeof DashboardSettingsAccountRoute
@@ -459,9 +497,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/forgot-password'
     | '/dashboard/settings'
+    | '/dashboard/$'
     | '/dashboard/accounts'
     | '/dashboard/analytics'
     | '/dashboard/home'
+    | '/dashboard/plugins'
     | '/dashboard/records'
     | '/dashboard/'
     | '/dashboard/settings/account'
@@ -480,9 +520,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/forgot-password'
+    | '/dashboard/$'
     | '/dashboard/accounts'
     | '/dashboard/analytics'
     | '/dashboard/home'
+    | '/dashboard/plugins'
     | '/dashboard/records'
     | '/dashboard'
     | '/dashboard/settings/account'
@@ -503,9 +545,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/forgot-password'
     | '/dashboard_/settings'
+    | '/dashboard/$'
     | '/dashboard/accounts'
     | '/dashboard/analytics'
     | '/dashboard/home'
+    | '/dashboard/plugins'
     | '/dashboard/records'
     | '/dashboard/'
     | '/dashboard_/settings/account'
@@ -565,9 +609,11 @@ export const routeTree = rootRoute
     "/dashboard": {
       "filePath": "dashboard/route.tsx",
       "children": [
+        "/dashboard/$",
         "/dashboard/accounts",
         "/dashboard/analytics",
         "/dashboard/home",
+        "/dashboard/plugins",
         "/dashboard/records",
         "/dashboard/"
       ]
@@ -598,6 +644,10 @@ export const routeTree = rootRoute
         "/dashboard_/settings/"
       ]
     },
+    "/dashboard/$": {
+      "filePath": "dashboard/$.tsx",
+      "parent": "/dashboard"
+    },
     "/dashboard/accounts": {
       "filePath": "dashboard/accounts.tsx",
       "parent": "/dashboard"
@@ -608,6 +658,10 @@ export const routeTree = rootRoute
     },
     "/dashboard/home": {
       "filePath": "dashboard/home.tsx",
+      "parent": "/dashboard"
+    },
+    "/dashboard/plugins": {
+      "filePath": "dashboard/plugins.tsx",
       "parent": "/dashboard"
     },
     "/dashboard/records": {
