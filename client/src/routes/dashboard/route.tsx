@@ -1,13 +1,12 @@
-import { createFileRoute, Outlet, type ParseRoute, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils"
-import type { routeTree } from "@/routeTree.gen";
+import type { FileRoutesByTo } from "@/routeTree.gen";
 import { useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   ChevronDown,
   ChartColumn,
-  Frame,
   LayoutGrid,
   LogOut,
   Moon,
@@ -22,8 +21,6 @@ import {
   type LucideIcon,
   Bell,
 } from "lucide-react";
-
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
 import {
   DropdownMenu,
@@ -50,6 +47,9 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/core/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/core/components/ui/button";
@@ -58,8 +58,11 @@ import { RecordsDialog } from "./-components/Records/records-dialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTransaction } from "@/features/transactions/services/transaction";
 import { RecordCreateSchema } from "@/features/transactions/services/transaction.types";
+import { usePluginStore } from "@/lib/plugin-store";
+import { renderIcon } from "@/core/components/icon-picker";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/core/components/ui/collapsible";
 
-export type ValidRoutes = ParseRoute<typeof routeTree>["to"];
+export type ValidRoutes = keyof FileRoutesByTo;
 
 type navStuff = {
   title: string;
@@ -107,14 +110,6 @@ const navMain: navStuff[] = [
   },
 ];
 
-const plugins = [
-  {
-    name: "Real Estate",
-    url: "#",
-    icon: Frame,
-  },
-];
-
 function DashboardWrapper() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -123,6 +118,9 @@ function DashboardWrapper() {
 
   const [theme, setTheme] = useState("light");
   const [isOpen, setIsOpen] = useState(false);
+
+  const { getEnabledPluginConfigs } = usePluginStore(); // plugin routes
+  const plugins = getEnabledPluginConfigs()
 
   const createMutation = useMutation({
     mutationFn: createTransaction,
@@ -164,6 +162,8 @@ function DashboardWrapper() {
   useHotkeys('c', () => {
     setIsOpen(!isOpen)
   }, [isOpen])
+
+  console.log(plugins)
 
 
   return (
@@ -212,16 +212,51 @@ function DashboardWrapper() {
           <SidebarGroup>
             <SidebarGroupLabel>Plugins</SidebarGroupLabel>
             <SidebarMenu>
-              {plugins.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild className="px-4">
-                    <Link to={item.url} className="flex items-center">
-                      <item.icon className="size-4" />
-                      <span className="ml-2">{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                <Collapsible defaultOpen={false} className="group/collapsible">
+              {
+                plugins.map((item) => {
+                  return item.routeConfigs.map((route) => {
+                    return (
+                      <SidebarMenuItem key={route.label}>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton asChild className="px-6" tooltip={route.label} >
+                            <Link to={`/dashboard${route.path}`} lassName={cn(
+                          "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                          router.location.pathname === `/dashboard${route.path}` ? "bg-sidebar-accent shadow-sm" : ""
+                        )}>
+                              {renderIcon(route.iconName)}
+                              <span className="ml-2">{route.label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        {
+                          route?.subroutes  ? (
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {route.subroutes.map((item) => (
+                                <SidebarMenuSubItem>
+                                  <SidebarMenuSubButton asChild>
+                                          <Link to={`/dashboard${item.path}`} lassName={cn(
+                          "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                          router.location.pathname === `/dashboard${item.path}` ? "bg-sidebar-accent shadow-sm" : ""
+                        )}>
+                              <span className="ml-2">{item.label}</span>
+                            </Link>
+                                  </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                  ))}
+
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                          ) : null
+                        }
+
+                      </SidebarMenuItem>
+                    );
+                  });
+                })
+              }
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>
