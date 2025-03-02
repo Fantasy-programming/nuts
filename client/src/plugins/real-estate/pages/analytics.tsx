@@ -49,7 +49,7 @@ const roiData = [
   { year: '2030', roi: 9.8 },
 ];
 
-export function RealEstateAnalytics() {
+export function Analytics() {
   const { totalValue, totalEquity, totalDebt } = useRealEstateStore();
 
   return (
@@ -168,3 +168,5 @@ export function RealEstateAnalytics() {
     </div>
   );
 }
+
+export default Analytics;

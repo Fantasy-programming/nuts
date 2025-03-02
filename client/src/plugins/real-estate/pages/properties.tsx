@@ -12,7 +12,7 @@ import { Input } from '@/core/components/ui/input';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 
-export function RealEstateProperties() {
+export function Properties() {
   const { properties } = useRealEstateStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'primary' | 'rental'>('all');
@@ -79,3 +79,5 @@ export function RealEstateProperties() {
     </div>
   );
 }
+
+export default Properties;

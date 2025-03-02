@@ -22,7 +22,7 @@ import {
   Building,
 } from 'lucide-react';
 
-export function RealEstateOverview() {
+export function Overview() {
   const { properties, totalValue, totalEquity, totalDebt, totalRentalIncome } = useRealEstateStore();
 
   const propertyValueData = properties.map((property) => ({
@@ -191,3 +191,5 @@ export function RealEstateOverview() {
     </div>
   );
 }
+
+export default Overview;

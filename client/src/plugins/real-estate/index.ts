@@ -1,15 +1,17 @@
-import { Home, Building, Map, LineChart } from 'lucide-react';
-import { RealEstateOverview } from './pages/overview';
-import { RealEstateProperties } from './pages/properties';
-import { RealEstateMap } from './pages/map';
-import { RealEstateAnalytics } from './pages/analytics';
-import { RealEstateSettings } from './pages/settings';
+// plugins/real-estate/index.ts
+import { Home, Building, Map as MapIcon, LineChart } from 'lucide-react';
+import { Overview } from './pages/overview';
+import { Properties } from './pages/properties';
+import { Map } from './pages/map';
+import { Analytics } from './pages/analytics';
+import { Settings } from './pages/settings';
 import { PropertyValueChart } from './components/property-value-chart';
 import { RentalIncomeChart } from './components/rental-income-chart';
 import { MortgagePaymentChart } from './components/morgage-payment-chart';
-import { PluginInterface } from '@/lib/plugin-system';
 
-export const realEstatePlugin : PluginInterface = {
+
+// Export the plugin configuration
+export const realEstatePlugin = {
   id: 'real-estate',
   name: 'Real Estate',
   description: 'Track and manage your real estate investments',
@@ -21,22 +23,22 @@ export const realEstatePlugin : PluginInterface = {
       path: '/real-estate',
       label: 'Real Estate',
       icon: Home,
-      component: RealEstateOverview,
+      component: Overview,
       subroutes: [
         {
           path: '/real-estate/properties',
           label: 'Properties',
-          component: RealEstateProperties,
+          component: Properties,
         },
         {
           path: '/real-estate/map',
           label: 'Map View',
-          component: RealEstateMap,
+          component: Map,
         },
         {
           path: '/real-estate/analytics',
           label: 'Analytics',
-          component: RealEstateAnalytics,
+          component: Analytics,
         },
       ],
     },
@@ -64,5 +66,15 @@ export const realEstatePlugin : PluginInterface = {
       defaultSize: 1,
     },
   ],
-  settings: RealEstateSettings,
+  settings: Settings,
 };
+
+// Also export all components individually to support dynamic imports
+export { Overview };
+export { Properties };
+export { Map };
+export { Analytics };
+export { Settings };
+export { PropertyValueChart };
+export { RentalIncomeChart };
+export { MortgagePaymentChart };

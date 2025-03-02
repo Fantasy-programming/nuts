@@ -20,7 +20,7 @@ import {
 } from '@/core/components/ui/card';
 import { toast } from 'sonner';
 
-export function RealEstateSettings() {
+export function Settings() {
   const [appreciationRate, setAppreciationRate] = useState('5');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currency, setCurrency] = useState('USD');
@@ -131,3 +131,5 @@ export function RealEstateSettings() {
     </div>
   );
 }
+
+export default Settings;

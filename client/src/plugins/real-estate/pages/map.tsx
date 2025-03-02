@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/core/components/ui/c
 import { Badge } from '@/core/components/ui/badge';
 import { MapPin, Home, Building } from 'lucide-react';
 
-export function RealEstateMap() {
+export function Map() {
   const { properties } = useRealEstateStore();
 
   return (
@@ -53,3 +53,5 @@ export function RealEstateMap() {
     </div>
   );
 }
+
+export default Map;

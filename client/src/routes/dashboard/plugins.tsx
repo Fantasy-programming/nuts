@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react';
-import { usePluginStore, Plugin } from '@/lib/plugin-system';
+import { useState, useEffect, Suspense } from 'react';
+import { usePluginStore } from '@/lib/plugin-store';
+import { loadComponent } from '@/lib/component-loader';
+import { renderIcon } from '@/core/components/icon-picker';
 import { Button } from '@/core/components/ui/button';
 import {
   Card,
@@ -22,8 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
 import { Input } from '@/core/components/ui/input';
 import { Search, Download, X, Settings } from 'lucide-react';
-import { renderIcon } from '@/core/components/icon-picker';
-
+import { initializeBuiltInPlugins, PluginConfig } from '@/lib/plugin-registry';
 
 export const Route = createFileRoute('/dashboard/plugins')({
   component: PluginManager,
@@ -31,13 +32,15 @@ export const Route = createFileRoute('/dashboard/plugins')({
 
 
 export function PluginManager() {
-  const { plugins, enablePlugin, disablePlugin, removePlugin } = usePluginStore();
+  const { pluginConfigs, enablePlugin, disablePlugin, removePlugin } = usePluginStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('installed');
 
-  const filteredPlugins = plugins.filter((plugin) =>
+ const filteredPlugins = pluginConfigs.filter((plugin) =>
     plugin.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  console.log(pluginConfigs)
 
   const handleTogglePlugin = (id: string, enabled: boolean) => {
     if (enabled) {
@@ -46,6 +49,11 @@ export function PluginManager() {
       enablePlugin(id);
     }
   };
+
+    // Ensure built-in plugins are registered
+  useEffect(() => {
+    initializeBuiltInPlugins();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -74,7 +82,7 @@ export function PluginManager() {
               filteredPlugins.map((plugin) => (
                 <PluginCard
                   key={plugin.id}
-                  plugin={plugin}
+                  pluginConfig={plugin}
                   onToggle={handleTogglePlugin}
                   onRemove={removePlugin}
                 />
@@ -95,56 +103,59 @@ export function PluginManager() {
 }
 
 function PluginCard({
-  plugin,
+  pluginConfig,
   onToggle,
   onRemove,
 }: {
-  plugin: Plugin;
+  pluginConfig: PluginConfig;
   onToggle: (id: string, enabled: boolean) => void;
   onRemove: (id: string) => void;
 }) {
   const [showSettings, setShowSettings] = useState(false);
   // Create a local Icon component variable to ensure proper rendering
-  const Icon = plugin.icon;
+
+    const SettingsComponent = pluginConfig.settingsComponentPath 
+    ? loadComponent(pluginConfig.settingsComponentPath)
+    : null;
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {renderIcon(Icon, {className: "h-5 w-5"})}
-            <CardTitle className="text-lg">{plugin.name}</CardTitle>
+            {renderIcon(pluginConfig.iconName, {className: "h-5 w-5"})}
+            <CardTitle className="text-lg">{pluginConfig.name}</CardTitle>
           </div>
-          <Badge variant={plugin.enabled ? 'default' : 'outline'}>
-            {plugin.enabled ? 'Enabled' : 'Disabled'}
+          <Badge variant={pluginConfig.enabled ? 'default' : 'outline'}>
+            {pluginConfig.enabled ? 'Enabled' : 'Disabled'}
           </Badge>
         </div>
-        <CardDescription>{plugin.description}</CardDescription>
+        <CardDescription>{pluginConfig.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="text-sm text-muted-foreground">
           <div className="flex justify-between">
             <span>Version:</span>
-            <span>{plugin.version}</span>
+            <span>{pluginConfig.version}</span>
           </div>
           <div className="flex justify-between">
             <span>Author:</span>
-            <span>{plugin.author}</span>
+            <span>{pluginConfig.author}</span>
           </div>
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
         <div className="flex items-center gap-2">
           <Switch
-            checked={plugin.enabled}
-            onCheckedChange={() => onToggle(plugin.id, plugin.enabled)}
+            checked={pluginConfig.enabled}
+            onCheckedChange={() => onToggle(pluginConfig.id, pluginConfig.enabled)}
           />
           <span className="text-sm">
-            {plugin.enabled ? 'Enabled' : 'Disabled'}
+            {pluginConfig.enabled ? 'Enabled' : 'Disabled'}
           </span>
         </div>
         <div className="flex gap-2">
-          {plugin.settings && (
+          {SettingsComponent && (
             <Dialog open={showSettings} onOpenChange={setShowSettings}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="icon">
@@ -153,10 +164,12 @@ function PluginCard({
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{plugin.name} Settings</DialogTitle>
+                  <DialogTitle>{pluginConfig.name} Settings</DialogTitle>
                 </DialogHeader>
                 <div className="py-4">
-                  {plugin.settings && <plugin.settings />}
+                  <Suspense fallback={<div>loading</div>}>
+                    <SettingsComponent />
+                  </Suspense>
                 </div>
               </DialogContent>
             </Dialog>
@@ -165,7 +178,7 @@ function PluginCard({
             variant="outline"
             size="icon"
             className="text-red-500 hover:text-red-600"
-            onClick={() => onRemove(plugin.id)}
+            onClick={() => onRemove(pluginConfig.id)}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -176,7 +189,7 @@ function PluginCard({
 }
 
 function MarketplaceContent() {
-  const { addPlugin, installedPlugins } = usePluginStore();
+  const { installedPluginIds, addPlugin } = usePluginStore();
 
   // This would typically fetch from an API
   const marketplacePlugins = [
@@ -186,7 +199,7 @@ function MarketplaceContent() {
       description: 'Track and manage your real estate investments',
       version: '1.0.0',
       author: 'Finance Dashboard Team',
-      icon: 'Home',
+      iconName: 'Home',
     },
     {
       id: 'crypto',
@@ -194,7 +207,7 @@ function MarketplaceContent() {
       description: 'Track and manage your cryptocurrency investments',
       version: '1.0.0',
       author: 'Finance Dashboard Team',
-      icon: 'Bitcoin',
+      iconName: 'Bitcoin',
     },
     {
       id: 'stocks',
@@ -202,54 +215,43 @@ function MarketplaceContent() {
       description: 'Track and manage your stock market investments',
       version: '1.0.0',
       author: 'Finance Dashboard Team',
-      icon: 'TrendingUp',
+      iconName: 'TrendingUp',
     },
   ];
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {marketplacePlugins.map((plugin) => (
-        <Card key={plugin.id}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {/* Use the icon utility to render the icon from string name */}
-                       {renderIcon(plugin.icon, {className: "h-5 w-5"})}
-                <CardTitle className="text-lg">{plugin.name}</CardTitle>
+      {marketplacePlugins.map((plugin) => {
+        return (
+          <Card key={plugin.id}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                            {renderIcon(plugin.iconName, {className: "h-5 w-5"})}
+                  <CardTitle className="text-lg">{plugin.name}</CardTitle>
+                </div>
+                <Badge>v{plugin.version}</Badge>
               </div>
-              <Badge>v{plugin.version}</Badge>
-            </div>
-            <CardDescription>{plugin.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              By {plugin.author}
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button
-              className="w-full"
-              disabled={installedPlugins.includes(plugin.id)}
-              onClick={() => {
-                // In a real app, this would dynamically import the plugin
-                if (plugin.id === 'real-estate') {
-                  import('@/plugins/real-estate').then((module) => {
-                    // Ensure the icon is a component before adding the plugin
-                    const pluginData = {...module.realEstatePlugin};
-                    if (typeof pluginData.icon === 'string') {
-                      pluginData.icon = getIconByName(pluginData.icon);
-                    }
-                    addPlugin(pluginData);
-                  });
-                }
-              }}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {installedPlugins.includes(plugin.id) ? 'Installed' : 'Install'}
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
+              <CardDescription>{plugin.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                By {plugin.author}
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full"
+                disabled={installedPluginIds.includes(plugin.id)}
+                onClick={() => addPlugin(plugin.id)}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {installedPluginIds.includes(plugin.id) ? 'Installed' : 'Install'}
+              </Button>
+            </CardFooter>
+          </Card>
+        );
+      })}
     </div>
   );
 }
