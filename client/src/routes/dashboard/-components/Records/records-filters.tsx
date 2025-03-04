@@ -3,7 +3,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/core/components/ui/popover"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import React from "react"
+import React, { useMemo, useCallback } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select"
 
 interface TransactionFiltersProps {
@@ -28,13 +28,17 @@ export function RecordsFilters({
   const [selectedCategories, setSelectedCategories] = React.useState<string[]>([])
   const [selectedAccounts, setSelectedAccounts] = React.useState<string[]>([])
 
-  const handleCategoryChange = (category: string) => {
-    const updatedCategories = selectedCategories.includes(category)
-      ? selectedCategories.filter((c) => c !== category)
-      : [...selectedCategories, category]
-    setSelectedCategories(updatedCategories)
-    onCategoryChange(updatedCategories)
-  }
+  const handleCategoryChange = useCallback((category: string) => {
+    setSelectedCategories(prev => {
+      const isSelected = prev.includes(category);
+      const updated = isSelected 
+        ? prev.filter(c => c !== category)
+        : [...prev, category];
+      
+      onCategoryChange(updated);
+      return updated;
+    });
+  }, [onCategoryChange]);
 
   const handleAccountChange = (account: string) => {
     const updatedAccounts = selectedAccounts.includes(account)
@@ -43,6 +47,21 @@ export function RecordsFilters({
     setSelectedAccounts(updatedAccounts)
     onAccountChange(updatedAccounts)
   }
+
+  const categoryItems = useMemo(() => 
+    categories.map((category) => (
+      <CommandItem key={category} onSelect={() => handleCategoryChange(category)}>
+        <Check
+          className={cn(
+            "mr-2 h-4 w-4",
+            selectedCategories.includes(category) ? "opacity-100" : "opacity-0",
+          )}
+        />
+        {category}
+      </CommandItem>
+    )), 
+    [categories, selectedCategories, handleCategoryChange]
+  );
 
   return (
     <div className="grid gap-4 p-4 border rounded-lg bg-muted/50">
@@ -60,17 +79,7 @@ export function RecordsFilters({
               <CommandList>
                 <CommandEmpty>No category found.</CommandEmpty>
                 <CommandGroup>
-                  {categories.map((category) => (
-                    <CommandItem key={category} onSelect={() => handleCategoryChange(category)}>
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selectedCategories.includes(category) ? "opacity-100" : "opacity-0",
-                        )}
-                      />
-                      {category}
-                    </CommandItem>
-                  ))}
+                  {categoryItems}
                 </CommandGroup>
               </CommandList>
             </Command>

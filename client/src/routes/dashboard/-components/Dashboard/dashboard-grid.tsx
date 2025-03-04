@@ -1,3 +1,4 @@
+import React, { useCallback } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -13,12 +14,12 @@ interface DashboardGridProps {
   children: React.ReactNode;
 }
 
-export function DashboardGrid({ children }: DashboardGridProps) {
+export const DashboardGrid = React.memo(({ children }: DashboardGridProps) => {
   const { chartOrder, reorderCharts } = useDashboardStore();
 
   const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
 
-  function handleDragEnd(event: DragEndEvent) {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -26,7 +27,7 @@ export function DashboardGrid({ children }: DashboardGridProps) {
       const newIndex = chartOrder.indexOf(over.id.toString());
       reorderCharts(oldIndex, newIndex);
     }
-  }
+  }, [chartOrder, reorderCharts]);
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -37,4 +38,4 @@ export function DashboardGrid({ children }: DashboardGridProps) {
       </SortableContext>
     </DndContext>
   );
-}
+});

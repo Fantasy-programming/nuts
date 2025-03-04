@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DateTimePicker } from '@/core/components/ui/datetime';
@@ -133,17 +133,14 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
 
   const transfertCatID = categories?.find((cat) => cat.name === "Transfers")?.id;
 
-  function handleSubmit(values: RecordCreateSchema) {
+  const handleSubmit = useCallback((values: RecordCreateSchema) => {
+    onSubmit(values);
+    modalChange(false);
+    form.reset();
+  }, [onSubmit, modalChange, form]);
 
-    onSubmit(values)
-    modalChange(false)
-    form.reset()
-  }
-
-  const handleTabChange = (value: string) => {
+  const handleTabChange = useCallback((value: string) => {
     setTransactionType(value as "expense" | "income" | "transfer");
-
-
     form.reset(
       value === "transfer"
         ? {
@@ -176,12 +173,9 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
           },
         }
     );
+  }, [form, transfertCatID]);
 
-  }
-
-
-
-  const handleNaturalInput = () => {
+  const handleNaturalInput = useCallback(() => {
     // This is where you'd integrate with a natural language processing service
     // For now, we'll just demonstrate the UI with some mock parsed transactions
     const mockParsed: ParsedTransaction[] = [
@@ -201,8 +195,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
       },
     ];
     setParsedTransactions(mockParsed);
-  };
-
+  }, []);
 
   const handleUpdateParsedTransaction = (updatedTransaction: ParsedTransaction) => {
     setParsedTransactions(current =>
@@ -212,9 +205,6 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
     );
     setEditingTransaction(null);
   };
-
-
-
 
   return (
     <Tabs

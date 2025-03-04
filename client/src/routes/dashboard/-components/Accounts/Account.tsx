@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -29,10 +29,11 @@ import {
   SelectValue,
 } from "@/core/components/ui/select";
 import { Input } from "@/core/components/ui/input";
-import { Account, accountService } from "@/features/accounts/services/account";
+import { accountService } from "@/features/accounts/services/account";
 import { accountFormSchema, AccountSchema, AccountSubmit } from "./Account.type";
 import { Plus } from "lucide-react";
 import { ResponsiveDialog } from "@/core/components/ui/dialog-sheet";
+import { Account } from "@/features/accounts/services/account.types";
 
 
 export function AccountList({ onSubmit }: { onSubmit: AccountSubmit }) {
@@ -61,7 +62,7 @@ export function AccountList({ onSubmit }: { onSubmit: AccountSubmit }) {
 }
 
 
-export function AccountCard({ account }: { account: Account }) {
+export const AccountCard = React.memo(({ account }: { account: Account }) => {
   return (
     <Card key={account.id} className="min-w-[280px] md:min-w-0 flex-shrink-0 md:w-auto">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -74,7 +75,7 @@ export function AccountCard({ account }: { account: Account }) {
       </CardContent>
     </Card>
   );
-}
+});
 
 
 export function AccountDialog({ onSubmit }: { onSubmit: AccountSubmit }) {
@@ -116,15 +117,15 @@ export function AccountForm({ onSubmit, modalChange }: { onSubmit: AccountSubmit
     },
   });
 
-  function onsubmit(values: AccountSchema) {
-    onSubmit(values)
-    form.reset()
-    modalChange(false)
-  }
+  const handleSubmit = useCallback((values: AccountSchema) => {
+    onSubmit(values);
+    form.reset();
+    modalChange(false);
+  }, [onSubmit, form, modalChange]);
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onsubmit)} className="space-y-4 md:p-0 p-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 md:p-0 p-4">
         <FormField
           control={form.control}
           name="name"

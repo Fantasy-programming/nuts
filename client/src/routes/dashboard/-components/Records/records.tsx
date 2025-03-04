@@ -1,5 +1,4 @@
 import {
-  type ColumnDef,
   type ColumnFiltersState,
   type SortingState,
   type VisibilityState,
@@ -25,9 +24,9 @@ import {
 import { Input } from "@/core/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/core/components/ui/table"
 import { RecordsFilters } from "./records-filters"
-import type { RecordSchema } from "@/features/transactions/services/transaction.types";
-import { useMemo, useState, useEffect, Fragment } from "react";
+import { useMemo, useState, useEffect, Fragment, useCallback } from "react";
 import { formatDate } from "@/lib/date";
+import { recordsTableColumns } from "./records.column";
 
 
 export const RecordsTable = () => {
@@ -65,80 +64,11 @@ export const RecordsTable = () => {
     )
   }, [transactions])
 
-  const columns: ColumnDef<RecordSchema & { groupId: string; groupDate: Date; groupTotal: number }>[] = [
-    {
-      id: "select",
-      size: 15,
-      maxSize: 15,
-      minSize: 15,
-      header: ({ table }) => (
-          <Checkbox
-            checked={table.getIsAllPageRowsSelected()}
-            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-            aria-label="Select all"
-            className="translate-y-[2px]"
-          />
-      ),
-      cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Select row"
-            className="translate-y-[2px]"
-          />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-    },
-    {
-      accessorKey: "description",
-      header: "Description",
-      size: 150,
-      maxSize: 150,
-      minSize: 150,
-      cell: ({ row }) => (
-        <div className="flex items-center space-x-2">
-          {row.original?.details?.payment_status && (
-            <img src={"/placeholder.svg"} alt="" className="h-8 w-8 rounded-full" />
-          )}
-          <span>{row.getValue("description")}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "amount",
-      header: () => <>Amount</>,
-      size: 150,
-      maxSize: 150,
-      minSize: 150,
-      cell: ({ row }) => {
-        const amount = Number.parseFloat(row.getValue("amount"))
-        const formatted = new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        }).format(amount)
-        return <div className="font-medium">{formatted}</div>
-      },
-    },
-    {
-      accessorKey: "category.name",
-      header: "Category",
-      size: 150,
-      maxSize: 150,
-      minSize: 150,
-    },
-    {
-      accessorKey: "account.name",
-      header: "Account",
-      size: 150,
-      maxSize: 150,
-      minSize: 150,
-    },
-  ]
+  
 
   const table = useReactTable({
     data: allTransactions,
-    columns,
+    columns: recordsTableColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -155,7 +85,7 @@ export const RecordsTable = () => {
     },
   })
 
-  const toggleGroup = (groupId: string) => {
+  const toggleGroup = useCallback((groupId: string) => {
     setOpenGroups((prev) => {
       const next = new Set(prev)
       if (next.has(groupId)) {
@@ -165,15 +95,15 @@ export const RecordsTable = () => {
       }
       return next
     })
-  }
+  }, []);
 
-  const toggleAllGroups = () => {
+  const toggleAllGroups = useCallback(() => {
     if (openGroups.size === filteredGroups.length) {
       setOpenGroups(new Set())
     } else {
       setOpenGroups(new Set(filteredGroups.map((g) => g.id)))
     }
-  }
+  }, []);
 
   const filteredGroups = useMemo(() => {
     return transactions
@@ -196,9 +126,9 @@ export const RecordsTable = () => {
       .filter((group) => group.transactions.length > 0)
   }, [transactions, searchFilter, categoryFilters, accountFilters])
 
-  const handleCategoryChange = (values: string[]) => {
+  const handleCategoryChange = useCallback((values: string[]) => {
     setCategoryFilters(values)
-  }
+  }, []);
 
   const handleAccountChange = (values: string[]) => {
     setAccountFilters(values)
