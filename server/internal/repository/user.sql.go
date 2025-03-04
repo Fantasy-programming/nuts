@@ -21,7 +21,7 @@ INSERT INTO users (
     password
 ) VALUES (
     $1, $2, $3, $4
-) RETURNING id, email, first_name, last_name, password, created_at, updated_at, deleted_at
+) RETURNING id, email, first_name, last_name, password, created_at, updated_at, deleted_at, avatar_url
 `
 
 type CreateUserParams struct {
@@ -48,6 +48,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
@@ -69,6 +70,7 @@ SELECT
     first_name,
     last_name,
     password,
+    avatar_url,
     created_at,
     updated_at
 FROM users
@@ -81,6 +83,7 @@ type GetUserByEmailRow struct {
 	FirstName *string   `json:"first_name"`
 	LastName  *string   `json:"last_name"`
 	Password  string    `json:"password"`
+	AvatarUrl *string   `json:"avatar_url"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -94,6 +97,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.FirstName,
 		&i.LastName,
 		&i.Password,
+		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -107,6 +111,7 @@ SELECT
     first_name,
     last_name,
     password,
+    avatar_url,
     created_at,
     updated_at
 FROM users
@@ -119,6 +124,7 @@ type GetUserByIdRow struct {
 	FirstName *string   `json:"first_name"`
 	LastName  *string   `json:"last_name"`
 	Password  string    `json:"password"`
+	AvatarUrl *string   `json:"avatar_url"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -132,6 +138,7 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (GetUserByIdRow
 		&i.FirstName,
 		&i.LastName,
 		&i.Password,
+		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -144,6 +151,7 @@ SELECT
     email,
     first_name,
     last_name,
+    avatar_url,
     password,
     created_at,
     updated_at
@@ -164,6 +172,7 @@ type ListUsersRow struct {
 	Email     string    `json:"email"`
 	FirstName *string   `json:"first_name"`
 	LastName  *string   `json:"last_name"`
+	AvatarUrl *string   `json:"avatar_url"`
 	Password  string    `json:"password"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -183,6 +192,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUse
 			&i.Email,
 			&i.FirstName,
 			&i.LastName,
+			&i.AvatarUrl,
 			&i.Password,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -203,15 +213,17 @@ SET
     email = coalesce($1, email),
     first_name = coalesce($2, first_name),
     last_name = coalesce($3, last_name),
-    updated_at = coalesce($4, updated_at)
-WHERE id = $5
-RETURNING id, email, first_name, last_name, password, created_at, updated_at, deleted_at
+    avatar_url = coalesce($4, avatar_uri),
+    updated_at = coalesce($5, updated_at)
+WHERE id = $6
+RETURNING id, email, first_name, last_name, password, created_at, updated_at, deleted_at, avatar_url
 `
 
 type UpdateUserParams struct {
 	Email     *string            `json:"email"`
 	FirstName *string            `json:"first_name"`
 	LastName  *string            `json:"last_name"`
+	AvatarUri *string            `json:"avatar_uri"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	ID        uuid.UUID          `json:"id"`
 }
@@ -221,6 +233,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.Email,
 		arg.FirstName,
 		arg.LastName,
+		arg.AvatarUri,
 		arg.UpdatedAt,
 		arg.ID,
 	)
@@ -234,6 +247,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
