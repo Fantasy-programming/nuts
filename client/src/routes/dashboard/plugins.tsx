@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { usePluginStore } from '@/lib/plugin-store';
 import { loadComponent } from '@/lib/component-loader';
 import { renderIcon } from '@/core/components/icon-picker';
@@ -32,23 +32,29 @@ export const Route = createFileRoute('/dashboard/plugins')({
 
 
 export function PluginManager() {
-  const { pluginConfigs, enablePlugin, disablePlugin, removePlugin } = usePluginStore();
+  const pluginConfigs = usePluginStore(state => state.pluginConfigs);
+  const enablePlugin = usePluginStore(state => state.enablePlugin);
+  const disablePlugin = usePluginStore(state => state.disablePlugin)
+  const removePlugin = usePluginStore(state => state.removePlugin)
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('installed');
 
- const filteredPlugins = pluginConfigs.filter((plugin) =>
-    plugin.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPlugins = useMemo(() => 
+    pluginConfigs.filter((plugin) =>
+      plugin.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+    [pluginConfigs, searchTerm]
   );
 
-  console.log(pluginConfigs)
 
-  const handleTogglePlugin = (id: string, enabled: boolean) => {
+  const handleTogglePlugin = useCallback((id: string, enabled: boolean) => {
     if (enabled) {
       disablePlugin(id);
     } else {
       enablePlugin(id);
     }
-  };
+  }, [disablePlugin, enablePlugin]);
 
     // Ensure built-in plugins are registered
   useEffect(() => {
@@ -102,7 +108,7 @@ export function PluginManager() {
   );
 }
 
-function PluginCard({
+const PluginCard = React.memo(({
   pluginConfig,
   onToggle,
   onRemove,
@@ -110,8 +116,8 @@ function PluginCard({
   pluginConfig: PluginConfig;
   onToggle: (id: string, enabled: boolean) => void;
   onRemove: (id: string) => void;
-}) {
-  const [showSettings, setShowSettings] = useState(false);
+}) => {
+const [showSettings, setShowSettings] = useState(false);
   // Create a local Icon component variable to ensure proper rendering
 
     const SettingsComponent = pluginConfig.settingsComponentPath 
@@ -186,13 +192,14 @@ function PluginCard({
       </CardFooter>
     </Card>
   );
-}
+});
 
 function MarketplaceContent() {
-  const { installedPluginIds, addPlugin } = usePluginStore();
+  const addPlugin = usePluginStore(state => state.addPlugin);
+  const installedPluginIds = usePluginStore(state => state.installedPluginIds)
 
   // This would typically fetch from an API
-  const marketplacePlugins = [
+  const marketplacePlugins = useMemo(() => [
     {
       id: 'real-estate',
       name: 'Real Estate',
@@ -217,7 +224,7 @@ function MarketplaceContent() {
       author: 'Finance Dashboard Team',
       iconName: 'TrendingUp',
     },
-  ];
+  ], []);
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

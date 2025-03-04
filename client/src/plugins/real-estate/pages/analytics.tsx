@@ -1,5 +1,5 @@
-import { useRealEstateStore } from '../store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/core/components/ui/card';
+import { useCallback } from 'react';
 import {
   LineChart,
   Line,
@@ -50,7 +50,8 @@ const roiData = [
 ];
 
 export function Analytics() {
-  const { totalValue, totalEquity, totalDebt } = useRealEstateStore();
+  const currencyFormatter = useCallback((value: string) => [`$${value.toLocaleString()}`, ''], []);
+  const percentFormatter = useCallback((value: string) => [`${value}%`, 'ROI'], []);
 
   return (
     <div className="space-y-6">
@@ -68,7 +69,7 @@ export function Analytics() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="year" />
               <YAxis />
-              <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+              <Tooltip formatter={currencyFormatter} />
               <Legend />
               <Area
                 type="monotone"
@@ -94,7 +95,7 @@ export function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+                <Tooltip formatter={currencyFormatter} />
                 <Legend />
                 <Area
                   type="monotone"
@@ -127,7 +128,7 @@ export function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+                <Tooltip formatter={currencyFormatter} />
                 <Legend />
                 <Bar dataKey="income" name="Rental Income" fill="#10B981" />
                 <Bar dataKey="expenses" name="Expenses" fill="#EF4444" />
@@ -153,7 +154,7 @@ export function Analytics() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="year" />
               <YAxis />
-              <Tooltip formatter={(value) => [`${value}%`, 'ROI']} />
+              <Tooltip formatter={percentFormatter} />
               <Legend />
               <Line
                 type="monotone"

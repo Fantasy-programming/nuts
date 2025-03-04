@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils"
 import type { FileRoutesByTo } from "@/routeTree.gen";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
@@ -113,14 +113,11 @@ const navMain: navStuff[] = [
 function DashboardWrapper() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const router = useRouterState();
   const { logout } = useAuth();
 
   const [theme, setTheme] = useState("light");
   const [isOpen, setIsOpen] = useState(false);
 
-  const { getEnabledPluginConfigs } = usePluginStore(); // plugin routes
-  const plugins = getEnabledPluginConfigs()
 
   const createMutation = useMutation({
     mutationFn: createTransaction,
@@ -129,14 +126,15 @@ function DashboardWrapper() {
     },
   });
 
-  const onSubmit = (values: RecordCreateSchema) => {
+  const onSubmit = useCallback((values: RecordCreateSchema) => {
     createMutation.mutate(values);
-  };
+  }, []);
 
-  const onLogout = async () => {
+
+  const onLogout = useCallback(async () => {
     await logout()
     navigate({ to: "/login" })
-  }
+  }, []);
 
   useHotkeys('g+d', () => {
     navigate({ to: "/dashboard/home" })
@@ -154,7 +152,6 @@ function DashboardWrapper() {
     navigate({ to: "/dashboard/analytics" })
   }, [])
 
-
   useHotkeys('g+s', () => {
     navigate({ to: "/dashboard/settings/account" })
   }, [])
@@ -163,102 +160,13 @@ function DashboardWrapper() {
     setIsOpen(!isOpen)
   }, [isOpen])
 
-  console.log(plugins)
-
-
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0" >
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Nuts Finance">
-                <div className="flex items-center gap-2">
-                  <div className="flex aspect-square items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
-                    <Nut className="size-4" />
-                  </div>
-                  <span className="font-semibold group-data-[collapsible=icon]:hidden">
-                    Nuts Finance
-                  </span>
-                </div>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
+        <SideBHeader/>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>General</SidebarGroupLabel>
-            <SidebarMenu>
-              {navMain.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    className="px-6"
-                  >
-                    <Link to={item.url} className={cn(
-                      "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
-                      router.location.pathname === item.url ? "bg-sidebar-accent shadow-sm" : ""
-                    )}
-                    >
-                      {item.icon && <item.icon className="size-4 font-medium stroke-2" />}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-          <SidebarGroup>
-            <SidebarGroupLabel>Plugins</SidebarGroupLabel>
-            <SidebarMenu>
-                <Collapsible defaultOpen={false} className="group/collapsible">
-              {
-                plugins.map((item) => {
-                  return item.routeConfigs.map((route) => {
-                    return (
-                      <SidebarMenuItem key={route.label}>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton asChild className="px-6" tooltip={route.label} >
-                            <Link to={`/dashboard${route.path}`} lassName={cn(
-                          "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
-                          router.location.pathname === `/dashboard${route.path}` ? "bg-sidebar-accent shadow-sm" : ""
-                        )}>
-                              {renderIcon(route.iconName)}
-                              <span className="ml-2">{route.label}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                        {
-                          route?.subroutes  ? (
-                        <CollapsibleContent>
-                          <SidebarMenuSub>
-                            {route.subroutes.map((item) => (
-                                <SidebarMenuSubItem>
-                                  <SidebarMenuSubButton asChild>
-                                          <Link to={`/dashboard${item.path}`} lassName={cn(
-                          "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
-                          router.location.pathname === `/dashboard${item.path}` ? "bg-sidebar-accent shadow-sm" : ""
-                        )}>
-                              <span className="ml-2">{item.label}</span>
-                            </Link>
-                                  </SidebarMenuSubButton>
-                                  </SidebarMenuSubItem>
-                  ))}
-
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                          ) : null
-                        }
-
-                      </SidebarMenuItem>
-                    );
-                  });
-                })
-              }
-              </Collapsible>
-            </SidebarMenu>
-          </SidebarGroup>
+          <SideBMainLinks/>
+          <SideBPluginsLinks/>
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
@@ -359,4 +267,115 @@ function DashboardWrapper() {
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+const SideBHeader = () => {
+  return (
+            <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" tooltip="Nuts Finance">
+                <div className="flex items-center gap-2">
+                  <div className="flex aspect-square items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
+                    <Nut className="size-4" />
+                  </div>
+                  <span className="font-semibold group-data-[collapsible=icon]:hidden">
+                    Nuts Finance
+                  </span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+  )
+}
+
+const SideBMainLinks = () => {
+    const router = useRouterState();
+  return (
+        <SidebarGroup>
+            <SidebarGroupLabel>General</SidebarGroupLabel>
+    <SidebarMenu>
+        {navMain.map((item) => (
+            <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    className="px-6"
+                  >
+                    <Link to={item.url} className={cn(
+                      "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                      router.location.pathname === item.url ? "bg-sidebar-accent shadow-sm" : ""
+                    )}
+                    >
+                      {item.icon && <item.icon className="size-4 font-medium stroke-2" />}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+              </SidebarGroup>
+  )
+}
+
+const SideBPluginsLinks = () => {
+  const getEnabledPluginConfigs  = usePluginStore(state => state.getEnabledPluginConfigs); // plugin routes
+  const plugins = getEnabledPluginConfigs()
+  const router = useRouterState();
+
+  return (
+
+    plugins.length > 0 && (
+    <SidebarGroup>
+            <SidebarGroupLabel>Plugins</SidebarGroupLabel>
+            <SidebarMenu>
+                <Collapsible defaultOpen={false} className="group/collapsible">
+              {
+                plugins.map((item) => {
+                  return item.routeConfigs.map((route) => {
+                    return (
+                      <SidebarMenuItem key={route.label}>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton asChild className="px-6" tooltip={route.label} >
+                            <Link to={`/dashboard${route.path}`} className={cn(
+                          "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                          router.location.pathname === `/dashboard${route.path}` ? "bg-sidebar-accent shadow-sm" : ""
+                        )}>
+                              {renderIcon(route.iconName)}
+                              <span className="ml-2">{route.label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        {
+                          route?.subroutes  ? (
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {route.subroutes.map((item) => (
+                                <SidebarMenuSubItem>
+                                  <SidebarMenuSubButton asChild>
+                                          <Link to={`/dashboard${item.path}`} className={cn(
+                          "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                          router.location.pathname === `/dashboard${item.path}` ? "bg-sidebar-accent shadow-sm" : ""
+                        )}>
+                              <span className="ml-2">{item.label}</span>
+                            </Link>
+                                  </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                  ))}
+
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                          ) : null
+                        }
+
+                      </SidebarMenuItem>
+                    );
+                  });
+                })
+              }
+              </Collapsible>
+            </SidebarMenu>
+          </SidebarGroup>)
+  )
 }

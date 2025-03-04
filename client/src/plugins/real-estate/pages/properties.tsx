@@ -10,20 +10,26 @@ import {
 } from '@/core/components/ui/select';
 import { Input } from '@/core/components/ui/input';
 import { Search } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 export function Properties() {
-  const { properties } = useRealEstateStore();
+  const properties = useRealEstateStore(state => state.properties);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'primary' | 'rental'>('all');
 
-  const filteredProperties = properties.filter((property) => {
+  const filteredProperties = useMemo(() => { 
+    return properties.filter((property) => {
     const matchesSearch = property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       property.address.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || property.type === filterType;
 
     return matchesSearch && matchesType;
   });
+}, [properties, searchTerm, filterType]);
+
+const handleFilterTypeChange = useCallback((value: 'all' | 'primary' | 'rental') => {
+  setFilterType(value);
+}, []);
 
   return (
     <div className="space-y-6">
@@ -45,7 +51,7 @@ export function Properties() {
         </div>
         <Select
           value={filterType}
-          onValueChange={(value: 'all' | 'primary' | 'rental') => setFilterType(value)}
+          onValueChange={handleFilterTypeChange}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by type" />

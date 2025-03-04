@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/core/components/ui/card';
 import { Button } from '@/core/components/ui/button';
 import { Badge } from '@/core/components/ui/badge';
@@ -25,7 +25,7 @@ interface PropertyCardProps {
   property: Property;
 }
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export const PropertyCard = React.memo(({ property }: PropertyCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -238,4 +238,4 @@ export function PropertyCard({ property }: PropertyCardProps) {
       </CardContent>
     </Card>
   );
-}
+});

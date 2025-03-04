@@ -21,27 +21,64 @@ import {
   ArrowUpRight,
   Building,
 } from 'lucide-react';
+import React, { useCallback, useMemo } from 'react';
+
+
+interface ChartValues {
+  name: string,
+  value: number
+}
+
+interface MExpData {
+  name: string,
+  mortgage: number,
+  income: number
+}
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 export function Overview() {
-  const { properties, totalValue, totalEquity, totalDebt, totalRentalIncome } = useRealEstateStore();
+  const properties = useRealEstateStore(state => state.properties);
+  const totalValue = useRealEstateStore(state => state.totalValue);
+  const totalEquity = useRealEstateStore(state => state.totalEquity);
+  const totalDebt = useRealEstateStore(state => state.totalDebt);
+  const totalRentalIncome = useRealEstateStore(state => state.totalRentalIncome)
 
-  const propertyValueData = properties.map((property) => ({
+
+  const propertyValueData = useMemo(() => {
+  return properties.map(property => ({
     name: property.name,
-    value: property.currentValue,
+    value: property.currentValue
   }));
+}, [properties]);
 
-  const equityDebtData = [
-    { name: 'Equity', value: totalEquity },
-    { name: 'Debt', value: totalDebt },
-  ];
+const equityDebtData = useMemo(() => [
+  { name: 'Equity', value: totalEquity },
+  { name: 'Debt', value: totalDebt }
+], [totalEquity, totalDebt]);
 
-  const COLORS = ['#10B981', '#8884d8', '#FFBB28', '#FF8042', '#0088FE'];
 
-  const monthlyExpenseData = properties.map((property) => ({
+
+  const monthlyExpenseData = useMemo(() => { 
+  return properties.map((property) => ({
     name: property.name,
     mortgage: property.mortgage?.monthlyPayment || 0,
     income: property.type === 'rental' ? property.rental?.monthlyRent || 0 : 0,
   }));
+}, [properties]);
+
+  const valueFormatter = useCallback(
+    (value: string) => [`$${value.toLocaleString()}`, 'Value'],
+    []
+  );
+
+  const pieChartLabelFormatter = useCallback(
+  ({ name, percent }: {name: string, percent: number}) => `${name}: ${(percent * 100).toFixed(0)}%`,
+  []
+);
+
+
+
 
   return (
     <div className="space-y-6">
@@ -109,76 +146,75 @@ export function Overview() {
           <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
         </TabsList>
         <TabsContent value="value" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Property Value Distribution</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={propertyValueData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={150}
-                    fill="#8884d8"
-                    dataKey="value"
-                    nameKey="name"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {propertyValueData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Value']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <PropertyValueChart data={propertyValueData} labelFormatter={pieChartLabelFormatter} chartValueFormatter={valueFormatter} />
         </TabsContent>
         <TabsContent value="equity" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Equity vs Debt</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={equityDebtData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={150}
-                    fill="#8884d8"
-                    dataKey="value"
-                    nameKey="name"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    <Cell fill="#10B981" />
-                    <Cell fill="#EF4444" />
-                  </Pie>
-                  <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+                    <EquityChart data={equityDebtData} labelFormatter={pieChartLabelFormatter} chartValueFormatter={valueFormatter} />
         </TabsContent>
         <TabsContent value="cashflow" className="space-y-4">
-          <Card>
+          <CashFlowChart data={monthlyExpenseData} chartValueFormatter={valueFormatter} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+interface PVChartInterface {
+  data: ChartValues[],
+  labelFormatter: ({ name, percent }: { name: string; percent: number }) => string,
+  chartValueFormatter:  (value: string) => string[] 
+}
+
+
+const PropertyValueChart = React.memo(({data, labelFormatter, chartValueFormatter}: PVChartInterface) => {
+   return (<Card>
+    <CardHeader>
+      <CardTitle>Property Value Distribution</CardTitle>
+    </CardHeader>
+    <CardContent className="h-[400px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            labelLine={true}
+            outerRadius={150}
+            fill="#8884d8"
+            dataKey="value"
+            nameKey="name"
+            label={labelFormatter}
+          >
+            {data.map((_, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip formatter={chartValueFormatter} />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    </CardContent>
+  </Card>);
+});
+
+interface CashFlowChartInterface {
+  data: MExpData[],
+  chartValueFormatter:  (value: string) => string[] 
+}
+
+const CashFlowChart = React.memo(({data, chartValueFormatter}: CashFlowChartInterface) => {
+   return (
+   <Card>
             <CardHeader>
               <CardTitle>Monthly Income vs Expenses</CardTitle>
             </CardHeader>
             <CardContent className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyExpenseData}>
+                <BarChart data={data}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+                  <Tooltip formatter={chartValueFormatter} />
                   <Legend />
                   <Bar dataKey="mortgage" name="Mortgage Payment" fill="#EF4444" />
                   <Bar dataKey="income" name="Rental Income" fill="#10B981" />
@@ -186,10 +222,40 @@ export function Overview() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+          );
+});
+
+const EquityChart = React.memo(({data, labelFormatter, chartValueFormatter}: PVChartInterface) => {
+   return (
+  <Card>
+            <CardHeader>
+              <CardTitle>Equity vs Debt</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+                    outerRadius={150}
+                    fill="#8884d8"
+                    dataKey="value"
+                    nameKey="name"
+            label={labelFormatter}
+                  >
+                    <Cell fill="#10B981" />
+                    <Cell fill="#EF4444" />
+                  </Pie>
+                  <Tooltip formatter={chartValueFormatter} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+          );
+});
+
 
 export default Overview;
