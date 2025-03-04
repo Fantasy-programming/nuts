@@ -16,6 +16,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
+	"github.com/Fantasy-Programming/nuts/pkg/storage"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/cors"
@@ -27,8 +28,8 @@ type Server struct {
 	cfg     *config.Config
 	logger  *zerolog.Logger
 
-	db *pgxpool.Pool
-
+	db        *pgxpool.Pool
+	storage   *storage.Storage
 	cors      *cors.Cors
 	router    *router.Router
 	validator *validation.Validator
@@ -70,6 +71,7 @@ func (s *Server) Init() {
 	s.setCors()
 	s.NewLogger()
 	s.NewDatabase()
+	s.NewStorage()
 	s.NewValidator()
 	s.NewI18n()
 	s.NewRouter()
@@ -108,6 +110,11 @@ func (s *Server) NewLogger() {
 	s.logger = &logger
 }
 
+func (s *Server) NewStorage() {
+	strg := storage.NewMinio("nuts")
+	s.storage = strg
+}
+
 func (s *Server) setCors() {
 	s.cors = cors.New(
 		cors.Options{
@@ -129,7 +136,6 @@ func (s *Server) setCors() {
 
 func (s *Server) ListRoutes() {
 	s.router.ListRoutes()
-
 }
 
 func (s *Server) NewDatabase() {
@@ -175,7 +181,6 @@ func (s *Server) NewI18n() {
 		DefaultLanguage: "en",
 		LocalesDir:      localesDir,
 	})
-
 	if err != nil {
 		s.logger.Fatal().Err(err).Msg("Failed to initialize i18n")
 	}

@@ -36,4 +36,8 @@
       log_statement = "all";
     };
   };
+
+  services.minio = {
+    enable = true;
+  };
 }
