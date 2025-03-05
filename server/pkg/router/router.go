@@ -199,12 +199,27 @@ func (r *Router) handle(method, path string, handler http.HandlerFunc) error {
 	return nil
 }
 
-func (r *Router) ListRoutes() []string {
-	v := reflect.ValueOf(r.mux).Elem()
-	routes := v.FieldByName("mux121").FieldByName("m")
-	fmt.Println(routes)
-	route2 := make([]string, 0, 1)
-	return route2
+func (r *Router) ListRoutes() {
+	// Get the value of the internal mux
+	muxValue := reflect.ValueOf(r.mux).Elem()
+
+	// Access the patterns slice
+	patternsValue := muxValue.FieldByName("patterns")
+	if !patternsValue.IsValid() {
+		fmt.Println("Could not access patterns")
+		return
+	}
+
+	// Iterate through the patterns slice
+	for i := 0; i < patternsValue.Len(); i++ {
+		pattern := patternsValue.Index(i).Elem()
+
+		// Get the original pattern string
+		str := pattern.FieldByName("str").String()
+
+		fmt.Printf("Route: %s\n", str)
+
+	}
 }
 
 func (r *Router) wrap(handler http.Handler) http.Handler {

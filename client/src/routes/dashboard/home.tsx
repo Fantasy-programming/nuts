@@ -55,7 +55,10 @@ export const Route = createFileRoute("/dashboard/home")({
 });
 
 function RouteComponent() {
-  const { charts, chartOrder, addChart } = useDashboardStore();
+  const charts = useDashboardStore(state => state.charts);
+  const chartOrder = useDashboardStore(state => state.chartOrder);
+  const addChart = useDashboardStore(state => state.addChart);
+
 
   const renderChart = (chart: (typeof charts)[0]) => {
     switch (chart.type) {

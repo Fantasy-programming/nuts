@@ -15,8 +15,8 @@ interface DashboardGridProps {
 }
 
 export const DashboardGrid = React.memo(({ children }: DashboardGridProps) => {
-  const { chartOrder, reorderCharts } = useDashboardStore();
-
+  const chartOrder = useDashboardStore(state => state.chartOrder);
+  const reorderCharts = useDashboardStore(state => state.reorderCharts);
   const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {

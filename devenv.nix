@@ -7,7 +7,7 @@
 
   languages.javascript = {
     enable = true;
-    package = pkgs.nodejs-slim_22;
+    package = pkgs.nodejs-slim_23;
     pnpm.enable = true;
     npm.enable = true;
   };
