@@ -10,5 +10,5 @@ export const accountFormSchema = z.object({
   type: z.enum(["cash", "savings", "investment", "credit"]),
 });
 
-export type AccountSchema = z.infer<typeof accountFormSchema>
-export type AccountSubmit = (values: AccountSchema) => void
+export type AccountSchema = z.infer<typeof accountFormSchema>;
+export type AccountSubmit = (values: AccountSchema) => void;

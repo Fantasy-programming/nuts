@@ -15,7 +15,6 @@ const getCurrencies = async () => {
 const getLangs = async () => {
   const response = await axios.get(`${BASEURI}/lang`);
   return response.data;
-}
-
+};
 
 export const metaService = { getCurrencies, getLangs };

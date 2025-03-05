@@ -8,332 +8,326 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 
 // Import Routes
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as SignupImport } from './routes/signup'
-import { Route as LoginImport } from './routes/login'
-import { Route as ComponentsImport } from './routes/components'
-import { Route as DashboardRouteImport } from './routes/dashboard/route'
-import { Route as IndexImport } from './routes/index'
-import { Route as DashboardIndexImport } from './routes/dashboard/index'
-import { Route as DashboardRecordsImport } from './routes/dashboard/records'
-import { Route as DashboardHomeImport } from './routes/dashboard/home'
-import { Route as DashboardAnalyticsImport } from './routes/dashboard/analytics'
-import { Route as DashboardAccountsImport } from './routes/dashboard/accounts'
-import { Route as DashboardSettingsRouteImport } from './routes/dashboard_/settings/route'
-import { Route as DashboardSettingsIndexImport } from './routes/dashboard_/settings/index'
-import { Route as DashboardSettingsWebhookImport } from './routes/dashboard_/settings/webhook'
-import { Route as DashboardSettingsTagsImport } from './routes/dashboard_/settings/tags'
-import { Route as DashboardSettingsPreferencesImport } from './routes/dashboard_/settings/preferences'
-import { Route as DashboardSettingsNewsImport } from './routes/dashboard_/settings/news'
-import { Route as DashboardSettingsMerchantsImport } from './routes/dashboard_/settings/merchants'
-import { Route as DashboardSettingsFeedbackImport } from './routes/dashboard_/settings/feedback'
-import { Route as DashboardSettingsCategoriesImport } from './routes/dashboard_/settings/categories'
-import { Route as DashboardSettingsAccountImport } from './routes/dashboard_/settings/account'
+import { Route as rootRoute } from "./routes/__root";
+import { Route as SignupImport } from "./routes/signup";
+import { Route as LoginImport } from "./routes/login";
+import { Route as ComponentsImport } from "./routes/components";
+import { Route as DashboardRouteImport } from "./routes/dashboard/route";
+import { Route as IndexImport } from "./routes/index";
+import { Route as DashboardIndexImport } from "./routes/dashboard/index";
+import { Route as DashboardRecordsImport } from "./routes/dashboard/records";
+import { Route as DashboardHomeImport } from "./routes/dashboard/home";
+import { Route as DashboardAnalyticsImport } from "./routes/dashboard/analytics";
+import { Route as DashboardAccountsImport } from "./routes/dashboard/accounts";
+import { Route as DashboardSettingsRouteImport } from "./routes/dashboard_/settings/route";
+import { Route as DashboardSettingsIndexImport } from "./routes/dashboard_/settings/index";
+import { Route as DashboardSettingsWebhookImport } from "./routes/dashboard_/settings/webhook";
+import { Route as DashboardSettingsTagsImport } from "./routes/dashboard_/settings/tags";
+import { Route as DashboardSettingsPreferencesImport } from "./routes/dashboard_/settings/preferences";
+import { Route as DashboardSettingsNewsImport } from "./routes/dashboard_/settings/news";
+import { Route as DashboardSettingsMerchantsImport } from "./routes/dashboard_/settings/merchants";
+import { Route as DashboardSettingsFeedbackImport } from "./routes/dashboard_/settings/feedback";
+import { Route as DashboardSettingsCategoriesImport } from "./routes/dashboard_/settings/categories";
+import { Route as DashboardSettingsAccountImport } from "./routes/dashboard_/settings/account";
 
 // Create Virtual Routes
 
-const ForgotPasswordLazyImport = createFileRoute('/forgot-password')()
+const ForgotPasswordLazyImport = createFileRoute("/forgot-password")();
 
 // Create/Update Routes
 
 const ForgotPasswordLazyRoute = ForgotPasswordLazyImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
+  id: "/forgot-password",
+  path: "/forgot-password",
   getParentRoute: () => rootRoute,
-} as any).lazy(() =>
-  import('./routes/forgot-password.lazy').then((d) => d.Route),
-)
+} as any).lazy(() => import("./routes/forgot-password.lazy").then((d) => d.Route));
 
 const SignupRoute = SignupImport.update({
-  id: '/signup',
-  path: '/signup',
+  id: "/signup",
+  path: "/signup",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const LoginRoute = LoginImport.update({
-  id: '/login',
-  path: '/login',
+  id: "/login",
+  path: "/login",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const ComponentsRoute = ComponentsImport.update({
-  id: '/components',
-  path: '/components',
+  id: "/components",
+  path: "/components",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const DashboardRouteRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+  id: "/dashboard",
+  path: "/dashboard",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const IndexRoute = IndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const DashboardIndexRoute = DashboardIndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => DashboardRouteRoute,
-} as any)
+} as any);
 
 const DashboardRecordsRoute = DashboardRecordsImport.update({
-  id: '/records',
-  path: '/records',
+  id: "/records",
+  path: "/records",
   getParentRoute: () => DashboardRouteRoute,
-} as any)
+} as any);
 
 const DashboardHomeRoute = DashboardHomeImport.update({
-  id: '/home',
-  path: '/home',
+  id: "/home",
+  path: "/home",
   getParentRoute: () => DashboardRouteRoute,
-} as any)
+} as any);
 
 const DashboardAnalyticsRoute = DashboardAnalyticsImport.update({
-  id: '/analytics',
-  path: '/analytics',
+  id: "/analytics",
+  path: "/analytics",
   getParentRoute: () => DashboardRouteRoute,
-} as any)
+} as any);
 
 const DashboardAccountsRoute = DashboardAccountsImport.update({
-  id: '/accounts',
-  path: '/accounts',
+  id: "/accounts",
+  path: "/accounts",
   getParentRoute: () => DashboardRouteRoute,
-} as any)
+} as any);
 
 const DashboardSettingsRouteRoute = DashboardSettingsRouteImport.update({
-  id: '/dashboard_/settings',
-  path: '/dashboard/settings',
+  id: "/dashboard_/settings",
+  path: "/dashboard/settings",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const DashboardSettingsIndexRoute = DashboardSettingsIndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any)
+} as any);
 
 const DashboardSettingsWebhookRoute = DashboardSettingsWebhookImport.update({
-  id: '/webhook',
-  path: '/webhook',
+  id: "/webhook",
+  path: "/webhook",
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any)
+} as any);
 
 const DashboardSettingsTagsRoute = DashboardSettingsTagsImport.update({
-  id: '/tags',
-  path: '/tags',
+  id: "/tags",
+  path: "/tags",
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any)
+} as any);
 
-const DashboardSettingsPreferencesRoute =
-  DashboardSettingsPreferencesImport.update({
-    id: '/preferences',
-    path: '/preferences',
-    getParentRoute: () => DashboardSettingsRouteRoute,
-  } as any)
+const DashboardSettingsPreferencesRoute = DashboardSettingsPreferencesImport.update({
+  id: "/preferences",
+  path: "/preferences",
+  getParentRoute: () => DashboardSettingsRouteRoute,
+} as any);
 
 const DashboardSettingsNewsRoute = DashboardSettingsNewsImport.update({
-  id: '/news',
-  path: '/news',
+  id: "/news",
+  path: "/news",
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any)
+} as any);
 
-const DashboardSettingsMerchantsRoute = DashboardSettingsMerchantsImport.update(
-  {
-    id: '/merchants',
-    path: '/merchants',
-    getParentRoute: () => DashboardSettingsRouteRoute,
-  } as any,
-)
+const DashboardSettingsMerchantsRoute = DashboardSettingsMerchantsImport.update({
+  id: "/merchants",
+  path: "/merchants",
+  getParentRoute: () => DashboardSettingsRouteRoute,
+} as any);
 
 const DashboardSettingsFeedbackRoute = DashboardSettingsFeedbackImport.update({
-  id: '/feedback',
-  path: '/feedback',
+  id: "/feedback",
+  path: "/feedback",
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any)
+} as any);
 
-const DashboardSettingsCategoriesRoute =
-  DashboardSettingsCategoriesImport.update({
-    id: '/categories',
-    path: '/categories',
-    getParentRoute: () => DashboardSettingsRouteRoute,
-  } as any)
+const DashboardSettingsCategoriesRoute = DashboardSettingsCategoriesImport.update({
+  id: "/categories",
+  path: "/categories",
+  getParentRoute: () => DashboardSettingsRouteRoute,
+} as any);
 
 const DashboardSettingsAccountRoute = DashboardSettingsAccountImport.update({
-  id: '/account',
-  path: '/account',
+  id: "/account",
+  path: "/account",
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any)
+} as any);
 
 // Populate the FileRoutesByPath interface
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/components': {
-      id: '/components'
-      path: '/components'
-      fullPath: '/components'
-      preLoaderRoute: typeof ComponentsImport
-      parentRoute: typeof rootRoute
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginImport
-      parentRoute: typeof rootRoute
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupImport
-      parentRoute: typeof rootRoute
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordLazyImport
-      parentRoute: typeof rootRoute
-    }
-    '/dashboard_/settings': {
-      id: '/dashboard_/settings'
-      path: '/dashboard/settings'
-      fullPath: '/dashboard/settings'
-      preLoaderRoute: typeof DashboardSettingsRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/dashboard/accounts': {
-      id: '/dashboard/accounts'
-      path: '/accounts'
-      fullPath: '/dashboard/accounts'
-      preLoaderRoute: typeof DashboardAccountsImport
-      parentRoute: typeof DashboardRouteImport
-    }
-    '/dashboard/analytics': {
-      id: '/dashboard/analytics'
-      path: '/analytics'
-      fullPath: '/dashboard/analytics'
-      preLoaderRoute: typeof DashboardAnalyticsImport
-      parentRoute: typeof DashboardRouteImport
-    }
-    '/dashboard/home': {
-      id: '/dashboard/home'
-      path: '/home'
-      fullPath: '/dashboard/home'
-      preLoaderRoute: typeof DashboardHomeImport
-      parentRoute: typeof DashboardRouteImport
-    }
-    '/dashboard/records': {
-      id: '/dashboard/records'
-      path: '/records'
-      fullPath: '/dashboard/records'
-      preLoaderRoute: typeof DashboardRecordsImport
-      parentRoute: typeof DashboardRouteImport
-    }
-    '/dashboard/': {
-      id: '/dashboard/'
-      path: '/'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexImport
-      parentRoute: typeof DashboardRouteImport
-    }
-    '/dashboard_/settings/account': {
-      id: '/dashboard_/settings/account'
-      path: '/account'
-      fullPath: '/dashboard/settings/account'
-      preLoaderRoute: typeof DashboardSettingsAccountImport
-      parentRoute: typeof DashboardSettingsRouteImport
-    }
-    '/dashboard_/settings/categories': {
-      id: '/dashboard_/settings/categories'
-      path: '/categories'
-      fullPath: '/dashboard/settings/categories'
-      preLoaderRoute: typeof DashboardSettingsCategoriesImport
-      parentRoute: typeof DashboardSettingsRouteImport
-    }
-    '/dashboard_/settings/feedback': {
-      id: '/dashboard_/settings/feedback'
-      path: '/feedback'
-      fullPath: '/dashboard/settings/feedback'
-      preLoaderRoute: typeof DashboardSettingsFeedbackImport
-      parentRoute: typeof DashboardSettingsRouteImport
-    }
-    '/dashboard_/settings/merchants': {
-      id: '/dashboard_/settings/merchants'
-      path: '/merchants'
-      fullPath: '/dashboard/settings/merchants'
-      preLoaderRoute: typeof DashboardSettingsMerchantsImport
-      parentRoute: typeof DashboardSettingsRouteImport
-    }
-    '/dashboard_/settings/news': {
-      id: '/dashboard_/settings/news'
-      path: '/news'
-      fullPath: '/dashboard/settings/news'
-      preLoaderRoute: typeof DashboardSettingsNewsImport
-      parentRoute: typeof DashboardSettingsRouteImport
-    }
-    '/dashboard_/settings/preferences': {
-      id: '/dashboard_/settings/preferences'
-      path: '/preferences'
-      fullPath: '/dashboard/settings/preferences'
-      preLoaderRoute: typeof DashboardSettingsPreferencesImport
-      parentRoute: typeof DashboardSettingsRouteImport
-    }
-    '/dashboard_/settings/tags': {
-      id: '/dashboard_/settings/tags'
-      path: '/tags'
-      fullPath: '/dashboard/settings/tags'
-      preLoaderRoute: typeof DashboardSettingsTagsImport
-      parentRoute: typeof DashboardSettingsRouteImport
-    }
-    '/dashboard_/settings/webhook': {
-      id: '/dashboard_/settings/webhook'
-      path: '/webhook'
-      fullPath: '/dashboard/settings/webhook'
-      preLoaderRoute: typeof DashboardSettingsWebhookImport
-      parentRoute: typeof DashboardSettingsRouteImport
-    }
-    '/dashboard_/settings/': {
-      id: '/dashboard_/settings/'
-      path: '/'
-      fullPath: '/dashboard/settings/'
-      preLoaderRoute: typeof DashboardSettingsIndexImport
-      parentRoute: typeof DashboardSettingsRouteImport
-    }
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/dashboard": {
+      id: "/dashboard";
+      path: "/dashboard";
+      fullPath: "/dashboard";
+      preLoaderRoute: typeof DashboardRouteImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/components": {
+      id: "/components";
+      path: "/components";
+      fullPath: "/components";
+      preLoaderRoute: typeof ComponentsImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/login": {
+      id: "/login";
+      path: "/login";
+      fullPath: "/login";
+      preLoaderRoute: typeof LoginImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/signup": {
+      id: "/signup";
+      path: "/signup";
+      fullPath: "/signup";
+      preLoaderRoute: typeof SignupImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/forgot-password": {
+      id: "/forgot-password";
+      path: "/forgot-password";
+      fullPath: "/forgot-password";
+      preLoaderRoute: typeof ForgotPasswordLazyImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/dashboard_/settings": {
+      id: "/dashboard_/settings";
+      path: "/dashboard/settings";
+      fullPath: "/dashboard/settings";
+      preLoaderRoute: typeof DashboardSettingsRouteImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/dashboard/accounts": {
+      id: "/dashboard/accounts";
+      path: "/accounts";
+      fullPath: "/dashboard/accounts";
+      preLoaderRoute: typeof DashboardAccountsImport;
+      parentRoute: typeof DashboardRouteImport;
+    };
+    "/dashboard/analytics": {
+      id: "/dashboard/analytics";
+      path: "/analytics";
+      fullPath: "/dashboard/analytics";
+      preLoaderRoute: typeof DashboardAnalyticsImport;
+      parentRoute: typeof DashboardRouteImport;
+    };
+    "/dashboard/home": {
+      id: "/dashboard/home";
+      path: "/home";
+      fullPath: "/dashboard/home";
+      preLoaderRoute: typeof DashboardHomeImport;
+      parentRoute: typeof DashboardRouteImport;
+    };
+    "/dashboard/records": {
+      id: "/dashboard/records";
+      path: "/records";
+      fullPath: "/dashboard/records";
+      preLoaderRoute: typeof DashboardRecordsImport;
+      parentRoute: typeof DashboardRouteImport;
+    };
+    "/dashboard/": {
+      id: "/dashboard/";
+      path: "/";
+      fullPath: "/dashboard/";
+      preLoaderRoute: typeof DashboardIndexImport;
+      parentRoute: typeof DashboardRouteImport;
+    };
+    "/dashboard_/settings/account": {
+      id: "/dashboard_/settings/account";
+      path: "/account";
+      fullPath: "/dashboard/settings/account";
+      preLoaderRoute: typeof DashboardSettingsAccountImport;
+      parentRoute: typeof DashboardSettingsRouteImport;
+    };
+    "/dashboard_/settings/categories": {
+      id: "/dashboard_/settings/categories";
+      path: "/categories";
+      fullPath: "/dashboard/settings/categories";
+      preLoaderRoute: typeof DashboardSettingsCategoriesImport;
+      parentRoute: typeof DashboardSettingsRouteImport;
+    };
+    "/dashboard_/settings/feedback": {
+      id: "/dashboard_/settings/feedback";
+      path: "/feedback";
+      fullPath: "/dashboard/settings/feedback";
+      preLoaderRoute: typeof DashboardSettingsFeedbackImport;
+      parentRoute: typeof DashboardSettingsRouteImport;
+    };
+    "/dashboard_/settings/merchants": {
+      id: "/dashboard_/settings/merchants";
+      path: "/merchants";
+      fullPath: "/dashboard/settings/merchants";
+      preLoaderRoute: typeof DashboardSettingsMerchantsImport;
+      parentRoute: typeof DashboardSettingsRouteImport;
+    };
+    "/dashboard_/settings/news": {
+      id: "/dashboard_/settings/news";
+      path: "/news";
+      fullPath: "/dashboard/settings/news";
+      preLoaderRoute: typeof DashboardSettingsNewsImport;
+      parentRoute: typeof DashboardSettingsRouteImport;
+    };
+    "/dashboard_/settings/preferences": {
+      id: "/dashboard_/settings/preferences";
+      path: "/preferences";
+      fullPath: "/dashboard/settings/preferences";
+      preLoaderRoute: typeof DashboardSettingsPreferencesImport;
+      parentRoute: typeof DashboardSettingsRouteImport;
+    };
+    "/dashboard_/settings/tags": {
+      id: "/dashboard_/settings/tags";
+      path: "/tags";
+      fullPath: "/dashboard/settings/tags";
+      preLoaderRoute: typeof DashboardSettingsTagsImport;
+      parentRoute: typeof DashboardSettingsRouteImport;
+    };
+    "/dashboard_/settings/webhook": {
+      id: "/dashboard_/settings/webhook";
+      path: "/webhook";
+      fullPath: "/dashboard/settings/webhook";
+      preLoaderRoute: typeof DashboardSettingsWebhookImport;
+      parentRoute: typeof DashboardSettingsRouteImport;
+    };
+    "/dashboard_/settings/": {
+      id: "/dashboard_/settings/";
+      path: "/";
+      fullPath: "/dashboard/settings/";
+      preLoaderRoute: typeof DashboardSettingsIndexImport;
+      parentRoute: typeof DashboardSettingsRouteImport;
+    };
   }
 }
 
 // Create and export the route tree
 
 interface DashboardRouteRouteChildren {
-  DashboardAccountsRoute: typeof DashboardAccountsRoute
-  DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
-  DashboardHomeRoute: typeof DashboardHomeRoute
-  DashboardRecordsRoute: typeof DashboardRecordsRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardAccountsRoute: typeof DashboardAccountsRoute;
+  DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute;
+  DashboardHomeRoute: typeof DashboardHomeRoute;
+  DashboardRecordsRoute: typeof DashboardRecordsRoute;
+  DashboardIndexRoute: typeof DashboardIndexRoute;
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
@@ -342,192 +336,186 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardHomeRoute: DashboardHomeRoute,
   DashboardRecordsRoute: DashboardRecordsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
-}
+};
 
-const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
-  DashboardRouteRouteChildren,
-)
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(DashboardRouteRouteChildren);
 
 interface DashboardSettingsRouteRouteChildren {
-  DashboardSettingsAccountRoute: typeof DashboardSettingsAccountRoute
-  DashboardSettingsCategoriesRoute: typeof DashboardSettingsCategoriesRoute
-  DashboardSettingsFeedbackRoute: typeof DashboardSettingsFeedbackRoute
-  DashboardSettingsMerchantsRoute: typeof DashboardSettingsMerchantsRoute
-  DashboardSettingsNewsRoute: typeof DashboardSettingsNewsRoute
-  DashboardSettingsPreferencesRoute: typeof DashboardSettingsPreferencesRoute
-  DashboardSettingsTagsRoute: typeof DashboardSettingsTagsRoute
-  DashboardSettingsWebhookRoute: typeof DashboardSettingsWebhookRoute
-  DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute
+  DashboardSettingsAccountRoute: typeof DashboardSettingsAccountRoute;
+  DashboardSettingsCategoriesRoute: typeof DashboardSettingsCategoriesRoute;
+  DashboardSettingsFeedbackRoute: typeof DashboardSettingsFeedbackRoute;
+  DashboardSettingsMerchantsRoute: typeof DashboardSettingsMerchantsRoute;
+  DashboardSettingsNewsRoute: typeof DashboardSettingsNewsRoute;
+  DashboardSettingsPreferencesRoute: typeof DashboardSettingsPreferencesRoute;
+  DashboardSettingsTagsRoute: typeof DashboardSettingsTagsRoute;
+  DashboardSettingsWebhookRoute: typeof DashboardSettingsWebhookRoute;
+  DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute;
 }
 
-const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
-  {
-    DashboardSettingsAccountRoute: DashboardSettingsAccountRoute,
-    DashboardSettingsCategoriesRoute: DashboardSettingsCategoriesRoute,
-    DashboardSettingsFeedbackRoute: DashboardSettingsFeedbackRoute,
-    DashboardSettingsMerchantsRoute: DashboardSettingsMerchantsRoute,
-    DashboardSettingsNewsRoute: DashboardSettingsNewsRoute,
-    DashboardSettingsPreferencesRoute: DashboardSettingsPreferencesRoute,
-    DashboardSettingsTagsRoute: DashboardSettingsTagsRoute,
-    DashboardSettingsWebhookRoute: DashboardSettingsWebhookRoute,
-    DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
-  }
+const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren = {
+  DashboardSettingsAccountRoute: DashboardSettingsAccountRoute,
+  DashboardSettingsCategoriesRoute: DashboardSettingsCategoriesRoute,
+  DashboardSettingsFeedbackRoute: DashboardSettingsFeedbackRoute,
+  DashboardSettingsMerchantsRoute: DashboardSettingsMerchantsRoute,
+  DashboardSettingsNewsRoute: DashboardSettingsNewsRoute,
+  DashboardSettingsPreferencesRoute: DashboardSettingsPreferencesRoute,
+  DashboardSettingsTagsRoute: DashboardSettingsTagsRoute,
+  DashboardSettingsWebhookRoute: DashboardSettingsWebhookRoute,
+  DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
+};
 
-const DashboardSettingsRouteRouteWithChildren =
-  DashboardSettingsRouteRoute._addFileChildren(
-    DashboardSettingsRouteRouteChildren,
-  )
+const DashboardSettingsRouteRouteWithChildren = DashboardSettingsRouteRoute._addFileChildren(DashboardSettingsRouteRouteChildren);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/components': typeof ComponentsRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/forgot-password': typeof ForgotPasswordLazyRoute
-  '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
-  '/dashboard/accounts': typeof DashboardAccountsRoute
-  '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/home': typeof DashboardHomeRoute
-  '/dashboard/records': typeof DashboardRecordsRoute
-  '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/settings/account': typeof DashboardSettingsAccountRoute
-  '/dashboard/settings/categories': typeof DashboardSettingsCategoriesRoute
-  '/dashboard/settings/feedback': typeof DashboardSettingsFeedbackRoute
-  '/dashboard/settings/merchants': typeof DashboardSettingsMerchantsRoute
-  '/dashboard/settings/news': typeof DashboardSettingsNewsRoute
-  '/dashboard/settings/preferences': typeof DashboardSettingsPreferencesRoute
-  '/dashboard/settings/tags': typeof DashboardSettingsTagsRoute
-  '/dashboard/settings/webhook': typeof DashboardSettingsWebhookRoute
-  '/dashboard/settings/': typeof DashboardSettingsIndexRoute
+  "/": typeof IndexRoute;
+  "/dashboard": typeof DashboardRouteRouteWithChildren;
+  "/components": typeof ComponentsRoute;
+  "/login": typeof LoginRoute;
+  "/signup": typeof SignupRoute;
+  "/forgot-password": typeof ForgotPasswordLazyRoute;
+  "/dashboard/settings": typeof DashboardSettingsRouteRouteWithChildren;
+  "/dashboard/accounts": typeof DashboardAccountsRoute;
+  "/dashboard/analytics": typeof DashboardAnalyticsRoute;
+  "/dashboard/home": typeof DashboardHomeRoute;
+  "/dashboard/records": typeof DashboardRecordsRoute;
+  "/dashboard/": typeof DashboardIndexRoute;
+  "/dashboard/settings/account": typeof DashboardSettingsAccountRoute;
+  "/dashboard/settings/categories": typeof DashboardSettingsCategoriesRoute;
+  "/dashboard/settings/feedback": typeof DashboardSettingsFeedbackRoute;
+  "/dashboard/settings/merchants": typeof DashboardSettingsMerchantsRoute;
+  "/dashboard/settings/news": typeof DashboardSettingsNewsRoute;
+  "/dashboard/settings/preferences": typeof DashboardSettingsPreferencesRoute;
+  "/dashboard/settings/tags": typeof DashboardSettingsTagsRoute;
+  "/dashboard/settings/webhook": typeof DashboardSettingsWebhookRoute;
+  "/dashboard/settings/": typeof DashboardSettingsIndexRoute;
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/components': typeof ComponentsRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/forgot-password': typeof ForgotPasswordLazyRoute
-  '/dashboard/accounts': typeof DashboardAccountsRoute
-  '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/home': typeof DashboardHomeRoute
-  '/dashboard/records': typeof DashboardRecordsRoute
-  '/dashboard': typeof DashboardIndexRoute
-  '/dashboard/settings/account': typeof DashboardSettingsAccountRoute
-  '/dashboard/settings/categories': typeof DashboardSettingsCategoriesRoute
-  '/dashboard/settings/feedback': typeof DashboardSettingsFeedbackRoute
-  '/dashboard/settings/merchants': typeof DashboardSettingsMerchantsRoute
-  '/dashboard/settings/news': typeof DashboardSettingsNewsRoute
-  '/dashboard/settings/preferences': typeof DashboardSettingsPreferencesRoute
-  '/dashboard/settings/tags': typeof DashboardSettingsTagsRoute
-  '/dashboard/settings/webhook': typeof DashboardSettingsWebhookRoute
-  '/dashboard/settings': typeof DashboardSettingsIndexRoute
+  "/": typeof IndexRoute;
+  "/components": typeof ComponentsRoute;
+  "/login": typeof LoginRoute;
+  "/signup": typeof SignupRoute;
+  "/forgot-password": typeof ForgotPasswordLazyRoute;
+  "/dashboard/accounts": typeof DashboardAccountsRoute;
+  "/dashboard/analytics": typeof DashboardAnalyticsRoute;
+  "/dashboard/home": typeof DashboardHomeRoute;
+  "/dashboard/records": typeof DashboardRecordsRoute;
+  "/dashboard": typeof DashboardIndexRoute;
+  "/dashboard/settings/account": typeof DashboardSettingsAccountRoute;
+  "/dashboard/settings/categories": typeof DashboardSettingsCategoriesRoute;
+  "/dashboard/settings/feedback": typeof DashboardSettingsFeedbackRoute;
+  "/dashboard/settings/merchants": typeof DashboardSettingsMerchantsRoute;
+  "/dashboard/settings/news": typeof DashboardSettingsNewsRoute;
+  "/dashboard/settings/preferences": typeof DashboardSettingsPreferencesRoute;
+  "/dashboard/settings/tags": typeof DashboardSettingsTagsRoute;
+  "/dashboard/settings/webhook": typeof DashboardSettingsWebhookRoute;
+  "/dashboard/settings": typeof DashboardSettingsIndexRoute;
 }
 
 export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/components': typeof ComponentsRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/forgot-password': typeof ForgotPasswordLazyRoute
-  '/dashboard_/settings': typeof DashboardSettingsRouteRouteWithChildren
-  '/dashboard/accounts': typeof DashboardAccountsRoute
-  '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/home': typeof DashboardHomeRoute
-  '/dashboard/records': typeof DashboardRecordsRoute
-  '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard_/settings/account': typeof DashboardSettingsAccountRoute
-  '/dashboard_/settings/categories': typeof DashboardSettingsCategoriesRoute
-  '/dashboard_/settings/feedback': typeof DashboardSettingsFeedbackRoute
-  '/dashboard_/settings/merchants': typeof DashboardSettingsMerchantsRoute
-  '/dashboard_/settings/news': typeof DashboardSettingsNewsRoute
-  '/dashboard_/settings/preferences': typeof DashboardSettingsPreferencesRoute
-  '/dashboard_/settings/tags': typeof DashboardSettingsTagsRoute
-  '/dashboard_/settings/webhook': typeof DashboardSettingsWebhookRoute
-  '/dashboard_/settings/': typeof DashboardSettingsIndexRoute
+  __root__: typeof rootRoute;
+  "/": typeof IndexRoute;
+  "/dashboard": typeof DashboardRouteRouteWithChildren;
+  "/components": typeof ComponentsRoute;
+  "/login": typeof LoginRoute;
+  "/signup": typeof SignupRoute;
+  "/forgot-password": typeof ForgotPasswordLazyRoute;
+  "/dashboard_/settings": typeof DashboardSettingsRouteRouteWithChildren;
+  "/dashboard/accounts": typeof DashboardAccountsRoute;
+  "/dashboard/analytics": typeof DashboardAnalyticsRoute;
+  "/dashboard/home": typeof DashboardHomeRoute;
+  "/dashboard/records": typeof DashboardRecordsRoute;
+  "/dashboard/": typeof DashboardIndexRoute;
+  "/dashboard_/settings/account": typeof DashboardSettingsAccountRoute;
+  "/dashboard_/settings/categories": typeof DashboardSettingsCategoriesRoute;
+  "/dashboard_/settings/feedback": typeof DashboardSettingsFeedbackRoute;
+  "/dashboard_/settings/merchants": typeof DashboardSettingsMerchantsRoute;
+  "/dashboard_/settings/news": typeof DashboardSettingsNewsRoute;
+  "/dashboard_/settings/preferences": typeof DashboardSettingsPreferencesRoute;
+  "/dashboard_/settings/tags": typeof DashboardSettingsTagsRoute;
+  "/dashboard_/settings/webhook": typeof DashboardSettingsWebhookRoute;
+  "/dashboard_/settings/": typeof DashboardSettingsIndexRoute;
 }
 
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/dashboard'
-    | '/components'
-    | '/login'
-    | '/signup'
-    | '/forgot-password'
-    | '/dashboard/settings'
-    | '/dashboard/accounts'
-    | '/dashboard/analytics'
-    | '/dashboard/home'
-    | '/dashboard/records'
-    | '/dashboard/'
-    | '/dashboard/settings/account'
-    | '/dashboard/settings/categories'
-    | '/dashboard/settings/feedback'
-    | '/dashboard/settings/merchants'
-    | '/dashboard/settings/news'
-    | '/dashboard/settings/preferences'
-    | '/dashboard/settings/tags'
-    | '/dashboard/settings/webhook'
-    | '/dashboard/settings/'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/dashboard"
+    | "/components"
+    | "/login"
+    | "/signup"
+    | "/forgot-password"
+    | "/dashboard/settings"
+    | "/dashboard/accounts"
+    | "/dashboard/analytics"
+    | "/dashboard/home"
+    | "/dashboard/records"
+    | "/dashboard/"
+    | "/dashboard/settings/account"
+    | "/dashboard/settings/categories"
+    | "/dashboard/settings/feedback"
+    | "/dashboard/settings/merchants"
+    | "/dashboard/settings/news"
+    | "/dashboard/settings/preferences"
+    | "/dashboard/settings/tags"
+    | "/dashboard/settings/webhook"
+    | "/dashboard/settings/";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/components'
-    | '/login'
-    | '/signup'
-    | '/forgot-password'
-    | '/dashboard/accounts'
-    | '/dashboard/analytics'
-    | '/dashboard/home'
-    | '/dashboard/records'
-    | '/dashboard'
-    | '/dashboard/settings/account'
-    | '/dashboard/settings/categories'
-    | '/dashboard/settings/feedback'
-    | '/dashboard/settings/merchants'
-    | '/dashboard/settings/news'
-    | '/dashboard/settings/preferences'
-    | '/dashboard/settings/tags'
-    | '/dashboard/settings/webhook'
-    | '/dashboard/settings'
+    | "/"
+    | "/components"
+    | "/login"
+    | "/signup"
+    | "/forgot-password"
+    | "/dashboard/accounts"
+    | "/dashboard/analytics"
+    | "/dashboard/home"
+    | "/dashboard/records"
+    | "/dashboard"
+    | "/dashboard/settings/account"
+    | "/dashboard/settings/categories"
+    | "/dashboard/settings/feedback"
+    | "/dashboard/settings/merchants"
+    | "/dashboard/settings/news"
+    | "/dashboard/settings/preferences"
+    | "/dashboard/settings/tags"
+    | "/dashboard/settings/webhook"
+    | "/dashboard/settings";
   id:
-    | '__root__'
-    | '/'
-    | '/dashboard'
-    | '/components'
-    | '/login'
-    | '/signup'
-    | '/forgot-password'
-    | '/dashboard_/settings'
-    | '/dashboard/accounts'
-    | '/dashboard/analytics'
-    | '/dashboard/home'
-    | '/dashboard/records'
-    | '/dashboard/'
-    | '/dashboard_/settings/account'
-    | '/dashboard_/settings/categories'
-    | '/dashboard_/settings/feedback'
-    | '/dashboard_/settings/merchants'
-    | '/dashboard_/settings/news'
-    | '/dashboard_/settings/preferences'
-    | '/dashboard_/settings/tags'
-    | '/dashboard_/settings/webhook'
-    | '/dashboard_/settings/'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/dashboard"
+    | "/components"
+    | "/login"
+    | "/signup"
+    | "/forgot-password"
+    | "/dashboard_/settings"
+    | "/dashboard/accounts"
+    | "/dashboard/analytics"
+    | "/dashboard/home"
+    | "/dashboard/records"
+    | "/dashboard/"
+    | "/dashboard_/settings/account"
+    | "/dashboard_/settings/categories"
+    | "/dashboard_/settings/feedback"
+    | "/dashboard_/settings/merchants"
+    | "/dashboard_/settings/news"
+    | "/dashboard_/settings/preferences"
+    | "/dashboard_/settings/tags"
+    | "/dashboard_/settings/webhook"
+    | "/dashboard_/settings/";
+  fileRoutesById: FileRoutesById;
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
-  ComponentsRoute: typeof ComponentsRoute
-  LoginRoute: typeof LoginRoute
-  SignupRoute: typeof SignupRoute
-  ForgotPasswordLazyRoute: typeof ForgotPasswordLazyRoute
-  DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren
+  IndexRoute: typeof IndexRoute;
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren;
+  ComponentsRoute: typeof ComponentsRoute;
+  LoginRoute: typeof LoginRoute;
+  SignupRoute: typeof SignupRoute;
+  ForgotPasswordLazyRoute: typeof ForgotPasswordLazyRoute;
+  DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren;
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -538,11 +526,9 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   ForgotPasswordLazyRoute: ForgotPasswordLazyRoute,
   DashboardSettingsRouteRoute: DashboardSettingsRouteRouteWithChildren,
-}
+};
 
-export const routeTree = rootRoute
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
 
 /* ROUTE_MANIFEST_START
 {

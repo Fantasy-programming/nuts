@@ -1,30 +1,13 @@
-import { useState } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/core/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/core/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/core/components/ui/dialog';
-import { Button } from '@/core/components/ui/button';
-import { Input } from '@/core/components/ui/input';
-import { Label } from '@/core/components/ui/label';
-import IconPicker, { renderIcon } from '@/core/components/icon-picker';
-import { MoreHorizontal, Pencil, Trash } from 'lucide-react';
-import { useSettingsStore } from '@/features/preferences/stores/settings.store';
+import { useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/core/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/core/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/core/components/ui/dialog";
+import { Button } from "@/core/components/ui/button";
+import { Input } from "@/core/components/ui/input";
+import { Label } from "@/core/components/ui/label";
+import IconPicker, { renderIcon } from "@/core/components/icon-picker";
+import { MoreHorizontal, Pencil, Trash } from "lucide-react";
+import { useSettingsStore } from "@/features/preferences/stores/settings.store";
 
 export function TagList() {
   const { tags, updateTag, deleteTag } = useSettingsStore();
@@ -43,7 +26,6 @@ export function TagList() {
       setEditingTag(null);
     }
   };
-
 
   return (
     <>
@@ -71,17 +53,12 @@ export function TagList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => setEditingTag(tag)}
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
+                    <DropdownMenuItem onClick={() => setEditingTag(tag)}>
+                      <Pencil className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => deleteTag(tag.id)}
-                    >
-                      <Trash className="h-4 w-4 mr-2" />
+                    <DropdownMenuItem className="text-red-600" onClick={() => deleteTag(tag.id)}>
+                      <Trash className="mr-2 h-4 w-4" />
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -102,20 +79,13 @@ export function TagList() {
               <Label htmlFor="edit-name">Name</Label>
               <Input
                 id="edit-name"
-                value={editingTag?.name ?? ''}
-                onChange={(e) =>
-                  setEditingTag(editingTag ? { ...editingTag, name: e.target.value } : null)
-                }
+                value={editingTag?.name ?? ""}
+                onChange={(e) => setEditingTag(editingTag ? { ...editingTag, name: e.target.value } : null)}
               />
             </div>
             <div className="space-y-2">
               <Label>Icon</Label>
-              <IconPicker
-                value={editingTag?.icon ?? ''}
-                onChange={(icon) =>
-                  setEditingTag(editingTag ? { ...editingTag, icon } : null)
-                }
-              />
+              <IconPicker value={editingTag?.icon ?? ""} onChange={(icon) => setEditingTag(editingTag ? { ...editingTag, icon } : null)} />
             </div>
             <Button onClick={handleUpdate} className="w-full">
               Update Tag

@@ -11,7 +11,6 @@ export const Route = createFileRoute("/dashboard/accounts")({
   component: RouteComponent,
 });
 
-
 function RouteComponent() {
   const queryClient = useQueryClient();
 
@@ -27,7 +26,7 @@ function RouteComponent() {
   };
 
   return (
-    <div className=" h-full flex flex-col space-y-8">
+    <div className="flex h-full flex-col space-y-8">
       <Suspense fallback={<Spinner />}>
         <AccountList onSubmit={onSubmit} />
       </Suspense>

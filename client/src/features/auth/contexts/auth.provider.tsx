@@ -12,15 +12,11 @@ interface SessionExpiredModalProps {
 }
 
 const SessionExpiredModal: React.FC<SessionExpiredModalProps> = ({ onLogin }) => (
-  <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white p-6 rounded shadow-lg">
-      <h2 className="text-xl font-semibold mb-4">Session Expired</h2>
+  <div className="bg-opacity-50 fixed top-0 left-0 z-50 flex h-full w-full items-center justify-center bg-black">
+    <div className="rounded bg-white p-6 shadow-lg">
+      <h2 className="mb-4 text-xl font-semibold">Session Expired</h2>
       <p className="mb-4">Your session has expired. Please log in again.</p>
-      <button
-        type="button"
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-        onClick={onLogin}
-      >
+      <button type="button" className="rounded bg-blue-500 px-4 py-2 text-white" onClick={onLogin}>
         Log In
       </button>
     </div>
@@ -43,7 +39,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       setError(null);
       await authService.login(credentials);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Login failed'));
+      setError(err instanceof Error ? err : new Error("Login failed"));
       throw err;
     } finally {
       setIsLoading(false);
@@ -57,7 +53,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       await authService.logout();
       setUser(defaultState);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Logout failed'));
+      setError(err instanceof Error ? err : new Error("Logout failed"));
       throw err;
     } finally {
       setIsLoading(false);

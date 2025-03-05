@@ -1,27 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  Line,
-  LineChart,
-  PieChart,
-  Pie,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-  Cell,
-} from "recharts";
+import { Line, LineChart, PieChart, Pie, XAxis, YAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, Cell } from "recharts";
 import { useDashboardStore } from "@/features/dashboard/stores/dashboard.store";
 import { DashboardGrid } from "./-components/Dashboard/dashboard-grid";
 import { ChartCard, ChartCardHandle, ChartCardHeader, ChartCardMenu, ChartCardTitle } from "@/core/components/chart-card";
 import { AddChartDialog } from "@/core/components/add-chart/add-chart";
-import {
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartContainer,
-} from "@/core/components/ui/chart";
+import { ChartTooltip, ChartTooltipContent, ChartContainer } from "@/core/components/ui/chart";
 import { Spinner } from "@/core/components/ui/spinner";
 import { Suspense } from "react";
 
@@ -55,10 +38,9 @@ export const Route = createFileRoute("/dashboard/home")({
 });
 
 function RouteComponent() {
-  const charts = useDashboardStore(state => state.charts);
-  const chartOrder = useDashboardStore(state => state.chartOrder);
-  const addChart = useDashboardStore(state => state.addChart);
-
+  const charts = useDashboardStore((state) => state.charts);
+  const chartOrder = useDashboardStore((state) => state.chartOrder);
+  const addChart = useDashboardStore((state) => state.addChart);
 
   const renderChart = (chart: (typeof charts)[0]) => {
     switch (chart.type) {
@@ -89,39 +71,16 @@ function RouteComponent() {
             <XAxis dataKey="name" />
             <YAxis />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Area
-              type="monotone"
-              dataKey="income"
-              stackId="1"
-              stroke="#8884d8"
-              fill="#8884d8"
-            />
-            <Area
-              type="monotone"
-              dataKey="expenses"
-              stackId="1"
-              stroke="#82ca9d"
-              fill="#82ca9d"
-            />
+            <Area type="monotone" dataKey="income" stackId="1" stroke="#8884d8" fill="#8884d8" />
+            <Area type="monotone" dataKey="expenses" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
           </AreaChart>
         );
       case "pie":
         return (
           <PieChart>
-            <Pie
-              data={pieData}
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-              label
-            >
+            <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} fill="#8884d8" dataKey="value" label>
               {pieData.map((_entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
-                />
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
             <ChartTooltip content={<ChartTooltipContent />} />
@@ -132,9 +91,7 @@ function RouteComponent() {
     }
   };
 
-  const orderedCharts = chartOrder.map(
-    (id) => charts.find((c) => c.id === id)!,
-  );
+  const orderedCharts = chartOrder.map((id) => charts.find((c) => c.id === id)!);
 
   return (
     <>
@@ -153,9 +110,7 @@ function RouteComponent() {
                 <ChartCardHandle />
               </ChartCardHeader>
               <ChartContainer config={{}}>
-                <Suspense fallback={<Spinner />}>
-                  {renderChart(chart)}
-                </Suspense>
+                <Suspense fallback={<Spinner />}>{renderChart(chart)}</Suspense>
               </ChartContainer>
             </ChartCardMenu>
           </ChartCard>

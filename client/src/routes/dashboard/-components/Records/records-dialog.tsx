@@ -2,9 +2,9 @@ import { useForm } from "react-hook-form";
 import { useState, useCallback } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DateTimePicker } from '@/core/components/ui/datetime';
+import { DateTimePicker } from "@/core/components/ui/datetime";
 
-import { Label } from '@/core/components/ui/label';
+import { Label } from "@/core/components/ui/label";
 import { Button } from "@/core/components/ui/button";
 import { Root } from "@radix-ui/react-visually-hidden";
 import {
@@ -20,53 +20,29 @@ import {
   InnerDialogTitle,
   InnerDialogTrigger,
 } from "@/core/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/core/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/core/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/core/components/ui/tabs";
 import { Input } from "@/core/components/ui/input";
 import { accountService } from "@/features/accounts/services/account";
 import { RecordsSubmit, RecordCreateSchema, recordCreateSchema } from "@/features/transactions/services/transaction.types";
 import { categoryService } from "@/features/categories/services/category";
 import { Textarea } from "@/core/components/ui/textarea";
-import {
-  ArrowUpRight,
-  ArrowDownLeft,
-  ArrowLeftRight,
-  Sparkles,
-  Pencil,
-} from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Sparkles, Pencil } from "lucide-react";
 
 //TODO: Fix and make everything works
-
 
 interface DialogProps extends React.PropsWithChildren {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: RecordsSubmit
-};
-
+  onSubmit: RecordsSubmit;
+}
 
 export function RecordsDialog({ onSubmit, children, open, onOpenChange }: DialogProps) {
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent >
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Transaction</DialogTitle>
           <Root>
@@ -79,24 +55,19 @@ export function RecordsDialog({ onSubmit, children, open, onOpenChange }: Dialog
   );
 }
 
-
 interface ParsedTransaction {
-  type: 'expense' | 'income';
+  type: "expense" | "income";
   description: string;
   amount: number;
   category: string;
   date: string;
 }
 
-
-export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit, modalChange: (open: boolean) => void }) {
-  const [transactionType, setTransactionType] = useState<
-    "expense" | "income" | "transfer"
-  >("expense");
-  const [naturalInput, setNaturalInput] = useState('');
+export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit; modalChange: (open: boolean) => void }) {
+  const [transactionType, setTransactionType] = useState<"expense" | "income" | "transfer">("expense");
+  const [naturalInput, setNaturalInput] = useState("");
   const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([]);
   const [editingTransaction, setEditingTransaction] = useState<ParsedTransaction | null>(null);
-
 
   const form = useForm<RecordCreateSchema>({
     resolver: zodResolver(recordCreateSchema),
@@ -112,7 +83,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
         location: "",
         note: "",
         payment_status: "completed",
-      }
+      },
     },
   });
 
@@ -121,76 +92,80 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
       {
         queryKey: ["accounts"],
         queryFn: accountService.getAccounts,
-      }, {
-
+      },
+      {
         queryKey: ["categories"],
         queryFn: categoryService.getCategories,
-      }
-
-    ]
+      },
+    ],
   });
-
 
   const transfertCatID = categories?.find((cat) => cat.name === "Transfers")?.id;
 
-  const handleSubmit = useCallback((values: RecordCreateSchema) => {
-    onSubmit(values);
-    modalChange(false);
-    form.reset();
-  }, [onSubmit, modalChange, form]);
+  const handleSubmit = useCallback(
+    (values: RecordCreateSchema) => {
+      onSubmit(values);
+      modalChange(false);
+      form.reset();
+    },
+    [onSubmit, modalChange, form]
+  );
 
-  const handleTabChange = useCallback((value: string) => {
-    setTransactionType(value as "expense" | "income" | "transfer");
-    form.reset(
-      value === "transfer"
-        ? {
-          type: "transfer",
-          amount: 0,
-          transaction_datetime: new Date(),
-          description: "",
-          category_id: transfertCatID,
-          account_id: "",
-          destination_account_id: "", // Required for transfers
-          details: {
-            payment_medium: "",
-            location: "",
-            note: "",
-            payment_status: "completed",
-          },
-        }
-        : {
-          type: value as "expense" | "income",
-          amount: 0,
-          transaction_datetime: new Date(),
-          description: "",
-          category_id: "",
-          account_id: "",
-          details: {
-            payment_medium: "",
-            location: "",
-            note: "",
-            payment_status: "completed",
-          },
-        }
-    );
-  }, [form, transfertCatID]);
+  const handleTabChange = useCallback(
+    (value: string) => {
+      setTransactionType(value as "expense" | "income" | "transfer");
+      form.reset(
+        value === "transfer"
+          ? {
+              type: "transfer",
+              amount: 0,
+              transaction_datetime: new Date(),
+              description: "",
+              category_id: transfertCatID,
+              account_id: "",
+              destination_account_id: "", // Required for transfers
+              details: {
+                payment_medium: "",
+                location: "",
+                note: "",
+                payment_status: "completed",
+              },
+            }
+          : {
+              type: value as "expense" | "income",
+              amount: 0,
+              transaction_datetime: new Date(),
+              description: "",
+              category_id: "",
+              account_id: "",
+              details: {
+                payment_medium: "",
+                location: "",
+                note: "",
+                payment_status: "completed",
+              },
+            }
+      );
+    },
+    [form, transfertCatID]
+  );
 
   const handleNaturalInput = useCallback(() => {
     // This is where you'd integrate with a natural language processing service
     // For now, we'll just demonstrate the UI with some mock parsed transactions
     const mockParsed: ParsedTransaction[] = [
       {
-        type: 'expense',
-        description: 'Grocery shopping at Walmart',
-        amount: 120.50,
-        category: 'Food',
+        type: "expense",
+        description: "Grocery shopping at Walmart",
+        amount: 120.5,
+        category: "Food",
         date: new Date().toISOString(),
       },
       {
-        type: 'expense',
-        description: 'Gas station fill up',
-        amount: 45.00,
-        category: 'Transportation',
+        type: "expense",
+        description: "Gas station fill up",
+        amount: 45.0,
+        category: "Transportation",
         date: new Date().toISOString(),
       },
     ];
@@ -198,21 +173,12 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
   }, []);
 
   const handleUpdateParsedTransaction = (updatedTransaction: ParsedTransaction) => {
-    setParsedTransactions(current =>
-      current.map(t =>
-        t.description === editingTransaction?.description ? updatedTransaction : t
-      )
-    );
+    setParsedTransactions((current) => current.map((t) => (t.description === editingTransaction?.description ? updatedTransaction : t)));
     setEditingTransaction(null);
   };
 
   return (
-    <Tabs
-      value={transactionType}
-      onValueChange={(v) =>
-        handleTabChange(v)
-      }
-    >
+    <Tabs value={transactionType} onValueChange={(v) => handleTabChange(v)}>
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="expense" className="flex items-center gap-2">
           <ArrowDownLeft className="h-4 w-4" />
@@ -267,14 +233,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                 <FormItem>
                   <FormLabel>Amount</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      placeholder="0.00"
-                      {...field}
-                      onChange={e => field.onChange(parseFloat(e.target.value))}
-                    />
+                    <Input type="number" step="0.01" min={0} placeholder="0.00" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -334,7 +293,9 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
               )}
             />
 
-            <Button type="submit" className="w-full">Create Expense</Button>
+            <Button type="submit" className="w-full">
+              Create Expense
+            </Button>
           </form>
         </Form>
       </TabsContent>
@@ -375,14 +336,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                 <FormItem>
                   <FormLabel>Amount</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      placeholder="0.00"
-                      {...field}
-                      onChange={e => field.onChange(parseFloat(e.target.value))}
-                    />
+                    <Input type="number" step="0.01" min={0} placeholder="0.00" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -442,7 +396,9 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
               )}
             />
 
-            <Button type="submit" className="w-full">Create Income</Button>
+            <Button type="submit" className="w-full">
+              Create Income
+            </Button>
           </form>
         </Form>
       </TabsContent>
@@ -489,11 +445,13 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {accounts?.filter(account => account.id !== form.watch('account_id')).map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                        </SelectItem>
-                      ))}
+                      {accounts
+                        ?.filter((account) => account.id !== form.watch("account_id"))
+                        .map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -508,14 +466,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                 <FormItem>
                   <FormLabel>Amount</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      placeholder="0.00"
-                      {...field}
-                      onChange={e => field.onChange(parseFloat(e.target.value))}
-                    />
+                    <Input type="number" step="0.01" min={0} placeholder="0.00" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -550,7 +501,9 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
               )}
             />
 
-            <Button type="submit" className="w-full">Create Transfer</Button>
+            <Button type="submit" className="w-full">
+              Create Transfer
+            </Button>
           </form>
         </Form>
       </TabsContent>
@@ -566,17 +519,11 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
               value={naturalInput}
               onChange={(e) => setNaturalInput(e.target.value)}
             />
-            <p className="text-sm text-muted-foreground">
-              Enter multiple transactions in plain English. We'll parse them for you.
-            </p>
+            <p className="text-muted-foreground text-sm">Enter multiple transactions in plain English. We'll parse them for you.</p>
           </div>
 
-          <Button
-            onClick={handleNaturalInput}
-            className="w-full"
-            disabled={!naturalInput.trim()}
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
+          <Button onClick={handleNaturalInput} className="w-full" disabled={!naturalInput.trim()}>
+            <Sparkles className="mr-2 h-4 w-4" />
             Parse Transactions
           </Button>
 
@@ -586,26 +533,17 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
               <div className="space-y-2">
                 <InnerDialog>
                   {parsedTransactions.map((transaction, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
+                    <div key={index} className="flex items-center justify-between rounded-lg border p-3">
                       <div>
                         <p className="font-medium">{transaction.description}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                           {transaction.category} • {new Date(transaction.date).toLocaleDateString()}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-red-500">
-                          -${transaction.amount.toFixed(2)}
-                        </p>
+                        <p className="font-medium text-red-500">-${transaction.amount.toFixed(2)}</p>
                         <InnerDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setEditingTransaction(transaction)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => setEditingTransaction(transaction)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </InnerDialogTrigger>
@@ -671,7 +609,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                             <Label>Date</Label>
                             <Input
                               type="date"
-                              value={new Date(editingTransaction.date).toISOString().split('T')[0]}
+                              value={new Date(editingTransaction.date).toISOString().split("T")[0]}
                               onChange={(e) =>
                                 setEditingTransaction({
                                   ...editingTransaction,
@@ -680,10 +618,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
                               }
                             />
                           </div>
-                          <Button
-                            className="w-full"
-                            onClick={() => handleUpdateParsedTransaction(editingTransaction)}
-                          >
+                          <Button className="w-full" onClick={() => handleUpdateParsedTransaction(editingTransaction)}>
                             Update Transaction
                           </Button>
                         </div>

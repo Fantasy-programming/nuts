@@ -6,9 +6,7 @@ const getAccounts = async (): Promise<Account[]> => {
   return data;
 };
 
-const createAccount = async (
-  account: AccountCreate,
-): Promise<Account> => {
+const createAccount = async (account: AccountCreate): Promise<Account> => {
   const data = await axios.post<Account>("/account/", account);
   return data.data;
 };

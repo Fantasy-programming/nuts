@@ -57,20 +57,13 @@ interface SettingsState {
   updateCategory: (id: string, category: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
   addSubcategory: (categoryId: string, name: string) => void;
-  updateSubcategory: (
-    categoryId: string,
-    subcategoryId: string,
-    name: string,
-  ) => void;
+  updateSubcategory: (categoryId: string, subcategoryId: string, name: string) => void;
   deleteSubcategory: (categoryId: string, subcategoryId: string) => void;
   addMerchant: (merchant: Omit<Merchant, "id">) => void;
   updateMerchant: (id: string, merchant: Partial<Merchant>) => void;
   deleteMerchant: (id: string) => void;
   addWebhook: (webhook: { url: string; events: string[] }) => void;
-  updateWebhook: (
-    id: string,
-    webhook: Partial<{ url: string; events: string[]; active: boolean }>,
-  ) => void;
+  updateWebhook: (id: string, webhook: Partial<{ url: string; events: string[]; active: boolean }>) => void;
   deleteWebhook: (id: string) => void;
 }
 
@@ -119,16 +112,11 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
     })),
   addCategory: (category) =>
     set((state) => ({
-      categories: [
-        ...state.categories,
-        { ...category, id: crypto.randomUUID(), subcategories: [] },
-      ],
+      categories: [...state.categories, { ...category, id: crypto.randomUUID(), subcategories: [] }],
     })),
   updateCategory: (id, category) =>
     set((state) => ({
-      categories: state.categories.map((c) =>
-        c.id === id ? { ...c, ...category } : c,
-      ),
+      categories: state.categories.map((c) => (c.id === id ? { ...c, ...category } : c)),
     })),
   deleteCategory: (id) =>
     set((state) => ({
@@ -140,12 +128,9 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
         c.id === categoryId
           ? {
               ...c,
-              subcategories: [
-                ...c.subcategories,
-                { id: crypto.randomUUID(), name },
-              ],
+              subcategories: [...c.subcategories, { id: crypto.randomUUID(), name }],
             }
-          : c,
+          : c
       ),
     })),
   updateSubcategory: (categoryId, subcategoryId, name) =>
@@ -154,11 +139,9 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
         c.id === categoryId
           ? {
               ...c,
-              subcategories: c.subcategories.map((s) =>
-                s.id === subcategoryId ? { ...s, name } : s,
-              ),
+              subcategories: c.subcategories.map((s) => (s.id === subcategoryId ? { ...s, name } : s)),
             }
-          : c,
+          : c
       ),
     })),
   deleteSubcategory: (categoryId, subcategoryId) =>
@@ -167,11 +150,9 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
         c.id === categoryId
           ? {
               ...c,
-              subcategories: c.subcategories.filter(
-                (s) => s.id !== subcategoryId,
-              ),
+              subcategories: c.subcategories.filter((s) => s.id !== subcategoryId),
             }
-          : c,
+          : c
       ),
     })),
   addMerchant: (merchant) =>
@@ -180,9 +161,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
     })),
   updateMerchant: (id, merchant) =>
     set((state) => ({
-      merchants: state.merchants.map((m) =>
-        m.id === id ? { ...m, ...merchant } : m,
-      ),
+      merchants: state.merchants.map((m) => (m.id === id ? { ...m, ...merchant } : m)),
     })),
   deleteMerchant: (id) =>
     set((state) => ({
@@ -190,16 +169,11 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
     })),
   addWebhook: (webhook) =>
     set((state) => ({
-      webhooks: [
-        ...state.webhooks,
-        { ...webhook, id: crypto.randomUUID(), active: true },
-      ],
+      webhooks: [...state.webhooks, { ...webhook, id: crypto.randomUUID(), active: true }],
     })),
   updateWebhook: (id, webhook) =>
     set((state) => ({
-      webhooks: state.webhooks.map((w) =>
-        w.id === id ? { ...w, ...webhook } : w,
-      ),
+      webhooks: state.webhooks.map((w) => (w.id === id ? { ...w, ...webhook } : w)),
     })),
   deleteWebhook: (id) =>
     set((state) => ({

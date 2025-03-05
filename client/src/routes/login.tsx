@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authService } from "@/features/auth/services/auth";
-import { motion } from "framer-motion"
+import { motion } from "framer-motion";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { createFileRoute, Link, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 
@@ -13,7 +13,6 @@ import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { Separator } from "@/core/components/ui/separator";
 import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth.types";
-
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
@@ -65,13 +64,10 @@ function RouteComponent() {
     }
   }
 
-
   const isLoggingIn = isLoading || isSubmitting;
 
-
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center p-4 overflow-hidden">
-
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4">
       <div
         className="absolute inset-0 bg-[linear-gradient(to_bottom_right,#1a2721,#1d332d)]"
         style={{
@@ -84,32 +80,29 @@ function RouteComponent() {
         }}
       />
 
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-sm space-y-8 relative z-10"
+        className="relative z-10 w-full max-w-sm space-y-8"
       >
-
-        <motion.div
-          initial={{ scale: 0.95 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex justify-center"
-        >
+        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} className="flex justify-center">
           <img src="/placeholder.svg?height=32&width=120" alt="Logo" className="h-8 drop-shadow-lg" />
         </motion.div>
 
-        <Card className="w-full backdrop-blur-sm bg-white/90 shadow-2xl">
+        <Card className="w-full bg-white/90 shadow-2xl backdrop-blur-sm">
           <CardHeader className="space-y-1">
             <CardTitle className="text-center">Log in to</CardTitle>
-            <p className="text-center font-semibold text-xl">nuts finance</p>
+            <p className="text-center text-xl font-semibold">nuts finance</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                <Button variant="outline" className="relative w-full bg-white hover:bg-white/95 transition-all duration-300 shadow-[0_1px_2px_rgba(0,0,0,0.15)] hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] after:absolute after:inset-0 after:rounded-md after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)]" disabled={isLoading}>
+                <Button
+                  variant="outline"
+                  className="relative w-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-all duration-300 after:absolute after:inset-0 after:rounded-md after:opacity-0 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)] hover:bg-white/95 hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] hover:after:opacity-100"
+                  disabled={isLoading}
+                >
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -133,87 +126,58 @@ function RouteComponent() {
               </motion.div>
               <div className="flex items-center gap-2">
                 <Separator className="flex-1" />
-                <span className="text-sm text-muted-foreground">or</span>
+                <span className="text-muted-foreground text-sm">or</span>
                 <Separator className="flex-1" />
               </div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-
-                className="space-y-2">
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   disabled={isLoggingIn}
-                  className="bg-white/50 backdrop-blur-sm focus:bg-white/80 transition-colors duration-300"
+                  className="bg-white/50 backdrop-blur-sm transition-colors duration-300 focus:bg-white/80"
                   {...form.register("email")}
                 />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.email.message}
-                  </p>
-                )}
+                {form.formState.errors.email && <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>}
               </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-                className="space-y-2">
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }} className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   disabled={isLoggingIn}
-                  className="bg-white/50 backdrop-blur-sm focus:bg-white/80 transition-colors duration-300"
+                  className="bg-white/50 backdrop-blur-sm transition-colors duration-300 focus:bg-white/80"
                   {...form.register("password")}
                 />
-                {form.formState.errors.password && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.password.message}
-                  </p>
-                )}
+                {form.formState.errors.password && <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>}
               </motion.div>
               <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 shadow-lg hover:shadow-emerald-600/25 transition-all duration-300 hover:-translate-y-0.5"
+                  className="w-full bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:from-emerald-500 hover:to-emerald-600 hover:shadow-emerald-600/25"
                   disabled={isLoggingIn}
                 >
                   {isLoggingIn ? "Loggin in..." : "Log in"}
                 </Button>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="text-center text-sm"
-              >
-                <Link to="/forgot-password" className="text-emerald-700 hover:text-emerald-600 transition-colors">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="text-center text-sm">
+                <Link to="/forgot-password" className="text-emerald-700 transition-colors hover:text-emerald-600">
                   Forgot password?
                 </Link>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="text-center text-sm text-muted-foreground"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="text-muted-foreground text-center text-sm">
                 {"Don't have an account? "}
-                <Link to="/signup" className="text-emerald-700 hover:text-emerald-600 transition-colors">
+                <Link to="/signup" className="text-emerald-700 transition-colors hover:text-emerald-600">
                   Sign up
                 </Link>
               </motion.div>
             </form>
           </CardContent>
         </Card>
-        <footer className="mt-8 text-center text-sm text-gray-100">
-          © {new Date().getFullYear()} Finance App. All rights reserved.
-        </footer>
+        <footer className="mt-8 text-center text-sm text-gray-100">© {new Date().getFullYear()} Finance App. All rights reserved.</footer>
       </motion.div>
-    </div >
+    </div>
   );
 }

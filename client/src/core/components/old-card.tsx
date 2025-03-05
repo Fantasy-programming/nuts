@@ -1,8 +1,8 @@
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { Card, CardContent, CardHeader, CardTitle } from '@/core/components/ui/card';
-import { Button } from '@/core/components/ui/button';
-import { Input } from '@/core/components/ui/input';
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
+import { Button } from "@/core/components/ui/button";
+import { Input } from "@/core/components/ui/input";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -11,19 +11,12 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuTrigger,
-} from '@/core/components/ui/context-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from '@/core/components/ui/dialog';
-import { GripVertical, Lock, Maximize2, Minimize2, Pencil, Trash, Unlock } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useState } from 'react';
-import { useDashboardStore } from '@/features/dashboard/stores/dashboard.store';
+} from "@/core/components/ui/context-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/core/components/ui/dialog";
+import { GripVertical, Lock, Maximize2, Minimize2, Pencil, Trash, Unlock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { useDashboardStore } from "@/features/dashboard/stores/dashboard.store";
 
 interface ChartCardProps {
   id: string;
@@ -38,14 +31,7 @@ export function ChartCard({ id, title, size, isLocked, children }: ChartCardProp
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id, disabled: isLocked });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: isLocked });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -61,33 +47,18 @@ export function ChartCard({ id, title, size, isLocked, children }: ChartCardProp
     <Card
       ref={setNodeRef}
       style={style}
-      className={cn(
-        'relative w-full',
-        isDragging && 'opacity-50',
-        size === 2 && 'md:col-span-2',
-        size === 3 && 'md:col-span-3'
-      )}
+      className={cn("relative w-full", isDragging && "opacity-50", size === 2 && "md:col-span-2", size === 3 && "md:col-span-3")}
     >
       <ContextMenu>
         <ContextMenuTrigger>
           <CardHeader className="flex flex-row items-center gap-2">
             {!isLocked && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="cursor-grab active:cursor-grabbing"
-                {...attributes}
-                {...listeners}
-              >
+              <Button variant="ghost" size="icon" className="cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
                 <GripVertical className="h-4 w-4" />
               </Button>
             )}
             {isLocked && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="cursor-not-allowed"
-              >
+              <Button variant="ghost" size="icon" className="cursor-not-allowed">
                 <Lock className="h-4 w-4" />
               </Button>
             )}
@@ -108,11 +79,7 @@ export function ChartCard({ id, title, size, isLocked, children }: ChartCardProp
                 <DialogTitle>Rename Chart</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <Input
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Enter new title"
-                />
+                <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Enter new title" />
                 <DialogClose asChild>
                   <Button onClick={handleRename}>Save</Button>
                 </DialogClose>
@@ -152,10 +119,7 @@ export function ChartCard({ id, title, size, isLocked, children }: ChartCardProp
               </>
             )}
           </ContextMenuItem>
-          <ContextMenuItem
-            className="text-red-600"
-            onClick={() => removeChart(id)}
-          >
+          <ContextMenuItem className="text-red-600" onClick={() => removeChart(id)}>
             <Trash className="mr-2 h-4 w-4" />
             Delete
           </ContextMenuItem>

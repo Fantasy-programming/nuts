@@ -1,8 +1,8 @@
 import { createFileRoute, Outlet, type ParseRoute, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 import type { routeTree } from "@/routeTree.gen";
 import { useState } from "react";
-import { useHotkeys } from 'react-hotkeys-hook'
+import { useHotkeys } from "react-hotkeys-hook";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   ChevronDown,
@@ -22,7 +22,6 @@ import {
   type LucideIcon,
   Bell,
 } from "lucide-react";
-
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
 import {
@@ -131,50 +130,70 @@ function DashboardWrapper() {
   };
 
   const onLogout = async () => {
-    await logout()
-    navigate({ to: "/login" })
-  }
+    await logout();
+    navigate({ to: "/login" });
+  };
 
-  useHotkeys('g+d', () => {
-    navigate({ to: "/dashboard/home" })
-  }, [])
+  useHotkeys(
+    "g+d",
+    () => {
+      navigate({ to: "/dashboard/home" });
+    },
+    []
+  );
 
-  useHotkeys('g+c', () => {
-    navigate({ to: "/dashboard/accounts" })
-  }, [])
+  useHotkeys(
+    "g+c",
+    () => {
+      navigate({ to: "/dashboard/accounts" });
+    },
+    []
+  );
 
-  useHotkeys('g+t', () => {
-    navigate({ to: "/dashboard/records" })
-  }, [])
+  useHotkeys(
+    "g+t",
+    () => {
+      navigate({ to: "/dashboard/records" });
+    },
+    []
+  );
 
-  useHotkeys('g+a', () => {
-    navigate({ to: "/dashboard/analytics" })
-  }, [])
+  useHotkeys(
+    "g+a",
+    () => {
+      navigate({ to: "/dashboard/analytics" });
+    },
+    []
+  );
 
+  useHotkeys(
+    "g+s",
+    () => {
+      navigate({ to: "/dashboard/settings/account" });
+    },
+    []
+  );
 
-  useHotkeys('g+s', () => {
-    navigate({ to: "/dashboard/settings/account" })
-  }, [])
-
-  useHotkeys('c', () => {
-    setIsOpen(!isOpen)
-  }, [isOpen])
-
+  useHotkeys(
+    "c",
+    () => {
+      setIsOpen(!isOpen);
+    },
+    [isOpen]
+  );
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0" >
+      <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" tooltip="Nuts Finance">
                 <div className="flex items-center gap-2">
-                  <div className="flex aspect-square items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
+                  <div className="bg-sidebar text-sidebar-primary-foreground flex aspect-square items-center justify-center rounded-lg">
                     <Nut className="size-4" />
                   </div>
-                  <span className="font-semibold group-data-[collapsible=icon]:hidden">
-                    Nuts Finance
-                  </span>
+                  <span className="font-semibold group-data-[collapsible=icon]:hidden">Nuts Finance</span>
                 </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -186,17 +205,15 @@ function DashboardWrapper() {
             <SidebarMenu>
               {navMain.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    className="px-6"
-                  >
-                    <Link to={item.url} className={cn(
-                      "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
-                      router.location.pathname === item.url ? "bg-sidebar-accent shadow-sm" : ""
-                    )}
+                  <SidebarMenuButton asChild tooltip={item.title} className="px-6">
+                    <Link
+                      to={item.url}
+                      className={cn(
+                        "flex w-full items-center justify-start gap-3 text-sm text-gray-950/60 transition-all hover:shadow-sm",
+                        router.location.pathname === item.url ? "bg-sidebar-accent shadow-sm" : ""
+                      )}
                     >
-                      {item.icon && <item.icon className="size-4 font-medium stroke-2" />}
+                      {item.icon && <item.icon className="size-4 stroke-2 font-medium" />}
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -225,31 +242,19 @@ function DashboardWrapper() {
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton
-                    size="lg"
-                    className="w-full justify-start group-data-[collapsible=icon]:justify-center"
-                  >
+                  <SidebarMenuButton size="lg" className="w-full justify-start group-data-[collapsible=icon]:justify-center">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src="/placeholder.svg" alt="@username" />
                       <AvatarFallback>KD</AvatarFallback>
                     </Avatar>
                     <div className="ml-3 flex flex-1 flex-col group-data-[collapsible=icon]:hidden">
-                      <span className="text-sm font-semibold">
-                        Nameless User
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        rickrichard80@gmail.com
-                      </span>
+                      <span className="text-sm font-semibold">Nameless User</span>
+                      <span className="text-muted-foreground text-xs">rickrichard80@gmail.com</span>
                     </div>
                     <ChevronDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-56"
-                  align="start"
-                  alignOffset={-8}
-                  forceMount
-                >
+                <DropdownMenuContent className="w-56" align="start" alignOffset={-8} forceMount>
                   <DropdownMenuItem>
                     <Users className="mr-2 h-4 w-4" />
                     Workspace settings
@@ -267,10 +272,7 @@ function DashboardWrapper() {
                       Theme
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
-                      <DropdownMenuRadioGroup
-                        value={theme}
-                        onValueChange={setTheme}
-                      >
+                      <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
                         <DropdownMenuRadioItem value="light">
                           <Sun className="mr-2 h-4 w-4" />
                           Light
@@ -295,23 +297,24 @@ function DashboardWrapper() {
         <SidebarRail />
       </Sidebar>
       <SidebarInset className="overflow-hidden">
-        <div className="h-full bg-card m-2 rounded-xl smooth-corners-sm shadow-sm border-background border-2">
+        <div className="bg-card smooth-corners-sm border-background m-2 h-full rounded-xl border-2 shadow-sm">
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4 justify-between w-full">
+            <div className="flex w-full items-center justify-between gap-2 px-4">
               <div className="hidden sm:block" />
               <MobileBurger />
               <div className="flex items-center gap-6">
                 <Bell className="size-5" />
                 <RecordsDialog onSubmit={onSubmit} open={isOpen} onOpenChange={setIsOpen}>
-                  <Button className="sm:flex items-center  gap-2  hidden">
+                  <Button className="hidden items-center gap-2 sm:flex">
                     <Plus className="size-4" />
-                    <span >Add transactions</span>
-                  </Button></RecordsDialog>
+                    <span>Add transactions</span>
+                  </Button>
+                </RecordsDialog>
               </div>
             </div>
           </header>
           <main className="flex flex-1 overflow-hidden">
-            <div className="px-6 py-2 space-y-8 h-full w-full overflow-y-auto">
+            <div className="h-full w-full space-y-8 overflow-y-auto px-6 py-2">
               <Outlet />
             </div>
           </main>

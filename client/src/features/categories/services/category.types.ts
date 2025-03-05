@@ -15,4 +15,3 @@ export const categoryCreateSchema = categorySchema.omit({
 
 export type Category = z.infer<typeof categorySchema>;
 export type CategoryCreate = z.infer<typeof categoryCreateSchema>;
-

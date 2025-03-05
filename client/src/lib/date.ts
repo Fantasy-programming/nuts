@@ -1,4 +1,4 @@
-import { format } from "date-fns"
+import { format } from "date-fns";
 
 /**
  * Formats a date object to "dd MMMM, yyyy" format.

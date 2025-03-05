@@ -51,14 +51,14 @@ function RouteComponent() {
       toast.error("Error", {
         description: "There was a problem creating your account.",
       });
-      console.log(error)
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center p-4 overflow-hidden">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4">
       <div
         className="absolute inset-0 bg-[linear-gradient(to_bottom_right,#1a2721,#1d332d)]"
         style={{
@@ -75,18 +75,12 @@ function RouteComponent() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-sm space-y-8 relative z-10"
+        className="relative z-10 w-full max-w-sm space-y-8"
       >
-
-        <motion.div
-          initial={{ scale: 0.95 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex justify-center"
-        >
+        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} className="flex justify-center">
           <img src="/placeholder.svg?height=32&width=120" alt="Logo" className="h-8 drop-shadow-lg" />
         </motion.div>
-        <Card className="w-full backdrop-blur-sm bg-white/90 shadow-2xl">
+        <Card className="w-full bg-white/90 shadow-2xl backdrop-blur-sm">
           <CardHeader className="space-y-1">
             <CardTitle className="text-center text-2xl">Create an account</CardTitle>
             <CardDescription className="text-center">Enter your details to create your account</CardDescription>
@@ -96,7 +90,7 @@ function RouteComponent() {
               <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                 <Button
                   variant="outline"
-                  className="relative w-full bg-white hover:bg-white/95 transition-all duration-300 shadow-[0_1px_2px_rgba(0,0,0,0.15)] hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] after:absolute after:inset-0 after:rounded-md after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)]"
+                  className="relative w-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-all duration-300 after:absolute after:inset-0 after:rounded-md after:opacity-0 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)] hover:bg-white/95 hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] hover:after:opacity-100"
                   disabled={isLoading}
                 >
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -123,87 +117,58 @@ function RouteComponent() {
 
               <div className="flex items-center gap-2">
                 <Separator className="flex-1" />
-                <span className="text-sm text-muted-foreground">or</span>
+                <span className="text-muted-foreground text-sm">or</span>
                 <Separator className="flex-1" />
               </div>
 
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="space-y-2"
-              >
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email"
+                <Input
+                  id="email"
+                  type="email"
                   disabled={isLoading}
                   placeholder="name@example.com"
-                  className="bg-white/50 backdrop-blur-sm focus:bg-white/80 transition-colors duration-300"
-                  {...form.register("email")} />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.email.message}
-                  </p>
-                )}
+                  className="bg-white/50 backdrop-blur-sm transition-colors duration-300 focus:bg-white/80"
+                  {...form.register("email")}
+                />
+                {form.formState.errors.email && <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>}
               </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-                className="space-y-2"
-              >
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }} className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   placeholder="Create a password"
                   disabled={isLoading}
-                  className="bg-white/50 backdrop-blur-sm focus:bg-white/80 transition-colors duration-300"
+                  className="bg-white/50 backdrop-blur-sm transition-colors duration-300 focus:bg-white/80"
                   {...form.register("password")}
                 />
-                {form.formState.errors.password && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.password.message}
-                  </p>
-                )}
+                {form.formState.errors.password && <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>}
               </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
-                className="space-y-2"
-              >
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   placeholder="Confirm your password"
                   disabled={isLoading}
-                  className="bg-white/50 backdrop-blur-sm focus:bg-white/80 transition-colors duration-300"
+                  className="bg-white/50 backdrop-blur-sm transition-colors duration-300 focus:bg-white/80"
                   {...form.register("confirmPassword")}
                 />
-                {form.formState.errors.confirmPassword && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.confirmPassword.message}
-                  </p>
-                )}
+                {form.formState.errors.confirmPassword && <p className="text-sm text-red-500">{form.formState.errors.confirmPassword.message}</p>}
               </motion.div>
               <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                 <Button
-                  className="w-full bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 shadow-lg hover:shadow-emerald-600/25 transition-all duration-300 hover:-translate-y-0.5"
+                  className="w-full bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:from-emerald-500 hover:to-emerald-600 hover:shadow-emerald-600/25"
                   type="submit"
                   disabled={isLoading}
                 >
                   {isLoading ? "Creating account..." : "Create account"}
                 </Button>
               </motion.div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="text-center text-sm text-muted-foreground"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="text-muted-foreground text-center text-sm">
                 Already have an account?{" "}
-                <Link to="/login" className="text-emerald-700 hover:text-emerald-600 transition-colors">
+                <Link to="/login" className="text-emerald-700 transition-colors hover:text-emerald-600">
                   Log in
                 </Link>
               </motion.div>
@@ -211,9 +176,7 @@ function RouteComponent() {
           </CardContent>
         </Card>
       </motion.div>
-      <footer className="mt-8 text-center text-sm text-gray-100">
-        © {new Date().getFullYear()} Finance App. All rights reserved.
-      </footer>
+      <footer className="mt-8 text-center text-sm text-gray-100">© {new Date().getFullYear()} Finance App. All rights reserved.</footer>
     </div>
   );
 }

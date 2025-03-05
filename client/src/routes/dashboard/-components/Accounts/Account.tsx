@@ -2,32 +2,11 @@ import { useForm } from "react-hook-form";
 import React, { useState, useCallback } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/core/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Button } from "@/core/components/ui/button";
-import {
-  DialogHeader,
-  DialogTitle,
-} from "@/core/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/core/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/core/components/ui/select";
+import { DialogHeader, DialogTitle } from "@/core/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Input } from "@/core/components/ui/input";
 import { accountService } from "@/features/accounts/services/account";
 import { accountFormSchema, AccountSchema, AccountSubmit } from "./Account.type";
@@ -35,48 +14,42 @@ import { Plus } from "lucide-react";
 import { ResponsiveDialog } from "@/core/components/ui/dialog-sheet";
 import { Account } from "@/features/accounts/services/account.types";
 
-
 export function AccountList({ onSubmit }: { onSubmit: AccountSubmit }) {
-
-  const { data: accounts, error, isFetching } = useSuspenseQuery({
+  const {
+    data: accounts,
+    error,
+    isFetching,
+  } = useSuspenseQuery({
     queryKey: ["accounts"],
     queryFn: accountService.getAccounts,
   });
 
   if (error && !isFetching) {
-    throw error
+    throw error;
   }
 
   return (
-    <div className="overflow-hidden w-full flex-1">
-      <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-5 md:overflow-x-hidden no-scrollbar">
-        {
-          accounts?.map((account) => (
-            <AccountCard key={account.id} account={account} />
-          ))
-        }
+    <div className="w-full flex-1 overflow-hidden">
+      <div className="no-scrollbar flex gap-4 overflow-x-auto pb-4 md:grid md:grid-cols-2 md:overflow-x-hidden lg:grid-cols-5">
+        {accounts?.map((account) => <AccountCard key={account.id} account={account} />)}
         <AccountDialog onSubmit={onSubmit} />
       </div>
     </div>
-  )
+  );
 }
-
 
 export const AccountCard = React.memo(({ account }: { account: Account }) => {
   return (
-    <Card key={account.id} className="min-w-[280px] md:min-w-0 flex-shrink-0 md:w-auto">
+    <Card key={account.id} className="min-w-[280px] flex-shrink-0 md:w-auto md:min-w-0">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{account.name}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-bold ${account.balance < 0 ? "text-red-500" : ""}`}>
-          ${Math.abs(account.balance).toLocaleString()}
-        </div>
+        <div className={`text-2xl font-bold ${account.balance < 0 ? "text-red-500" : ""}`}>${Math.abs(account.balance).toLocaleString()}</div>
       </CardContent>
     </Card>
   );
 });
-
 
 export function AccountDialog({ onSubmit }: { onSubmit: AccountSubmit }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -84,18 +57,19 @@ export function AccountDialog({ onSubmit }: { onSubmit: AccountSubmit }) {
   return (
     <ResponsiveDialog open={isOpen} onOpenChange={setIsOpen}>
       <ResponsiveDialog.Trigger>
-        <Card className="border-dotted min-w-[280px] md:min-w-0 hover:border-gray-800">
+        <Card className="min-w-[280px] border-dotted hover:border-gray-800 md:min-w-0">
           <CardContent className="p-0">
-            <div className="w-full h-25 text-gray-400 hover:text-gray-800 flex items-center justify-center">
-              <div className="flex gap-2 items-center justify-center">
+            <div className="flex h-25 w-full items-center justify-center text-gray-400 hover:text-gray-800">
+              <div className="flex items-center justify-center gap-2">
                 <Plus className="size-3" />
-                <span>Create Account</span></div>
+                <span>Create Account</span>
+              </div>
             </div>
           </CardContent>
         </Card>
       </ResponsiveDialog.Trigger>
       <ResponsiveDialog.Content>
-        <DialogHeader className="md:p-0 px-4">
+        <DialogHeader className="px-4 md:p-0">
           <DialogTitle>Create New Account</DialogTitle>
         </DialogHeader>
         <AccountForm onSubmit={onSubmit} modalChange={setIsOpen} />
@@ -104,8 +78,7 @@ export function AccountDialog({ onSubmit }: { onSubmit: AccountSubmit }) {
   );
 }
 
-
-export function AccountForm({ onSubmit, modalChange }: { onSubmit: AccountSubmit, modalChange: (open: boolean) => void }) {
+export function AccountForm({ onSubmit, modalChange }: { onSubmit: AccountSubmit; modalChange: (open: boolean) => void }) {
   const form = useForm<AccountSchema>({
     resolver: zodResolver(accountFormSchema),
     defaultValues: {
@@ -117,15 +90,18 @@ export function AccountForm({ onSubmit, modalChange }: { onSubmit: AccountSubmit
     },
   });
 
-  const handleSubmit = useCallback((values: AccountSchema) => {
-    onSubmit(values);
-    form.reset();
-    modalChange(false);
-  }, [onSubmit, form, modalChange]);
+  const handleSubmit = useCallback(
+    (values: AccountSchema) => {
+      onSubmit(values);
+      form.reset();
+      modalChange(false);
+    },
+    [onSubmit, form, modalChange]
+  );
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 md:p-0 p-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-4 md:p-0">
         <FormField
           control={form.control}
           name="name"
@@ -222,13 +198,7 @@ export function AccountForm({ onSubmit, modalChange }: { onSubmit: AccountSubmit
             <FormItem>
               <FormLabel>Initial Balance</FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  {...field}
-                  onChange={(e) =>
-                    field.onChange(Number.parseFloat(e.target.value))
-                  }
-                />
+                <Input type="number" {...field} onChange={(e) => field.onChange(Number.parseFloat(e.target.value))} />
               </FormControl>
               <FormMessage />
             </FormItem>

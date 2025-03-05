@@ -10,16 +10,16 @@ const getMe = async () => {
 const updateMe = async (info: Partial<UserInfo>) => {
   const response = await axios.put<UserInfo>(`${BASEURI}/me`, info);
   return response.data;
-}
+};
 
 const updateAvatar = async (formData: FormData) => {
-  const response = await axios.put<{avatar_url: string}>(`${BASEURI}/me/avatar`, formData, {
+  const response = await axios.put<{ avatar_url: string }>(`${BASEURI}/me/avatar`, formData, {
     headers: {
-      'Content-Type': 'multipart/form-data',
+      "Content-Type": "multipart/form-data",
     },
   });
   return response.data;
-}
+};
 
 interface UserInfo {
   email: string;

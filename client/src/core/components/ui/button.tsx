@@ -1,8 +1,8 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
   "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 ring-ring/10 dark:ring-ring/20 dark:outline-ring/40 outline-ring/50 focus-visible:ring-4 focus-visible:outline-1 aria-invalid:focus-visible:ring-0",
@@ -13,10 +13,8 @@ const buttonVariants = cva(
           "bg-primary border-[1.5px] cursor-pointer border-[rgba(0,77,64,0.4)] bg-gradient-to-b from-[#00796b] to-[#00695c]   text-primary-foreground shadow-[0_2px_4px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] hover:bg-gradient-to-b hover:from-[#00897b] hover:to-[#00796b] active:bg-gradient-to-b active:from-[#00695c] active:to-[#004d40] overflow-hidden grain-effect",
         destructive:
           "bg-destructive text-destructive-foreground border-[1.5px] cursor-pointer border-[rgba(136,14,79,0.4)] bg-gradient-to-b from-[#c2185b] to-[#ad1457] text-white font-semibold shadow-[0_2px_4px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] hover:bg-gradient-to-b hover:from-[#d81b60] hover:to-[#c2185b] active:bg-gradient-to-b active:from-[#ad1457] active:to-[#880e4f] overflow-hidden grain-effect ",
-        outline:
-          "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-[#f4f4f4] text-[#333333] shadow-xs hover:bg-[#d0d0d0]/80",
+        outline: "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-[#f4f4f4] text-[#333333] shadow-xs hover:bg-[#d0d0d0]/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
@@ -32,7 +30,7 @@ const buttonVariants = cva(
       size: "default",
     },
   }
-)
+);
 
 function Button({
   className,
@@ -42,17 +40,11 @@ function Button({
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
+    asChild?: boolean;
   }) {
-  const Comp = asChild ? Slot : "button"
+  const Comp = asChild ? Slot : "button";
 
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
+  return <Comp data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />;
 }
 
-export { Button, buttonVariants }
+export { Button, buttonVariants };

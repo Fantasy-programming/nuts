@@ -1,14 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/core/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/core/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,11 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/core/components/ui/alert-dialog";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/core/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
 import { useSettingsStore } from "@/features/preferences/stores/settings.store";
 import { userService } from "@/features/preferences/services/user";
 import { useState, useRef } from "react";
@@ -32,14 +21,7 @@ import { z } from "zod";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from "@/core/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
 
 // Form validation schema
 const userFormSchema = z.object({
@@ -64,54 +46,48 @@ export const Route = createFileRoute("/dashboard_/settings/account")({
 });
 
 function RouteComponent() {
-  const {  deleteAccount } = useSettingsStore();
+  const { deleteAccount } = useSettingsStore();
   const { user } = Route.useLoaderData();
 
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>(user.avatar_url);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const onSubmit = async(data: UserFormValues) => {
-    const hasChanges = 
-        data.email !== user.email ||
-        data.first_name !== (user.first_name || "") ||
-        data.last_name !== (user.last_name || "");
+  const onSubmit = async (data: UserFormValues) => {
+    const hasChanges = data.email !== user.email || data.first_name !== (user.first_name || "") || data.last_name !== (user.last_name || "");
 
-        console.log(hasChanges)
-      if (hasChanges) {
-        try {
-          setIsSubmitting(true);
-          await userService.updateMe({
-            email: data.email,
-            first_name: data.first_name || undefined,
-            last_name: data.last_name || undefined,
-          });
-          
-        } catch (error) {
-          console.error("Failed to update profile:", error);
-          // Reset form to last known good values
-          form.reset({
-            email: user.email,
-            first_name: user.first_name || "",
-            last_name: user.last_name || "",
-          });
-        } finally {
-          setIsSubmitting(false);
-        }
+    console.log(hasChanges);
+    if (hasChanges) {
+      try {
+        setIsSubmitting(true);
+        await userService.updateMe({
+          email: data.email,
+          first_name: data.first_name || undefined,
+          last_name: data.last_name || undefined,
+        });
+      } catch (error) {
+        console.error("Failed to update profile:", error);
+        // Reset form to last known good values
+        form.reset({
+          email: user.email,
+          first_name: user.first_name || "",
+          last_name: user.last_name || "",
+        });
+      } finally {
+        setIsSubmitting(false);
       }
-  }
-  
+    }
+  };
 
-const form = useForm<UserFormValues>({
+  const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
       email: user.email,
       first_name: user.first_name || "",
       last_name: user.last_name || "",
     },
-    mode: 'onBlur', // Submit when focus leaves the field
+    mode: "onBlur", // Submit when focus leaves the field
   });
-  
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -123,15 +99,14 @@ const form = useForm<UserFormValues>({
         setAvatarPreview(result);
       };
       reader.readAsDataURL(file);
-      
+
       // Upload avatar to server
       const formData = new FormData();
-      formData.append('avatar', file);
-      
-      userService.updateAvatar(formData)
-        .catch(error => {
-          console.error("Failed to upload avatar:", error);
-        });
+      formData.append("avatar", file);
+
+      userService.updateAvatar(formData).catch((error) => {
+        console.error("Failed to upload avatar:", error);
+      });
     }
   };
 
@@ -152,26 +127,14 @@ const form = useForm<UserFormValues>({
               </AvatarFallback>
             </Avatar>
             <div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleAvatarChange}
-              />
-              <Button 
-                variant="outline" 
-                className="mb-2"
-                onClick={() => fileInputRef.current?.click()}
-              >
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
+              <Button variant="outline" className="mb-2" onClick={() => fileInputRef.current?.click()}>
                 Change Avatar
               </Button>
-              <p className="text-sm text-muted-foreground">
-                Maximum file size: 5MB
-              </p>
+              <p className="text-muted-foreground text-sm">Maximum file size: 5MB</p>
             </div>
           </div>
-          
+
           <Form {...form}>
             <form className="space-y-4" onBlur={form.handleSubmit(onSubmit)}>
               <FormField
@@ -187,7 +150,7 @@ const form = useForm<UserFormValues>({
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="first_name"
@@ -201,7 +164,7 @@ const form = useForm<UserFormValues>({
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="last_name"
@@ -215,10 +178,8 @@ const form = useForm<UserFormValues>({
                   </FormItem>
                 )}
               />
-              
-              {isSubmitting && (
-                <p className="text-sm text-blue-500">Saving changes...</p>
-              )}
+
+              {isSubmitting && <p className="text-sm text-blue-500">Saving changes...</p>}
             </form>
           </Form>
         </CardContent>
@@ -227,9 +188,7 @@ const form = useForm<UserFormValues>({
       <Card className="border-destructive">
         <CardHeader>
           <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>
-            Permanently delete your account and all associated data
-          </CardDescription>
+          <CardDescription>Permanently delete your account and all associated data</CardDescription>
         </CardHeader>
         <CardFooter>
           <AlertDialog>
@@ -240,16 +199,12 @@ const form = useForm<UserFormValues>({
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete
-                  your account and remove your data from our servers.
+                  This action cannot be undone. This will permanently delete your account and remove your data from our servers.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={deleteAccount}
-                  className="bg-destructive hover:bg-destructive/90"
-                >
+                <AlertDialogAction onClick={deleteAccount} className="bg-destructive hover:bg-destructive/90">
                   Delete Account
                 </AlertDialogAction>
               </AlertDialogFooter>

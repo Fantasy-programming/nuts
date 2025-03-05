@@ -1,70 +1,58 @@
-import { Button } from "@/core/components/ui/button"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/core/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/core/components/ui/popover"
-import { Check, ChevronsUpDown } from "lucide-react"
-import { cn } from "@/lib/utils"
-import React, { useMemo, useCallback } from "react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select"
+import { Button } from "@/core/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/core/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/core/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import React, { useMemo, useCallback } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 
 interface TransactionFiltersProps {
-  onCategoryChange: (values: string[]) => void
-  onAccountChange: (values: string[]) => void
-  onDateRangeChange: (value: string) => void
-  onReset: () => void
-  categories: string[]
-  accounts: string[]
+  onCategoryChange: (values: string[]) => void;
+  onAccountChange: (values: string[]) => void;
+  onDateRangeChange: (value: string) => void;
+  onReset: () => void;
+  categories: string[];
+  accounts: string[];
 }
 
-export function RecordsFilters({
-  onCategoryChange,
-  onAccountChange,
-  onDateRangeChange,
-  onReset,
-  categories,
-  accounts,
-}: TransactionFiltersProps) {
-  const [openCategory, setOpenCategory] = React.useState(false)
-  const [openAccount, setOpenAccount] = React.useState(false)
-  const [selectedCategories, setSelectedCategories] = React.useState<string[]>([])
-  const [selectedAccounts, setSelectedAccounts] = React.useState<string[]>([])
+export function RecordsFilters({ onCategoryChange, onAccountChange, onDateRangeChange, onReset, categories, accounts }: TransactionFiltersProps) {
+  const [openCategory, setOpenCategory] = React.useState(false);
+  const [openAccount, setOpenAccount] = React.useState(false);
+  const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
+  const [selectedAccounts, setSelectedAccounts] = React.useState<string[]>([]);
 
-  const handleCategoryChange = useCallback((category: string) => {
-    setSelectedCategories(prev => {
-      const isSelected = prev.includes(category);
-      const updated = isSelected 
-        ? prev.filter(c => c !== category)
-        : [...prev, category];
-      
-      onCategoryChange(updated);
-      return updated;
-    });
-  }, [onCategoryChange]);
+  const handleCategoryChange = useCallback(
+    (category: string) => {
+      setSelectedCategories((prev) => {
+        const isSelected = prev.includes(category);
+        const updated = isSelected ? prev.filter((c) => c !== category) : [...prev, category];
+
+        onCategoryChange(updated);
+        return updated;
+      });
+    },
+    [onCategoryChange]
+  );
 
   const handleAccountChange = (account: string) => {
-    const updatedAccounts = selectedAccounts.includes(account)
-      ? selectedAccounts.filter((a) => a !== account)
-      : [...selectedAccounts, account]
-    setSelectedAccounts(updatedAccounts)
-    onAccountChange(updatedAccounts)
-  }
+    const updatedAccounts = selectedAccounts.includes(account) ? selectedAccounts.filter((a) => a !== account) : [...selectedAccounts, account];
+    setSelectedAccounts(updatedAccounts);
+    onAccountChange(updatedAccounts);
+  };
 
-  const categoryItems = useMemo(() => 
-    categories.map((category) => (
-      <CommandItem key={category} onSelect={() => handleCategoryChange(category)}>
-        <Check
-          className={cn(
-            "mr-2 h-4 w-4",
-            selectedCategories.includes(category) ? "opacity-100" : "opacity-0",
-          )}
-        />
-        {category}
-      </CommandItem>
-    )), 
+  const categoryItems = useMemo(
+    () =>
+      categories.map((category) => (
+        <CommandItem key={category} onSelect={() => handleCategoryChange(category)}>
+          <Check className={cn("mr-2 h-4 w-4", selectedCategories.includes(category) ? "opacity-100" : "opacity-0")} />
+          {category}
+        </CommandItem>
+      )),
     [categories, selectedCategories, handleCategoryChange]
   );
 
   return (
-    <div className="grid gap-4 p-4 border rounded-lg bg-muted/50">
+    <div className="bg-muted/50 grid gap-4 rounded-lg border p-4">
       <div className="grid gap-4 md:grid-cols-3">
         <Popover open={openCategory} onOpenChange={setOpenCategory}>
           <PopoverTrigger asChild>
@@ -78,9 +66,7 @@ export function RecordsFilters({
               <CommandInput placeholder="Search category..." />
               <CommandList>
                 <CommandEmpty>No category found.</CommandEmpty>
-                <CommandGroup>
-                  {categoryItems}
-                </CommandGroup>
+                <CommandGroup>{categoryItems}</CommandGroup>
               </CommandList>
             </Command>
           </PopoverContent>
@@ -101,9 +87,7 @@ export function RecordsFilters({
                 <CommandGroup>
                   {accounts.map((account) => (
                     <CommandItem key={account} onSelect={() => handleAccountChange(account)}>
-                      <Check
-                        className={cn("mr-2 h-4 w-4", selectedAccounts.includes(account) ? "opacity-100" : "opacity-0")}
-                      />
+                      <Check className={cn("mr-2 h-4 w-4", selectedAccounts.includes(account) ? "opacity-100" : "opacity-0")} />
                       {account}
                     </CommandItem>
                   ))}
@@ -135,6 +119,5 @@ export function RecordsFilters({
         <Button>Apply Filters</Button>
       </div>
     </div>
-  )
+  );
 }
-

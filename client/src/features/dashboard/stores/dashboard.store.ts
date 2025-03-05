@@ -18,7 +18,7 @@ interface DashboardState {
   addChart: (type: string) => void;
   removeChart: (id: string) => void;
   updateChartTitle: (id: string, title: string) => void;
-  updateChartSize: (id: string, size: Chart['size']) => void;
+  updateChartSize: (id: string, size: Chart["size"]) => void;
   toggleChartLock: (id: string) => void;
   reorderCharts: (oldIndex: number, newIndex: number) => void;
   setTimeRange: (range: { start: string; end: string }) => void;
@@ -26,11 +26,11 @@ interface DashboardState {
 
 export const useDashboardStore = create<DashboardState>()((set) => ({
   charts: [
-    { id: '1', type: 'line', title: 'Balance Overview', size: 1, isLocked: false },
-    { id: '2', type: 'area', title: 'Income vs Expenses', size: 1, isLocked: false },
-    { id: '3', type: 'pie', title: 'Expense Categories', size: 1, isLocked: false },
+    { id: "1", type: "line", title: "Balance Overview", size: 1, isLocked: false },
+    { id: "2", type: "area", title: "Income vs Expenses", size: 1, isLocked: false },
+    { id: "3", type: "pie", title: "Expense Categories", size: 1, isLocked: false },
   ],
-  chartOrder: ['1', '2', '3'],
+  chartOrder: ["1", "2", "3"],
   timeRange: {
     start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     end: new Date().toISOString(),
@@ -56,21 +56,15 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
     })),
   updateChartTitle: (id, title) =>
     set((state) => ({
-      charts: state.charts.map((chart) =>
-        chart.id === id ? { ...chart, title } : chart
-      ),
+      charts: state.charts.map((chart) => (chart.id === id ? { ...chart, title } : chart)),
     })),
   updateChartSize: (id, size) =>
     set((state) => ({
-      charts: state.charts.map((chart) =>
-        chart.id === id ? { ...chart, size } : chart
-      ),
+      charts: state.charts.map((chart) => (chart.id === id ? { ...chart, size } : chart)),
     })),
   toggleChartLock: (id) =>
     set((state) => ({
-      charts: state.charts.map((chart) =>
-        chart.id === id ? { ...chart, isLocked: !chart.isLocked } : chart
-      ),
+      charts: state.charts.map((chart) => (chart.id === id ? { ...chart, isLocked: !chart.isLocked } : chart)),
     })),
   reorderCharts: (oldIndex, newIndex) =>
     set((state) => {

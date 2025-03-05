@@ -6,9 +6,7 @@ const getCategories = async (): Promise<Category[]> => {
   return data;
 };
 
-const createCategory = async (
-  category: CategoryCreate
-): Promise<Category> => {
+const createCategory = async (category: CategoryCreate): Promise<Category> => {
   const data = await axios.post<Category>("/category/", category);
   return data.data;
 };

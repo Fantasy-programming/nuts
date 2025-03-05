@@ -1,23 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Card, CardContent, CardHeader, CardTitle } from '@/core/components/ui/card';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const data = [
-  { month: 'Jan', spending: 1200, income: 2400 },
-  { month: 'Feb', spending: 1800, income: 2300 },
-  { month: 'Mar', spending: 1600, income: 2800 },
-  { month: 'Apr', spending: 1400, income: 2600 },
-  { month: 'May', spending: 2000, income: 3000 },
+  { month: "Jan", spending: 1200, income: 2400 },
+  { month: "Feb", spending: 1800, income: 2300 },
+  { month: "Mar", spending: 1600, income: 2800 },
+  { month: "Apr", spending: 1400, income: 2600 },
+  { month: "May", spending: 2000, income: 3000 },
 ];
-
 
 export const Route = createFileRoute("/dashboard/analytics")({
   component: RouteComponent,
