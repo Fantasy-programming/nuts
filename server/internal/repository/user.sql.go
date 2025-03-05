@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -213,19 +212,17 @@ SET
     email = coalesce($1, email),
     first_name = coalesce($2, first_name),
     last_name = coalesce($3, last_name),
-    avatar_url = coalesce($4, avatar_uri),
-    updated_at = coalesce($5, updated_at)
-WHERE id = $6
+    avatar_url = coalesce($4, avatar_url)
+WHERE id = $5
 RETURNING id, email, first_name, last_name, password, created_at, updated_at, deleted_at, avatar_url
 `
 
 type UpdateUserParams struct {
-	Email     *string            `json:"email"`
-	FirstName *string            `json:"first_name"`
-	LastName  *string            `json:"last_name"`
-	AvatarUri *string            `json:"avatar_uri"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
-	ID        uuid.UUID          `json:"id"`
+	Email     *string   `json:"email"`
+	FirstName *string   `json:"first_name"`
+	LastName  *string   `json:"last_name"`
+	AvatarUrl *string   `json:"avatar_url"`
+	ID        uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
@@ -233,8 +230,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.Email,
 		arg.FirstName,
 		arg.LastName,
-		arg.AvatarUri,
-		arg.UpdatedAt,
+		arg.AvatarUrl,
 		arg.ID,
 	)
 	var i User

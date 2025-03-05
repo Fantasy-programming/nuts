@@ -31,7 +31,7 @@ func (s *Server) initAuth() {
 }
 
 func (s *Server) initUser() {
-	UserDomain := user.Init(s.db, s.cfg, s.validator, s.logger)
+	UserDomain := user.Init(s.db, s.cfg, s.validator, s.logger, s.storage)
 	s.router.Mount("/user", UserDomain.Register())
 }
 

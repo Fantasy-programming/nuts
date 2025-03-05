@@ -10,8 +10,8 @@ import (
 
 // minio
 type Storage struct {
-	client *s3.Client
-	bucket string
+	Client *s3.Client
+	Bucket string
 }
 
 func NewMinio(bucket string) *Storage {

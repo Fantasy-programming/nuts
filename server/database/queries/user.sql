@@ -56,8 +56,7 @@ SET
     email = coalesce(sqlc.narg('email'), email),
     first_name = coalesce(sqlc.narg('first_name'), first_name),
     last_name = coalesce(sqlc.narg('last_name'), last_name),
-    avatar_url = coalesce(sqlc.narg('avatar_uri'), avatar_uri),
-    updated_at = coalesce(sqlc.narg('updated_at'), updated_at)
+    avatar_url = coalesce(sqlc.narg('avatar_url'), avatar_url)
 WHERE id = sqlc.arg('id')
 RETURNING *;
 
