@@ -20,7 +20,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/core/components/ui/alert-dialog";
-import { Label } from "@/core/components/ui/label";
 import {
   Avatar,
   AvatarFallback,
@@ -28,6 +27,28 @@ import {
 } from "@/core/components/ui/avatar";
 import { useSettingsStore } from "@/features/preferences/stores/settings.store";
 import { userService } from "@/features/preferences/services/user";
+import { useState, useRef } from "react";
+import { z } from "zod";
+import { useDebounce } from "@/lib/hooks/useDebounce";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/core/components/ui/form";
+
+// Form validation schema
+const userFormSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  first_name: z.string().min(2, "First name must be at least 2 characters").max(100).or(z.literal("")),
+  last_name: z.string().min(2, "Last name must be at least 2 characters").max(100).or(z.literal("")),
+});
+
+type UserFormValues = z.infer<typeof userFormSchema>;
 
 export const Route = createFileRoute("/dashboard_/settings/account")({
   component: RouteComponent,
@@ -43,23 +64,74 @@ export const Route = createFileRoute("/dashboard_/settings/account")({
 });
 
 function RouteComponent() {
-  const { profile, updateProfile, deleteAccount } = useSettingsStore();
+  const {  deleteAccount } = useSettingsStore();
   const { user } = Route.useLoaderData();
 
-  // const [avatar, setAvatar] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(user.avatar_url);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  //todo: Third, allow the user to change the data (update)
-  // lastly: allow the user to delete his account
+  const onSubmit = async(data: UserFormValues) => {
+    const hasChanges = 
+        data.email !== user.email ||
+        data.first_name !== (user.first_name || "") ||
+        data.last_name !== (user.last_name || "");
+
+        console.log(hasChanges)
+      if (hasChanges) {
+        try {
+          setIsSubmitting(true);
+          await userService.updateMe({
+            email: data.email,
+            first_name: data.first_name || undefined,
+            last_name: data.last_name || undefined,
+          });
+          
+        } catch (error) {
+          console.error("Failed to update profile:", error);
+          // Reset form to last known good values
+          form.reset({
+            email: user.email,
+            first_name: user.first_name || "",
+            last_name: user.last_name || "",
+          });
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
+  }
+  
+
+const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: {
+      email: user.email,
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+    },
+    mode: 'onBlur', // Submit when focus leaves the field
+  });
+  
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.size <= 5 * 1024 * 1024) {
-      setAvatar(file);
+      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
-        updateProfile({ avatar: reader.result as string });
+        const result = reader.result as string;
+        setAvatarPreview(result);
       };
       reader.readAsDataURL(file);
+      
+      // Upload avatar to server
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      userService.updateAvatar(formData)
+        .catch(error => {
+          console.error("Failed to upload avatar:", error);
+        });
     }
   };
 
@@ -73,20 +145,25 @@ function RouteComponent() {
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={profile.avatar} />
+              <AvatarImage src={avatarPreview} />
               <AvatarFallback>
-                {user.firstName?.[0]}
-                {user.lastName?.[0]}
+                {form.getValues("first_name")?.[0]}
+                {form.getValues("last_name")?.[0]}
               </AvatarFallback>
             </Avatar>
             <div>
-              <Button variant="outline" className="mb-2">
-                <Input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                />
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleAvatarChange}
+              />
+              <Button 
+                variant="outline" 
+                className="mb-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Change Avatar
               </Button>
               <p className="text-sm text-muted-foreground">
@@ -94,32 +171,56 @@ function RouteComponent() {
               </p>
             </div>
           </div>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="firstName">Email</Label>
-              <Input
-                id="email"
-                value={user.email}
-                onChange={(e) => updateProfile({ firstName: e.target.value })}
+          
+          <Form {...form}>
+            <form className="space-y-4" onBlur={form.handleSubmit(onSubmit)}>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                value={profile.firstName}
-                onChange={(e) => updateProfile({ firstName: e.target.value })}
+              
+              <FormField
+                control={form.control}
+                name="first_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                value={profile.lastName}
-                onChange={(e) => updateProfile({ lastName: e.target.value })}
+              
+              <FormField
+                control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </div>
+              
+              {isSubmitting && (
+                <p className="text-sm text-blue-500">Saving changes...</p>
+              )}
+            </form>
+          </Form>
         </CardContent>
       </Card>
 

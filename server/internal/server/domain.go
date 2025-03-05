@@ -6,6 +6,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/domain/accounts"
 	"github.com/Fantasy-Programming/nuts/internal/domain/auth"
 	"github.com/Fantasy-Programming/nuts/internal/domain/category"
+	"github.com/Fantasy-Programming/nuts/internal/domain/meta"
 	"github.com/Fantasy-Programming/nuts/internal/domain/preferences"
 	"github.com/Fantasy-Programming/nuts/internal/domain/tags"
 	"github.com/Fantasy-Programming/nuts/internal/domain/transactions"
@@ -21,6 +22,7 @@ func (s *Server) RegisterDomain() {
 	s.initCategory()
 	s.initPreferences()
 	s.initTags()
+	s.initMeta()
 	s.initVersion()
 	s.initHealth()
 }
@@ -58,6 +60,11 @@ func (s *Server) initPreferences() {
 func (s *Server) initTags() {
 	TagsDomain := tags.Init(s.db, s.validator, s.logger)
 	s.router.Mount("/tags", TagsDomain.Register())
+}
+
+func (s *Server) initMeta() {
+	MetaDomain := meta.Init(s.db, s.logger)
+	s.router.Mount("/meta", MetaDomain.Register())
 }
 
 func (s *Server) initHealth() {
