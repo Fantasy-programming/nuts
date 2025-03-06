@@ -198,3 +198,11 @@ type User struct {
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 	AvatarUrl *string            `json:"avatar_url"`
 }
+
+type UserToken struct {
+	ID           uuid.UUID          `json:"id"`
+	UserID       uuid.UUID          `json:"user_id"`
+	RefreshToken string             `json:"refresh_token"`
+	ExpiresAt    time.Time          `json:"expires_at"`
+	LastUsedAt   pgtype.Timestamptz `json:"last_used_at"`
+}
