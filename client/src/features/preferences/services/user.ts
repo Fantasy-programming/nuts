@@ -1,6 +1,6 @@
 import { api as axios } from "@/lib/axios";
 
-const BASEURI = "/user";
+const BASEURI = "/users";
 
 const getMe = async () => {
   const response = await axios.get<UserInfo>(`${BASEURI}/me`);
@@ -21,7 +21,7 @@ const updateAvatar = async (formData: FormData) => {
   return response.data;
 };
 
-interface UserInfo {
+export interface UserInfo {
   email: string;
   avatar_url?: string;
   first_name?: string;
