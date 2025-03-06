@@ -1,45 +1,95 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { authService } from "../services/auth";
+import { api as axios } from "@/lib/axios";
 import type { AuthNullable } from "../services/auth.types";
 import { Context } from "./auth.context";
-import { getAuthCookie } from "@/lib/jwt";
-
-const defaultState = { user: null };
-const SESSION_CHECK_INTERVAL = 5000; // Check session every 5 seconds
-
-interface SessionExpiredModalProps {
-  onLogin: () => void;
-}
-
-const SessionExpiredModal: React.FC<SessionExpiredModalProps> = ({ onLogin }) => (
-  <div className="bg-opacity-50 fixed top-0 left-0 z-50 flex h-full w-full items-center justify-center bg-black">
-    <div className="rounded bg-white p-6 shadow-lg">
-      <h2 className="mb-4 text-xl font-semibold">Session Expired</h2>
-      <p className="mb-4">Your session has expired. Please log in again.</p>
-      <button type="button" className="rounded bg-blue-500 px-4 py-2 text-white" onClick={onLogin}>
-        Log In
-      </button>
-    </div>
-  </div>
-);
+import { userService } from "@/features/preferences/services/user";
 
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [user, setUser] = useState<AuthNullable>(() => {
-    const jwt = getAuthCookie();
-    return jwt ? { user: jwt } : defaultState;
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
-  const isLoggedIn = user.user !== null;
+  const [user, setUser] = useState<AuthNullable>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+
+
+  // Setup axios interceptors for token refresh
+  useEffect(() => {
+
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        console.log("error occured too")
+        // If unauthorized and not already retried
+        if (error.response.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+
+            // Attempt to refresh token
+            await authService.refresh()
+
+            // Retry original request
+            return axios(originalRequest);
+          } catch {
+            // Refresh failed, logout user
+            setUser(null);
+            setIsAuthenticated(false);
+            window.location.href = '/login';
+          }
+        }
+
+        return Promise.reject(error);
+      }
+    );
+    return () => axios.interceptors.response.eject(interceptor);
+  }, []);
+
+
+
+  // Check authentication on initial load
+  useEffect(() => {
+    setIsLoading(true);
+
+    const checkAuth = async () => {
+      try {
+        const user = await userService.getMe();
+
+        setUser(user);
+        setIsAuthenticated(true);
+      } catch {
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+
+
 
   const login = useCallback(async (credentials: { email: string; password: string }) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      setIsLoading(true);
-      setError(null);
       await authService.login(credentials);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("Login failed"));
+      const user = await userService.getMe();
+
+      setUser(user);
+      setIsAuthenticated(true);
+    } catch (err: unknown) {
+
+      const errorMessage = err instanceof Error
+        ? err.message
+        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Logout failed';
+      setError(errorMessage);
+      setUser(null);
+      setIsAuthenticated(false);
       throw err;
     } finally {
       setIsLoading(false);
@@ -47,60 +97,40 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   }, []);
 
   const logout = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      setIsLoading(true);
-      setError(null);
       await authService.logout();
-      setUser(defaultState);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("Logout failed"));
+      setUser(null);
+      setIsAuthenticated(false)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error
+        ? err.message
+        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Logout failed';
+      setError(errorMessage);
       throw err;
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const storeUser = useCallback(() => {
-    const jwt = getAuthCookie();
-    setUser(jwt ? { user: jwt } : defaultState);
-  }, []);
 
-  useEffect(() => {
-    const interval = setInterval(storeUser, SESSION_CHECK_INTERVAL);
-    return () => clearInterval(interval);
-  }, [storeUser]);
+  // Memoize context value
+  const contextValue = useMemo(() => ({
+    user,
+    isAuthenticated,
+    isLoading,
+    error,
+    login,
+    logout,
+  }), [user, isAuthenticated, isLoading, error, login, logout]);
 
-  useEffect(() => {
-    const jwt = getAuthCookie();
-    if (!jwt && isLoggedIn) {
-      setShowSessionExpiredModal(true);
-    }
-  }, [user.user, isLoggedIn]);
+  if (isLoading) return null
 
-  const contextValue = useMemo(
-    () => ({
-      user,
-      storeUser,
-      logout,
-      login,
-      isLoggedIn,
-      isLoading,
-      error,
-    }),
-    [user, storeUser, logout, login, isLoggedIn, isLoading, error]
-  );
 
   return (
     <Context.Provider value={contextValue}>
       {children}
-      {showSessionExpiredModal && (
-        <SessionExpiredModal
-          onLogin={() => {
-            setShowSessionExpiredModal(false);
-            logout();
-          }}
-        />
-      )}
     </Context.Provider>
   );
 };

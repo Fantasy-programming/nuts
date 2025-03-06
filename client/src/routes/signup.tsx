@@ -16,12 +16,15 @@ import { Input } from "@/core/components/ui/input";
 export const Route = createFileRoute("/signup")({
   component: RouteComponent,
   beforeLoad: ({ context, location }) => {
-    if (context.auth.isLoggedIn) {
+    if (context.auth.isAuthenticated && !context.auth.isLoading) {
       throw redirect({
         to: "/dashboard/home",
         search: { redirect: location.href },
       });
     }
+  },
+  shouldReload({ context }) {
+    return !context.auth.isAuthenticated;
   },
 });
 

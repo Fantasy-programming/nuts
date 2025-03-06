@@ -1,3 +1,4 @@
+import { UserInfo } from "@/features/preferences/services/user";
 import { z } from "zod";
 
 export const signupSchema = z
@@ -44,16 +45,8 @@ export interface ErrorResponse {
   success: boolean;
 }
 
-export interface AuthNullable {
-  user: JWT | null;
-}
+export type AuthNullable = UserInfo | null;
 
-export interface JWT {
-  UserId: string;
-  exp: number;
-  iat: number;
-  roles: string[];
-}
 
 export interface RefreshAuthRes {
   token: string;

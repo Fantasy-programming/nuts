@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { authService } from "@/features/auth/services/auth";
 import { motion } from "framer-motion";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { createFileRoute, Link, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
@@ -17,12 +16,15 @@ import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
   beforeLoad: ({ context, location }) => {
-    if (context.auth.isLoggedIn) {
+    if (context.auth.isAuthenticated) {
       throw redirect({
         to: "/dashboard/home",
         search: { redirect: location.href },
       });
     }
+  },
+  shouldReload({ context }) {
+    return !context.auth.isAuthenticated;
   },
 });
 
@@ -45,8 +47,7 @@ function RouteComponent() {
   async function onSubmit(values: LoginFormValues) {
     try {
       setIsSubmitting(true);
-      await authService.login(values);
-      auth.storeUser();
+      await auth.login(values);
 
       toast.success("Welcome back", {
         description: "Welcome to your account",

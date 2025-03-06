@@ -16,4 +16,9 @@ const logout = async () => {
   await axios.post(`${BASEURI}/logout`);
 };
 
-export const authService = { signup, logout, login };
+const refresh = async () => {
+  await axios.post(`${BASEURI}/refresh`)
+}
+
+
+export const authService = { signup, logout, login, refresh };

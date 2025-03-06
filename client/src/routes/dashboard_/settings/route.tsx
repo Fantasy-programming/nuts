@@ -8,7 +8,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 export const Route = createFileRoute("/dashboard_/settings")({
   component: RouteComponent,
   beforeLoad: ({ context }) => {
-    if (!context.auth.isLoggedIn) {
+    if (!context.auth.isAuthenticated && !context.auth.isLoading) {
       throw redirect({
         to: "/login",
       });

@@ -69,7 +69,7 @@ type navStuff = {
 export const Route = createFileRoute("/dashboard")({
   component: DashboardWrapper,
   beforeLoad: ({ context, location }) => {
-    if (!context.auth.isLoggedIn) {
+    if (!context.auth.isAuthenticated && !context.auth.isLoading) {
       throw redirect({
         to: "/login",
         search: { redirect: location.href },
@@ -205,7 +205,12 @@ function DashboardWrapper() {
             <SidebarMenu>
               {navMain.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title} className="px-6">
+                  <SidebarMenuButton asChild tooltip={
+                    <div className="flex items-center gap-2">
+                      <span>{item.title}</span>
+                      <kbd className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold">⌘ K</kbd>
+                    </div>
+                  } className="px-6">
                     <Link
                       to={item.url}
                       className={cn(

@@ -1,14 +1,23 @@
 import { createContext } from "react";
-import type { JWT } from "../services/auth.types";
+import type { AuthNullable } from "../services/auth.types";
+
 
 export interface AuthContext {
-  isLoggedIn: boolean;
-  user: { user: JWT | null };
+  user: AuthNullable;
+  isAuthenticated: boolean;
   isLoading: boolean;
-  error: Error | null;
-  storeUser: () => void;
-  logout: () => Promise<void>;
+  error: string | null;
   login: (credentials: { email: string; password: string }) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-export const Context = createContext<AuthContext | null>(null);
+
+export const Context = createContext<AuthContext>({
+  user: null,
+  isAuthenticated: false,
+  isLoading: false,
+  error: null,
+  login: async () => { },
+  logout: async () => { }
+});
+
