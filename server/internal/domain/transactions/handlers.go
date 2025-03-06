@@ -7,11 +7,11 @@ import (
 	"math/big"
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 	"github.com/Fantasy-Programming/nuts/internal/utility/types"
+	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -19,7 +19,7 @@ import (
 // TODO: Handle transfers
 
 func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
-	userID, err := jwtauth.GetID(r)
+	userID, err := jwt.GetID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -158,7 +158,6 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 	// Validate
 	amount := types.Numeric(request.Amount)
 	accountID, err := uuid.Parse(request.AccountID)
-
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -186,7 +185,7 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	id, err := jwtauth.GetID(r)
+	id, err := jwt.GetID(r)
 	if err != nil {
 		log.Println(err)
 		respond.Error(respond.ErrorOptions{
@@ -357,7 +356,7 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := jwtauth.GetID(r)
+	userID, err := jwt.GetID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,

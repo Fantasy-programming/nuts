@@ -3,13 +3,14 @@ package category
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/pkg/jwt"
+	"github.com/jackc/pgx/v5"
 )
 
 func (c *Category) GetCategories(w http.ResponseWriter, r *http.Request) {
-	userID, err := jwtauth.GetID(r)
+	userID, err := jwt.GetID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -27,6 +28,11 @@ func (c *Category) GetCategories(w http.ResponseWriter, r *http.Request) {
 
 	categories, err := c.queries.ListCategories(ctx, userID)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			respond.Json(w, http.StatusOK, "[]", c.log)
+			return
+		}
+
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,

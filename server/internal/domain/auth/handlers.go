@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
@@ -112,7 +111,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := jwt.GenerateToken(user.ID, roles, a.config.SigningKey, time.Minute*30)
+	tokenPair, err := a.tkn.GenerateTokenPair(user.ID, roles)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -126,38 +125,24 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	headerToken, signature, err := jwt.SplitJWT(token)
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    req,
-		})
-		return
-	}
-
-	// Header+Payload
 	http.SetCookie(w, &http.Cookie{
-		Name:     jwtauth.CookieHeader,
-		Value:    headerToken,
+		Name:     "access_token",
+		Value:    tokenPair.AccessToken,
+		HttpOnly: true,
 		Path:     "/",
-		Expires:  time.Now().Add(30 * time.Minute),
+		// Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		// Secure:  true,
+		Expires:  time.Now().Add(15 * time.Minute),
 	})
 
-	// Signature
 	http.SetCookie(w, &http.Cookie{
-		Name:     jwtauth.CookieSignature,
-		Value:    signature,
-		Path:     "/",
+		Name:     "refresh_token",
+		Value:    tokenPair.RefreshToken,
 		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
 		// Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
 	})
 
 	respond.Status(w, http.StatusOK)
@@ -292,9 +277,69 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 	respond.Json(w, http.StatusCreated, nil, a.log)
 }
 
+func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Get refresh token from cookie
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusUnauthorized,
+			ClientErr:  jwt.ErrNoTokenFound,
+			ActualErr:  err,
+			Logger:     a.log,
+		})
+		return
+	}
+
+	// Get new token pair
+	tokenPair, err := a.tkn.RefreshAccessToken(ctx, cookie.Value)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, jwt.ErrUnauthorized) || errors.Is(err, jwt.ErrInvalidToken) {
+			statusCode = http.StatusUnauthorized
+		}
+
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: statusCode,
+			ClientErr:  err,
+			ActualErr:  err,
+			Logger:     a.log,
+		})
+		return
+	}
+
+	// Set new cookies
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    tokenPair.AccessToken,
+		HttpOnly: true,
+		Path:     "/",
+		// Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(15 * time.Minute),
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    tokenPair.RefreshToken,
+		HttpOnly: true,
+		Path:     "/",
+		// Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
+	})
+
+	respond.Json(w, http.StatusOK, nil, a.log)
+}
+
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     jwtauth.CookieHeader,
+		Name:     "access_token",
 		Value:    "",
 		Path:     "/",
 		Expires:  time.Unix(0, 0),
@@ -303,7 +348,7 @@ func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     jwtauth.CookieSignature,
+		Name:     "refresh_token",
 		Value:    "",
 		Path:     "/",
 		Expires:  time.Unix(0, 0),

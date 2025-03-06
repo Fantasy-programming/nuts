@@ -28,28 +28,28 @@ func (s *Server) RegisterDomain() {
 }
 
 func (s *Server) initAuth() {
-	AuthDomain := auth.Init(s.db, s.cfg, s.validator, s.i18n, s.logger)
+	AuthDomain := auth.Init(s.db, s.cfg, s.validator, s.i18n, s.logger, s.jwt)
 	s.router.Mount("/auth", AuthDomain.Register())
 }
 
 func (s *Server) initUser() {
-	UserDomain := user.Init(s.db, s.cfg, s.validator, s.logger, s.storage)
-	s.router.Mount("/user", UserDomain.Register())
+	UserDomain := user.Init(s.db, s.storage, s.jwt, s.validator, s.cfg, s.logger)
+	s.router.Mount("/users", UserDomain.Register())
 }
 
 func (s *Server) initAccount() {
-	AccountDomain := accounts.Init(s.db, s.cfg, s.validator, s.logger)
-	s.router.Mount("/account", AccountDomain.Register())
+	AccountDomain := accounts.Init(s.db, s.cfg, s.validator, s.jwt, s.logger)
+	s.router.Mount("/accounts", AccountDomain.Register())
 }
 
 func (s *Server) initTransaction() {
-	TransactionDomain := transactions.Init(s.db, s.cfg, s.validator, s.logger)
-	s.router.Mount("/transaction", TransactionDomain.Register())
+	TransactionDomain := transactions.Init(s.db, s.cfg, s.jwt, s.validator, s.logger)
+	s.router.Mount("/transactions", TransactionDomain.Register())
 }
 
 func (s *Server) initCategory() {
-	CategoryDomain := category.Init(s.db, s.cfg, s.validator, s.logger)
-	s.router.Mount("/category", CategoryDomain.Register())
+	CategoryDomain := category.Init(s.db, s.cfg, s.jwt, s.validator, s.logger)
+	s.router.Mount("/categories", CategoryDomain.Register())
 }
 
 func (s *Server) initPreferences() {

@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 	"github.com/Fantasy-Programming/nuts/internal/utility/types"
+	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/jackc/pgx/v5"
 )
 
 func (a *Account) GetAccounts(w http.ResponseWriter, r *http.Request) {
-	userID, err := jwtauth.GetID(r)
+	userID, err := jwt.GetID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -49,7 +49,6 @@ func (a *Account) GetAccounts(w http.ResponseWriter, r *http.Request) {
 func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	accountID, err := parseUUID(r, "id")
-
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -158,7 +157,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	meta := parseMeta(req.Meta)
 
-	userID, err := jwtauth.GetID(r)
+	userID, err := jwt.GetID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -182,7 +181,6 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		Meta:      meta,
 		Color:     color,
 	})
-
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -277,7 +275,7 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 
 	meta := parseMeta(req.Meta)
 
-	userID, err := jwtauth.GetID(r)
+	userID, err := jwt.GetID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,

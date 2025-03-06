@@ -15,6 +15,7 @@ import (
 	i18nMiddleware "github.com/Fantasy-Programming/nuts/internal/middleware/i18n"
 	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/Fantasy-Programming/nuts/pkg/storage"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -27,6 +28,7 @@ type Server struct {
 	Version string
 	cfg     *config.Config
 	logger  *zerolog.Logger
+	jwt     *jwt.TokenService
 
 	db        *pgxpool.Pool
 	storage   *storage.Storage
@@ -72,6 +74,7 @@ func (s *Server) Init() {
 	s.NewLogger()
 	s.NewDatabase()
 	s.NewStorage()
+	s.NewTokenService()
 	s.NewValidator()
 	s.NewI18n()
 	s.NewRouter()
@@ -108,6 +111,10 @@ func (s *Server) NewLogger() {
 	}
 
 	s.logger = &logger
+}
+
+func (s *Server) NewTokenService() {
+	s.jwt = jwt.NewTokenService(s.db, s.cfg.SigningKey, s.logger)
 }
 
 func (s *Server) NewStorage() {

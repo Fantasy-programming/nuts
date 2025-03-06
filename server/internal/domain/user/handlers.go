@@ -6,16 +6,16 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 )
 
 func (u *User) GetInfo(w http.ResponseWriter, r *http.Request) {
-	id, err := jwtauth.GetID(r)
+	id, err := jwt.GetID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -56,7 +56,7 @@ func (u *User) GetInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
-	id, err := jwtauth.GetID(r)
+	id, err := jwt.GetID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -102,13 +102,16 @@ func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	u.log.Debug().Interface("debug ", req)
+
 	params := repository.UpdateUserParams{
 		Email:     &req.Email,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
-		AvatarUrl: req.AvatarUrl,
 		ID:        id,
 	}
+
+	fmt.Println(req.FirstName, req.LastName)
 
 	user, err := u.queries.UpdateUser(ctx, params)
 	if err != nil {
@@ -135,7 +138,7 @@ func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *User) DeleteInfo(w http.ResponseWriter, r *http.Request) {
-	id, err := jwtauth.GetID(r)
+	id, err := jwt.GetID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -170,7 +173,7 @@ func (u *User) DeleteInfo(w http.ResponseWriter, r *http.Request) {
 
 // UploadAvatar handles avatar image uploads
 func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
-	id, err := jwtauth.GetID(r)
+	id, err := jwt.GetID(r)
 	ctx := r.Context()
 
 	if err != nil {

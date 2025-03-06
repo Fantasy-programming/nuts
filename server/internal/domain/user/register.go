@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/config"
-	"github.com/Fantasy-Programming/nuts/internal/middleware/jwtauth"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/Fantasy-Programming/nuts/pkg/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,21 +15,21 @@ import (
 
 type User struct {
 	queries *repository.Queries
+	storage *storage.Storage
+	tkn     *jwt.TokenService
+	v       *validation.Validator
 	config  *config.Config
 	log     *zerolog.Logger
-	v       *validation.Validator
-	storage *storage.Storage
 }
 
-func Init(db *pgxpool.Pool, config *config.Config, validate *validation.Validator, logger *zerolog.Logger, storage *storage.Storage) *User {
+func Init(db *pgxpool.Pool, storage *storage.Storage, tkn *jwt.TokenService, validate *validation.Validator, config *config.Config, logger *zerolog.Logger) *User {
 	queries := repository.New(db)
-	return &User{queries, config, logger, validate, storage}
+	return &User{queries, storage, tkn, validate, config, logger}
 }
 
 func (u *User) Register() http.Handler {
 	router := router.NewRouter()
-	router.Use(jwtauth.Verifier(u.config.SigningKey))
-	router.Use(jwtauth.Authenticator(u.config.SigningKey))
+	router.Use(u.tkn.Verify)
 	router.Get("/me", u.GetInfo)
 	router.Put("/me", u.UpdateInfo)
 	router.Delete("/me", u.DeleteInfo)
