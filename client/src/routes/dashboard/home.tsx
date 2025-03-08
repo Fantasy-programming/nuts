@@ -109,8 +109,16 @@ function RouteComponent() {
                 <ChartCardTitle>{chart.title}</ChartCardTitle>
                 <ChartCardHandle />
               </ChartCardHeader>
-              <ChartContainer config={{}}>
-                <Suspense fallback={<Spinner />}>{renderChart(chart)}</Suspense>
+              <ChartContainer config={{
+                value: { color: "#8884d8" },
+                income: { color: "#8884d8" },
+                expenses: { color: "#82ca9d" },
+                Food: { color: COLORS[0] },
+                Transport: { color: COLORS[1] },
+                Shopping: { color: COLORS[2] },
+                Bills: { color: COLORS[3] }
+              }}>
+                {renderChart(chart)}
               </ChartContainer>
             </ChartCardMenu>
           </ChartCard>

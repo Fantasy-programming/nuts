@@ -100,6 +100,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
     ],
   });
 
+
   const transfertCatID = categories?.find((cat) => cat.name === "Transfers")?.id;
 
   const handleSubmit = useCallback(
@@ -117,34 +118,34 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
       form.reset(
         value === "transfer"
           ? {
-              type: "transfer",
-              amount: 0,
-              transaction_datetime: new Date(),
-              description: "",
-              category_id: transfertCatID,
-              account_id: "",
-              destination_account_id: "", // Required for transfers
-              details: {
-                payment_medium: "",
-                location: "",
-                note: "",
-                payment_status: "completed",
-              },
-            }
+            type: "transfer",
+            amount: 0,
+            transaction_datetime: new Date(),
+            description: "",
+            category_id: transfertCatID,
+            account_id: "",
+            destination_account_id: "", // Required for transfers
+            details: {
+              payment_medium: "",
+              location: "",
+              note: "",
+              payment_status: "completed",
+            },
+          }
           : {
-              type: value as "expense" | "income",
-              amount: 0,
-              transaction_datetime: new Date(),
-              description: "",
-              category_id: "",
-              account_id: "",
-              details: {
-                payment_medium: "",
-                location: "",
-                note: "",
-                payment_status: "completed",
-              },
-            }
+            type: value as "expense" | "income",
+            amount: 0,
+            transaction_datetime: new Date(),
+            description: "",
+            category_id: "",
+            account_id: "",
+            details: {
+              payment_medium: "",
+              location: "",
+              note: "",
+              payment_status: "completed",
+            },
+          }
       );
     },
     [form, transfertCatID]
