@@ -1,11 +1,32 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/core/components/ui/dialog";
 import { Button } from "@/core/components/ui/button";
 import { Card } from "@/core/components/ui/card";
-import { Plus } from "lucide-react";
-import chartTypes from "./add-chart.data";
+import { BarChart, LineChart, PieChart, Plus, TrendingUp } from "lucide-react";
+
+interface ChartTypeCardProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}
+
+const ChartTypeCard: React.FC<ChartTypeCardProps> = ({ title, description, icon, onClick }) => {
+  return (
+    <div
+      className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+      onClick={onClick}
+    >
+      <div className="mb-2 text-primary">{icon}</div>
+      <h3 className="font-medium">{title}</h3>
+      <p className="text-sm text-gray-500 text-center mt-1">{description}</p>
+    </div>
+  );
+};
+
+
 
 interface AddChartDialogProps {
-  onAddChart: (type: string) => void;
+  onAddChart: (type: string, title?: string) => void;
 }
 
 //TODO: Better look + chart preview
@@ -19,20 +40,35 @@ export function AddChartDialog({ onAddChart }: AddChartDialogProps) {
           </Button>
         </Card>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Add New Chart</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          {chartTypes.map((chart) => (
-            <Button key={chart.id} variant="outline" className="flex h-auto flex-col gap-2 p-4" onClick={() => onAddChart(chart.id)}>
-              <div className="flex w-full items-center gap-2">
-                <chart.icon className="h-5 w-5" />
-                <span className="font-semibold">{chart.name}</span>
-              </div>
-              <p className="text-muted-foreground text-sm">{chart.description}</p>
-            </Button>
-          ))}
+          <ChartTypeCard
+            title="Line Chart"
+            description="Track changes over time"
+            icon={<LineChart className="h-8 w-8" />}
+            onClick={() => onAddChart('line', "Line Chart")}
+          />
+          <ChartTypeCard
+            title="Bar Chart"
+            description="Compare values across categories"
+            icon={<BarChart className="h-8 w-8" />}
+            onClick={() => onAddChart('bar', "Bar Chart")}
+          />
+          <ChartTypeCard
+            title="Area Chart"
+            description="Show cumulative totals over time"
+            icon={<TrendingUp className="h-8 w-8" />}
+            onClick={() => onAddChart('area', "Area Chart")}
+          />
+          <ChartTypeCard
+            title="Pie Chart"
+            description="Show proportions of a whole"
+            icon={<PieChart className="h-8 w-8" />}
+            onClick={() => onAddChart('pie', "Pie Chart")}
+          />
         </div>
       </DialogContent>
     </Dialog>
