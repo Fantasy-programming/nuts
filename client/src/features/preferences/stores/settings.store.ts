@@ -53,7 +53,7 @@ interface SettingsState {
   addTag: (tag: Omit<Tag, "id">) => void;
   updateTag: (id: string, tag: Partial<Tag>) => void;
   deleteTag: (id: string) => void;
-  addCategory: (category: Omit<Category, "id">) => void;
+  addCategory: (category: Omit<Category, "id" | "subcategories">) => void;
   updateCategory: (id: string, category: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
   addSubcategory: (categoryId: string, name: string) => void;
@@ -127,9 +127,9 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
       categories: state.categories.map((c) =>
         c.id === categoryId
           ? {
-              ...c,
-              subcategories: [...c.subcategories, { id: crypto.randomUUID(), name }],
-            }
+            ...c,
+            subcategories: [...c.subcategories, { id: crypto.randomUUID(), name }],
+          }
           : c
       ),
     })),
@@ -138,9 +138,9 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
       categories: state.categories.map((c) =>
         c.id === categoryId
           ? {
-              ...c,
-              subcategories: c.subcategories.map((s) => (s.id === subcategoryId ? { ...s, name } : s)),
-            }
+            ...c,
+            subcategories: c.subcategories.map((s) => (s.id === subcategoryId ? { ...s, name } : s)),
+          }
           : c
       ),
     })),
@@ -149,9 +149,9 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
       categories: state.categories.map((c) =>
         c.id === categoryId
           ? {
-              ...c,
-              subcategories: c.subcategories.filter((s) => s.id !== subcategoryId),
-            }
+            ...c,
+            subcategories: c.subcategories.filter((s) => s.id !== subcategoryId),
+          }
           : c
       ),
     })),
