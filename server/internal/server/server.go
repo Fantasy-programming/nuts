@@ -181,8 +181,14 @@ func (s *Server) NewValidator() {
 }
 
 func (s *Server) NewI18n() {
-	projectRoot := filepath.Dir(os.Getenv("PWD"))
-	localesDir := filepath.Join(projectRoot, "server", "locales")
+	var localesDir string
+
+	if os.Getenv("ENVIRONMENT") == "production" {
+		localesDir = filepath.Join(os.Getenv("PWD"), "locales")
+	} else {
+		projectRoot := filepath.Dir(os.Getenv("PWD"))
+		localesDir = filepath.Join(projectRoot, "server", "locales")
+	}
 
 	i18nInstance, err := i18n.New(i18n.Config{
 		DefaultLanguage: "en",

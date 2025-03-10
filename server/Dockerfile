@@ -20,6 +20,9 @@ FROM gcr.io/distroless/static-debian12:nonroot
 
 LABEL com.example.maintainers="Rich <ridy@example.com>"
 
+WORKDIR /usr/bin/local 
+
+COPY --from=src /go/src/app/locales /usr/bin/local/locales
 COPY --from=src /go/src/app/server /usr/bin/local/server
 COPY --from=src /go/src/app/healthcheck /usr/bin/local/healthcheck
 
