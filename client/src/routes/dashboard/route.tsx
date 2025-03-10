@@ -1,13 +1,12 @@
-import { createFileRoute, Outlet, type ParseRoute, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
-import { cn } from "@/lib/utils";
-import type { routeTree } from "@/routeTree.gen";
-import { useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
+import { createFileRoute, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
+import { cn } from "@/lib/utils"
+import type { FileRoutesByTo } from "@/routeTree.gen";
+import { useState, useCallback } from "react";
+import { useHotkeys } from 'react-hotkeys-hook'
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   ChevronDown,
   ChartColumn,
-  Frame,
   LayoutGrid,
   LogOut,
   Moon,
@@ -22,7 +21,6 @@ import {
   type LucideIcon,
   Bell,
 } from "lucide-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
 import {
   DropdownMenu,
@@ -49,6 +47,9 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/core/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/core/components/ui/button";
@@ -57,8 +58,11 @@ import { RecordsDialog } from "./-components/Records/records-dialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTransaction } from "@/features/transactions/services/transaction";
 import { RecordCreateSchema } from "@/features/transactions/services/transaction.types";
+import { usePluginStore } from "@/lib/plugin-store";
+import { renderIcon } from "@/core/components/icon-picker";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/core/components/ui/collapsible";
 
-export type ValidRoutes = ParseRoute<typeof routeTree>["to"];
+export type ValidRoutes = keyof FileRoutesByTo;
 
 type navStuff = {
   title: string;
@@ -99,24 +103,21 @@ const navMain: navStuff[] = [
     url: "/dashboard/analytics",
     icon: ChartColumn,
   },
-];
-
-const plugins = [
   {
-    name: "Real Estate",
-    url: "#",
-    icon: Frame,
+    title: "Plugins",
+    url: "/dashboard/plugins",
+    icon: ChartColumn,
   },
 ];
 
 function DashboardWrapper() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const router = useRouterState();
   const { logout } = useAuth();
 
   const [theme, setTheme] = useState("light");
   const [isOpen, setIsOpen] = useState(false);
+
 
   const createMutation = useMutation({
     mutationFn: createTransaction,
@@ -125,14 +126,15 @@ function DashboardWrapper() {
     },
   });
 
-  const onSubmit = (values: RecordCreateSchema) => {
+  const onSubmit = useCallback((values: RecordCreateSchema) => {
     createMutation.mutate(values);
-  };
+  }, [createMutation]);
 
-  const onLogout = async () => {
-    await logout();
-    navigate({ to: "/login" });
-  };
+
+  const onLogout = useCallback(async () => {
+    await logout()
+    navigate({ to: "/login" })
+  }, [logout, navigate]);
 
   useHotkeys(
     "g+d",
@@ -158,13 +160,9 @@ function DashboardWrapper() {
     []
   );
 
-  useHotkeys(
-    "g+a",
-    () => {
-      navigate({ to: "/dashboard/analytics" });
-    },
-    []
-  );
+  useHotkeys('g+a', () => {
+    navigate({ to: "/dashboard/analytics" })
+  }, [])
 
   useHotkeys(
     "g+s",
@@ -174,68 +172,17 @@ function DashboardWrapper() {
     []
   );
 
-  useHotkeys(
-    "c",
-    () => {
-      setIsOpen(!isOpen);
-    },
-    [isOpen]
-  );
+  useHotkeys('c', () => {
+    setIsOpen(!isOpen)
+  }, [isOpen])
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Nuts Finance">
-                <div className="flex items-center gap-2">
-                  <div className="bg-sidebar text-sidebar-primary-foreground flex aspect-square items-center justify-center rounded-lg">
-                    <Nut className="size-4" />
-                  </div>
-                  <span className="font-semibold group-data-[collapsible=icon]:hidden">Nuts Finance</span>
-                </div>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
+      <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0" >
+        <SideBHeader/>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>General</SidebarGroupLabel>
-            <SidebarMenu>
-              {navMain.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title} className="px-6">
-                    <Link
-                      to={item.url}
-                      className={cn(
-                        "flex w-full items-center justify-start gap-3 text-sm text-gray-950/60 transition-all hover:shadow-sm",
-                        router.location.pathname === item.url ? "bg-sidebar-accent shadow-sm" : ""
-                      )}
-                    >
-                      {item.icon && <item.icon className="size-4 stroke-2 font-medium" />}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-          <SidebarGroup>
-            <SidebarGroupLabel>Plugins</SidebarGroupLabel>
-            <SidebarMenu>
-              {plugins.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild className="px-4">
-                    <Link to={item.url} className="flex items-center">
-                      <item.icon className="size-4" />
-                      <span className="ml-2">{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+          <SideBMainLinks/>
+          <SideBPluginsLinks/>
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
@@ -322,4 +269,115 @@ function DashboardWrapper() {
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+const SideBHeader = () => {
+  return (
+            <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" tooltip="Nuts Finance">
+                <div className="flex items-center gap-2">
+                  <div className="flex aspect-square items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
+                    <Nut className="size-4" />
+                  </div>
+                  <span className="font-semibold group-data-[collapsible=icon]:hidden">
+                    Nuts Finance
+                  </span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+  )
+}
+
+const SideBMainLinks = () => {
+    const router = useRouterState();
+  return (
+        <SidebarGroup>
+            <SidebarGroupLabel>General</SidebarGroupLabel>
+    <SidebarMenu>
+        {navMain.map((item) => (
+            <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    className="px-6"
+                  >
+                    <Link to={item.url} className={cn(
+                      "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                      router.location.pathname === item.url ? "bg-sidebar-accent shadow-sm" : ""
+                    )}
+                    >
+                      {item.icon && <item.icon className="size-4 font-medium stroke-2" />}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+              </SidebarGroup>
+  )
+}
+
+const SideBPluginsLinks = () => {
+  const getEnabledPluginConfigs  = usePluginStore(state => state.getEnabledPluginConfigs); // plugin routes
+  const plugins = getEnabledPluginConfigs()
+  const router = useRouterState();
+
+  return (
+
+    plugins.length > 0 && (
+    <SidebarGroup>
+            <SidebarGroupLabel>Plugins</SidebarGroupLabel>
+            <SidebarMenu>
+                <Collapsible defaultOpen={false} className="group/collapsible">
+              {
+                plugins.map((item) => {
+                  return item.routeConfigs.map((route) => {
+                    return (
+                      <SidebarMenuItem key={route.label}>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton asChild className="px-6" tooltip={route.label} >
+                            <Link to={`/dashboard${route.path}`} className={cn(
+                          "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                          router.location.pathname === `/dashboard${route.path}` ? "bg-sidebar-accent shadow-sm" : ""
+                        )}>
+                              {renderIcon(route.iconName)}
+                              <span className="ml-2">{route.label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        {
+                          route?.subroutes  ? (
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {route.subroutes.map((item) => (
+                                <SidebarMenuSubItem>
+                                  <SidebarMenuSubButton asChild>
+                                          <Link to={`/dashboard${item.path}`} className={cn(
+                          "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                          router.location.pathname === `/dashboard${item.path}` ? "bg-sidebar-accent shadow-sm" : ""
+                        )}>
+                              <span className="ml-2">{item.label}</span>
+                            </Link>
+                                  </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                  ))}
+
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                          ) : null
+                        }
+
+                      </SidebarMenuItem>
+                    );
+                  });
+                })
+              }
+              </Collapsible>
+            </SidebarMenu>
+          </SidebarGroup>)
+  )
 }
