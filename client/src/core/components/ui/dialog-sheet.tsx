@@ -1,22 +1,17 @@
 "use client";
 
 import type React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Dialog, DialogContent, DialogTrigger } from "@/core/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/core/components/ui/drawer";
 import { useIsMobile } from "../../hooks/use-mobile";
 
-interface ResponsiveDialogProps {
-  children: React.ReactNode;
+interface ResponsiveDialog extends React.ComponentProps<typeof DialogPrimitive.Root> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-interface SubComponents {
-  Trigger: React.FC<{ children: React.ReactNode }>;
-  Content: React.FC<{ children: React.ReactNode }>;
-}
-
-const ResponsiveDialog: React.FC<ResponsiveDialogProps> & SubComponents = ({ children, open, onOpenChange }) => {
+const ResponsiveDialog = ({ children, open, onOpenChange }: ResponsiveDialog) => {
   const isMobile = useIsMobile();
 
   if (isMobile) {
@@ -34,7 +29,7 @@ const ResponsiveDialog: React.FC<ResponsiveDialogProps> & SubComponents = ({ chi
   );
 };
 
-ResponsiveDialog.Trigger = ({ children }) => {
+const ResponsiveDialogTrigger = ({ children }: React.ComponentProps<typeof DialogPrimitive.Trigger>) => {
   const isMobile = useIsMobile();
 
   if (isMobile) {
@@ -44,7 +39,7 @@ ResponsiveDialog.Trigger = ({ children }) => {
   return <DialogTrigger asChild>{children}</DialogTrigger>;
 };
 
-ResponsiveDialog.Content = ({ children }) => {
+const ResponsiveDialogContent = ({ children }: React.ComponentProps<typeof DialogPrimitive.Content>) => {
   const isMobile = useIsMobile();
 
   if (isMobile) {
@@ -62,4 +57,4 @@ ResponsiveDialog.Content = ({ children }) => {
   );
 };
 
-export { ResponsiveDialog };
+export { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent };

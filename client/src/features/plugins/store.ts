@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { PluginConfig, loadPlugin } from './registry';
-import { toCamelCase } from '@/lib/utils';
+import { PluginConfig, PluginConfigExternal, loadPlugin } from './registry';
 
 interface PluginState {
   pluginConfigs: PluginConfig[];
@@ -29,8 +28,7 @@ export const usePluginStore = create<PluginState>()(
         try {
           // Dynamically load the plugin
           const pluginModule = await loadPlugin(pluginId);
-          const pluginWell = toCamelCase(pluginId)
-          const pluginInterface = pluginModule[`${pluginWell}Plugin`];
+          const pluginInterface = pluginModule.default as PluginConfigExternal;
 
           if (!pluginInterface) {
             throw new Error(`Plugin ${pluginId} does not export the expected interface`);

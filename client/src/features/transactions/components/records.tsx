@@ -199,37 +199,46 @@ export const RecordsTable = () => {
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
-              {table
-                .getVisibleLeafColumns()
-                .slice(1)
-                .map((column) => {
-                  return column.id === "description" ? (
-                    <>
-                      <TableHead key={column.id} style={{ width: column.getSize() + 30 }}>
-                        <div className="flex w-[50px] items-center space-x-2 pl-4">
-                          <div className="flex items-center space-x-1">
-                            <Checkbox
-                              checked={table.getIsAllPageRowsSelected()}
-                              onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                              aria-label="Select all"
-                              className="translate-y-[2px]"
-                            />
-                            <button onClick={toggleAllGroups} className="p-1">
-                              {openGroups.size === filteredGroups.length ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            </button>
-                          </div>
-                          <span>{flexRender(column.columnDef.header, {})} </span>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.slice(1).map((header) => {
+                  return header.id === "description" ? (
+                    <TableHead key={header.id} style={{ width: header.getSize() + 30 }}>
+                      <div className="flex w-[50px] items-center space-x-2 pl-4">
+                        <div className="flex items-center space-x-1">
+                          <Checkbox
+                            checked={table.getIsAllPageRowsSelected()}
+                            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                            aria-label="Select all"
+                            className="translate-y-[2px]"
+                          />
+                          <button onClick={toggleAllGroups} className="p-1">
+                            {openGroups.size === filteredGroups.length ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </button>
                         </div>
-                      </TableHead>
-                    </>
-                  ) : (
-                    <TableHead key={column.id} style={{ width: column.getSize() }}>
-                      {flexRender(column.columnDef.header, {})}
+                        <span>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                        </span>
+                      </div>
                     </TableHead>
-                  );
+                  ) : (
+                    <TableHead key={header.id} style={{ width: header.getSize() }}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                    </TableHead>
+                  )
                 })}
-            </TableRow>
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
             {filteredGroups.map((group) => (

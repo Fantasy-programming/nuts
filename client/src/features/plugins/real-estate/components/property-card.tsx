@@ -154,11 +154,11 @@ export const PropertyCard = React.memo(({ property }: PropertyCardProps) => {
                         <div className="grid gap-2">
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Monthly Rent:</span>
-                            <span className="font-medium">${property.rental?.monthlyRent.toLocaleString()}</span>
+                            <span className="font-medium">${property.rental?.monthlyRent?.toLocaleString() || 0}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Annual Income:</span>
-                            <span className="font-medium">${(property.rental?.monthlyRent * 12).toLocaleString()}</span>
+                            <span className="font-medium">${((property.rental?.monthlyRent || 0) * 12).toLocaleString()}</span>
                           </div>
                         </div>
                         <div className="grid gap-2">
@@ -169,7 +169,7 @@ export const PropertyCard = React.memo(({ property }: PropertyCardProps) => {
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Cash Flow:</span>
                             <span className="font-medium text-green-500">
-                              ${(property.rental?.monthlyRent - (property.mortgage?.monthlyPayment || 0)).toLocaleString()}/mo
+                              ${((property.rental?.monthlyRent || 0) - (property.mortgage?.monthlyPayment || 0)).toLocaleString()}/mo
                             </span>
                           </div>
                         </div>
@@ -226,7 +226,7 @@ export const PropertyCard = React.memo(({ property }: PropertyCardProps) => {
           {property.type === 'rental' ? (
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Monthly Rent</div>
-              <div className="font-semibold">${property.rental?.monthlyRent.toLocaleString()}</div>
+              <div className="font-semibold">${property.rental?.monthlyRent?.toLocaleString() || 0}</div>
             </div>
           ) : (
             <div className="space-y-1">

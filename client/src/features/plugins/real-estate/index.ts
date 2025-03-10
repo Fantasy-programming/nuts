@@ -7,10 +7,11 @@ import { Settings } from './pages/settings';
 import { PropertyValueChart } from './components/property-value-chart';
 import { RentalIncomeChart } from './components/rental-income-chart';
 import { MortgagePaymentChart } from './components/morgage-payment-chart';
+import { PluginConfigExternal } from '../registry';
 
 
 // Export the plugin configuration
-export const realEstatePlugin = {
+export default {
   id: 'real-estate',
   name: 'Real Estate',
   description: 'Track and manage your real estate investments',
@@ -69,7 +70,7 @@ export const realEstatePlugin = {
     },
   ],
   settings: Settings,
-};
+} as PluginConfigExternal;
 
 // Also export all components individually to support dynamic imports
 export { Overview };

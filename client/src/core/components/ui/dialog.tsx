@@ -110,7 +110,7 @@ function InnerDialog({ children, ...props }: React.ComponentProps<typeof DialogP
     return () => {
       document.removeEventListener("keydown", handleEscapeKeyDown);
     };
-  }, [context.innerOpen, context.setInnerOpen]);
+  }, [context.innerOpen, context.setInnerOpen, context]);
 
   return (
     <DialogPrimitive.Root data-slot="sub-dialog" open={context.innerOpen} onOpenChange={context.setInnerOpen} {...props}>

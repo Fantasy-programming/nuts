@@ -5,6 +5,7 @@ import type { AuthNullable } from "../services/auth.types";
 import { Context } from "./auth.context";
 import { userService } from "@/features/preferences/services/user";
 import { AxiosError, AxiosRequestConfig } from "axios";
+import { Spinner } from "@/core/components/ui/spinner";
 
 // Define proper types for error responses
 interface ApiErrorResponse {
@@ -233,11 +234,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     </div>
   );
 
-  const LoadingComponent = () => (
-    <div className="flex justify-center items-center h-screen">
-      Loading...
-    </div>
-  );
 
   // Memoize context value
   const contextValue = useMemo(() => ({
@@ -253,7 +249,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const renderContent = () => {
     // Only show loading or fallback on dashboard routes
     if (isDashboardRoute()) {
-      if (isLoading) return <LoadingComponent />;
+      if (isLoading) return <Spinner />;
       if (showFallback) return <FallbackComponent />;
     }
 

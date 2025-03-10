@@ -208,7 +208,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>From Account</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={loadingAct}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select account" />
@@ -247,7 +247,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={loadingCtg}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />

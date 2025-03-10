@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ChartItem, ChartSize } from '@/core/components/chart-card';
+import { ChartItem, ChartSize } from '@/features/dashboard/components/chart-card';
 
 
 // Sample data for different chart types
