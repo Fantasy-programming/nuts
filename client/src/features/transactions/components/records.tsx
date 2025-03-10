@@ -18,9 +18,9 @@ import { Checkbox } from "@/core/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/core/components/ui/dropdown-menu";
 import { Input } from "@/core/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/core/components/ui/table";
-import { RecordsFilters } from "./records-filters";
+import { RecordsFilters } from "./records.filters";
 import { useMemo, useState, useEffect, Fragment, useCallback } from "react";
-import { formatDate } from "@/lib/date";
+import { formatDate } from "@/lib/utils";
 import { recordsTableColumns } from "./records.column";
 
 export const RecordsTable = () => {
@@ -33,7 +33,7 @@ export const RecordsTable = () => {
 
   const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
   const [accountFilters, setAccountFilters] = useState<string[]>([]);
-  const [dateRangeFilter, setDateRangeFilter] = useState<string>("");
+  const [, setDateRangeFilter] = useState<string>("");
   const [searchFilter, setSearchFilter] = useState("");
 
   const {
@@ -91,13 +91,6 @@ export const RecordsTable = () => {
     });
   }, []);
 
-  const toggleAllGroups = useCallback(() => {
-    if (openGroups.size === filteredGroups.length) {
-      setOpenGroups(new Set());
-    } else {
-      setOpenGroups(new Set(filteredGroups.map((g) => g.id)));
-    }
-  }, []);
 
   const filteredGroups = useMemo(() => {
     return transactions
@@ -137,6 +130,14 @@ export const RecordsTable = () => {
     setSearchFilter("");
     table.resetColumnFilters();
   };
+
+  const toggleAllGroups = useCallback(() => {
+    if (openGroups.size === filteredGroups.length) {
+      setOpenGroups(new Set());
+    } else {
+      setOpenGroups(new Set(filteredGroups.map((g) => g.id)));
+    }
+  }, [filteredGroups, openGroups.size]);
 
   const categories = useMemo(() => Array.from(new Set(allTransactions.map((t) => t.category.id))), [allTransactions]);
 

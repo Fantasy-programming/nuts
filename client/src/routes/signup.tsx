@@ -2,10 +2,11 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { authService } from "@/features/auth/services/auth";
-import { type SignupFormValues, signupSchema } from "@/features/auth/services/auth.types";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+
+import { authService } from "@/features/auth/services/auth";
+import { type SignupFormValues, signupSchema } from "@/features/auth/services/auth.types";
 
 import { Card, CardTitle, CardContent, CardHeader, CardDescription } from "@/core/components/ui/card";
 import { Separator } from "@/core/components/ui/separator";

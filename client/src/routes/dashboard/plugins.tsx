@@ -1,8 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
-import { usePluginStore } from '@/lib/plugin-store';
-import { loadComponent } from '@/lib/component-loader';
-import { renderIcon } from '@/core/components/icon-picker';
+import { Search, Download, X, Settings } from 'lucide-react';
+
 import { Button } from '@/core/components/ui/button';
 import {
   Card,
@@ -23,8 +22,12 @@ import {
 } from '@/core/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
 import { Input } from '@/core/components/ui/input';
-import { Search, Download, X, Settings } from 'lucide-react';
-import { initializeBuiltInPlugins, PluginConfig } from '@/lib/plugin-registry';
+
+import { loadComponent } from '@/features/plugins/loader';
+import { renderIcon } from '@/core/components/icon-picker';
+
+import { usePluginStore } from '@/features/plugins/store';
+import { initializeBuiltInPlugins, PluginConfig } from '@/features/plugins/registry';
 
 export const Route = createFileRoute('/dashboard/plugins')({
   component: PluginManager,
@@ -38,9 +41,8 @@ export function PluginManager() {
   const removePlugin = usePluginStore(state => state.removePlugin)
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('installed');
 
-  const filteredPlugins = useMemo(() => 
+  const filteredPlugins = useMemo(() =>
     pluginConfigs.filter((plugin) =>
       plugin.name.toLowerCase().includes(searchTerm.toLowerCase())
     ),
@@ -56,7 +58,7 @@ export function PluginManager() {
     }
   }, [disablePlugin, enablePlugin]);
 
-    // Ensure built-in plugins are registered
+  // Ensure built-in plugins are registered
   useEffect(() => {
     initializeBuiltInPlugins();
   }, []);
@@ -77,7 +79,7 @@ export function PluginManager() {
         </div>
       </div>
 
-      <Tabs defaultValue="installed" onValueChange={setActiveTab}>
+      <Tabs defaultValue="installed">
         <TabsList>
           <TabsTrigger value="installed">Installed</TabsTrigger>
           <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
@@ -117,10 +119,10 @@ const PluginCard = React.memo(({
   onToggle: (id: string, enabled: boolean) => void;
   onRemove: (id: string) => void;
 }) => {
-const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   // Create a local Icon component variable to ensure proper rendering
 
-    const SettingsComponent = pluginConfig.settingsComponentPath 
+  const SettingsComponent = pluginConfig.settingsComponentPath
     ? loadComponent(pluginConfig.settingsComponentPath)
     : null;
 
@@ -129,7 +131,7 @@ const [showSettings, setShowSettings] = useState(false);
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {renderIcon(pluginConfig.iconName, {className: "h-5 w-5"})}
+            {renderIcon(pluginConfig.iconName, { className: "h-5 w-5" })}
             <CardTitle className="text-lg">{pluginConfig.name}</CardTitle>
           </div>
           <Badge variant={pluginConfig.enabled ? 'default' : 'outline'}>
@@ -234,7 +236,7 @@ function MarketplaceContent() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                            {renderIcon(plugin.iconName, {className: "h-5 w-5"})}
+                  {renderIcon(plugin.iconName, { className: "h-5 w-5" })}
                   <CardTitle className="text-lg">{plugin.name}</CardTitle>
                 </div>
                 <Badge>v{plugin.version}</Badge>

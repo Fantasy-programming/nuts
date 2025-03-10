@@ -1,4 +1,3 @@
-// plugins/real-estate/index.ts
 import { Home, Building, Map as MapIcon, LineChart } from 'lucide-react';
 import { Overview } from './pages/overview';
 import { Properties } from './pages/properties';
@@ -29,16 +28,19 @@ export const realEstatePlugin = {
           path: '/real-estate/properties',
           label: 'Properties',
           component: Properties,
+          icon: Building
         },
         {
           path: '/real-estate/map',
           label: 'Map View',
           component: Map,
+          icon: MapIcon
         },
         {
           path: '/real-estate/analytics',
           label: 'Analytics',
           component: Analytics,
+          icon: LineChart
         },
       ],
     },

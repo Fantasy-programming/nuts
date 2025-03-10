@@ -3,15 +3,17 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { useAuth } from "@/features/auth/hooks/use-auth";
 import { createFileRoute, Link, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth.types";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { Separator } from "@/core/components/ui/separator";
-import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth.types";
+import IconFull from "@/core/assets/icons/IconFull"
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
@@ -85,10 +87,10 @@ function RouteComponent() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-sm space-y-8"
+        className="relative z-10 w-full max-w-sm "
       >
         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} className="flex justify-center">
-          <img src="/placeholder.svg?height=32&width=120" alt="Logo" className="h-8 drop-shadow-lg" />
+          <IconFull className="w-24 h-24" fill="#fff" />
         </motion.div>
 
         <Card className="w-full bg-white/90 shadow-2xl backdrop-blur-sm">

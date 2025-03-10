@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { PluginConfig, loadPlugin } from './plugin-registry';
-import { toCamelCase } from './utils';
+import { PluginConfig, loadPlugin } from './registry';
+import { toCamelCase } from '@/lib/utils';
 
 interface PluginState {
   pluginConfigs: PluginConfig[];
@@ -19,23 +19,23 @@ export const usePluginStore = create<PluginState>()(
     (set, get) => ({
       pluginConfigs: [],
       installedPluginIds: [],
-      
+
       addPlugin: async (pluginId) => {
         // Check if already installed
         if (get().installedPluginIds.includes(pluginId)) {
           return;
         }
-        
+
         try {
           // Dynamically load the plugin
           const pluginModule = await loadPlugin(pluginId);
           const pluginWell = toCamelCase(pluginId)
           const pluginInterface = pluginModule[`${pluginWell}Plugin`];
-          
+
           if (!pluginInterface) {
             throw new Error(`Plugin ${pluginId} does not export the expected interface`);
           }
-          
+
           console.log(pluginInterface)
           // Convert from plugin interface to storable config
           const pluginConfig: PluginConfig = {
@@ -50,25 +50,25 @@ export const usePluginStore = create<PluginState>()(
               path: route.path,
               label: route.label,
               iconName: route.icon.name || 'Route',
-              componentPath: `../plugins/${pluginId}/pages/${route.component.name.toLowerCase()}.tsx`,
+              componentPath: `./${pluginId}/pages/${route.component.name.toLowerCase()}.tsx`,
               subroutes: route.subroutes?.map(subroute => ({
                 path: subroute.path,
                 label: subroute.label,
-                componentPath: `../plugins/${pluginId}/pages/${subroute.component.name.toLowerCase()}.tsx`,
+                componentPath: `./${pluginId}/pages/${subroute.component.name.toLowerCase()}.tsx`,
               })),
             })),
             chartConfigs: pluginInterface.charts.map(chart => ({
               id: chart.id,
               type: chart.type,
               title: chart.title,
-              componentPath: `../plugins/${pluginId}/components/${chart.component.name.toLowerCase()}`,
+              componentPath: `./${pluginId}/components/${chart.component.name.toLowerCase()}`,
               defaultSize: chart.defaultSize,
             })),
-            settingsComponentPath: pluginInterface.settings 
-              ? `../plugins/${pluginId}/pages/${pluginInterface.settings.name.toLowerCase()}.tsx`
+            settingsComponentPath: pluginInterface.settings
+              ? `./${pluginId}/pages/${pluginInterface.settings.name.toLowerCase()}.tsx`
               : undefined,
           };
-          
+
           set((state) => ({
             pluginConfigs: [...state.pluginConfigs, pluginConfig],
             installedPluginIds: [...state.installedPluginIds, pluginId],
@@ -77,14 +77,14 @@ export const usePluginStore = create<PluginState>()(
           console.error(`Failed to load plugin ${pluginId}:`, error);
         }
       },
-      
+
       removePlugin: (id) => {
         set((state) => ({
           pluginConfigs: state.pluginConfigs.filter((config) => config.id !== id),
           installedPluginIds: state.installedPluginIds.filter((pluginId) => pluginId !== id),
         }));
       },
-      
+
       enablePlugin: (id) => {
         set((state) => ({
           pluginConfigs: state.pluginConfigs.map((config) =>
@@ -92,7 +92,7 @@ export const usePluginStore = create<PluginState>()(
           ),
         }));
       },
-      
+
       disablePlugin: (id) => {
         set((state) => ({
           pluginConfigs: state.pluginConfigs.map((config) =>
@@ -100,11 +100,11 @@ export const usePluginStore = create<PluginState>()(
           ),
         }));
       },
-      
+
       getEnabledPluginConfigs: () => {
         return get().pluginConfigs.filter((config) => config.enabled);
       },
-      
+
       getPluginConfigById: (id) => {
         return get().pluginConfigs.find((config) => config.id === id);
       },

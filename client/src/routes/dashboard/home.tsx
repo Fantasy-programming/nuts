@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useDashboardStore, type chartTemplates } from "@/features/dashboard/stores/dashboard.store";
-import { DashboardGrid } from "./-components/Dashboard/dashboard-grid";
-import { AddChartDialog } from "@/core/components/add-chart/add-chart";
-import { DataChart } from "@/core/components/chart-card";
 
+import { useDashboardStore, type chartTemplates } from "@/features/dashboard/stores/dashboard.store";
+import { AddChartDialog } from "@/features/dashboard/components/add-chart";
+import { DataChart } from "@/features/dashboard/components/chart-card";
+import { DashboardGrid } from "@/features/dashboard/components/dashboard-grid";
 
 export const Route = createFileRoute("/dashboard/home")({
   component: RouteComponent,

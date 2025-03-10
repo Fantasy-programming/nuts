@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RecordsTable } from "./-components/Records/records";
 import { Suspense } from "react";
+
+import { RecordsTable } from "@/features/transactions/components/records";
 import { Spinner } from "@/core/components/ui/spinner";
 
 export const Route = createFileRoute("/dashboard/records")({

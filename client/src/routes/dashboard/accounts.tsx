@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { accountService } from "@/features/accounts/services/account";
-
-import { AccountList } from "./-components/Accounts/Account";
-import { AccountSchema } from "./-components/Accounts/Account.type";
 import { Suspense } from "react";
+
 import { Spinner } from "@/core/components/ui/spinner";
+import { accountService } from "@/features/accounts/services/account";
+import { AccountList } from "@/features/accounts/components/Account";
+import { AccountSchema } from "@/features/accounts/components/Account.type";
 
 export const Route = createFileRoute("/dashboard/accounts")({
   component: RouteComponent,

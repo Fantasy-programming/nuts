@@ -17,10 +17,10 @@ export const Route = createFileRoute("/dashboard_/settings/categories")({
 });
 
 function RouteComponent() {
-  const { categories, addCategory, updateCategory, deleteCategory, addSubcategory, deleteSubcategory } = useSettingsStore();
+  const { categories, addCategory, deleteCategory, addSubcategory, deleteSubcategory } = useSettingsStore();
   const [isOpen, setIsOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: "", icon: "" });
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [, setEditingCategory] = useState<string | null>(null);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [addingSubcategoryFor, setAddingSubcategoryFor] = useState<string | null>(null);
 

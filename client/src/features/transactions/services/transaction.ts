@@ -5,7 +5,6 @@ const BASEURI = "/transactions";
 
 export const getTransactions = async (): Promise<GrouppedRecordsArraySchema> => {
   const { data } = await axios.get<GrouppedRecordsArraySchema>(`${BASEURI}/`);
-  console.log(data);
   return grouppedRecordsArraySchema.parse(data);
 };
 

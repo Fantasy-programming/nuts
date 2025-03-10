@@ -1,9 +1,8 @@
-// Types for the serializable plugin metadata
 export interface PluginRouteConfig {
   path: string;
   label: string;
-  iconName: string; // Store icon name instead of component
-  componentPath: string; // Path to dynamically import the component
+  iconName: string;
+  componentPath: string;
   subroutes?: {
     path: string;
     label: string;
@@ -33,15 +32,15 @@ export interface PluginConfig {
 }
 
 // Registry to map plugin IDs to their module loaders
-const pluginRegistry = new Map<string, () => Promise<any>>();
+const pluginRegistry = new Map<string, () => Promise<unknown>>();
 
 // Register a plugin loader function
-export function registerPlugin(pluginId: string, importFn: () => Promise<any>) {
+export function registerPlugin(pluginId: string, importFn: () => Promise<unknown>) {
   pluginRegistry.set(pluginId, importFn);
 }
 
 // Load a plugin by ID
-export async function loadPlugin(pluginId: string): Promise<any> {
+export async function loadPlugin(pluginId: string): Promise<unknown> {
   const loader = pluginRegistry.get(pluginId);
   if (!loader) {
     throw new Error(`Plugin ${pluginId} not registered`);
@@ -49,9 +48,8 @@ export async function loadPlugin(pluginId: string): Promise<any> {
   return loader();
 }
 
+// Register known plugins
 // Initialize built-in plugins
 export function initializeBuiltInPlugins() {
-  // Register known plugins
-  registerPlugin('real-estate', () => import('@/plugins/real-estate'));
-  // Add other built-in plugins here
+  registerPlugin('real-estate', () => import('@/features/plugins/real-estate'));
 }
