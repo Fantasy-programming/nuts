@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
@@ -125,12 +126,20 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	secure := false
+
+	host := os.Getenv("ENVIRONMENT")
+
+	if host == "production" {
+		secure = true
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    tokenPair.AccessToken,
 		HttpOnly: true,
 		Path:     "/",
-		// Secure:   true,
+		Secure:   secure,
 		SameSite: http.SameSiteStrictMode,
 		Expires:  time.Now().Add(15 * time.Minute),
 	})
@@ -140,7 +149,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		Value:    tokenPair.RefreshToken,
 		HttpOnly: true,
 		Path:     "/",
-		// Secure:   true,
+		Secure:   secure,
 		SameSite: http.SameSiteStrictMode,
 		Expires:  time.Now().Add(7 * 24 * time.Hour),
 	})
@@ -313,13 +322,21 @@ func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	secure := false
+
+	host := os.Getenv("ENVIRONMENT")
+
+	if host == "production" {
+		secure = true
+	}
+
 	// Set new cookies
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    tokenPair.AccessToken,
 		HttpOnly: true,
 		Path:     "/",
-		// Secure:   true,
+		Secure:   secure,
 		SameSite: http.SameSiteStrictMode,
 		Expires:  time.Now().Add(15 * time.Minute),
 	})
@@ -329,7 +346,7 @@ func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 		Value:    tokenPair.RefreshToken,
 		HttpOnly: true,
 		Path:     "/",
-		// Secure:   true,
+		Secure:   secure,
 		SameSite: http.SameSiteStrictMode,
 		Expires:  time.Now().Add(7 * 24 * time.Hour),
 	})
@@ -338,13 +355,21 @@ func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
+	secure := false
+
+	host := os.Getenv("ENVIRONMENT")
+
+	if host == "production" {
+		secure = true
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    "",
 		Path:     "/",
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
-		// Secure:   true,
+		Secure:   secure,
 	})
 
 	http.SetCookie(w, &http.Cookie{
@@ -353,7 +378,7 @@ func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
-		// Secure:   true,
+		Secure:   secure,
 	})
 
 	// Respond with a success message
