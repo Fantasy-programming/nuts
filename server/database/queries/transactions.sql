@@ -24,7 +24,7 @@ LIMIT 1;
 -- name: ListTransactions :many
 SELECT
     transactions.id,
-    transactions.amount, 
+    transactions.amount,
     transactions.type,
     transactions.destination_account_id,
     transactions.transaction_datetime,
@@ -44,15 +44,15 @@ WHERE
     AND (sqlc.narg('end_date')::timestamptz IS NULL OR transactions.transaction_datetime <= sqlc.narg('end_date')::timestamptz)
     AND (sqlc.narg('account_id')::uuid IS NULL OR transactions.account_id = sqlc.narg('account_id')::uuid)
 ORDER BY transactions.transaction_datetime DESC
-LIMIT CASE 
-    WHEN sqlc.narg('limit')::integer IS NULL THEN 50 
-    ELSE sqlc.narg('limit')::integer 
+LIMIT CASE
+    WHEN sqlc.narg('limit')::integer IS NULL THEN 50
+    ELSE sqlc.narg('limit')::integer
 END
 OFFSET sqlc.arg('offset')::integer;
 
 
--- SELECT    
-    
+-- SELECT
+
 -- FROM transactions
 -- JOIN categories ON transactions.category_id = categories.id
 -- JOIN accounts ON transactions.account_id = accounts.id

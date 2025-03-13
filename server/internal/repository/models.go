@@ -206,3 +206,24 @@ type UserToken struct {
 	ExpiresAt    time.Time          `json:"expires_at"`
 	LastUsedAt   pgtype.Timestamptz `json:"last_used_at"`
 }
+
+type WebhookEvent struct {
+	ID             uuid.UUID        `json:"id"`
+	SubscriptionID uuid.UUID        `json:"subscription_id"`
+	EventType      string           `json:"event_type"`
+	Payload        []byte           `json:"payload"`
+	Status         *string          `json:"status"`
+	Attempts       *int32           `json:"attempts"`
+	LastAttempt    pgtype.Timestamp `json:"last_attempt"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+}
+
+type WebhookSubscription struct {
+	ID          uuid.UUID        `json:"id"`
+	UserID      uuid.UUID        `json:"user_id"`
+	Event       []string         `json:"event"`
+	Active      bool             `json:"active"`
+	EndpointUrl string           `json:"endpoint_url"`
+	Secret      string           `json:"secret"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+}

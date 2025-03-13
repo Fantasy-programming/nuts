@@ -11,6 +11,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/domain/tags"
 	"github.com/Fantasy-Programming/nuts/internal/domain/transactions"
 	"github.com/Fantasy-Programming/nuts/internal/domain/user"
+	"github.com/Fantasy-Programming/nuts/internal/domain/webhooks"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 )
 
@@ -23,6 +24,7 @@ func (s *Server) RegisterDomain() {
 	s.initPreferences()
 	s.initTags()
 	s.initMeta()
+	s.initWebHooks()
 	s.initVersion()
 	s.initHealth()
 }
@@ -53,13 +55,18 @@ func (s *Server) initCategory() {
 }
 
 func (s *Server) initPreferences() {
-	Preferences := preferences.Init(s.db, s.cfg, s.validator, s.logger)
+	Preferences := preferences.Init(s.db, s.cfg, s.validator, s.jwt, s.logger)
 	s.router.Mount("/preferences", Preferences.Register())
 }
 
 func (s *Server) initTags() {
-	TagsDomain := tags.Init(s.db, s.validator, s.logger)
+	TagsDomain := tags.Init(s.db, s.validator, s.jwt, s.logger)
 	s.router.Mount("/tags", TagsDomain.Register())
+}
+
+func (s *Server) initWebHooks() {
+	hooksDomain := webhooks.Init(s.db, s.validator, s.jwt, s.logger)
+	s.router.Mount("/webhooks", hooksDomain.Register())
 }
 
 func (s *Server) initMeta() {

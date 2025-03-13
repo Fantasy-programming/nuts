@@ -207,7 +207,7 @@ func (q *Queries) GetTransactionStats(ctx context.Context, arg GetTransactionSta
 const listTransactions = `-- name: ListTransactions :many
 SELECT
     transactions.id,
-    transactions.amount, 
+    transactions.amount,
     transactions.type,
     transactions.destination_account_id,
     transactions.transaction_datetime,
@@ -227,9 +227,9 @@ WHERE
     AND ($4::timestamptz IS NULL OR transactions.transaction_datetime <= $4::timestamptz)
     AND ($5::uuid IS NULL OR transactions.account_id = $5::uuid)
 ORDER BY transactions.transaction_datetime DESC
-LIMIT CASE 
-    WHEN $7::integer IS NULL THEN 50 
-    ELSE $7::integer 
+LIMIT CASE
+    WHEN $7::integer IS NULL THEN 50
+    ELSE $7::integer
 END
 OFFSET $6::integer
 `
@@ -316,7 +316,7 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 }
 
 const listTransactionsByAccount = `-- name: ListTransactionsByAccount :many
-    
+
 
 SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at
 FROM transactions

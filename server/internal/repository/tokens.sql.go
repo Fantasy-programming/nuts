@@ -33,7 +33,11 @@ func (q *Queries) DeleteUserToken(ctx context.Context, userID uuid.UUID) error {
 }
 
 const getRefreshToken = `-- name: GetRefreshToken :one
-SELECT id, user_id, refresh_token, expires_at
+SELECT
+    id,
+    user_id,
+    refresh_token,
+    expires_at
 FROM user_tokens
 WHERE user_id = $1 AND refresh_token = $2 AND expires_at > NOW()
 `

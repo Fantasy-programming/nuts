@@ -1,4 +1,4 @@
-package tags
+package webhooks
 
 import (
 	"net/http"
@@ -11,25 +11,27 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Tags struct {
+type Webhooks struct {
 	queries *repository.Queries
 	v       *validation.Validator
 	tkn     *jwt.TokenService
 	log     *zerolog.Logger
 }
 
-func Init(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.TokenService, logger *zerolog.Logger) *Tags {
+func Init(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.TokenService, logger *zerolog.Logger) *Webhooks {
 	queries := repository.New(db)
-	return &Tags{queries, validate, tkn, logger}
+	return &Webhooks{queries, validate, tkn, logger}
 }
 
-func (t *Tags) Register() http.Handler {
+func (w *Webhooks) Register() http.Handler {
 	router := router.NewRouter()
-	router.Use(t.tkn.Verify)
-	router.Get("/", t.GetTags)
-	router.Post("/", t.CreateTag)
-	router.Put("/{id}", t.UpdateTag)
-	router.Delete("/{id}", t.DeleteTag)
+	router.Use(w.tkn.Verify)
+	router.Get("/", w.GetWebhooks)
+	router.Post("/", w.CreateWebhook)
+	router.Get("/{id}", w.GetWebhook)
+	router.Put("/{id}", w.UpdateWebhook)
+	router.Delete("/{id}", w.DeleteWebhook)
+	router.Post("/{id}/test", w.TestWebhook)
 
 	return router
 }

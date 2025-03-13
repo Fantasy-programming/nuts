@@ -10,7 +10,9 @@ import (
 )
 
 const getCurrencies = `-- name: GetCurrencies :many
-SELECT code, name
+SELECT
+    code,
+    name
 FROM currencies
 `
 

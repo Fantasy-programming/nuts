@@ -1,3 +1,5 @@
 -- name: GetCurrencies :many
-SELECT *
+SELECT
+    code,
+    name
 FROM currencies;
