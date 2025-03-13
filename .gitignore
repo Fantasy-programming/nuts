@@ -38,5 +38,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.million
 tmp
 server/tmp
