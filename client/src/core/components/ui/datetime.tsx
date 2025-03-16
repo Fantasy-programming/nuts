@@ -3,8 +3,8 @@ import { Input } from "@/core/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/core/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { add, format } from "date-fns";
-import { type Locale, enUS } from "date-fns/locale";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { enUS } from "date-fns/locale";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { Clock } from "lucide-react";
 import * as React from "react";
 import { useImperativeHandle, useRef } from "react";
@@ -203,20 +203,6 @@ function display12HourValue(hours: number) {
   return `0${hours % 12}`;
 }
 
-function genMonths(locale: Pick<Locale, "options" | "localize" | "formatLong">) {
-  return Array.from({ length: 12 }, (_, i) => ({
-    value: i,
-    label: format(new Date(2021, i), "MMMM", { locale }),
-  }));
-}
-
-function genYears(yearRange = 50) {
-  const today = new Date();
-  return Array.from({ length: yearRange * 2 + 1 }, (_, i) => ({
-    value: today.getFullYear() - yearRange + i,
-    label: (today.getFullYear() - yearRange + i).toString(),
-  }));
-}
 
 // ---------- utils end ----------
 
@@ -227,20 +213,6 @@ function Calendar({
   yearRange = 50,
   ...props
 }: React.ComponentProps<typeof DayPicker> & { yearRange?: number }) {
-  const MONTHS = React.useMemo(() => {
-    let locale: Pick<Locale, "options" | "localize" | "formatLong"> = enUS;
-    const { options, localize, formatLong } = props.locale || {};
-    if (options && localize && formatLong) {
-      locale = {
-        options,
-        localize,
-        formatLong,
-      };
-    }
-    return genMonths(locale);
-  }, [props.locale]);
-
-  const YEARS = React.useMemo(() => genYears(yearRange), [yearRange]);
   const disableLeftNavigation = () => {
     const today = new Date();
     const startDate = new Date(today.getFullYear() - yearRange, 0, 1);
@@ -293,54 +265,6 @@ function Calendar({
         day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
-      }}
-      components={{
-        IconLeft: () => { <ChevronLeft className="h-4 w-4" /> },
-        IconRight: () => { <ChevronRight className="h-4 w-4" /> },
-        Caption: ({ displayMonth }) => {
-          return (
-            <div className="inline-flex gap-2">
-              <Select
-                defaultValue={displayMonth.getMonth().toString()}
-                onValueChange={(value) => {
-                  const newDate = new Date(displayMonth);
-                  newDate.setMonth(Number.parseInt(value, 10));
-                  props.onMonthChange?.(newDate);
-                }}
-              >
-                <SelectTrigger className="focus:bg-accent focus:text-accent-foreground w-fit gap-1 border-none p-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((month) => (
-                    <SelectItem key={month.value} value={month.value.toString()}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                defaultValue={displayMonth.getFullYear().toString()}
-                onValueChange={(value) => {
-                  const newDate = new Date(displayMonth);
-                  newDate.setFullYear(Number.parseInt(value, 10));
-                  props.onMonthChange?.(newDate);
-                }}
-              >
-                <SelectTrigger className="focus:bg-accent focus:text-accent-foreground w-fit gap-1 border-none p-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {YEARS.map((year) => (
-                    <SelectItem key={year.value} value={year.value.toString()}>
-                      {year.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          );
-        },
       }}
       {...props}
     />
