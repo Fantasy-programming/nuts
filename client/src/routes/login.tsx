@@ -19,6 +19,7 @@ export const Route = createFileRoute("/login")({
   component: RouteComponent,
   beforeLoad: ({ context, location }) => {
     if (context.auth.isAuthenticated) {
+      console.log(context.auth.isAuthenticated)
       throw redirect({
         to: "/dashboard/home",
         search: { redirect: location.href },

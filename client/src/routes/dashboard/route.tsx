@@ -261,6 +261,14 @@ function DashboardWrapper() {
                     <span>Add transactions</span>
                   </Button>
                 </RecordsDialog>
+                {/* Mobile FAB */}
+                <div className="fixed bottom-6 right-6 z-50 sm:hidden">
+                  <RecordsDialog onSubmit={onSubmit} open={isOpen} onOpenChange={setIsOpen}>
+                    <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
+                      <Plus className="size-6" />
+                    </Button>
+                  </RecordsDialog>
+                </div>
               </div>
             </div>
           </header>

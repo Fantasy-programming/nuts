@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/cor
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { createLazyFileRoute, Link } from "@tanstack/react-router";
+import IconFull from "@/core/assets/icons/IconFull"
 
 export const Route = createLazyFileRoute("/forgot-password")({
   component: RouteComponent,
@@ -46,7 +47,7 @@ function RouteComponent() {
         className="relative z-10 w-full max-w-sm space-y-8"
       >
         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} className="flex justify-center">
-          <img src="/placeholder.svg?height=32&width=120" alt="Logo" className="h-8 drop-shadow-lg" />
+          <IconFull className="w-24 h-24" fill="#fff" />
         </motion.div>
 
         <Card className="w-full bg-white/90 shadow-2xl backdrop-blur-sm">
