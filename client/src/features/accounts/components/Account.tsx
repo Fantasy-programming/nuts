@@ -4,14 +4,13 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Button } from "@/core/components/ui/button";
-import { DialogHeader, DialogTitle } from "@/core/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Input } from "@/core/components/ui/input";
 import { accountService } from "@/features/accounts/services/account";
 import { accountFormSchema, AccountSchema, AccountSubmit } from "./Account.type";
 import { Plus } from "lucide-react";
-import { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent } from "@/core/components/ui/dialog-sheet";
+import { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle } from "@/core/components/ui/dialog-sheet";
 import { Account } from "@/features/accounts/services/account.types";
 
 export function AccountList({ onSubmit }: { onSubmit: AccountSubmit }) {
@@ -69,9 +68,9 @@ export function AccountDialog({ onSubmit }: { onSubmit: AccountSubmit }) {
         </Card>
       </ResponsiveDialogTrigger>
       <ResponsiveDialogContent>
-        <DialogHeader className="px-4 md:p-0">
-          <DialogTitle>Create New Account</DialogTitle>
-        </DialogHeader>
+        <ResponsiveDialogHeader className="px-4 md:p-0">
+          <ResponsiveDialogTitle>Create New Account</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         <AccountForm onSubmit={onSubmit} modalChange={setIsOpen} />
       </ResponsiveDialogContent>
     </ResponsiveDialog>
