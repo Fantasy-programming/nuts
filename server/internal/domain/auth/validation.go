@@ -16,14 +16,14 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-func (a *Auth) registerValidations() {
+func RegisterValidations(v *validator.Validate) {
 	// nil checks
-	if a.v == nil || a.v.Validator == nil {
+	if v == nil {
 		return
 	}
 
 	// Register custom validations
-	a.v.Validator.RegisterValidation("strong_password", validateStrongPassword)
+	v.RegisterValidation("strong_password", validateStrongPassword)
 }
 
 func validateStrongPassword(fl validator.FieldLevel) bool {

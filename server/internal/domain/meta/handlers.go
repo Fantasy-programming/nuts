@@ -3,26 +3,37 @@ package meta
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/pkg/router"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/Fantasy-Programming/nuts/internal/utility/message"
+	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 	"github.com/rs/zerolog"
 )
 
-type Meta struct {
-	queries *repository.Queries
-	log     *zerolog.Logger
+type Handler struct {
+	repo Repository
+	log  *zerolog.Logger
 }
 
-func Init(db *pgxpool.Pool, logger *zerolog.Logger) *Meta {
-	queries := repository.New(db)
-	return &Meta{queries, logger}
+func NewHandler(repo Repository, logger *zerolog.Logger) *Handler {
+	return &Handler{repo, logger}
 }
 
-func (m *Meta) Register() http.Handler {
-	router := router.NewRouter()
-	router.Get("/currencies", m.GetSupportedCurrencies)
-	router.Get("/lang", m.GetSupportedLanguages)
+func (h *Handler) GetSupportedCurrencies(w http.ResponseWriter, r *http.Request) {
+	currencies, err := h.repo.GetCurrencies(r.Context())
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    nil,
+		})
+		return
+	}
 
-	return router
+	respond.Json(w, http.StatusOK, currencies, h.log)
+}
+
+func (h *Handler) GetSupportedLanguages(w http.ResponseWriter, r *http.Request) {
 }

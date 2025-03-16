@@ -1,154 +1,193 @@
-package jwt
+package jwt_test
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/pkg/jwt"
+	ogJwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGenerateToken(t *testing.T) {
-	tests := []struct {
-		name     string
-		userID   uuid.UUID
-		roles    []string
-		key      string
-		duration time.Duration
-		wantErr  bool
-	}{
-		{
-			name:     "valid token",
-			userID:   uuid.New(),
-			roles:    []string{"user"},
-			key:      "secret",
-			duration: time.Hour,
-			wantErr:  false,
-		},
-		{
-			name:     "empty key",
-			userID:   uuid.New(),
-			roles:    []string{"user"},
-			key:      "",
-			duration: time.Hour,
-			wantErr:  true,
-		},
-		{
-			name:     "empty roles",
-			userID:   uuid.New(),
-			roles:    []string{},
-			key:      "secret",
-			duration: time.Hour,
-			wantErr:  true,
-		},
-		{
-			name:     "nil UUID",
-			userID:   uuid.Nil,
-			roles:    []string{"user"},
-			key:      "secret",
-			duration: time.Hour,
-			wantErr:  true,
-		},
+func setupTest() (*jwt.Service, *jwt.MockTokenRepository, *jwt.MockLogger) {
+	repo := jwt.NewMockTokenRepository()
+	logger := jwt.NewMockLogger()
+	config := jwt.Config{
+		AccessTokenDuration:  15 * time.Minute,
+		RefreshTokenDuration: 24 * time.Hour,
+		SigningKey:           "test-signing-key",
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			token, err := GenerateToken(tt.userID, tt.roles, tt.key, tt.duration)
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Empty(t, token)
-			} else {
-				assert.NoError(t, err)
-				assert.NotEmpty(t, token)
-			}
-		})
-	}
+	service := jwt.NewService(repo, config, logger)
+	return service, repo, logger
 }
 
-func TestVerifyToken(t *testing.T) {
-	key := "test-secret"
+func TestGenerateTokenPair(t *testing.T) {
+	// Setup
+	service, _, _ := setupTest()
+	ctx := context.Background()
 	userID := uuid.New()
-	roles := []string{"user"}
-	duration := time.Hour
+	roles := []string{"user", "admin"}
 
-	token, err := GenerateToken(userID, roles, key, duration)
+	// Test
+	tokenPair, err := service.GenerateTokenPair(ctx, userID, roles)
+
+	// Assert
 	require.NoError(t, err)
+	assert.NotEmpty(t, tokenPair.AccessToken)
+	assert.NotEmpty(t, tokenPair.RefreshToken)
 
-	tests := []struct {
-		name    string
-		token   string
-		key     string
-		wantErr bool
-	}{
-		{
-			name:    "valid token",
-			token:   token,
-			key:     key,
-			wantErr: false,
-		},
-		{
-			name:    "invalid key",
-			token:   token,
-			key:     "wrong-key",
-			wantErr: true,
-		},
-		{
-			name:    "empty key",
-			token:   token,
-			key:     "",
-			wantErr: true,
-		},
-		{
-			name:    "invalid token format",
-			token:   "invalid.token",
-			key:     key,
-			wantErr: true,
-		},
-	}
+	// Verify access token
+	token, err := ogJwt.Parse(tokenPair.AccessToken, func(token *ogJwt.Token) (interface{}, error) {
+		return []byte("test-signing-key"), nil
+	})
+	require.NoError(t, err)
+	require.True(t, token.Valid)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			claims, err := VerifyToken(tt.token, tt.key)
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, claims)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, userID, claims.UserID)
-				assert.Equal(t, roles, claims.Roles)
-			}
-		})
-	}
+	claims, ok := token.Claims.(ogJwt.MapClaims)
+	require.True(t, ok)
+	assert.Equal(t, userID.String(), claims["id"])
+	assert.Equal(t, "access", claims["tokenType"])
+
+	// Check roles
+	tokenRoles, ok := claims["roles"].([]interface{})
+	require.True(t, ok)
+	assert.Len(t, tokenRoles, 2)
+	assert.Equal(t, "user", tokenRoles[0])
+	assert.Equal(t, "admin", tokenRoles[1])
 }
 
-func TestSplitAndReconstructJWT(t *testing.T) {
-	key := "test-secret"
+func TestRefreshAccessToken(t *testing.T) {
+	// Setup
+	service, _, _ := setupTest()
+	ctx := context.Background()
 	userID := uuid.New()
 	roles := []string{"user"}
-	duration := time.Hour
 
-	originalToken, err := GenerateToken(userID, roles, key, duration)
+	// Generate initial token pair
+	initialTokens, err := service.GenerateTokenPair(ctx, userID, roles)
 	require.NoError(t, err)
 
-	// Test splitting
-	headerPayload, signature, err := SplitJWT(originalToken)
-	require.NoError(t, err)
-	assert.NotEmpty(t, headerPayload)
-	assert.NotEmpty(t, signature)
+	// Test refresh
+	newTokens, err := service.RefreshAccessToken(ctx, initialTokens.RefreshToken)
 
-	// Test reconstruction
-	reconstructedToken, err := ReconstructJWT(headerPayload, signature)
+	// Assert
 	require.NoError(t, err)
-	assert.Equal(t, originalToken, reconstructedToken)
+	assert.NotEmpty(t, newTokens.AccessToken)
+	assert.NotEmpty(t, newTokens.RefreshToken)
+	assert.NotEqual(t, initialTokens.AccessToken, newTokens.AccessToken)
+	assert.NotEqual(t, initialTokens.RefreshToken, newTokens.RefreshToken)
+}
 
-	// Test invalid split cases
-	_, _, err = SplitJWT("invalid.token")
+func TestInvalidateTokens(t *testing.T) {
+	// Setup
+	service, repo, _ := setupTest()
+	ctx := context.Background()
+	userID := uuid.New()
+	roles := []string{"user"}
+
+	// Generate token pair
+	initialTokens, err := service.GenerateTokenPair(ctx, userID, roles)
+	require.NoError(t, err)
+
+	// Verify refresh token exists
+	_, err = repo.GetToken(ctx, userID, initialTokens.RefreshToken)
+	require.NoError(t, err)
+
+	// Test invalidation
+	err = service.InvalidateTokens(ctx, userID)
+	require.NoError(t, err)
+
+	// Verify tokens are invalidated
+	_, err = repo.GetToken(ctx, userID, initialTokens.RefreshToken)
+	assert.Error(t, err)
+}
+
+func TestMiddleware(t *testing.T) {
+	// Setup
+	service, _, _ := setupTest()
+	middleware := jwt.NewMiddleware(service)
+	ctx := context.Background()
+	userID := uuid.New()
+	roles := []string{"user"}
+
+	// Generate token pair
+	tokenPair, err := service.GenerateTokenPair(ctx, userID, roles)
+	require.NoError(t, err)
+
+	// Create test handler
+	nextCalled := false
+	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nextCalled = true
+		// Verify user context is set
+		extractedID, err := jwt.GetUserID(r)
+		assert.NoError(t, err)
+		assert.Equal(t, userID, extractedID)
+	})
+
+	// Create test request with token
+	req := httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenPair.AccessToken)
+	w := httptest.NewRecorder()
+
+	// Test middleware
+	handler := middleware.Verify(nextHandler)
+	handler.ServeHTTP(w, req)
+
+	// Assert
+	assert.True(t, nextCalled)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Test invalid token
+	nextCalled = false
+	req = httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set("Authorization", "Bearer invalid-token")
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	// Assert
+	assert.False(t, nextCalled)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestTokenExpiration(t *testing.T) {
+	// Setup custom config with short expiration
+	repo := jwt.NewMockTokenRepository()
+	logger := jwt.NewMockLogger()
+	config := jwt.Config{
+		AccessTokenDuration:  1 * time.Millisecond, // Very short for testing
+		RefreshTokenDuration: 10 * time.Millisecond,
+		SigningKey:           "test-signing-key",
+	}
+	service := jwt.NewService(repo, config, logger)
+
+	ctx := context.Background()
+	userID := uuid.New()
+	roles := []string{"user"}
+
+	// Generate token pair
+	tokenPair, err := service.GenerateTokenPair(ctx, userID, roles)
+	require.NoError(t, err)
+
+	// Wait for token to expire
+	time.Sleep(5 * time.Millisecond)
+
+	// Try to verify the expired access token
+	_, err = service.VerifyAccessToken(tokenPair.AccessToken)
 	assert.Error(t, err)
 
-	// Test invalid reconstruction cases
-	_, err = ReconstructJWT("", signature)
-	assert.Error(t, err)
-	_, err = ReconstructJWT(headerPayload, "")
+	// Generate new tokens and wait for refresh token to expire
+	tokenPair, err = service.GenerateTokenPair(ctx, userID, roles)
+	require.NoError(t, err)
+
+	// Wait for refresh token to expire
+	time.Sleep(15 * time.Millisecond)
+
+	// Try to refresh with expired token
+	_, err = service.RefreshAccessToken(ctx, tokenPair.RefreshToken)
 	assert.Error(t, err)
 }

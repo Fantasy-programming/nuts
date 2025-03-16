@@ -3,27 +3,20 @@ package meta
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/utility/message"
-	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/pkg/router"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 )
 
-func (m *Meta) GetSupportedCurrencies(w http.ResponseWriter, r *http.Request) {
-	currencies, err := m.queries.GetCurrencies(r.Context())
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     m.log,
-			Details:    nil,
-		})
-		return
-	}
+func RegisterHTTPHandlers(db *pgxpool.Pool, logger *zerolog.Logger) http.Handler {
+	queries := repository.New(db)
+	repo := NewRepository(queries)
+	h := NewHandler(repo, logger)
 
-	respond.Json(w, http.StatusOK, currencies, m.log)
-}
+	router := router.NewRouter()
+	router.Get("/currencies", h.GetSupportedCurrencies)
+	router.Get("/lang", h.GetSupportedLanguages)
 
-func (m *Meta) GetSupportedLanguages(w http.ResponseWriter, r *http.Request) {
+	return router
 }

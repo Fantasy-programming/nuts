@@ -3,7 +3,6 @@ package user
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
@@ -13,28 +12,22 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type User struct {
-	queries *repository.Queries
-	storage *storage.Storage
-	tkn     *jwt.TokenService
-	v       *validation.Validator
-	config  *config.Config
-	log     *zerolog.Logger
-}
-
-func Init(db *pgxpool.Pool, storage *storage.Storage, tkn *jwt.TokenService, validate *validation.Validator, config *config.Config, logger *zerolog.Logger) *User {
+func RegisterHTTPHandlers(db *pgxpool.Pool, storage *storage.Storage, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
-	return &User{queries, storage, tkn, validate, config, logger}
-}
+	repo := NewRepository(queries, storage)
+	h := NewHandler(validate, repo, storage, logger)
 
-func (u *User) Register() http.Handler {
+	// Create the auth verify middleware
+	middleware := jwt.NewMiddleware(tkn)
+
 	router := router.NewRouter()
-	router.Use(u.tkn.Verify)
-	router.Get("/me", u.GetInfo)
-	router.Put("/me", u.UpdateInfo)
-	router.Delete("/me", u.DeleteInfo)
+	router.Use(middleware.Verify)
+	router.Get("/me", h.GetInfo)
+	router.Put("/me", h.UpdateInfo)
+	router.Delete("/me", h.DeleteInfo)
 
 	// Avatar endpoint
-	router.Put("/me/avatar", u.UploadAvatar)
+	router.Put("/me/avatar", h.UploadAvatar)
+
 	return router
 }

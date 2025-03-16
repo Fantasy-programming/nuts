@@ -1,4 +1,4 @@
-package transactions
+package categories
 
 import (
 	"net/http"
@@ -13,7 +13,7 @@ import (
 
 func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
-	repo := NewRepository(db, queries)
+	repo := NewRepository(queries)
 	h := NewHandler(validate, repo, logger)
 
 	// Create the auth verify middleware
@@ -21,12 +21,10 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 
 	router := router.NewRouter()
 	router.Use(middleware.Verify)
-	router.Get("/", h.GetTransactions)
-	router.Post("/", h.CreateTransaction)
-	router.Post("/transfert", h.CreateTransfert)
-	router.Get("/{id}", h.GetTransaction)
-	router.Put("/{id}", h.UpdateTransaction)
-	router.Delete("/{id}", h.DeleteTransaction)
+	router.Get("/", h.GetCategories)
+	router.Post("/", h.CreateCategories)
+	router.Put("/{id}", h.UpdateCategory)
+	router.Delete("/{id}", h.DeleteCategory)
 
 	return router
 }

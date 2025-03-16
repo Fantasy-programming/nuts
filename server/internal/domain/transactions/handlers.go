@@ -2,24 +2,30 @@ package transactions
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
-	"math/big"
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 	"github.com/Fantasy-Programming/nuts/internal/utility/types"
+	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog"
 )
 
-// TODO: Handle transfers
+type Handler struct {
+	validator *validation.Validator
+	repo      Repository
+	logger    *zerolog.Logger
+}
 
-func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
-	userID, err := jwt.GetID(r)
+func NewHandler(validator *validation.Validator, repo Repository, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, repo, logger}
+}
+
+func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
+	userID, err := jwt.GetUserID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -29,31 +35,15 @@ func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    userID,
 		})
 		return
 	}
 
 	// Get Accounts
-	accounts, err := a.queries.GetAccounts(ctx, &userID)
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    userID,
-		})
-		return
-	}
 
-	// Create account map for faster lookups
-	accountMap := createAccountMap(accounts)
-
-	transactions, err := a.queries.ListTransactions(ctx, repository.ListTransactionsParams{
+	transactions, err := h.repo.GetTransactions(ctx, repository.ListTransactionsParams{
 		UserID: &userID,
 	})
 	if err != nil {
@@ -63,34 +53,16 @@ func (a *Transactions) GetTransactions(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    userID,
 		})
 		return
 	}
 
-	// Enhance transactions with destination account data
-	enhancedTransactions := enhanceTransactionsWithDestAccounts(transactions, accountMap)
-
-	// Group the enhanced transactions
-	grouped, err := groupEnhancedTransactions(enhancedTransactions)
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    nil,
-		})
-		return
-	}
-
-	respond.Json(w, http.StatusOK, grouped, a.log)
+	respond.Json(w, http.StatusOK, transactions, h.logger)
 }
 
-func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetTransaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	trscID, err := parseUUID(r, "id")
 	if err != nil {
@@ -100,26 +72,14 @@ func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    r.URL.Path,
 		})
 		return
 	}
 
-	transaction, err := a.queries.GetTransactionById(ctx, trscID)
+	transaction, err := h.repo.GetTransaction(ctx, trscID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			respond.Error(respond.ErrorOptions{
-				W:          w,
-				R:          r,
-				StatusCode: http.StatusNotFound,
-				ClientErr:  ErrNoTransactions,
-				ActualErr:  err,
-				Logger:     a.log,
-				Details:    trscID,
-			})
-			return
-		}
 
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -127,17 +87,17 @@ func (a *Transactions) GetTransaction(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    trscID,
 		})
 
 		return
 	}
 
-	respond.Json(w, http.StatusOK, transaction, a.log)
+	respond.Json(w, http.StatusOK, transaction, h.logger)
 }
 
-func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	var request CreateTransactionRequest
 	ctx := r.Context()
 
@@ -149,7 +109,7 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    r.Body,
 		})
 		return
@@ -165,7 +125,7 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
@@ -179,28 +139,13 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
 	}
 
-	id, err := jwt.GetID(r)
-	if err != nil {
-		log.Println(err)
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-
-	tx, err := a.db.Begin(ctx)
+	id, err := jwt.GetUserID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -208,23 +153,13 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
 	}
 
-	defer func() {
-		if err := tx.Rollback(ctx); err != nil && err != pgx.ErrTxClosed {
-			log.Println("CreateTransaction: Failed to rollback transaction", err)
-		}
-	}()
-
-	qtx := a.queries.WithTx(tx)
-
-	// when doing a transfer, we do something different (create transaction, remove from account a and add to account b)
-
-	transaction, err := qtx.CreateTransaction(ctx, repository.CreateTransactionParams{
+	transaction, err := h.repo.CreateTransaction(ctx, repository.CreateTransactionParams{
 		Amount:              amount,
 		Type:                request.Type,
 		AccountID:           accountID,
@@ -241,46 +176,16 @@ func (a *Transactions) CreateTransaction(w http.ResponseWriter, r *http.Request)
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
 	}
 
-	err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
-		ID:      accountID,
-		Balance: amount,
-	})
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-
-	if err = tx.Commit(ctx); err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-
-	respond.Json(w, http.StatusOK, transaction, a.log)
+	respond.Json(w, http.StatusOK, transaction, h.logger)
 }
 
-func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 	var request CreateTransfertRequest
 	ctx := r.Context()
 
@@ -291,7 +196,7 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    r.Body,
 		})
 		return
@@ -309,7 +214,7 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
@@ -323,7 +228,7 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
@@ -336,7 +241,7 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  ErrSameAccount,
 			ActualErr:  nil,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
@@ -350,13 +255,13 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
 	}
 
-	userID, err := jwt.GetID(r)
+	userID, err := jwt.GetUserID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -364,160 +269,65 @@ func (a *Transactions) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
 	}
 
-	// Start transaction
-	tx, err := a.db.Begin(ctx)
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-	defer tx.Rollback(ctx)
-
-	qtx := a.queries.WithTx(tx)
-
-	fmt.Println("usrid:", userID)
-
-	// Verify accounts exist and belong to user
-	sourceAcc, err := qtx.GetAccountById(ctx, accountID)
-	fmt.Println("source:", sourceAcc.CreatedBy)
-
-	if err != nil || *sourceAcc.CreatedBy != userID {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusNotFound,
-			ClientErr:  ErrSrcAccNotFound,
-			ActualErr:  nil,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-
-	destAcc, err := qtx.GetAccountById(ctx, destAccountID)
-	if err != nil || *destAcc.CreatedBy != userID {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusNotFound,
-			ClientErr:  ErrDestAccNotFound,
-			ActualErr:  nil,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-
-	// Check sufficient balance
-	amountOut := types.Numeric(-request.Amount)
-	newBalance := sourceAcc.Balance
-	newBalance.Int = new(big.Int).Add(newBalance.Int, amountOut.Int)
-	if newBalance.Int == nil || newBalance.Int.Sign() < 0 {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusBadRequest,
-			ClientErr:  ErrLowBalance,
-			ActualErr:  nil,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-
-	// Create the transfer transaction
-	amountIn := types.Numeric(request.Amount)
-	transaction, err := qtx.CreateTransaction(ctx, repository.CreateTransactionParams{
-		Amount:               amountOut,
+	// Create transfer using repository
+	transaction, err := h.repo.CreateTransfertTransaction(ctx, TransfertParams{
+		Amount:               request.Amount,
 		Type:                 request.Type,
 		AccountID:            accountID,
-		DestinationAccountID: &destAccountID,
+		DestinationAccountID: destAccountID,
 		CategoryID:           categoryID,
 		Description:          request.Description,
 		TransactionDatetime:  request.TransactionDatetime,
 		Details:              request.Details,
-		CreatedBy:            &userID,
+		UserID:               userID,
 	})
+	// Handle specific errors with appropriate status codes
 	if err != nil {
+		var statusCode int
+		var clientErr error
+
+		switch err {
+		case ErrSrcAccNotFound:
+			statusCode = http.StatusNotFound
+			clientErr = ErrSrcAccNotFound
+		case ErrDestAccNotFound:
+			statusCode = http.StatusNotFound
+			clientErr = ErrDestAccNotFound
+		case ErrLowBalance:
+			statusCode = http.StatusBadRequest
+			clientErr = ErrLowBalance
+		case ErrSameAccount:
+			statusCode = http.StatusBadRequest
+			clientErr = ErrSameAccount
+		default:
+			statusCode = http.StatusInternalServerError
+			clientErr = message.ErrInternalError
+		}
+
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
+			StatusCode: statusCode,
+			ClientErr:  clientErr,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    request,
 		})
 		return
 	}
 
-	// Update account balances
-	err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
-		ID:      accountID,
-		Balance: amountOut,
-	})
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-
-	err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
-		ID:      destAccountID,
-		Balance: amountIn,
-	})
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-
-	if err = tx.Commit(ctx); err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusInternalServerError,
-			ClientErr:  message.ErrInternalError,
-			ActualErr:  err,
-			Logger:     a.log,
-			Details:    request,
-		})
-		return
-	}
-
-	respond.Json(w, http.StatusOK, transaction, a.log)
+	respond.Json(w, http.StatusOK, transaction, h.logger)
 }
 
-func (a *Transactions) UpdateTransaction(w http.ResponseWriter, r *http.Request) {}
+func (h *Handler) UpdateTransaction(w http.ResponseWriter, r *http.Request) {}
 
-func (a *Transactions) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	trscID, err := parseUUID(r, "id")
@@ -528,20 +338,20 @@ func (a *Transactions) DeleteTransaction(w http.ResponseWriter, r *http.Request)
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    r.URL.Path,
 		})
 		return
 	}
 
-	if err = a.queries.DeleteTransaction(ctx, trscID); err != nil {
+	if err = h.repo.DeleteTransaction(ctx, trscID); err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    trscID,
 		})
 		return

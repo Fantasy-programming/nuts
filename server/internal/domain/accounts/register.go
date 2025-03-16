@@ -3,7 +3,6 @@ package accounts
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
@@ -12,26 +11,21 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Account struct {
-	queries *repository.Queries
-	config  *config.Config
-	v       *validation.Validator
-	tkn     *jwt.TokenService
-	log     *zerolog.Logger
-}
-
-func Init(db *pgxpool.Pool, config *config.Config, validate *validation.Validator, tkn *jwt.TokenService, logger *zerolog.Logger) *Account {
+func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
-	return &Account{queries, config, validate, tkn, logger}
-}
+	repo := NewRepository(queries)
+	h := NewHandler(validate, repo, logger)
 
-func (a *Account) Register() http.Handler {
+	// Create the auth verify middleware
+	middleware := jwt.NewMiddleware(tkn)
+
 	router := router.NewRouter()
-	router.Use(a.tkn.Verify)
-	router.Get("/", a.GetAccounts)
-	router.Post("/", a.CreateAccount)
-	router.Get("/{id}", a.GetAccount)
-	router.Put("/{id}", a.UpdateAccount)
-	router.Delete("/{id}", a.DeleteAccount)
+	router.Use(middleware.Verify)
+	router.Get("/", h.GetAccounts)
+	router.Post("/", h.CreateAccount)
+	router.Get("/{id}", h.GetAccount)
+	router.Put("/{id}", h.UpdateAccount)
+	router.Delete("/{id}", h.DeleteAccount)
+
 	return router
 }

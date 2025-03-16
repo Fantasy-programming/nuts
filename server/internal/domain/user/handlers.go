@@ -9,13 +9,27 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/pkg/storage"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
-func (u *User) GetInfo(w http.ResponseWriter, r *http.Request) {
-	id, err := jwt.GetID(r)
+type Handler struct {
+	v       *validation.Validator
+	repo    Repository
+	storage *storage.Storage
+	logger  *zerolog.Logger
+}
+
+func NewHandler(validator *validation.Validator, repo Repository, storage *storage.Storage, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, repo, storage, logger}
+}
+
+func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
+	id, err := jwt.GetUserID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -25,13 +39,13 @@ func (u *User) GetInfo(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    nil,
 		})
 		return
 	}
 
-	user, err := u.queries.GetUserById(ctx, id)
+	user, err := h.repo.GetUserByID(ctx, id)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -39,7 +53,7 @@ func (u *User) GetInfo(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    id,
 		})
 		return
@@ -52,11 +66,11 @@ func (u *User) GetInfo(w http.ResponseWriter, r *http.Request) {
 		LastName:  user.LastName,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
-	}, u.log)
+	}, h.logger)
 }
 
-func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
-	id, err := jwt.GetID(r)
+func (h *Handler) UpdateInfo(w http.ResponseWriter, r *http.Request) {
+	id, err := jwt.GetUserID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -66,7 +80,7 @@ func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    nil,
 		})
 		return
@@ -81,14 +95,14 @@ func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    r.Body,
 		})
 		return
 	}
 
 	// Validate and parse
-	if err := u.v.Validator.Struct(req); err != nil {
+	if err := h.v.Validator.Struct(req); err != nil {
 		// validationErrors := validation.TranslateErrors(ctx, err)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -96,13 +110,11 @@ func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrValidation,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    req,
 		})
 		return
 	}
-
-	u.log.Debug().Interface("debug ", req)
 
 	params := repository.UpdateUserParams{
 		Email:     &req.Email,
@@ -111,9 +123,7 @@ func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		ID:        id,
 	}
 
-	fmt.Println(req.FirstName, req.LastName)
-
-	user, err := u.queries.UpdateUser(ctx, params)
+	user, err := h.repo.UpdateUser(ctx, params)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -121,7 +131,7 @@ func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    id,
 		})
 		return
@@ -134,11 +144,11 @@ func (u *User) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 		LastName:  user.LastName,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
-	}, u.log)
+	}, h.logger)
 }
 
-func (u *User) DeleteInfo(w http.ResponseWriter, r *http.Request) {
-	id, err := jwt.GetID(r)
+func (h *Handler) DeleteInfo(w http.ResponseWriter, r *http.Request) {
+	id, err := jwt.GetUserID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -148,13 +158,13 @@ func (u *User) DeleteInfo(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    nil,
 		})
 		return
 	}
 
-	err = u.queries.DeleteUser(ctx, id)
+	err = h.repo.DeleteUser(ctx, id)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -162,7 +172,7 @@ func (u *User) DeleteInfo(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    id,
 		})
 		return
@@ -172,8 +182,8 @@ func (u *User) DeleteInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // UploadAvatar handles avatar image uploads
-func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
-	id, err := jwt.GetID(r)
+func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
+	id, err := jwt.GetUserID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -183,7 +193,7 @@ func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    nil,
 		})
 		return
@@ -197,7 +207,7 @@ func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    "Failed to parse form",
 		})
 		return
@@ -212,7 +222,7 @@ func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    "No avatar file found in request",
 		})
 		return
@@ -225,8 +235,8 @@ func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 	// Upload file to S3
 
-	_, err = u.storage.Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: &u.storage.Bucket,
+	_, err = h.storage.Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: &h.storage.Bucket,
 		Key:    &filename,
 		Body:   file,
 	})
@@ -237,14 +247,14 @@ func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    "Failed to create file on s3",
 		})
 		return
 	}
 
 	// Generate avatar URL
-	avatarURL := fmt.Sprintf("http://localhost:9000/%s/%s", u.storage.Bucket, filename)
+	avatarURL := fmt.Sprintf("http://localhost:9000/%s/%s", h.storage.Bucket, filename)
 
 	// Update user in database with new avatar URL
 	params := repository.UpdateUserParams{
@@ -252,7 +262,7 @@ func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		AvatarUrl: &avatarURL,
 	}
 
-	user, err := u.queries.UpdateUser(ctx, params)
+	user, err := h.repo.UpdateUser(ctx, params)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -260,7 +270,7 @@ func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     u.log,
+			Logger:     h.logger,
 			Details:    id,
 		})
 		return
@@ -269,5 +279,5 @@ func (u *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	// Return success response with avatar URL
 	respond.Json(w, http.StatusOK, map[string]string{
 		"avatar_url": *user.AvatarUrl,
-	}, u.log)
+	}, h.logger)
 }

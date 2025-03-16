@@ -65,6 +65,8 @@ func extractLanguageFromHeader(r *http.Request) string {
 	return lang
 }
 
+// --- utility functions
+
 // FromContext retrieves the i18n instance from the request context
 func FromContext(ctx context.Context) (*i18n.I18n, string) {
 	i18nInstance, _ := ctx.Value(I18nContextKey).(*i18n.I18n)

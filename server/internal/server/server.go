@@ -13,9 +13,11 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/config"
 	i18nMiddleware "github.com/Fantasy-Programming/nuts/internal/middleware/i18n"
+	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/pkg/logger"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/Fantasy-Programming/nuts/pkg/storage"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -28,7 +30,7 @@ type Server struct {
 	Version string
 	cfg     *config.Config
 	logger  *zerolog.Logger
-	jwt     *jwt.TokenService
+	jwt     *jwt.Service
 
 	db        *pgxpool.Pool
 	storage   *storage.Storage
@@ -113,8 +115,22 @@ func (s *Server) NewLogger() {
 	s.logger = &logger
 }
 
+// TODO: Abstract the logger entirely
 func (s *Server) NewTokenService() {
-	s.jwt = jwt.NewTokenService(s.db, s.cfg.SigningKey, s.logger)
+	queries := repository.New(s.db)
+
+	tokenRepo := jwt.NewSQLCTokenRepository(queries)
+
+	loggerAdapter := logger.NewZerologAdapter(s.logger)
+
+	jwtConfig := jwt.Config{
+		AccessTokenDuration:  15 * time.Minute,   // Adjust as needed
+		RefreshTokenDuration: 7 * 24 * time.Hour, // 7 days, adjust as needed
+		SigningKey:           s.cfg.SigningKey,
+	}
+
+	// Create the JWT service
+	s.jwt = jwt.NewService(tokenRepo, jwtConfig, loggerAdapter)
 }
 
 func (s *Server) NewStorage() {

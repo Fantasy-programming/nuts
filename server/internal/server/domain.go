@@ -5,7 +5,7 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/internal/domain/accounts"
 	"github.com/Fantasy-Programming/nuts/internal/domain/auth"
-	"github.com/Fantasy-Programming/nuts/internal/domain/category"
+	"github.com/Fantasy-Programming/nuts/internal/domain/categories"
 	"github.com/Fantasy-Programming/nuts/internal/domain/meta"
 	"github.com/Fantasy-Programming/nuts/internal/domain/preferences"
 	"github.com/Fantasy-Programming/nuts/internal/domain/tags"
@@ -30,48 +30,48 @@ func (s *Server) RegisterDomain() {
 }
 
 func (s *Server) initAuth() {
-	AuthDomain := auth.Init(s.db, s.cfg, s.validator, s.i18n, s.logger, s.jwt)
-	s.router.Mount("/auth", AuthDomain.Register())
+	AuthDomain := auth.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	s.router.Mount("/auth", AuthDomain)
 }
 
 func (s *Server) initUser() {
-	UserDomain := user.Init(s.db, s.storage, s.jwt, s.validator, s.cfg, s.logger)
-	s.router.Mount("/users", UserDomain.Register())
+	UserDomain := user.RegisterHTTPHandlers(s.db, s.storage, s.validator, s.jwt, s.logger)
+	s.router.Mount("/users", UserDomain)
 }
 
 func (s *Server) initAccount() {
-	AccountDomain := accounts.Init(s.db, s.cfg, s.validator, s.jwt, s.logger)
-	s.router.Mount("/accounts", AccountDomain.Register())
+	AccountDomain := accounts.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	s.router.Mount("/accounts", AccountDomain)
 }
 
 func (s *Server) initTransaction() {
-	TransactionDomain := transactions.Init(s.db, s.cfg, s.jwt, s.validator, s.logger)
-	s.router.Mount("/transactions", TransactionDomain.Register())
+	TransactionDomain := transactions.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	s.router.Mount("/transactions", TransactionDomain)
 }
 
 func (s *Server) initCategory() {
-	CategoryDomain := category.Init(s.db, s.cfg, s.jwt, s.validator, s.logger)
-	s.router.Mount("/categories", CategoryDomain.Register())
+	CategoryDomain := categories.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	s.router.Mount("/categories", CategoryDomain)
 }
 
 func (s *Server) initPreferences() {
-	Preferences := preferences.Init(s.db, s.cfg, s.validator, s.jwt, s.logger)
-	s.router.Mount("/preferences", Preferences.Register())
+	Preferences := preferences.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	s.router.Mount("/preferences", Preferences)
 }
 
 func (s *Server) initTags() {
-	TagsDomain := tags.Init(s.db, s.validator, s.jwt, s.logger)
-	s.router.Mount("/tags", TagsDomain.Register())
+	TagsDomain := tags.RegisterHTTPHandlers(s.db, s.validator, s.logger)
+	s.router.Mount("/tags", TagsDomain)
 }
 
 func (s *Server) initWebHooks() {
-	hooksDomain := webhooks.Init(s.db, s.validator, s.jwt, s.logger)
-	s.router.Mount("/webhooks", hooksDomain.Register())
+	hooksDomain := webhooks.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	s.router.Mount("/webhooks", hooksDomain)
 }
 
 func (s *Server) initMeta() {
-	MetaDomain := meta.Init(s.db, s.logger)
-	s.router.Mount("/meta", MetaDomain.Register())
+	MetaDomain := meta.RegisterHTTPHandlers(s.db, s.logger)
+	s.router.Mount("/meta", MetaDomain)
 }
 
 func (s *Server) initHealth() {

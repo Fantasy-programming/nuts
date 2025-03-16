@@ -8,12 +8,24 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 	"github.com/Fantasy-Programming/nuts/internal/utility/types"
+	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog"
 )
 
-func (a *Account) GetAccounts(w http.ResponseWriter, r *http.Request) {
-	userID, err := jwt.GetID(r)
+type Handler struct {
+	validator *validation.Validator
+	repo      Repository
+	logger    *zerolog.Logger
+}
+
+func NewHandler(validator *validation.Validator, repo Repository, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, repo, logger}
+}
+
+func (h *Handler) GetAccounts(w http.ResponseWriter, r *http.Request) {
+	userID, err := jwt.GetUserID(r)
 	ctx := r.Context()
 
 	if err != nil {
@@ -23,13 +35,13 @@ func (a *Account) GetAccounts(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    userID,
 		})
 		return
 	}
 
-	accounts, err := a.queries.GetAccounts(ctx, &userID)
+	accounts, err := h.repo.GetAccounts(ctx, userID)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -37,16 +49,16 @@ func (a *Account) GetAccounts(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    userID,
 		})
 		return
 	}
 
-	respond.Json(w, http.StatusOK, accounts, a.log)
+	respond.Json(w, http.StatusOK, accounts, h.logger)
 }
 
-func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	accountID, err := parseUUID(r, "id")
 	if err != nil {
@@ -56,13 +68,13 @@ func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    accountID,
 		})
 		return
 	}
 
-	account, err := a.queries.GetAccountById(ctx, accountID)
+	account, err := h.repo.GetAccountByID(ctx, accountID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respond.Error(respond.ErrorOptions{
@@ -71,7 +83,7 @@ func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
 				StatusCode: http.StatusNotFound,
 				ClientErr:  ErrAccountNotFound,
 				ActualErr:  err,
-				Logger:     a.log,
+				Logger:     h.logger,
 				Details:    accountID,
 			})
 			return
@@ -83,16 +95,16 @@ func (a *Account) GetAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    accountID,
 		})
 		return
 	}
 
-	respond.Json(w, http.StatusOK, account, a.log)
+	respond.Json(w, http.StatusOK, account, h.logger)
 }
 
-func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var req CreateAccountRequest
@@ -104,7 +116,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    r.Body,
 		})
 		return
@@ -112,7 +124,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate balance
-	if err := a.v.Validator.Struct(req); err != nil {
+	if err := h.validator.Validator.Struct(req); err != nil {
 		// validationErrors := validation.TranslateErrors(ctx, err)
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
@@ -120,7 +132,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrValidation,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    req,
 		})
 		return
@@ -135,7 +147,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  ErrAccountTypeInvalid,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    req,
 		})
 		return
@@ -149,7 +161,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  ErrAccountTypeInvalid,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    req,
 		})
 		return
@@ -157,7 +169,7 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	meta := parseMeta(req.Meta)
 
-	userID, err := jwt.GetID(r)
+	userID, err := jwt.GetUserID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -165,14 +177,14 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    nil,
 		})
 		return
 	}
 
 	// save the account
-	account, err := a.queries.CreateAccount(ctx, repository.CreateAccountParams{
+	account, err := h.repo.CreateAccount(ctx, repository.CreateAccountParams{
 		CreatedBy: &userID,
 		Name:      req.Name,
 		Type:      act,
@@ -188,16 +200,16 @@ func (a *Account) CreateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    req,
 		})
 		return
 	}
 
-	respond.Json(w, http.StatusOK, account, a.log)
+	respond.Json(w, http.StatusOK, account, h.logger)
 }
 
-func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	accountID, err := parseUUID(r, "id")
@@ -208,7 +220,7 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    accountID,
 		})
 		return
@@ -223,14 +235,14 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    r.Body,
 		})
 		return
 	}
 
 	// Validate and parse
-	if err := a.v.Validator.Struct(req); err != nil {
+	if err := h.validator.Validator.Struct(req); err != nil {
 		// validationErrors := validation.TranslateErrors(ctx, err)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -238,7 +250,7 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrValidation,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    req,
 		})
 		return
@@ -253,7 +265,7 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  ErrAccountTypeInvalid,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    req,
 		})
 		return
@@ -267,7 +279,7 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  ErrAccountTypeInvalid,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    req,
 		})
 		return
@@ -275,7 +287,7 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 
 	meta := parseMeta(req.Meta)
 
-	userID, err := jwt.GetID(r)
+	userID, err := jwt.GetUserID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -283,13 +295,13 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    nil,
 		})
 		return
 	}
 
-	account, err := a.queries.UpdateAccount(ctx, repository.UpdateAccountParams{
+	account, err := h.repo.UpdateAccount(ctx, repository.UpdateAccountParams{
 		Name:      &req.Name,
 		Type:      act,
 		Currency:  &req.Currency,
@@ -306,17 +318,17 @@ func (a *Account) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    req,
 		})
 		return
 	}
 
-	respond.Json(w, http.StatusOK, account, a.log)
+	respond.Json(w, http.StatusOK, account, h.logger)
 }
 
 // Delete an account
-func (a *Account) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	accountID, err := parseUUID(r, "id")
 	if err != nil {
@@ -326,20 +338,20 @@ func (a *Account) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    accountID,
 		})
 		return
 	}
 
-	if err = a.queries.DeleteAccount(ctx, accountID); err != nil {
+	if err = h.repo.DeleteAccount(ctx, accountID); err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
-			Logger:     a.log,
+			Logger:     h.logger,
 			Details:    accountID,
 		})
 		return
