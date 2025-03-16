@@ -200,11 +200,11 @@ type User struct {
 }
 
 type UserToken struct {
-	ID           uuid.UUID          `json:"id"`
-	UserID       uuid.UUID          `json:"user_id"`
-	RefreshToken string             `json:"refresh_token"`
-	ExpiresAt    time.Time          `json:"expires_at"`
-	LastUsedAt   pgtype.Timestamptz `json:"last_used_at"`
+	ID           uuid.UUID `json:"id"`
+	UserID       uuid.UUID `json:"user_id"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	LastUsedAt   time.Time `json:"last_used_at"`
 }
 
 type WebhookEvent struct {

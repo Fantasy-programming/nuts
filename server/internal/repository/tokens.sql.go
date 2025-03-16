@@ -37,7 +37,8 @@ SELECT
     id,
     user_id,
     refresh_token,
-    expires_at
+    expires_at,
+    last_used_at
 FROM user_tokens
 WHERE user_id = $1 AND refresh_token = $2 AND expires_at > NOW()
 `
@@ -47,21 +48,15 @@ type GetRefreshTokenParams struct {
 	RefreshToken string    `json:"refresh_token"`
 }
 
-type GetRefreshTokenRow struct {
-	ID           uuid.UUID `json:"id"`
-	UserID       uuid.UUID `json:"user_id"`
-	RefreshToken string    `json:"refresh_token"`
-	ExpiresAt    time.Time `json:"expires_at"`
-}
-
-func (q *Queries) GetRefreshToken(ctx context.Context, arg GetRefreshTokenParams) (GetRefreshTokenRow, error) {
+func (q *Queries) GetRefreshToken(ctx context.Context, arg GetRefreshTokenParams) (UserToken, error) {
 	row := q.db.QueryRow(ctx, getRefreshToken, arg.UserID, arg.RefreshToken)
-	var i GetRefreshTokenRow
+	var i UserToken
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.RefreshToken,
 		&i.ExpiresAt,
+		&i.LastUsedAt,
 	)
 	return i, err
 }

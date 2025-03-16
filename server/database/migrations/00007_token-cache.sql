@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS user_tokens (
 	  user_id UUID NOT NULL,
 	  refresh_token TEXT NOT NULL,
 	  expires_at TIMESTAMPTZ NOT NULL,
-	  last_used_at TIMESTAMPTZ DEFAULT NOW(),
+	  last_used_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 	  UNIQUE(user_id, refresh_token)
 );

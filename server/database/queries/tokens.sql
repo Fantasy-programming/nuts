@@ -15,7 +15,8 @@ SELECT
     id,
     user_id,
     refresh_token,
-    expires_at
+    expires_at,
+    last_used_at
 FROM user_tokens
 WHERE user_id = $1 AND refresh_token = $2 AND expires_at > NOW();
 
