@@ -1,12 +1,13 @@
 import { lazy } from 'react';
 
 
-// Lazy load a component by path
+
 
 export function loadComponent(componentPath: string) {
+
   try {
     // Try direct import first
-    return lazy(() => import(componentPath));
+    return lazy(() => import(/* @vite-ignore */ componentPath));
   } catch (error) {
     // Log the error for debugging
     console.error(`Failed to load component from path: ${componentPath}`, error);
