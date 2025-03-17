@@ -56,7 +56,7 @@ function RouteComponent() {
       toast.error("Error", {
         description: "There was a problem creating your account.",
       });
-      console.log(error);
+      console.error(error);
     } finally {
       setIsLoading(false);
     }

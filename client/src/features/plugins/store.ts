@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { PluginConfig, PluginConfigExternal, loadPlugin } from './registry';
+import { PluginConfig } from './registry';
+import { loadPluginModule } from './loader';
 
 interface PluginState {
   pluginConfigs: PluginConfig[];
@@ -27,23 +28,22 @@ export const usePluginStore = create<PluginState>()(
 
         try {
           // Dynamically load the plugin
-          const pluginModule = await loadPlugin(pluginId);
-          const pluginInterface = pluginModule.default as PluginConfigExternal;
+          const pluginModule = await loadPluginModule(pluginId);
 
-          if (!pluginInterface) {
-            throw new Error(`Plugin ${pluginId} does not export the expected interface`);
+          if (!pluginModule) {
+            throw new Error(`Plugin ${pluginId} does not exist`);
           }
 
           // Convert from plugin interface to storable config
           const pluginConfig: PluginConfig = {
-            id: pluginInterface.id,
-            name: pluginInterface.name,
-            description: pluginInterface.description,
-            version: pluginInterface.version,
-            author: pluginInterface.author,
-            iconName: pluginInterface.icon.name || 'Plugin',
+            id: pluginModule.id,
+            name: pluginModule.name,
+            description: pluginModule.description,
+            version: pluginModule.version,
+            author: pluginModule.author,
+            iconName: pluginModule.icon.name || 'Plugin',
             enabled: true,
-            routeConfigs: pluginInterface.routes.map(route => ({
+            routeConfigs: pluginModule.routes.map(route => ({
               path: route.path,
               label: route.label,
               iconName: route.icon.name || 'Route',
@@ -52,7 +52,7 @@ export const usePluginStore = create<PluginState>()(
                 label: subroute.label,
               })),
             })),
-            chartConfigs: pluginInterface.charts.map(chart => ({
+            chartConfigs: pluginModule.charts.map(chart => ({
               id: chart.id,
               type: chart.type,
               title: chart.title,

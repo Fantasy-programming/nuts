@@ -44,7 +44,6 @@ export interface PluginRouteConfigExternal {
 }
 
 export interface PluginChartConfigExternal {
-
   id: string,
   type: string,
   title: string,
@@ -68,25 +67,3 @@ export interface PluginEntry {
   default: PluginConfigExternal
 }
 
-// Registry to map plugin IDs to their module loaders
-const pluginRegistry = new Map<string, () => Promise<PluginEntry>>();
-
-// Register a plugin loader function
-export function registerPlugin<T extends PluginEntry>(pluginId: string, importFn: () => Promise<T>) {
-  pluginRegistry.set(pluginId, importFn);
-}
-
-// Load a plugin by ID
-export async function loadPlugin(pluginId: string): Promise<PluginEntry> {
-  const loader = pluginRegistry.get(pluginId);
-  if (!loader) {
-    throw new Error(`Plugin ${pluginId} not registered`);
-  }
-  return loader();
-}
-
-// Register known plugins
-// Initialize built-in plugins
-export function initializeBuiltInPlugins() {
-  registerPlugin('real-estate', () => import('@/features/plugins/real-estate'));
-}
