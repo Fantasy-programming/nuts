@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { authService } from "../services/auth";
 import { api as axios } from "@/lib/axios";
 import type { AuthNullable } from "../services/auth.types";
@@ -18,26 +18,25 @@ interface LoginCredentials {
   password: string;
 }
 
-// Define interceptor state type
-interface RefreshState {
-  isInProgress: boolean;
-  promise: Promise<unknown> | null;
-}
-
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   // Auth state
   const [user, setUser] = useState<AuthNullable>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Start with false for instant rendering
+  const [isLoading, setIsLoading] = useState(true); // Start with true to prevent flash
   const [error, setError] = useState<string | null>(null);
   const [refreshFailed, setRefreshFailed] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
+
+  // Use a ref for tracking refresh state to prevent race conditions
+  const refreshStateRef = useRef({
+    isInProgress: false,
+    promise: null as Promise<unknown> | null
+  });
 
   // Helper to check if current path is in protected dashboard routes
   const isDashboardRoute = useCallback((): boolean => {
     return typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard');
   }, []);
-
 
   // Handle authentication failure consistently
   const handleAuthFailure = useCallback((shouldShowFallback = true) => {
@@ -53,10 +52,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   // This effect runs on mount to set up interceptors
   useEffect(() => {
-    const refreshState: RefreshState = {
-      isInProgress: false,
-      promise: null
-    };
+    // Clear any previous interceptors to prevent duplicates
+    // axios.interceptors.response.eject(axios.interceptors.response?.handlers[0]);
 
     const interceptor = axios.interceptors.response.use(
       (response) => response,
@@ -69,34 +66,35 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           error.response?.status === 401 &&
           !refreshFailed &&
           !originalRequest._retry &&
-          !requestUrl.includes('/api/auth/refresh')
+          !requestUrl.includes('/api/auth/refresh') &&
+          !requestUrl.includes('/auth/refresh')
         ) {
           originalRequest._retry = true;
 
           try {
             // If refresh already in progress, wait for it
-            if (refreshState.isInProgress && refreshState.promise) {
-              await refreshState.promise;
+            if (refreshStateRef.current.isInProgress && refreshStateRef.current.promise) {
+              await refreshStateRef.current.promise;
               return axios(originalRequest);
             }
 
             // Start new refresh
-            refreshState.isInProgress = true;
-            refreshState.promise = authService.refresh();
+            refreshStateRef.current.isInProgress = true;
+            refreshStateRef.current.promise = authService.refresh();
 
-            await refreshState.promise;
-            refreshState.isInProgress = false;
-            refreshState.promise = null;
+            await refreshStateRef.current.promise;
+            refreshStateRef.current.isInProgress = false;
+            refreshStateRef.current.promise = null;
 
             // Retry original request
             return axios(originalRequest);
           } catch (refreshError) {
             // Mark refresh as failed
             setRefreshFailed(true);
-            refreshState.isInProgress = false;
-            refreshState.promise = null;
+            refreshStateRef.current.isInProgress = false;
+            refreshStateRef.current.promise = null;
 
-            // Only show fallback on dashboard routes
+            // Handle auth failure appropriately
             handleAuthFailure(isDashboardRoute());
             return Promise.reject(refreshError);
           }
@@ -106,39 +104,64 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       }
     );
 
-    return () => axios.interceptors.response.eject(interceptor);
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
   }, [refreshFailed, handleAuthFailure, isDashboardRoute]);
 
   // This effect handles background authentication check without blocking rendering
   useEffect(() => {
+    let isMounted = true;
+
     const checkAuth = async () => {
-      // If not on a protected route, don't block with loading state
-      const shouldBlockWithLoading = isDashboardRoute();
-
-      if (shouldBlockWithLoading) {
-        setIsLoading(true);
-      }
-
       try {
-        // Check if we already know refresh failed
+        // Don't bother checking if we already know refresh failed
         if (refreshFailed) {
           handleAuthFailure(isDashboardRoute());
           return;
         }
 
-        const user = await userService.getMe();
-        setUser(user);
-        setIsAuthenticated(true);
+        const userData = await userService.getMe();
+
+        if (isMounted) {
+          setUser(userData);
+          setIsAuthenticated(true);
+          setError(null);
+        }
       } catch (error) {
+        if (!isMounted) return;
+
         // Check if this is a 401 error
         const axiosError = error as AxiosError;
         if (axiosError?.response?.status === 401) {
-          setRefreshFailed(true);
+          // Try to refresh the token once before failing
+          try {
+            await authService.refresh();
+            // If refresh succeeds, try getting user data again
+            const userData = await userService.getMe();
+
+            if (isMounted) {
+              setUser(userData);
+              setIsAuthenticated(true);
+              setError(null);
+            }
+            return;
+          } catch (e) {
+            console.error(e)
+            // Refresh also failed, mark as failed
+            if (isMounted) {
+              setRefreshFailed(true);
+            }
+          }
         }
 
-        handleAuthFailure(isDashboardRoute());
+        if (isMounted) {
+          handleAuthFailure(isDashboardRoute());
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -147,18 +170,23 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
     // Very short timeout for dashboard routes to prevent flickering
     // but still show loading state if auth check takes too long
-    const LOADING_TIMEOUT_MS = 400; // Much shorter timeout
+    const LOADING_TIMEOUT_MS = 1000; // Increased timeout for more reliable behavior
+
+    let timer: NodeJS.Timeout;
 
     if (isDashboardRoute()) {
-      const timer = setTimeout(() => {
-        if (!isAuthenticated) {
+      timer = setTimeout(() => {
+        if (isMounted && !isAuthenticated) {
           setShowFallback(true);
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }, LOADING_TIMEOUT_MS);
-
-      return () => clearTimeout(timer);
     }
+
+    return () => {
+      isMounted = false;
+      if (timer) clearTimeout(timer);
+    };
   }, [refreshFailed, handleAuthFailure, isDashboardRoute, isAuthenticated]);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
@@ -169,9 +197,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
     try {
       await authService.login(credentials);
-      const user = await userService.getMe();
-      setUser(user);
+      const userData = await userService.getMe();
+      setUser(userData);
       setIsAuthenticated(true);
+      setError(null);
     } catch (err) {
       let errorMessage = 'Login failed';
 
@@ -211,6 +240,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       }
 
       setError(errorMessage);
+
+      // Still clear user state even if logout API call fails
+      setUser(null);
+      setIsAuthenticated(false);
+
       throw err;
     } finally {
       setIsLoading(false);
@@ -224,7 +258,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       <p className="mb-4">Please log in again.</p>
       <button
         onClick={() => {
-          window.location.href = '/login';
+          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
           setShowFallback(false);
         }}
         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -233,7 +267,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       </button>
     </div>
   );
-
 
   // Memoize context value
   const contextValue = useMemo(() => ({
@@ -253,7 +286,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       if (showFallback) return <FallbackComponent />;
     }
 
-    // For non-dashboard routes, render children immediately without loading state
+    // For non-dashboard routes, render children immediately
     return children;
   };
 
