@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
+import { Image } from "astro:assets";
 
 const allBlogPosts = await getCollection("blog");
 const sortedPosts = allBlogPosts.sort(
@@ -21,8 +22,8 @@ const sortedPosts = allBlogPosts.sort(
         {sortedPosts.map((post) => (
           <div>
             <div>
-              <a href={`/blog/${post.id}`} class="inline-block">
-                <img src={post.data.image} alt={post.data.title} class="h-48 w-full object-cover rounded-lg" />
+            <a href={`/blog/${post.id}`} class="inline-block">
+    <Image src={post.data.image} alt={post.data.title} class="h-48 w-full object-cover rounded-lg" />
               </a>
             </div>
             <p class="text-sm text-gray-500 mt-4">

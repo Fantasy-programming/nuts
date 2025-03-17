@@ -3,11 +3,9 @@ title: Getting Started with nut
 description: Learn the basics of setting up and using nut for your financial tracking needs.
 pubDate: 2023-09-10
 author: The nut Team
-image: /images/blog/getting-started.jpg
+image: ./images/server.jpg
 tags: [tutorial, beginner]
 ---
-
-# Getting Started with nut
 
 Welcome to nut! This guide will walk you through the basics of setting up and using nut for your financial tracking needs.
 

@@ -4,8 +4,6 @@ description: Learn more about our company and mission
 lastUpdated: 2023-10-15
 ---
 
-# About Our Company
-
 Welcome to our company! We're dedicated to providing the best solutions for our customers.
 
 ## Our Mission

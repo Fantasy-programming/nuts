@@ -13,7 +13,7 @@ const currentYear = new Date().getFullYear();
         </p>
         <div class="mt-4 flex space-x-6">
           <a
-            href="https://twitter.com/nutfinance"
+            href="https://twitter.com/nutsfinance"
             class="text-gray-400 hover:text-gray-500"
           >
             <span class="sr-only">Twitter</span>
@@ -29,7 +29,7 @@ const currentYear = new Date().getFullYear();
             </svg>
           </a>
           <a
-            href="https://github.com/nutfinance"
+            href="https://github.com/Fantasy-programming/nuts"
             class="text-gray-400 hover:text-gray-500"
           >
             <span class="sr-only">GitHub</span>
@@ -116,10 +116,59 @@ const currentYear = new Date().getFullYear();
           &copy; {currentYear} Nut Finance. All rights reserved.
         </p>
         <div class="flex items-center space-x-2">
-          <span class="inline-block h-3 w-3 rounded-full bg-green-400"></span>
+          <div class="uptime-indicator">
+            <span class="uptime-dot"></span>
+            <span class="uptime-beam"></span>
+          </div>
           <span class="text-sm text-gray-500">All systems operational</span>
         </div>
       </div>
     </div>
   </div>
 </footer>
+
+<style>
+  .uptime-indicator {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .uptime-dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #10B981; /* Tailwind green-500 */
+    border-radius: 50%;
+    z-index: 2;
+  }
+
+  .uptime-beam {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #10B981; /* Tailwind green-500 */
+    border-radius: 50%;
+    opacity: 0.3;
+    z-index: 1;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.3;
+    }
+    50% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0.3;
+    }
+  }
+</style>

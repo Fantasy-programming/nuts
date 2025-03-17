@@ -1,6 +1,7 @@
 ---
 import { getCollection, getEntry, render } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
+import { Image } from "astro:assets";
 
 export async function getStaticPaths() {
   const blogEntries = await getCollection("blog");
@@ -58,7 +59,7 @@ const { Content } = await render(post);
           <div class="relative text-base mx-auto max-w-prose lg:max-w-none">
             <figure>
               <div class="aspect-w-12 aspect-h-7 lg:aspect-none">
-                <img class="rounded-lg shadow-lg object-cover object-center" src={post.data.image} alt={post.data.title} width="1184" height="1376">
+<Image src={post.data.image} class="rounded-lg shadow-lg object-cover object-center"alt={post.data.title} width="1184" height="1376" />
               </div>
             </figure>
           </div>

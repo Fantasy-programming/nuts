@@ -1,54 +1,123 @@
 ---
-
+// Enhanced Responsive Header Component with sticky positioning, blur effect, and animated mobile menu
 ---
 
-<header class="bg-white shadow-sm">
+<header class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm z-50 shadow-sm transition-all duration-200">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-3 h-16 items-center">
+    <div class="flex justify-between h-16 items-center">
+      <!-- Logo -->
       <div class="flex-shrink-0 flex items-center">
         <a href="/" class="text-2xl font-bold text-primary-600">nut</a>
       </div>
-      <nav class="hidden md:flex justify-center space-x-8">
-        <a
-          href="/about"
-          class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
-          >About Us</a
-        >
-        <a
-          href="/blog"
-          class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
-          >Blog</a
-        >
-        <a
-          href="https://github.com/nuts-finance/nuts"
-          class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
-          >Contribute</a
-        >
+      
+      <!-- Desktop Navigation - Centered -->
+      <nav class="hidden md:flex absolute left-1/2 transform -translate-x-1/2">
+        <div class="flex space-x-8">
+          <a href="/about" class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium">About Us</a>
+          <a href="/blog" class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium">Blog</a>
+          <a href="https://github.com/Fantasy-programming/nuts" class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium">Contribute</a>
+        </div>
       </nav>
-      <div class="flex items-center justify-end space-x-4">
-        <a
-          href="https://github.com/nuts-finance/nuts#self-hosting"
-          class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium flex items-center"
-        >
-          <svg
-            class="w-5 h-5 mr-1"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-              clip-rule="evenodd"></path>
+      
+      <!-- CTA buttons - right aligned -->
+      <div class="hidden md:flex items-center justify-end space-x-4">
+        <a href="https://github.com/Fantasy-programming/nuts#self-hosting" class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium flex items-center">
+          <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
           </svg>
           Self-host
         </a>
-        <a
-          href="/waitlist"
-          class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-          >Join Waitlist</a
+        <a href="https://nutsapp.ridyrich.engineer/" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium">Test Instance</a>
+      </div>
+      
+      <!-- Mobile menu button -->
+      <div class="flex md:hidden">
+        <button 
+          id="mobile-menu-button" 
+          class="text-gray-700 hover:text-primary-600 z-50 relative" 
+          aria-label="Menu"
+          aria-expanded="false"
         >
+          <div class="burger-icon w-6 h-6 flex flex-col justify-center items-center">
+            <span class="block w-5 h-0.5 bg-current transform transition-all duration-300 ease-in-out"></span>
+            <span class="block w-5 h-0.5 bg-current transform transition-all duration-300 ease-in-out mt-1"></span>
+            <span class="block w-5 h-0.5 bg-current transform transition-all duration-300 ease-in-out mt-1"></span>
+          </div>
+        </button>
       </div>
     </div>
   </div>
+  
+  <!-- Full screen mobile menu -->
+  <div id="mobile-menu" class="fixed inset-0 bg-white/95 backdrop-blur-md z-40 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-center items-center">
+    <nav class="flex flex-col space-y-8 text-center w-full">
+      <a href="/about" class="text-gray-800 hover:text-primary-600 px-3 py-2 text-2xl font-medium">About Us</a>
+      <a href="/blog" class="text-gray-800 hover:text-primary-600 px-3 py-2 text-2xl font-medium">Blog</a>
+      <a href="https://github.com/Fantasy-programming/nuts" class="text-gray-800 hover:text-primary-600 px-3 py-2 text-2xl font-medium">Contribute</a>
+    </nav>
+    <div class="flex flex-col space-y-4 mt-12">
+      <a href="https://github.com/Fantasy-programming/nuts#self-hosting" class="text-gray-800 hover:text-primary-600 px-3 py-2 text-xl font-medium flex items-center justify-center">
+        <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+        </svg>
+        Self-host
+      </a>
+      <a href="https://nutsapp.ridyrich.engineer/" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-md text-xl font-medium mx-auto">Test Instance</a>
+    </div>
+  </div>
 </header>
+
+<!-- Spacer for fixed header -->
+<div class="h-16"></div>
+
+<script>
+  // Enhanced client-side JavaScript for mobile menu toggle with animations
+  document.addEventListener('DOMContentLoaded', () => {
+    const menuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const burgerIcon = menuButton?.querySelector('.burger-icon');
+    const burgerLines = burgerIcon?.querySelectorAll('span');
+    let isOpen = false;
+    
+    if (menuButton && mobileMenu && burgerLines?.length === 3) {
+      menuButton.addEventListener('click', () => {
+        isOpen = !isOpen;
+        
+        // Animate burger to X
+        if (isOpen) {
+          burgerLines[0].classList.add('rotate-45', 'translate-y-1.5');
+          burgerLines[1].classList.add('opacity-0');
+          burgerLines[2].classList.add('-rotate-45', '-translate-y-1.5');
+          mobileMenu.classList.remove('translate-x-full');
+          document.body.classList.add('overflow-hidden');
+          menuButton.setAttribute('aria-expanded', 'true');
+        } else {
+          burgerLines[0].classList.remove('rotate-45', 'translate-y-1.5');
+          burgerLines[1].classList.remove('opacity-0');
+          burgerLines[2].classList.remove('-rotate-45', '-translate-y-1.5');
+          mobileMenu.classList.add('translate-x-full');
+          document.body.classList.remove('overflow-hidden');
+          menuButton.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+    
+    // Add scroll behavior for sticky header
+    const header = document.querySelector('header');
+    let lastScrollTop = 0;
+    
+    window.addEventListener('scroll', () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      
+      if (scrollTop > lastScrollTop && scrollTop > 80) {
+        // Scrolling down & past the header height
+        header?.classList.add('transform', '-translate-y-full');
+      } else {
+        // Scrolling up
+        header?.classList.remove('transform', '-translate-y-full');
+      }
+      
+      lastScrollTop = scrollTop;
+    });
+  });
+</script>
