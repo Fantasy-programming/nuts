@@ -34,7 +34,6 @@ export const usePluginStore = create<PluginState>()(
             throw new Error(`Plugin ${pluginId} does not export the expected interface`);
           }
 
-          console.log(pluginInterface)
           // Convert from plugin interface to storable config
           const pluginConfig: PluginConfig = {
             id: pluginInterface.id,
@@ -48,23 +47,17 @@ export const usePluginStore = create<PluginState>()(
               path: route.path,
               label: route.label,
               iconName: route.icon.name || 'Route',
-              componentPath: `./${pluginId}/pages/${route.component.name.toLowerCase()}.tsx`,
               subroutes: route.subroutes?.map(subroute => ({
                 path: subroute.path,
                 label: subroute.label,
-                componentPath: `./${pluginId}/pages/${subroute.component.name.toLowerCase()}.tsx`,
               })),
             })),
             chartConfigs: pluginInterface.charts.map(chart => ({
               id: chart.id,
               type: chart.type,
               title: chart.title,
-              componentPath: `./${pluginId}/components/${chart.component.name.toLowerCase()}`,
               defaultSize: chart.defaultSize,
-            })),
-            settingsComponentPath: pluginInterface.settings
-              ? `./${pluginId}/pages/${pluginInterface.settings.name.toLowerCase()}.tsx`
-              : undefined,
+            }))
           };
 
           set((state) => ({

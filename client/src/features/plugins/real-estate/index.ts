@@ -1,13 +1,16 @@
+import { lazy } from 'react';
 import { Home, Building, Map as MapIcon, LineChart } from 'lucide-react';
-import { Overview } from './pages/overview';
-import { Properties } from './pages/properties';
-import { Map } from './pages/map';
-import { Analytics } from './pages/analytics';
-import { Settings } from './pages/settings';
+import type { PluginConfigExternal } from '../registry';
+
 import { PropertyValueChart } from './components/property-value-chart';
 import { RentalIncomeChart } from './components/rental-income-chart';
 import { MortgagePaymentChart } from './components/morgage-payment-chart';
-import { PluginConfigExternal } from '../registry';
+
+const Overview = lazy(() => import('./pages/overview'));
+const Map = lazy(() => import('./pages/map'));
+const Properties = lazy(() => import('./pages/properties'));
+const Analytics = lazy(() => import('./pages/analytics'));
+const Settings = lazy(() => import('./pages/settings'));
 
 
 // Export the plugin configuration
@@ -23,7 +26,7 @@ export default {
       path: '/real-estate',
       label: 'Real Estate',
       icon: Home,
-      component: Overview,
+      component: lazy(() => import("./pages/overview")),
       subroutes: [
         {
           path: '/real-estate/properties',

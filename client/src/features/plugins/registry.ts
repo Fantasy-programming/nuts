@@ -4,11 +4,9 @@ export interface PluginRouteConfig {
   path: string;
   label: string;
   iconName: string;
-  componentPath: string;
   subroutes?: {
     path: string;
     label: string;
-    componentPath: string;
   }[];
 }
 
@@ -16,7 +14,6 @@ export interface PluginChartConfig {
   id: string;
   type: string;
   title: string;
-  componentPath: string;
   defaultSize: 1 | 2 | 3;
 }
 
@@ -65,7 +62,6 @@ export interface PluginConfig {
   enabled: boolean;
   routeConfigs: PluginRouteConfig[];
   chartConfigs: PluginChartConfig[];
-  settingsComponentPath?: string;
 }
 
 export interface PluginEntry {

@@ -23,11 +23,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
 import { Input } from '@/core/components/ui/input';
 
-import { loadComponent } from '@/features/plugins/loader';
+import { loadPluginModule } from '@/features/plugins/loader';
 import { renderIcon } from '@/core/components/icon-picker';
 
 import { usePluginStore } from '@/features/plugins/store';
-import { initializeBuiltInPlugins, PluginConfig } from '@/features/plugins/registry';
+import type { PluginConfig } from '@/features/plugins/registry';
 
 export const Route = createFileRoute('/dashboard/plugins')({
   component: PluginManager,
@@ -58,15 +58,11 @@ export function PluginManager() {
     }
   }, [disablePlugin, enablePlugin]);
 
-  // Ensure built-in plugins are registered
-  useEffect(() => {
-    initializeBuiltInPlugins();
-  }, []);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Plugin Manager</h2>
+      <div className="flex-col flex md:flex-row  justify-between">
+        <h2 className="text-3xl md:py-0 py-4 font-bold tracking-tight">Plugin Manager</h2>
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -88,12 +84,15 @@ export function PluginManager() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredPlugins.length > 0 ? (
               filteredPlugins.map((plugin) => (
-                <PluginCard
+                <Suspense
+                  fallback={<div>loading</div>}
                   key={plugin.id}
-                  pluginConfig={plugin}
-                  onToggle={handleTogglePlugin}
-                  onRemove={removePlugin}
-                />
+                >
+                  <PluginCard
+                    pluginConfig={plugin}
+                    onToggle={handleTogglePlugin}
+                    onRemove={removePlugin}
+                  /></Suspense>
               ))
             ) : (
               <div className="col-span-full text-center py-12">
@@ -119,12 +118,34 @@ const PluginCard = React.memo(({
   onToggle: (id: string, enabled: boolean) => void;
   onRemove: (id: string) => void;
 }) => {
+  const [SettingsComponent, setSettingsComponent] = useState<React.FC | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  // Create a local Icon component variable to ensure proper rendering
 
-  const SettingsComponent = pluginConfig.settingsComponentPath
-    ? loadComponent(pluginConfig.settingsComponentPath)
-    : null;
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSettings() {
+      try {
+        const module = await loadPluginModule(pluginConfig.id);
+        if (isMounted && module?.settings) {
+          setSettingsComponent(() => module.settings);
+        }
+      } catch (error) {
+        console.error(`Failed to load settings for plugin ${pluginConfig.id}`, error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pluginConfig.id]);
 
   return (
     <Card>
@@ -163,7 +184,7 @@ const PluginCard = React.memo(({
           </span>
         </div>
         <div className="flex gap-2">
-          {SettingsComponent && (
+          {!isLoading && SettingsComponent && (
             <Dialog open={showSettings} onOpenChange={setShowSettings}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="icon">
@@ -175,9 +196,7 @@ const PluginCard = React.memo(({
                   <DialogTitle>{pluginConfig.name} Settings</DialogTitle>
                 </DialogHeader>
                 <div className="py-4">
-                  <Suspense fallback={<div>loading</div>}>
-                    <SettingsComponent />
-                  </Suspense>
+                  <SettingsComponent />
                 </div>
               </DialogContent>
             </Dialog>

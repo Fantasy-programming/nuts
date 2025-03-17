@@ -1,18 +1,23 @@
-import { lazy } from 'react';
+import { PluginConfigExternal } from './registry';
+
+// Dynamically import only index.ts files from all plugins
+const pluginModules = import.meta.glob<{ default: PluginConfigExternal }>(
+  "./*/index.ts"
+);
 
 
 
-
-export function loadComponent(componentPath: string) {
+export async function loadPluginModule(pluginId: string) {
+  const path = `./${pluginId}/index.ts`;
 
   try {
-    // Try direct import first
-    return lazy(() => import(/* @vite-ignore */ componentPath));
-  } catch (error) {
-    // Log the error for debugging
-    console.error(`Failed to load component from path: ${componentPath}`, error);
-
-    // Return a fallback component
-    return () => <div>Failed to load component: {componentPath}</div>;
+    if (pluginModules[path]) {
+      const pathll = await pluginModules[path]()
+      return pathll.default
+    }
+  } catch (e) {
+    console.error(`"${pluginId}" could not be found.`, e);
   }
+
 }
+
