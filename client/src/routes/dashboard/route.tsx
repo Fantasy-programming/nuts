@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useState, useCallback, Suspense } from "react";
 import { useHotkeys } from 'react-hotkeys-hook'
 
 import {
@@ -78,9 +78,12 @@ type navStuff = {
 };
 
 export const Route = createFileRoute("/dashboard")({
-  loader: async () => {
-    const user = await userService.getMe();
-    return { user };
+  loader: ({ context }) => {
+    const queryClient = context.queryClient
+    queryClient.prefetchQuery({
+      queryKey: ["user"],
+      queryFn: userService.getMe,
+    })
   },
   component: DashboardWrapper,
   beforeLoad: ({ context, location }) => {
@@ -130,7 +133,13 @@ function DashboardWrapper() {
   const [isOpen, setIsOpen] = useState(false);
 
 
-  const { user } = Route.useLoaderData();
+
+  const {
+    data: user
+  } = useSuspenseQuery({
+    queryKey: ["user"],
+    queryFn: userService.getMe,
+  });
 
   const createMutation = useMutation({
     mutationFn: createTransaction,
@@ -203,21 +212,22 @@ function DashboardWrapper() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton size="lg" className="w-full justify-start group-data-[collapsible=icon]:justify-center">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatar_url} />
-                      <AvatarFallback>
-                        {user.first_name?.[0]}
-                        {user.last_name?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="ml-3 flex flex-1 flex-col group-data-[collapsible=icon]:hidden">
-                      <span className="text-sm font-semibold text-ellipsis text-nowrap">
-                        {user?.first_name && user?.last_name && (
-                          `${user.first_name} ${user.last_name}`
-                        )}
-                      </span>
-                      <span className="text-muted-foreground text-xs">{user.email}</span>
-                    </div>
+                    <Suspense fallback="loading..." >
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.avatar_url} />
+                        <AvatarFallback>
+                          {user.first_name?.[0]}
+                          {user.last_name?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="ml-3 flex flex-1 flex-col group-data-[collapsible=icon]:hidden">
+                        <span className="text-sm font-semibold text-ellipsis text-nowrap">
+                          {user?.first_name && user?.last_name && (
+                            `${user.first_name} ${user.last_name}`
+                          )}
+                        </span>
+                        <span className="text-muted-foreground text-xs">{user.email}</span>
+                      </div></Suspense>
                     <ChevronDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>

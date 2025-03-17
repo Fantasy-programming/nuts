@@ -13,8 +13,6 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronRight, Filter, Plus, Minus } from "lucide-react"
-import { getTransactions } from "@/features/transactions/services/transaction"
-import { useSuspenseQuery } from "@tanstack/react-query"
 
 import { Button } from "@/core/components/ui/button"
 import { Checkbox } from "@/core/components/ui/checkbox"
@@ -33,8 +31,9 @@ import { useIsMobile } from "@/core/hooks/use-mobile"
 import { Avatar, AvatarFallback } from "@/core/components/ui/avatar"
 import { Card, CardContent } from "@/core/components/ui/card"
 import { Badge } from "@/core/components/ui/badge"
+import { GrouppedRecordsArraySchema } from "../services/transaction.types"
 
-export const RecordsTable = () => {
+export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsArraySchema }) => {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -48,19 +47,6 @@ export const RecordsTable = () => {
   const [searchFilter, setSearchFilter] = useState("")
 
   const isMobile = useIsMobile()
-
-  const {
-    data: transactions,
-    error,
-    isFetching,
-  } = useSuspenseQuery({
-    queryKey: ["transactions"],
-    queryFn: getTransactions,
-  })
-
-  if (error && !isFetching) {
-    throw error
-  }
 
   const allTransactions = useMemo(() => {
     return transactions.flatMap((group) =>

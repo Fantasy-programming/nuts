@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/core/components/ui/card";
@@ -16,7 +17,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
 import { useSettingsStore } from "@/features/preferences/stores/settings.store";
 import { userService } from "@/features/preferences/services/user";
-import { useState, useRef } from "react";
+import { useState, useRef, Suspense } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,12 +34,14 @@ type UserFormValues = z.infer<typeof userFormSchema>;
 
 export const Route = createFileRoute("/dashboard_/settings/account")({
   component: RouteComponent,
-  loader: async () => {
-    const user = await userService.getMe();
-    return { user };
+  loader: ({ context }) => {
+    const queryClient = context.queryClient
+    queryClient.prefetchQuery({
+      queryKey: ["user"],
+      queryFn: userService.getMe,
+    })
   },
   gcTime: 1000 * 60 * 5,
-  staleTime: 1000 * 60 * 2,
   pendingComponent: () => <div>Loading account data...</div>,
   pendingMs: 150,
   pendingMinMs: 200,
@@ -46,7 +49,33 @@ export const Route = createFileRoute("/dashboard_/settings/account")({
 
 function RouteComponent() {
   const { deleteAccount } = useSettingsStore();
-  const { user } = Route.useLoaderData();
+  const queryClient = useQueryClient();
+
+  const {
+    data: user
+  } = useSuspenseQuery({
+    queryKey: ["user"],
+    queryFn: userService.getMe,
+  });
+
+
+  const changeInfoMutation = useMutation({
+    mutationFn: userService.updateMe,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
+
+
+  const changeAvatarMutation = useMutation({
+    mutationFn: userService.updateAvatar,
+    onError: (error) => {
+      console.error("Failed to upload avatar:", error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
 
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>(user.avatar_url);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,11 +87,11 @@ function RouteComponent() {
     if (hasChanges) {
       try {
         setIsSubmitting(true);
-        await userService.updateMe({
+        changeInfoMutation.mutate({
           email: data.email,
           first_name: data.first_name || undefined,
           last_name: data.last_name || undefined,
-        });
+        })
       } catch (error) {
         console.error("Failed to update profile:", error);
         // Reset form to last known good values
@@ -102,86 +131,86 @@ function RouteComponent() {
       const formData = new FormData();
       formData.append("avatar", file);
 
-      userService.updateAvatar(formData).catch((error) => {
-        console.error("Failed to upload avatar:", error);
-      });
+      changeAvatarMutation.mutate(formData)
     }
   };
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Update your personal information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={avatarPreview} />
-              <AvatarFallback>
-                {form.getValues("first_name")?.[0]}
-                {form.getValues("last_name")?.[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
-              <Button variant="outline" className="mb-2" onClick={() => fileInputRef.current?.click()}>
-                Change Avatar
-              </Button>
-              <p className="text-muted-foreground text-sm">Maximum file size: 5MB</p>
+      <Suspense fallback="loading...">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile</CardTitle>
+            <CardDescription>Update your personal information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={avatarPreview} />
+                <AvatarFallback>
+                  {form.getValues("first_name")?.[0]}
+                  {form.getValues("last_name")?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
+                <Button variant="outline" className="mb-2" onClick={() => fileInputRef.current?.click()}>
+                  Change Avatar
+                </Button>
+                <p className="text-muted-foreground text-sm">Maximum file size: 5MB</p>
+              </div>
             </div>
-          </div>
 
-          <Form {...form}>
-            <form className="space-y-4" onBlur={form.handleSubmit(onSubmit)}>
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <Form {...form}>
+              <form className="space-y-4" onBlur={form.handleSubmit(onSubmit)}>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="first_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="first_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="last_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="last_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              {isSubmitting && <p className="text-sm text-blue-500">Saving changes...</p>}
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                {isSubmitting && <p className="text-sm text-blue-500">Saving changes...</p>}
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </Suspense>
 
       <Card className="border-destructive">
         <CardHeader>

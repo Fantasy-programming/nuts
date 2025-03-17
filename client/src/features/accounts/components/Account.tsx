@@ -1,35 +1,19 @@
 import { useForm } from "react-hook-form";
 import React, { useState, useCallback } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Button } from "@/core/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Input } from "@/core/components/ui/input";
-import { accountService } from "@/features/accounts/services/account";
 import { accountFormSchema, AccountSchema, AccountSubmit } from "./Account.type";
 import { Plus } from "lucide-react";
 import { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription } from "@/core/components/ui/dialog-sheet";
 import { Account } from "@/features/accounts/services/account.types";
 
-export function AccountList({ onSubmit }: { onSubmit: AccountSubmit }) {
-  const {
-    data: accounts,
-    error,
-    isFetching,
-  } = useSuspenseQuery({
-    queryKey: ["accounts"],
-    queryFn: accountService.getAccounts,
-  });
-
-  if (error && !isFetching) {
-    throw error;
-  }
-
+export function AccountList({ onSubmit, accounts }: { onSubmit: AccountSubmit, accounts: Account[] }) {
   return (
     <div className="w-full flex-1 overflow-hidden">
-
       <div className="no-scrollbar flex gap-4 overflow-x-auto pb-4 md:grid md:grid-cols-2 md:overflow-x-hidden lg:grid-cols-5">
         {accounts?.map((account) => <AccountCard key={account.id} account={account} />)}
         <AccountDialog onSubmit={onSubmit} />
