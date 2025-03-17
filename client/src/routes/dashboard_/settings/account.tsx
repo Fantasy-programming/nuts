@@ -55,7 +55,6 @@ function RouteComponent() {
   const onSubmit = async (data: UserFormValues) => {
     const hasChanges = data.email !== user.email || data.first_name !== (user.first_name || "") || data.last_name !== (user.last_name || "");
 
-    console.log(hasChanges);
     if (hasChanges) {
       try {
         setIsSubmitting(true);

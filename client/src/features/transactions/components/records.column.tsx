@@ -1,6 +1,7 @@
 import { RecordSchema } from "@/features/transactions/services/transaction.types";
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/core/components/ui/checkbox";
+import { Avatar, AvatarFallback } from "@/core/components/ui/avatar";
 
 export const recordsTableColumns: ColumnDef<RecordSchema & { groupId: string; groupDate: Date; groupTotal: number }>[] = [
   {
@@ -30,7 +31,13 @@ export const recordsTableColumns: ColumnDef<RecordSchema & { groupId: string; gr
     minSize: 150,
     cell: ({ row }) => (
       <div className="flex items-center space-x-2">
-        {row.original?.details?.payment_status && <img src={"/placeholder.svg"} alt="" className="h-8 w-8 rounded-full" />}
+        {row.original?.details?.payment_status &&
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>
+              NW
+            </AvatarFallback>
+          </Avatar>
+        }
         <span>{row.getValue("description")}</span>
       </div>
     ),

@@ -8,12 +8,7 @@ import { Label } from "@/core/components/ui/label";
 import { Button } from "@/core/components/ui/button";
 import { Root } from "@radix-ui/react-visually-hidden";
 import {
-  Dialog,
-  DialogContent,
   DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
   InnerDialog,
   InnerDialogContent,
   InnerDialogHeader,
@@ -29,6 +24,7 @@ import { RecordsSubmit, RecordCreateSchema, recordCreateSchema } from "@/feature
 import { categoryService } from "@/features/categories/services/category";
 import { Textarea } from "@/core/components/ui/textarea";
 import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Sparkles, Pencil } from "lucide-react";
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogTrigger } from "@/core/components/ui/dialog-sheet";
 
 //TODO: Fix and make everything works
 
@@ -40,18 +36,18 @@ interface DialogProps extends React.PropsWithChildren {
 
 export function RecordsDialog({ onSubmit, children, open, onOpenChange }: DialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create New Transaction</DialogTitle>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Create New Transaction</ResponsiveDialogTitle>
           <Root>
             <DialogDescription>Record a new transaction</DialogDescription>
           </Root>
-        </DialogHeader>
+        </ResponsiveDialogHeader>
         <RecordsForm onSubmit={onSubmit} modalChange={onOpenChange} />
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -179,8 +175,8 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
   };
 
   return (
-    <Tabs value={transactionType} onValueChange={(v) => handleTabChange(v)}>
-      <TabsList className="grid w-full grid-cols-4">
+    <Tabs value={transactionType} onValueChange={(v) => handleTabChange(v)} >
+      <TabsList className="grid w-full grid-cols-4 px-4 md:px-0">
         <TabsTrigger value="expense" className="flex items-center gap-2">
           <ArrowDownLeft className="h-4 w-4" />
           Expense
@@ -201,7 +197,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
 
       <TabsContent value="expense">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-4 md:p-0">
             <FormField
               control={form.control}
               name="account_id"
@@ -304,7 +300,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
       {/* Income Form */}
       <TabsContent value="income">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-4 md:p-0">
             <FormField
               control={form.control}
               name="account_id"
@@ -407,7 +403,7 @@ export function RecordsForm({ onSubmit, modalChange }: { onSubmit: RecordsSubmit
       {/* Transfer Form */}
       <TabsContent value="transfer">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-4 md:p-0">
             <FormField
               control={form.control}
               name="account_id"

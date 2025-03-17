@@ -10,7 +10,7 @@ import { Input } from "@/core/components/ui/input";
 import { accountService } from "@/features/accounts/services/account";
 import { accountFormSchema, AccountSchema, AccountSubmit } from "./Account.type";
 import { Plus } from "lucide-react";
-import { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle } from "@/core/components/ui/dialog-sheet";
+import { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription } from "@/core/components/ui/dialog-sheet";
 import { Account } from "@/features/accounts/services/account.types";
 
 export function AccountList({ onSubmit }: { onSubmit: AccountSubmit }) {
@@ -29,6 +29,7 @@ export function AccountList({ onSubmit }: { onSubmit: AccountSubmit }) {
 
   return (
     <div className="w-full flex-1 overflow-hidden">
+
       <div className="no-scrollbar flex gap-4 overflow-x-auto pb-4 md:grid md:grid-cols-2 md:overflow-x-hidden lg:grid-cols-5">
         {accounts?.map((account) => <AccountCard key={account.id} account={account} />)}
         <AccountDialog onSubmit={onSubmit} />
@@ -71,6 +72,7 @@ export function AccountDialog({ onSubmit }: { onSubmit: AccountSubmit }) {
         <ResponsiveDialogHeader className="px-4 md:p-0">
           <ResponsiveDialogTitle>Create New Account</ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
+        <ResponsiveDialogDescription className="hidden">Add a new account to the app</ResponsiveDialogDescription>
         <AccountForm onSubmit={onSubmit} modalChange={setIsOpen} />
       </ResponsiveDialogContent>
     </ResponsiveDialog>

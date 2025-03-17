@@ -60,6 +60,10 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
 
   // Calculate appropriate dimensions based on chart size
   const getChartHeight = () => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile) {
+      return 200; // Smaller height for all charts on mobile
+    }
     switch (size) {
       case 1: return 240;
       case 2: return 240;

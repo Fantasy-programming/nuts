@@ -108,9 +108,9 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
 
   // Apply appropriate sizing classes based on the size prop
   const sizeClasses = {
-    1: "",
-    2: "md:col-span-2",
-    3: "md:col-span-3 lg:col-span-3",
+    1: "col-span-1", // Ensure single column on mobile
+    2: "col-span-1 md:col-span-2", // Single column on mobile, two on medium+
+    3: "col-span-1 md:col-span-2 lg:col-span-3", // Single column on mobile, responsive on larger screens
   };
 
   return (
@@ -153,16 +153,16 @@ export const ChartCardContent = ({ className, children, ...props }: React.HTMLAt
 
   // Adjust padding based on chart size
   const sizeClasses = {
-    1: "p-2",
-    2: "p-3",
-    3: "p-4",
+    1: "p-1 sm:p-2", // Less padding on mobile
+    2: "p-1 sm:p-3", // Less padding on mobile
+    3: "p-1 sm:p-4", // Less padding on mobile
   };
 
   // Add minimum height classes based on size
   const heightClasses = {
-    1: "min-h-[240px]", // Minimum height for size 1
-    2: "min-h-[240px]", // Minimum height for size 2
-    3: "min-h-[280px]", // Minimum height for size 3
+    1: "min-h-[200px] sm:min-h-[240px]", // Smaller on mobile
+    2: "min-h-[200px] sm:min-h-[240px]", // Smaller on mobile
+    3: "min-h-[200px] sm:min-h-[280px]", // Smaller on mobile
   };
 
 
