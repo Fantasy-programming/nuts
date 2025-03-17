@@ -9,18 +9,19 @@ import {
   LayoutGrid,
   LogOut,
   Moon,
-  Nut,
   ArrowRightLeft,
   Settings,
   Sun,
   SunMedium,
-  Users,
   Plus,
+  PlugZap,
   Wallet,
   type LucideIcon,
   Bell,
 } from "lucide-react";
 
+import LogoWTXT from "@/core/assets/icons/ICWLG"
+import Logo from "@/core/assets/icons/Logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
 import {
   DropdownMenu,
@@ -50,6 +51,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar,
 } from "@/core/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/core/components/ui/collapsible";
 import { Button } from "@/core/components/ui/button";
@@ -64,6 +66,7 @@ import { renderIcon } from "@/core/components/icon-picker";
 
 import { cn } from "@/lib/utils"
 import type { FileRoutesByTo } from "@/routeTree.gen";
+import { userService } from "@/features/preferences/services/user";
 
 
 export type ValidRoutes = keyof FileRoutesByTo;
@@ -75,6 +78,10 @@ type navStuff = {
 };
 
 export const Route = createFileRoute("/dashboard")({
+  loader: async () => {
+    const user = await userService.getMe();
+    return { user };
+  },
   component: DashboardWrapper,
   beforeLoad: ({ context, location }) => {
     if (!context.auth.isAuthenticated && !context.auth.isLoading) {
@@ -110,7 +117,7 @@ const navMain: navStuff[] = [
   {
     title: "Plugins",
     url: "/dashboard/plugins",
-    icon: ChartColumn,
+    icon: PlugZap,
   },
 ];
 
@@ -122,6 +129,8 @@ function DashboardWrapper() {
   const [theme, setTheme] = useState("light");
   const [isOpen, setIsOpen] = useState(false);
 
+
+  const { user } = Route.useLoaderData();
 
   const createMutation = useMutation({
     mutationFn: createTransaction,
@@ -195,21 +204,24 @@ function DashboardWrapper() {
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton size="lg" className="w-full justify-start group-data-[collapsible=icon]:justify-center">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src="/placeholder.svg" alt="@username" />
-                      <AvatarFallback>KD</AvatarFallback>
+                      <AvatarImage src={user.avatar_url} />
+                      <AvatarFallback>
+                        {user.first_name?.[0]}
+                        {user.last_name?.[0]}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="ml-3 flex flex-1 flex-col group-data-[collapsible=icon]:hidden">
-                      <span className="text-sm font-semibold">Nameless User</span>
-                      <span className="text-muted-foreground text-xs">rickrichard80@gmail.com</span>
+                      <span className="text-sm font-semibold text-ellipsis text-nowrap">
+                        {user?.first_name && user?.last_name && (
+                          `${user.first_name} ${user.last_name}`
+                        )}
+                      </span>
+                      <span className="text-muted-foreground text-xs">{user.email}</span>
                     </div>
                     <ChevronDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="start" alignOffset={-8} forceMount>
-                  <DropdownMenuItem>
-                    <Users className="mr-2 h-4 w-4" />
-                    Workspace settings
-                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard/settings">
                       <Settings className="mr-2 h-4 w-4" />
@@ -284,18 +296,19 @@ function DashboardWrapper() {
 }
 
 const SideBHeader = () => {
+  const { state } = useSidebar();
+
   return (
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" tooltip="Nuts Finance">
-            <div className="flex items-center gap-2">
-              <div className="flex aspect-square items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
-                <Nut className="size-4" />
-              </div>
-              <span className="font-semibold group-data-[collapsible=icon]:hidden">
-                Nuts Finance
-              </span>
+            <div className="flex w-full items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
+              {state === "collapsed" ? (
+                <Logo className="size-4" fill="#000" />
+              ) : (
+                <LogoWTXT className="size-16" fill="#000" />
+              )}
             </div>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -366,10 +379,10 @@ const SideBPluginsLinks = () => {
                       </CollapsibleTrigger>
                       {
                         route?.subroutes ? (
-                          <CollapsibleContent>
+                          <CollapsibleContent >
                             <SidebarMenuSub>
                               {route.subroutes.map((item) => (
-                                <SidebarMenuSubItem>
+                                <SidebarMenuSubItem key={item.label}>
                                   <SidebarMenuSubButton asChild>
                                     <Link to={'/dashboard/$'} params={{
                                       _splat: item.path
