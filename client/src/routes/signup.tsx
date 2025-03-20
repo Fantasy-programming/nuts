@@ -1,9 +1,9 @@
-import { toast } from "sonner";
-import { motion } from "framer-motion";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "motion/react";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 
 import { authService } from "@/features/auth/services/auth";
 import { type SignupFormValues, signupSchema } from "@/features/auth/services/auth.types";
@@ -13,7 +13,7 @@ import { Separator } from "@/core/components/ui/separator";
 import { Label } from "@/core/components/ui/label";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
-import IconFull from "@/core/assets/icons/IconFull"
+import { NutsFull } from "@/core/assets/icons/IconFull"
 
 export const Route = createFileRoute("/signup")({
   component: RouteComponent,
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/signup")({
 });
 
 function RouteComponent() {
-  const navigate = useNavigate({ from: "/signup" });
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<SignupFormValues>({
@@ -83,7 +83,7 @@ function RouteComponent() {
         className="relative z-10 w-full max-w-sm space-y-8"
       >
         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} className="flex justify-center">
-          <IconFull className="w-24 h-24" fill="#fff" />
+          <NutsFull className="w-24 h-24" fill="#fff" />
         </motion.div>
         <Card className="w-full bg-white/90 shadow-2xl backdrop-blur-sm">
           <CardHeader className="space-y-1">
@@ -166,7 +166,7 @@ function RouteComponent() {
                 <Button
                   className="w-full bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:from-emerald-500 hover:to-emerald-600 hover:shadow-emerald-600/25"
                   type="submit"
-                  disabled={isLoading}
+                  loading={isLoading}
                 >
                   {isLoading ? "Creating account..." : "Create account"}
                 </Button>

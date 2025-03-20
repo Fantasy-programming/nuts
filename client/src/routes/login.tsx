@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { createFileRoute, Link, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+import { z } from "zod";
+import { sleep } from "@/lib/utils"
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth.types";
@@ -13,28 +15,28 @@ import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { Separator } from "@/core/components/ui/separator";
-import IconFull from "@/core/assets/icons/IconFull"
+import { NutsFull } from "@/core/assets/icons/IconFull"
 
 export const Route = createFileRoute("/login")({
-  component: RouteComponent,
-  beforeLoad: ({ context, location }) => {
+  validateSearch: z.object({
+    redirect: z.string().optional().catch(''),
+  }),
+  beforeLoad: ({ context, search }) => {
     if (context.auth.isAuthenticated) {
-      throw redirect({
-        to: "/dashboard/home",
-        search: { redirect: location.href },
-      });
+      throw redirect({ to: search.redirect || "/dashboard/home" });
     }
   },
   shouldReload({ context }) {
     return !context.auth.isAuthenticated;
   },
+  component: RouteComponent,
 });
 
 function RouteComponent() {
   const auth = useAuth();
   const router = useRouter();
-  const navigate = useNavigate({ from: "/login" });
-
+  const navigate = useNavigate();
+  const search = Route.useSearch()
   const isLoading = useRouterState({ select: (s) => s.isLoading });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -56,7 +58,8 @@ function RouteComponent() {
       });
 
       await router.invalidate();
-      await navigate({ to: "/dashboard/home" });
+      await sleep(1)
+      await navigate({ to: search.redirect || "/dashboard/home" })
     } catch (error) {
       toast.error("Error", {
         description: "There was a problem logging you in",
@@ -90,7 +93,7 @@ function RouteComponent() {
         className="relative z-10 w-full max-w-sm "
       >
         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} className="flex justify-center">
-          <IconFull className="w-24 h-24" fill="#fff" />
+          <NutsFull className="w-24 h-24" fill="#fff" />
         </motion.div>
 
         <Card className="w-full bg-white/90 shadow-2xl backdrop-blur-sm">
@@ -104,7 +107,7 @@ function RouteComponent() {
                 <Button
                   variant="outline"
                   className="relative w-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-all duration-300 after:absolute after:inset-0 after:rounded-md after:opacity-0 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)] hover:bg-white/95 hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] hover:after:opacity-100"
-                  disabled={isLoading}
+                  disabled={isLoggingIn}
                 >
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path
@@ -158,7 +161,7 @@ function RouteComponent() {
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:from-emerald-500 hover:to-emerald-600 hover:shadow-emerald-600/25"
-                  disabled={isLoggingIn}
+                  loading={isLoggingIn}
                 >
                   {isLoggingIn ? "Loggin in..." : "Log in"}
                 </Button>

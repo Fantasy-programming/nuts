@@ -4,7 +4,7 @@ interface IconProp extends SVGProps<SVGSVGElement> {
   fill?: string
 }
 
-const SvgComponent = (props: IconProp) => (
+export const NutsFull = (props: IconProp) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="1em"
@@ -24,4 +24,3 @@ const SvgComponent = (props: IconProp) => (
     </defs>
   </svg>
 )
-export default SvgComponent
