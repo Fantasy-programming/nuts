@@ -41,3 +41,5 @@ dist-ssr
 .million
 tmp
 server/tmp
+
+Todo.md
