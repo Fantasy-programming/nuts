@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useCallback, Suspense } from "react";
 import { useHotkeys } from 'react-hotkeys-hook'
@@ -131,8 +131,6 @@ function DashboardWrapper() {
 
   const [theme, setTheme] = useState("light");
   const [isOpen, setIsOpen] = useState(false);
-
-
 
   const {
     data: user
@@ -328,7 +326,7 @@ const SideBHeader = () => {
 }
 
 const SideBMainLinks = () => {
-  const router = useRouterState();
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>General</SidebarGroupLabel>
@@ -342,8 +340,8 @@ const SideBMainLinks = () => {
             >
               <Link to={item.url} className={cn(
                 "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
-                router.location.pathname === item.url ? "bg-sidebar-accent shadow-sm" : ""
               )}
+                activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
               >
                 {item.icon && <item.icon className="size-4 font-medium stroke-2" />}
                 <span>{item.title}</span>
@@ -359,7 +357,6 @@ const SideBMainLinks = () => {
 const SideBPluginsLinks = () => {
   const getEnabledPluginConfigs = usePluginStore(state => state.getEnabledPluginConfigs); // plugin routes
   const plugins = getEnabledPluginConfigs()
-  const router = useRouterState();
 
   return (
     plugins.length > 0 && (
@@ -380,8 +377,10 @@ const SideBPluginsLinks = () => {
                             }}
                             className={cn(
                               "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
-                              router.location.pathname === `/dashboard${route.path}` ? "bg-sidebar-accent shadow-sm" : ""
-                            )}>
+                            )}
+
+                            activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
+                          >
                             {renderIcon(route.iconName)}
                             <span className="ml-2">{route.label}</span>
                           </Link>
@@ -398,8 +397,10 @@ const SideBPluginsLinks = () => {
                                       _splat: item.path
                                     }} className={cn(
                                       "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
-                                      router.location.pathname === `/dashboard${item.path}` ? "bg-sidebar-accent shadow-sm" : ""
-                                    )}>
+
+                                    )}
+                                      activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
+                                    >
                                       <span className="ml-2">{item.label}</span>
                                     </Link>
                                   </SidebarMenuSubButton>
