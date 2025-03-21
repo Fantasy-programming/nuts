@@ -3,7 +3,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 
 import { Spinner } from "@/core/components/ui/spinner";
 import { accountService } from "@/features/accounts/services/account";
-import { AccountList } from "@/features/accounts/components/Account";
+import { AccountList } from "@/features/accounts/components/account";
 import { AccountSchema } from "@/features/accounts/components/Account.type";
 
 export const Route = createFileRoute("/dashboard/accounts")({
@@ -28,20 +28,43 @@ function RouteComponent() {
     queryFn: accountService.getAccounts,
   });
 
-  const createMutation = useMutation({
+  const createAccount = useMutation({
     mutationFn: accountService.createAccount,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
     },
   });
 
-  const onSubmit = (values: AccountSchema) => {
-    createMutation.mutate(values);
+  const updateAccount = useMutation({
+    mutationFn: accountService.updateAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    },
+  });
+
+  const deleteAccount = useMutation({
+    mutationFn: accountService.deleteAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    },
+  });
+
+  const onCreate = (values: AccountSchema) => {
+    createAccount.mutate(values);
+  };
+
+
+  const onUpdate = (id: string, values: AccountSchema) => {
+    updateAccount.mutate({ id, account: values });
+  };
+
+  const onDelete = (id: string) => {
+    deleteAccount.mutate(id);
   };
 
   return (
     <div className="flex h-full flex-col space-y-8">
-      <AccountList onSubmit={onSubmit} accounts={data} />
+      <AccountList onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} accounts={data} />
     </div>
   );
 }
