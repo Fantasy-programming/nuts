@@ -117,6 +117,7 @@ func (r *Router) Mount(pathStr string, handler http.Handler) error {
 	}
 
 	mountPath := path.Clean(path.Join(r.prefix, pathStr))
+	cleanMountPath := path.Clean(path.Join(r.prefix, pathStr))
 
 	// Ensure the path ends with a trailing slash if it's not root
 	if mountPath != "/" {
@@ -128,6 +129,7 @@ func (r *Router) Mount(pathStr string, handler http.Handler) error {
 		// Save original path
 		originalPath := req.URL.Path
 
+		fmt.Println(req.URL.Path)
 		// Strip the mount path prefix from the request path
 		req.URL.Path = strings.TrimPrefix(req.URL.Path, mountPath)
 
@@ -135,6 +137,8 @@ func (r *Router) Mount(pathStr string, handler http.Handler) error {
 		if !strings.HasPrefix(req.URL.Path, "/") {
 			req.URL.Path = "/" + req.URL.Path
 		}
+
+		fmt.Println(req.URL.Path)
 
 		// Call the handler with the modified path
 		handler.ServeHTTP(w, req)
@@ -147,8 +151,9 @@ func (r *Router) Mount(pathStr string, handler http.Handler) error {
 	finalHandler := r.wrap(wrappedHandler)
 
 	// Register the handler for both exact path and wildcard pattern
-	r.mux.Handle(mountPath, finalHandler)
-	r.mux.Handle(mountPath+"*", finalHandler)
+	r.mux.Handle(cleanMountPath, finalHandler)
+	r.mux.Handle(cleanMountPath+"/", finalHandler)
+	r.mux.Handle(cleanMountPath+"/*", finalHandler)
 
 	return nil
 }
@@ -240,7 +245,6 @@ func (r *Router) NotFound(fn http.HandlerFunc) {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-
 	handler, pattern := r.mux.Handler(req)
 	if pattern == "" {
 		r.handleNotFound(w, req)

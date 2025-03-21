@@ -168,6 +168,7 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
+			R:          r,
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
@@ -180,6 +181,7 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 		// validationErrors := validation.TranslateErrors(ctx, err)
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
+			R:          r,
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrValidation,
 			ActualErr:  err,
@@ -193,6 +195,7 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	if err == nil {
 		respond.Error(respond.ErrorOptions{
+			R:          r,
 			W:          w,
 			StatusCode: http.StatusConflict,
 			ClientErr:  ErrExistingUser,
@@ -205,6 +208,7 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 	if !errors.Is(err, pgx.ErrNoRows) {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
+			R:          r,
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
@@ -217,6 +221,7 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
+			R:          r,
 			StatusCode: http.StatusInternalServerError,
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
