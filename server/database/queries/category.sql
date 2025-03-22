@@ -64,20 +64,21 @@ WITH parent_categories AS (
         created_by
     )
     VALUES
-        ('Food & Beverage', TRUE, sqlc.arg('user_id')),
-        ('Shopping', TRUE, sqlc.arg('user_id')),
-        ('Housing', TRUE, sqlc.arg('user_id')),
-        ('Transportation', TRUE, sqlc.arg('user_id')),
-        ('Vehicle', TRUE, sqlc.arg('user_id')),
-        ('Life & Entertainment', TRUE, sqlc.arg('user_id')),
-        ('Communication & PC', TRUE, sqlc.arg('user_id')),
-        ('Financial Expenses', TRUE, sqlc.arg('user_id')),
-        ('Investments', TRUE, sqlc.arg('user_id')),
-        ('Income', TRUE, sqlc.arg('user_id')),
-        ('Others', TRUE, sqlc.arg('user_id')),
-        ('Transfers', TRUE, sqlc.arg('user_id'))
+    ('Food & Beverage', TRUE, sqlc.arg('user_id')),
+    ('Shopping', TRUE, sqlc.arg('user_id')),
+    ('Housing', TRUE, sqlc.arg('user_id')),
+    ('Transportation', TRUE, sqlc.arg('user_id')),
+    ('Vehicle', TRUE, sqlc.arg('user_id')),
+    ('Life & Entertainment', TRUE, sqlc.arg('user_id')),
+    ('Communication & PC', TRUE, sqlc.arg('user_id')),
+    ('Financial Expenses', TRUE, sqlc.arg('user_id')),
+    ('Investments', TRUE, sqlc.arg('user_id')),
+    ('Income', TRUE, sqlc.arg('user_id')),
+    ('Others', TRUE, sqlc.arg('user_id')),
+    ('Transfers', TRUE, sqlc.arg('user_id'))
     RETURNING id, name
 ),
+
 food_subcategories AS (
     INSERT INTO categories (
         name,
@@ -87,18 +88,19 @@ food_subcategories AS (
     )
     SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
-    FROM parent_categories pc
+    FROM parent_categories
     CROSS JOIN (
-        VALUES 
-            ('Bar & Cafe'),
-            ('Groceries'),
-            ('Restaurant & Fast Food')
-    ) AS subcat(name)
-    WHERE pc.name = 'Food & Beverage'
+        VALUES
+        ('Bar & Cafe'),
+        ('Groceries'),
+        ('Restaurant & Fast Food')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Food & Beverage'
 ),
+
 shopping_subcategories AS (
     INSERT INTO categories (
         name,
@@ -106,23 +108,24 @@ shopping_subcategories AS (
         is_default,
         created_by
     )
-    SELECT 
+    SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
-    FROM parent_categories pc
+    FROM parent_categories
     CROSS JOIN (
-        VALUES 
-            ('Clothing & Shoes'),
-            ('Electronics'),
-            ('Health & Beauty'),
-            ('Home & Garden'),
-            ('Gifts'),
-            ('Sports Equipment')
-    ) AS subcat(name)
-    WHERE pc.name = 'Shopping'
+        VALUES
+        ('Clothing & Shoes'),
+        ('Electronics'),
+        ('Health & Beauty'),
+        ('Home & Garden'),
+        ('Gifts'),
+        ('Sports Equipment')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Shopping'
 ),
+
 housing_subcategories AS (
     INSERT INTO categories (
         name,
@@ -130,22 +133,23 @@ housing_subcategories AS (
         is_default,
         created_by
     )
-    SELECT 
+    SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
-    FROM parent_categories pc
+    FROM parent_categories
     CROSS JOIN (
-        VALUES 
-            ('Rent'),
-            ('Mortgage'),
-            ('Utilities'),
-            ('Maintenance & Repairs'),
-            ('Property Tax')
-    ) AS subcat(name)
-    WHERE pc.name = 'Housing'
+        VALUES
+        ('Rent'),
+        ('Mortgage'),
+        ('Utilities'),
+        ('Maintenance & Repairs'),
+        ('Property Tax')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Housing'
 ),
+
 transportation_subcategories AS (
     INSERT INTO categories (
         name,
@@ -153,21 +157,22 @@ transportation_subcategories AS (
         is_default,
         created_by
     )
-    SELECT 
+    SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
-    FROM parent_categories pc
+    FROM parent_categories
     CROSS JOIN (
-        VALUES 
-            ('Public Transport'),
-            ('Taxi & Ride Share'),
-            ('Parking'),
-            ('Travel')
-    ) AS subcat(name)
-    WHERE pc.name = 'Transportation'
+        VALUES
+        ('Public Transport'),
+        ('Taxi & Ride Share'),
+        ('Parking'),
+        ('Travel')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Transportation'
 ),
+
 vehicle_subcategories AS (
     INSERT INTO categories (
         name,
@@ -175,21 +180,22 @@ vehicle_subcategories AS (
         is_default,
         created_by
     )
-    SELECT 
+    SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
-    FROM parent_categories pc
+    FROM parent_categories
     CROSS JOIN (
-        VALUES 
-            ('Fuel'),
-            ('Service & Maintenance'),
-            ('Insurance'),
-            ('Registration & Tax')
-    ) AS subcat(name)
-    WHERE pc.name = 'Vehicle'
+        VALUES
+        ('Fuel'),
+        ('Service & Maintenance'),
+        ('Insurance'),
+        ('Registration & Tax')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Vehicle'
 ),
+
 life_entertainment_subcategories AS (
     INSERT INTO categories (
         name,
@@ -197,23 +203,24 @@ life_entertainment_subcategories AS (
         is_default,
         created_by
     )
-    SELECT 
+    SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
     FROM parent_categories pc
     CROSS JOIN (
-        VALUES 
-            ('Entertainment'),
-            ('Health & Fitness'),
-            ('Hobbies'),
-            ('Education'),
-            ('Pets'),
-            ('Subscriptions')
-    ) AS subcat(name)
-    WHERE pc.name = 'Life & Entertainment'
+        VALUES
+        ('Entertainment'),
+        ('Health & Fitness'),
+        ('Hobbies'),
+        ('Education'),
+        ('Pets'),
+        ('Subscriptions')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Life & Entertainment'
 ),
+
 communication_pc_subcategories AS (
     INSERT INTO categories (
         name,
@@ -223,19 +230,20 @@ communication_pc_subcategories AS (
     )
     SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
-    FROM parent_categories pc
+    FROM parent_categories
     CROSS JOIN (
-        VALUES 
-            ('Phone'),
-            ('Internet'),
-            ('Software & Apps'),
-            ('Hardware & Devices')
-    ) AS subcat(name)
-    WHERE pc.name = 'Communication & PC'
+        VALUES
+        ('Phone'),
+        ('Internet'),
+        ('Software & Apps'),
+        ('Hardware & Devices')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Communication & PC'
 ),
+
 financial_expenses_subcategories AS (
     INSERT INTO categories (
         name,
@@ -243,21 +251,22 @@ financial_expenses_subcategories AS (
         is_default,
         created_by
     )
-    SELECT 
+    SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
-    FROM parent_categories pc
+    FROM parent_categories
     CROSS JOIN (
-        VALUES 
-            ('Bank Fees'),
-            ('Interest'),
-            ('Taxes'),
-            ('Insurance')
-    ) AS subcat(name)
-    WHERE pc.name = 'Financial Expenses'
+        VALUES
+        ('Bank Fees'),
+        ('Interest'),
+        ('Taxes'),
+        ('Insurance')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Financial Expenses'
 ),
+
 investments_subcategories AS (
     INSERT INTO categories (
         name,
@@ -265,22 +274,23 @@ investments_subcategories AS (
         is_default,
         created_by
     )
-    SELECT 
+    SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
-    FROM parent_categories pc
+    FROM parent_categories
     CROSS JOIN (
-        VALUES 
-            ('Stocks'),
-            ('Crypto'),
-            ('Real Estate'),
-            ('Retirement'),
-            ('Savings')
-    ) AS subcat(name)
-    WHERE pc.name = 'Investments'
+        VALUES
+        ('Stocks'),
+        ('Crypto'),
+        ('Real Estate'),
+        ('Retirement'),
+        ('Savings')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Investments'
 ),
+
 income_subcategories AS (
     INSERT INTO categories (
         name,
@@ -288,22 +298,22 @@ income_subcategories AS (
         is_default,
         created_by
     )
-    SELECT 
+    SELECT
         subcat.name,
-        pc.id,
+        parent_categories.id,
         TRUE,
         sqlc.arg('user_id')
-    FROM parent_categories pc
+    FROM parent_categories
     CROSS JOIN (
-        VALUES 
-            ('Salary'),
-            ('Business'),
-            ('Dividends'),
-            ('Interest'),
-            ('Rental'),
-            ('Sale'),
-            ('Gifts Received')
-    ) AS subcat(name)
-    WHERE pc.name = 'Income'
+        VALUES
+        ('Salary'),
+        ('Business'),
+        ('Dividends'),
+        ('Interest'),
+        ('Rental'),
+        ('Sale'),
+        ('Gifts Received')
+    ) AS subcat (name)
+    WHERE parent_categories.name = 'Income'
 )
 SELECT 1;

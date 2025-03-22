@@ -3,6 +3,8 @@ package accounts
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
@@ -359,4 +361,139 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond.Status(w, http.StatusOK)
+}
+
+func (h *Handler) GetAccountsTrends(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	u, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    u,
+		})
+		return
+	}
+
+	startDateStr := u.Get("start")
+	endDateStr := u.Get("end")
+
+	var startDate, endDate time.Time
+
+	if startDateStr != "" && endDateStr != "" {
+		startDate, err = time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusBadRequest,
+				ClientErr:  ErrAccountQueryParamInvalid,
+				ActualErr:  err,
+				Logger:     h.logger,
+			})
+			return
+		}
+
+		endDate, err = time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusBadRequest,
+				ClientErr:  ErrAccountQueryParamInvalid,
+				ActualErr:  err,
+				Logger:     h.logger,
+			})
+			return
+		}
+
+		// Ensure startDate is before endDate
+		if startDate.After(endDate) {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusBadRequest,
+				ClientErr:  ErrEndDateBeforeStart,
+				Logger:     h.logger,
+			})
+			return
+		}
+	} else {
+		endDate = time.Now()
+		startDate = endDate.AddDate(-1, 0, 0) // 1 year before endDate
+	}
+
+	account, err := h.repo.GetAccountsTrends(ctx, startDate, endDate)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    nil,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, account, h.logger)
+}
+
+func (h *Handler) GetAccountBTimeline(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	accountID, err := parseUUID(r, "id")
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    accountID,
+		})
+		return
+	}
+
+	accounts, err := h.repo.GetAccountBTimeline(ctx, accountID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    nil,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, accounts, h.logger)
+}
+
+func (h *Handler) GetAccountsBTimeline(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	account, err := h.repo.GetAccountsBTimeline(ctx)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    nil,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, account, h.logger)
 }

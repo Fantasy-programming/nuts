@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"context"
+	"time"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/google/uuid"
@@ -22,6 +23,11 @@ type Repository interface {
 	DeleteAccount(ctx context.Context, id uuid.UUID) error
 	// UpdateAccountBalance updates just the balance of an account
 	UpdateAccountBalance(ctx context.Context, id uuid.UUID, amount pgtype.Numeric) error
+
+	// GetAccountsBTimeline
+	GetAccountsBTimeline(ctx context.Context) ([]repository.GetAllAccountsBalanceTimelineRow, error)
+	GetAccountBTimeline(ctx context.Context, id uuid.UUID) (repository.GetAccountBalanceTimelineRow, error)
+	GetAccountsTrends(ctx context.Context, startTime time.Time, endTime time.Time) ([]repository.GetAccountsWithTrendRow, error)
 }
 
 type repo struct {
@@ -67,4 +73,21 @@ func (r *repo) UpdateAccountBalance(ctx context.Context, id uuid.UUID, amount pg
 		Balance: amount,
 	}
 	return r.queries.UpdateAccountBalance(ctx, params)
+}
+
+func (r *repo) GetAccountsBTimeline(ctx context.Context) ([]repository.GetAllAccountsBalanceTimelineRow, error) {
+	return r.queries.GetAllAccountsBalanceTimeline(ctx)
+}
+
+func (r *repo) GetAccountBTimeline(ctx context.Context, id uuid.UUID) (repository.GetAccountBalanceTimelineRow, error) {
+	return r.queries.GetAccountBalanceTimeline(ctx, id)
+}
+
+func (r *repo) GetAccountsTrends(ctx context.Context, startTime time.Time, endTime time.Time) ([]repository.GetAccountsWithTrendRow, error) {
+	params := repository.GetAccountsWithTrendParams{
+		Column1: startTime,
+		Column2: endTime,
+	}
+
+	return r.queries.GetAccountsWithTrend(ctx, params)
 }
