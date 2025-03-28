@@ -14,6 +14,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/pkg/pass"
 	"github.com/jackc/pgx/v5"
+	"github.com/markbates/goth/gothic"
 	"github.com/rs/zerolog"
 )
 
@@ -342,4 +343,85 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	// Respond with a success message
 	respond.Json(w, http.StatusOK, nil, h.log)
+}
+
+func (h *Handler) GoogleHandler(w http.ResponseWriter, r *http.Request) {
+	gothic.BeginAuthHandler(w, r)
+}
+
+func (h *Handler) GoogleCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, err := gothic.CompleteUserAuth(w, r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusUnauthorized,
+			ClientErr:  message.ErrForbidden,
+			ActualErr:  err,
+			Logger:     h.log,
+		})
+		return
+	}
+
+	// Save user to the database
+	dbUser, err := h.repo.FindORCreateOAuthUser(ctx, user)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+		})
+		return
+	}
+
+	// Generate JWT token
+	tokenPair, err := h.tkn.GenerateTokenPair(ctx, dbUser.ID, roles)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+		})
+		return
+	}
+
+	// Generate tokens for the user
+	secure := os.Getenv("ENVIRONMENT") == "production"
+
+	// Set cookies with tokens
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    tokenPair.AccessToken,
+		HttpOnly: true,
+		Path:     "/",
+		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(15 * time.Minute),
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    tokenPair.RefreshToken,
+		HttpOnly: true,
+		Path:     "/",
+		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
+	})
+
+	// Redirect to the secure area
+	redirectURL := os.Getenv("REDIRECT_SECURE")
+
+	if redirectURL == "" {
+		redirectURL = "http://localhost:5173/dashboard"
+	}
+
+	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
