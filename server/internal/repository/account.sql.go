@@ -291,6 +291,8 @@ account_initial_balance AS (
         id AS account_id,
         balance AS initial_balance
     FROM accounts
+    -- Add index hint for better performance
+    WHERE deleted_at IS NULL
 ),
 
 combined AS (
