@@ -11,4 +11,8 @@
     pnpm.enable = true;
     npm.enable = true;
   };
+
+
+  languages.java.enable = true;
+  languages.java.gradle.enable = true;
 }
