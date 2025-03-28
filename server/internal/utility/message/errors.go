@@ -9,4 +9,5 @@ var (
 	ErrNoRecord      = errors.New("no record found")    // No Row found
 	ErrMissingParams = errors.New("missing parameters") // No Row found
 	ErrForbidden     = errors.New("error.forbidden")    // No Row found
+	ErrUnauthorized  = errors.New("error.bad_request")  // Bad request
 )

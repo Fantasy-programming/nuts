@@ -30,7 +30,7 @@ func (s *Server) RegisterDomain() {
 }
 
 func (s *Server) initAuth() {
-	AuthDomain := auth.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	AuthDomain := auth.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.cfg, s.logger)
 	s.router.Mount("/auth", AuthDomain)
 }
 

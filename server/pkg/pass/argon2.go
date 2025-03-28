@@ -158,3 +158,13 @@ func decodeHash(encodedHash string) (*Params, []byte, []byte, error) {
 
 	return params, salt, hash, nil
 }
+
+// GenerateRandomString generates a secure random string of the specified length
+func GenerateRandomString(length int) (string, error) {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(bytes)[:length], nil
+}

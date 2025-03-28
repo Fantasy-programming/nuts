@@ -35,7 +35,7 @@ type Server struct {
 	db        *pgxpool.Pool
 	storage   *storage.Storage
 	cors      *cors.Cors
-	router    *router.Router
+	router    router.Router
 	validator *validation.Validator
 	i18n      *i18n.I18n
 
@@ -157,6 +157,7 @@ func (s *Server) setCors() {
 		})
 }
 
+// TODO: Restore that
 func (s *Server) ListRoutes() {
 	s.router.ListRoutes()
 }
