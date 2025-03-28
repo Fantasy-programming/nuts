@@ -3,7 +3,7 @@
 {
   env.GOOSE_DRIVER="postgres";
   env.GOOSE_DBSTRING="postgresql://test:secret@localhost:5432/nuts?sslmode=disable";
-  env.PATH = "#{config.env.DEVENV_ROOT}/bin:$PATH";  # Just add the local bin to PATH
+  env.PATH = "#{config.env.DEVENV_ROOT}/bin:$PATH";
 
   packages = [
     pkgs.air
