@@ -258,6 +258,104 @@ func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAcco
 	return items, nil
 }
 
+const getAccountsBalanceTimeline = `-- name: GetAccountsBalanceTimeline :many
+WITH months AS (
+    -- Generate a full year of months
+    SELECT generate_series(
+        date_trunc('month', now()) - INTERVAL '11 months',
+        date_trunc('month', now()),
+        INTERVAL '1 month'
+    ) AS month
+),
+
+monthly_transactions AS (
+    -- Aggregate transactions per month per account
+    SELECT
+        account_id,
+        date_trunc('month', transaction_datetime) AS month,
+        sum(
+            CASE
+                WHEN type = 'income' THEN amount
+                WHEN type = 'expense' THEN -amount
+                ELSE 0
+            END
+        ) AS monthly_net
+    FROM transactions
+    WHERE transaction_datetime >= now() - INTERVAL '1 year'
+    GROUP BY account_id, month
+),
+
+account_initial_balance AS (
+    -- Get the initial balance of all accounts
+    SELECT
+        id AS account_id,
+        balance AS initial_balance
+    FROM accounts
+),
+
+combined AS (
+    -- Left join generated months with transactions for all accounts
+    SELECT
+        months.month,
+        coalesce(monthly_transactions.account_id, account_initial_balance.account_id) AS account_id,
+        coalesce(monthly_transactions.monthly_net, 0) AS monthly_net
+    FROM months
+    CROSS JOIN account_initial_balance
+    LEFT JOIN monthly_transactions ON months.month = monthly_transactions.month 
+        AND account_initial_balance.account_id = monthly_transactions.account_id
+),
+
+running_balance AS (
+    -- Compute cumulative balance for all accounts
+    SELECT
+        combined.account_id,
+        combined.month,
+        account_initial_balance.initial_balance
+        +
+        sum(combined.monthly_net) OVER (
+            PARTITION BY combined.account_id
+            ORDER BY combined.month ROWS BETWEEN UNBOUNDED PRECEDING
+            AND CURRENT ROW
+        ) AS balance
+    FROM combined
+    INNER JOIN account_initial_balance
+        ON combined.account_id = account_initial_balance.account_id
+)
+
+SELECT
+    month::TIMESTAMPTZ,
+    sum(balance) AS balance
+FROM running_balance
+GROUP BY month
+ORDER BY month
+`
+
+type GetAccountsBalanceTimelineRow struct {
+	Month   time.Time `json:"month"`
+	Balance int64     `json:"balance"`
+}
+
+// SUM balances for all accounts per month
+func (q *Queries) GetAccountsBalanceTimeline(ctx context.Context) ([]GetAccountsBalanceTimelineRow, error) {
+	rows, err := q.db.Query(ctx, getAccountsBalanceTimeline)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAccountsBalanceTimelineRow{}
+	for rows.Next() {
+		var i GetAccountsBalanceTimelineRow
+		if err := rows.Scan(&i.Month, &i.Balance); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAccountsWithTrend = `-- name: GetAccountsWithTrend :many
 WITH months AS (
     -- Generate months within the given period
@@ -349,24 +447,31 @@ running_balance AS (
 
 account_trend AS (
     -- Calculate trend percentage
-    SELECT
+    SELECT DISTINCT ON (rb.account_id)
         rb.account_id,
         rb.name,
         rb.type,
+        rb.balance,
         rb.currency,
         rb.color,
         rb.meta,
-        rb.created_by,
-        rb.created_at,
         rb.updated_at,
-        rb.deleted_at,
         CASE
+        -- If no transactions exist, return 0%
+            WHEN
+                NOT EXISTS (
+                    SELECT 1 FROM running_balance
+                    WHERE account_id = rb.account_id
+                )
+                THEN 0
+            -- If initial balance is zero, trend should also be 0%
             WHEN (
                 SELECT balance FROM running_balance
                 WHERE account_id = rb.account_id
                 ORDER BY month ASC LIMIT 1
             ) = 0
-                THEN NULL -- Avoid division by zero
+                THEN 0
+
             ELSE (
                 (
                     SELECT balance FROM running_balance
@@ -375,18 +480,17 @@ account_trend AS (
                 )
                 -
                 (
-                    SELECT balance FROM running_balance 
+                    SELECT balance FROM running_balance
                     WHERE account_id = rb.account_id
                     ORDER BY month ASC LIMIT 1
                 )
             ) / (
-                SELECT balance FROM running_balance
-                WHERE account_id = rb.account_id
-                ORDER BY month ASC LIMIT 1
+                    SELECT balance FROM running_balance
+                    WHERE account_id = rb.account_id
+                    ORDER BY month ASC LIMIT 1
             ) * 100
         END AS trend
     FROM running_balance rb
-    LIMIT 1
 ),
 
 latest_transactions AS (
@@ -409,18 +513,16 @@ latest_transactions AS (
 )
 
 SELECT
-    at.account_id,
+    at.account_id as id,
     at.name,
     at.type,
+    at.balance,
     at.currency,
     at.color,
     at.meta,
-    at.created_by,
-    at.created_at,
     at.updated_at,
-    at.deleted_at,
     at.trend,
-    coalesce(lt.transactions, '[]'::JSONB) AS transactions
+    lt.transactions::JSONB AS transactions
 FROM account_trend at
 LEFT JOIN latest_transactions lt ON at.account_id = lt.account_id
 `
@@ -431,18 +533,16 @@ type GetAccountsWithTrendParams struct {
 }
 
 type GetAccountsWithTrendRow struct {
-	AccountID    uuid.UUID          `json:"account_id"`
-	Name         string             `json:"name"`
-	Type         ACCOUNTTYPE        `json:"type"`
-	Currency     string             `json:"currency"`
-	Color        COLORENUM          `json:"color"`
-	Meta         []byte             `json:"meta"`
-	CreatedBy    *uuid.UUID         `json:"created_by"`
-	CreatedAt    time.Time          `json:"created_at"`
-	UpdatedAt    time.Time          `json:"updated_at"`
-	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
-	Trend        interface{}        `json:"trend"`
-	Transactions []byte             `json:"transactions"`
+	ID           uuid.UUID   `json:"id"`
+	Name         string      `json:"name"`
+	Type         ACCOUNTTYPE `json:"type"`
+	Balance      int32       `json:"balance"`
+	Currency     string      `json:"currency"`
+	Color        COLORENUM   `json:"color"`
+	Meta         []byte      `json:"meta"`
+	UpdatedAt    time.Time   `json:"updated_at"`
+	Trend        interface{} `json:"trend"`
+	Transactions []byte      `json:"transactions"`
 }
 
 // Final query joining trend with last 3 transactions
@@ -456,117 +556,17 @@ func (q *Queries) GetAccountsWithTrend(ctx context.Context, arg GetAccountsWithT
 	for rows.Next() {
 		var i GetAccountsWithTrendRow
 		if err := rows.Scan(
-			&i.AccountID,
+			&i.ID,
 			&i.Name,
 			&i.Type,
+			&i.Balance,
 			&i.Currency,
 			&i.Color,
 			&i.Meta,
-			&i.CreatedBy,
-			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.DeletedAt,
 			&i.Trend,
 			&i.Transactions,
 		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getAllAccountsBalanceTimeline = `-- name: GetAllAccountsBalanceTimeline :many
-WITH months AS (
-    -- Generate a full year of months
-    SELECT generate_series(
-        date_trunc('month', now()) - INTERVAL '11 months',
-        date_trunc('month', now()),
-        INTERVAL '1 month'
-    ) AS month
-),
-
-monthly_transactions AS (
-    -- Aggregate transactions per month per account
-    SELECT
-        account_id,
-        date_trunc('month', transaction_datetime) AS month,
-        sum(
-            CASE
-                WHEN type = 'income' THEN amount
-                WHEN type = 'expense' THEN -amount
-                ELSE 0
-            END
-        ) AS monthly_net
-    FROM transactions
-    WHERE transaction_datetime >= now() - INTERVAL '1 year'
-    GROUP BY account_id, month
-),
-
-account_initial_balance AS (
-    -- Get the initial balance of all accounts
-    SELECT
-        id AS account_id,
-        balance AS initial_balance
-    FROM accounts
-),
-
-combined AS (
-    -- Left join generated months with transactions for all accounts
-    SELECT
-        months.month,
-        coalesce(monthly_transactions.account_id, account_initial_balance.account_id) AS account_id,
-        coalesce(monthly_transactions.monthly_net, 0) AS monthly_net
-    FROM months
-    CROSS JOIN account_initial_balance
-    LEFT JOIN monthly_transactions ON months.month = monthly_transactions.month 
-        AND account_initial_balance.account_id = monthly_transactions.account_id
-),
-
-running_balance AS (
-    -- Compute cumulative balance for all accounts
-    SELECT
-        combined.account_id,
-        combined.month,
-        account_initial_balance.initial_balance
-        +
-        sum(combined.monthly_net) OVER (
-            PARTITION BY combined.account_id
-            ORDER BY combined.month ROWS BETWEEN UNBOUNDED PRECEDING
-            AND CURRENT ROW
-        ) AS balance
-    FROM combined
-    INNER JOIN account_initial_balance
-        ON combined.account_id = account_initial_balance.account_id
-)
-
-SELECT
-    account_id,
-    month::TIMESTAMPTZ,
-    balance
-FROM running_balance
-ORDER BY account_id, month
-`
-
-type GetAllAccountsBalanceTimelineRow struct {
-	AccountID uuid.UUID `json:"account_id"`
-	Month     time.Time `json:"month"`
-	Balance   int32     `json:"balance"`
-}
-
-func (q *Queries) GetAllAccountsBalanceTimeline(ctx context.Context) ([]GetAllAccountsBalanceTimelineRow, error) {
-	rows, err := q.db.Query(ctx, getAllAccountsBalanceTimeline)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetAllAccountsBalanceTimelineRow{}
-	for rows.Next() {
-		var i GetAllAccountsBalanceTimelineRow
-		if err := rows.Scan(&i.AccountID, &i.Month, &i.Balance); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

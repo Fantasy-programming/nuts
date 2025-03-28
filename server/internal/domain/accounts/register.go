@@ -17,10 +17,10 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 	h := NewHandler(validate, repo, logger)
 
 	// Create the auth verify middleware
-	// middleware := jwt.NewMiddleware(tkn)
+	middleware := jwt.NewMiddleware(tkn)
 
 	router := router.NewRouter()
-	// router.Use(middleware.Verify)
+	router.Use(middleware.Verify)
 	router.Get("/", h.GetAccounts)
 	router.Post("/", h.CreateAccount)
 	router.Get("/{id}", h.GetAccount)
