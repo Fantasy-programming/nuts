@@ -13,7 +13,7 @@ type CreateAccountRequest struct {
 	Name     string  `json:"name" validate:"required"`
 	Type     string  `json:"type" validate:"required"`
 	Currency string  `json:"currency" validate:"required"`
-	Colors   string  `json:"color" validate:"required"`
+	Color    string  `json:"color" validate:"required"`
 	Balance  float64 `json:"balance" validate:"gte=0"`
 }
 
@@ -22,13 +22,13 @@ type UpdateAccountRequest struct {
 	Type     *string  `json:"type" validate:"required"`
 	Balance  *float64 `json:"balance" validate:"required"`
 	Currency *string  `json:"currency" validate:"required"`
-	Colors   *string  `json:"color" validate:"required"`
+	Color    *string  `json:"color" validate:"required"`
 	Meta     *[]byte  `json:"meta,omitempty" validate:"omitempty"`
 }
 
 // Extract pathParam & parse into uuid
 func parseUUID(r *http.Request, paramName string) (uuid.UUID, error) {
-	idStr := r.URL.Query().Get(paramName)
+	idStr := r.PathValue(paramName)
 	if idStr == "" {
 		return uuid.Nil, message.ErrMissingParams
 	}

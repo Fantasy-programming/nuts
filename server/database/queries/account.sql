@@ -64,8 +64,7 @@ SET
 WHERE id = sqlc.arg('id')
 RETURNING *;
 
-
--- name: GetAllAccountsBalanceTimeline :many
+-- name: GetAccountsBalanceTimeline :many
 WITH months AS (
     -- Generate a full year of months
     SELECT generate_series(
@@ -98,6 +97,8 @@ account_initial_balance AS (
         id AS account_id,
         balance AS initial_balance
     FROM accounts
+    -- Add index hint for better performance
+    WHERE deleted_at IS NULL
 ),
 
 combined AS (
@@ -129,12 +130,13 @@ running_balance AS (
         ON combined.account_id = account_initial_balance.account_id
 )
 
+-- SUM balances for all accounts per month
 SELECT
-    account_id,
     month::TIMESTAMPTZ,
-    balance
+    sum(balance) AS balance
 FROM running_balance
-ORDER BY account_id, month;
+GROUP BY month
+ORDER BY month;
 
 
 
@@ -299,24 +301,31 @@ running_balance AS (
 
 account_trend AS (
     -- Calculate trend percentage
-    SELECT
+    SELECT DISTINCT ON (rb.account_id)
         rb.account_id,
         rb.name,
         rb.type,
+        rb.balance,
         rb.currency,
         rb.color,
         rb.meta,
-        rb.created_by,
-        rb.created_at,
         rb.updated_at,
-        rb.deleted_at,
         CASE
+        -- If no transactions exist, return 0%
+            WHEN
+                NOT EXISTS (
+                    SELECT 1 FROM running_balance
+                    WHERE account_id = rb.account_id
+                )
+                THEN 0
+            -- If initial balance is zero, trend should also be 0%
             WHEN (
                 SELECT balance FROM running_balance
                 WHERE account_id = rb.account_id
                 ORDER BY month ASC LIMIT 1
             ) = 0
-                THEN NULL -- Avoid division by zero
+                THEN 0
+
             ELSE (
                 (
                     SELECT balance FROM running_balance
@@ -325,18 +334,17 @@ account_trend AS (
                 )
                 -
                 (
-                    SELECT balance FROM running_balance 
+                    SELECT balance FROM running_balance
                     WHERE account_id = rb.account_id
                     ORDER BY month ASC LIMIT 1
                 )
             ) / (
-                SELECT balance FROM running_balance
-                WHERE account_id = rb.account_id
-                ORDER BY month ASC LIMIT 1
+                    SELECT balance FROM running_balance
+                    WHERE account_id = rb.account_id
+                    ORDER BY month ASC LIMIT 1
             ) * 100
         END AS trend
     FROM running_balance rb
-    LIMIT 1
 ),
 
 latest_transactions AS (
@@ -360,17 +368,15 @@ latest_transactions AS (
 
 -- Final query joining trend with last 3 transactions
 SELECT
-    at.account_id,
+    at.account_id as id,
     at.name,
     at.type,
+    at.balance,
     at.currency,
     at.color,
     at.meta,
-    at.created_by,
-    at.created_at,
     at.updated_at,
-    at.deleted_at,
     at.trend,
-    coalesce(lt.transactions, '[]'::JSONB) AS transactions
+    lt.transactions::JSONB AS transactions
 FROM account_trend at
 LEFT JOIN latest_transactions lt ON at.account_id = lt.account_id;

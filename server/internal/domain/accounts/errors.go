@@ -5,6 +5,7 @@ import "errors"
 var (
 	ErrAccountNotFound          = errors.New("accounts.not_found")
 	ErrAccountTypeInvalid       = errors.New("accounts.account_invalid")
-	ErrAccountQueryParamInvalid = errors.New("invalid start date format. Use YYYY-MM-DD")
-	ErrEndDateBeforeStart       = errors.New("start date cannot be after end date")
+	ErrColorTypeInvalid         = errors.New("accounts.color_invalid")
+	ErrAccountQueryParamInvalid = errors.New("accounts.invalid_start_date")
+	ErrEndDateBeforeStart       = errors.New("accounts.end_before_start")
 )

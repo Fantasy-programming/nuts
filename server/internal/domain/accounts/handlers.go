@@ -155,13 +155,13 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	color, err := validateColor(req.Colors)
+	color, err := validateColor(req.Color)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
 			StatusCode: http.StatusBadRequest,
-			ClientErr:  ErrAccountTypeInvalid,
+			ClientErr:  ErrColorTypeInvalid,
 			ActualErr:  err,
 			Logger:     h.logger,
 			Details:    req,
@@ -273,13 +273,13 @@ func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	color, err := validateNullableColor(req.Colors)
+	color, err := validateNullableColor(req.Color)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
 			StatusCode: http.StatusBadRequest,
-			ClientErr:  ErrAccountTypeInvalid,
+			ClientErr:  ErrColorTypeInvalid,
 			ActualErr:  err,
 			Logger:     h.logger,
 			Details:    req,
