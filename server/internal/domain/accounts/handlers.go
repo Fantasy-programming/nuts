@@ -379,6 +379,20 @@ func (h *Handler) GetAccountsTrends(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    userID,
+		})
+		return
+	}
+
 	startDateStr := u.Get("start")
 	endDateStr := u.Get("end")
 
@@ -427,7 +441,7 @@ func (h *Handler) GetAccountsTrends(w http.ResponseWriter, r *http.Request) {
 		startDate = endDate.AddDate(-1, 0, 0) // 1 year before endDate
 	}
 
-	account, err := h.repo.GetAccountsTrends(ctx, startDate, endDate)
+	account, err := h.repo.GetAccountsTrends(ctx, &userID, startDate, endDate)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -481,7 +495,21 @@ func (h *Handler) GetAccountBTimeline(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetAccountsBTimeline(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	account, err := h.repo.GetAccountsBTimeline(ctx)
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    userID,
+		})
+		return
+	}
+
+	account, err := h.repo.GetAccountsBTimeline(ctx, &userID)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,

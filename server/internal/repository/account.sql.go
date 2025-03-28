@@ -267,7 +267,6 @@ WITH months AS (
         INTERVAL '1 month'
     ) AS month
 ),
-
 monthly_transactions AS (
     -- Aggregate transactions per month per account
     SELECT
@@ -282,64 +281,56 @@ monthly_transactions AS (
         ) AS monthly_net
     FROM transactions
     WHERE transaction_datetime >= now() - INTERVAL '1 year'
+    AND transactions.created_by = $1
     GROUP BY account_id, month
 ),
-
-account_initial_balance AS (
-    -- Get the initial balance of all accounts
+account_ids AS (
+    -- Get just the account IDs, filtered by user
     SELECT
-        id AS account_id,
-        balance AS initial_balance
+        id AS account_id
     FROM accounts
-    -- Add index hint for better performance
     WHERE deleted_at IS NULL
+    AND created_by = $1
 ),
-
 combined AS (
     -- Left join generated months with transactions for all accounts
     SELECT
         months.month,
-        coalesce(monthly_transactions.account_id, account_initial_balance.account_id) AS account_id,
+        coalesce(monthly_transactions.account_id, account_ids.account_id) AS account_id,
         coalesce(monthly_transactions.monthly_net, 0) AS monthly_net
     FROM months
-    CROSS JOIN account_initial_balance
+    CROSS JOIN account_ids
     LEFT JOIN monthly_transactions ON months.month = monthly_transactions.month 
-        AND account_initial_balance.account_id = monthly_transactions.account_id
+        AND account_ids.account_id = monthly_transactions.account_id
 ),
-
 running_balance AS (
-    -- Compute cumulative balance for all accounts
+    -- Compute cumulative net transactions only (no initial balance)
     SELECT
         combined.account_id,
         combined.month,
-        account_initial_balance.initial_balance
-        +
         sum(combined.monthly_net) OVER (
             PARTITION BY combined.account_id
             ORDER BY combined.month ROWS BETWEEN UNBOUNDED PRECEDING
             AND CURRENT ROW
         ) AS balance
     FROM combined
-    INNER JOIN account_initial_balance
-        ON combined.account_id = account_initial_balance.account_id
 )
-
 SELECT
     month::TIMESTAMPTZ,
-    sum(balance) AS balance
+    sum(balance)::DECIMAL AS balance
 FROM running_balance
 GROUP BY month
 ORDER BY month
 `
 
 type GetAccountsBalanceTimelineRow struct {
-	Month   time.Time `json:"month"`
-	Balance int64     `json:"balance"`
+	Month   time.Time      `json:"month"`
+	Balance pgtype.Numeric `json:"balance"`
 }
 
 // SUM balances for all accounts per month
-func (q *Queries) GetAccountsBalanceTimeline(ctx context.Context) ([]GetAccountsBalanceTimelineRow, error) {
-	rows, err := q.db.Query(ctx, getAccountsBalanceTimeline)
+func (q *Queries) GetAccountsBalanceTimeline(ctx context.Context, userID *uuid.UUID) ([]GetAccountsBalanceTimelineRow, error) {
+	rows, err := q.db.Query(ctx, getAccountsBalanceTimeline, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -382,16 +373,16 @@ monthly_transactions AS (
         ) AS monthly_net
     FROM transactions
     WHERE transaction_datetime BETWEEN $1 AND $2
+    AND transactions.created_by = $3
     GROUP BY account_id, month
 ),
 
-account_initial_balance AS (
-    -- Get the initial balance + account info
+account_info AS (
+    -- Get account info without initial balance
     SELECT
         id AS account_id,
         name,
         type,
-        balance AS initial_balance,
         currency,
         color,
         meta,
@@ -401,6 +392,7 @@ account_initial_balance AS (
         deleted_at
     FROM accounts
     WHERE (deleted_at IS NULL OR deleted_at > $2)
+    AND accounts.created_by = $3
 ),
 
 combined AS (
@@ -409,7 +401,7 @@ combined AS (
         months.month,
         coalesce(
             monthly_transactions.account_id,
-            account_initial_balance.account_id
+            account_info.account_id
         ) AS account_id,
         coalesce(
             monthly_transactions.monthly_net,
@@ -417,34 +409,32 @@ combined AS (
         ) AS monthly_net
     FROM months
     LEFT JOIN monthly_transactions ON months.month = monthly_transactions.month
-    CROSS JOIN account_initial_balance
+    CROSS JOIN account_info
     -- Ignore months before the account was created
-    WHERE months.month >= account_initial_balance.created_at
+    WHERE months.month >= account_info.created_at
 ),
 
 running_balance AS (
-    -- Compute cumulative balance including initial balance
+    -- Compute cumulative balance without initial balance
     SELECT
         combined.month,
-        account_initial_balance.account_id,
-        account_initial_balance.name,
-        account_initial_balance.type,
-        account_initial_balance.currency,
-        account_initial_balance.color,
-        account_initial_balance.meta,
-        account_initial_balance.created_by,
-        account_initial_balance.created_at,
-        account_initial_balance.updated_at,
-        account_initial_balance.deleted_at,
-        account_initial_balance.initial_balance
-        +
+        account_info.account_id,
+        account_info.name,
+        account_info.type,
+        account_info.currency,
+        account_info.color,
+        account_info.meta,
+        account_info.created_by,
+        account_info.created_at,
+        account_info.updated_at,
+        account_info.deleted_at,
         sum(combined.monthly_net) OVER (
             PARTITION BY combined.account_id
             ORDER BY combined.month
         ) AS balance
     FROM combined
-    INNER JOIN account_initial_balance ON
-        combined.account_id = account_initial_balance.account_id
+    INNER JOIN account_info ON
+        combined.account_id = account_info.account_id
 ),
 
 account_trend AS (
@@ -466,7 +456,7 @@ account_trend AS (
                     WHERE account_id = rb.account_id
                 )
                 THEN 0
-            -- If initial balance is zero, trend should also be 0%
+            -- If first month balance is zero, trend should also be 0%
             WHEN (
                 SELECT balance FROM running_balance
                 WHERE account_id = rb.account_id
@@ -487,7 +477,7 @@ account_trend AS (
                     ORDER BY month ASC LIMIT 1
                 )
             ) / (
-                    SELECT balance FROM running_balance
+                    SELECT ABS(balance) FROM running_balance
                     WHERE account_id = rb.account_id
                     ORDER BY month ASC LIMIT 1
             ) * 100
@@ -511,6 +501,7 @@ latest_transactions AS (
         ) AS transactions
     FROM transactions
     WHERE transactions.account_id IN (SELECT account_id FROM account_trend)
+    AND transactions.created_by = $3
     GROUP BY transactions.account_id
 )
 
@@ -518,7 +509,7 @@ SELECT
     at.account_id as id,
     at.name,
     at.type,
-    at.balance,
+    at.balance::DECIMAL AS balance,
     at.currency,
     at.color,
     at.meta,
@@ -530,26 +521,27 @@ LEFT JOIN latest_transactions lt ON at.account_id = lt.account_id
 `
 
 type GetAccountsWithTrendParams struct {
-	Column1 time.Time `json:"column_1"`
-	Column2 time.Time `json:"column_2"`
+	Column1 time.Time  `json:"column_1"`
+	Column2 time.Time  `json:"column_2"`
+	UserID  *uuid.UUID `json:"user_id"`
 }
 
 type GetAccountsWithTrendRow struct {
-	ID           uuid.UUID   `json:"id"`
-	Name         string      `json:"name"`
-	Type         ACCOUNTTYPE `json:"type"`
-	Balance      int32       `json:"balance"`
-	Currency     string      `json:"currency"`
-	Color        COLORENUM   `json:"color"`
-	Meta         []byte      `json:"meta"`
-	UpdatedAt    time.Time   `json:"updated_at"`
-	Trend        interface{} `json:"trend"`
-	Transactions []byte      `json:"transactions"`
+	ID           uuid.UUID      `json:"id"`
+	Name         string         `json:"name"`
+	Type         ACCOUNTTYPE    `json:"type"`
+	Balance      pgtype.Numeric `json:"balance"`
+	Currency     string         `json:"currency"`
+	Color        COLORENUM      `json:"color"`
+	Meta         []byte         `json:"meta"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	Trend        interface{}    `json:"trend"`
+	Transactions []byte         `json:"transactions"`
 }
 
 // Final query joining trend with last 3 transactions
 func (q *Queries) GetAccountsWithTrend(ctx context.Context, arg GetAccountsWithTrendParams) ([]GetAccountsWithTrendRow, error) {
-	rows, err := q.db.Query(ctx, getAccountsWithTrend, arg.Column1, arg.Column2)
+	rows, err := q.db.Query(ctx, getAccountsWithTrend, arg.Column1, arg.Column2, arg.UserID)
 	if err != nil {
 		return nil, err
 	}

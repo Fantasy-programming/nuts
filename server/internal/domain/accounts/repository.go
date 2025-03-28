@@ -25,9 +25,9 @@ type Repository interface {
 	UpdateAccountBalance(ctx context.Context, id uuid.UUID, amount pgtype.Numeric) error
 
 	// GetAccountsBTimeline
-	GetAccountsBTimeline(ctx context.Context) ([]repository.GetAccountsBalanceTimelineRow, error)
+	GetAccountsBTimeline(ctx context.Context, userID *uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error)
 	GetAccountBTimeline(ctx context.Context, id uuid.UUID) (repository.GetAccountBalanceTimelineRow, error)
-	GetAccountsTrends(ctx context.Context, startTime time.Time, endTime time.Time) ([]repository.GetAccountsWithTrendRow, error)
+	GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]repository.GetAccountsWithTrendRow, error)
 }
 
 type repo struct {
@@ -75,18 +75,19 @@ func (r *repo) UpdateAccountBalance(ctx context.Context, id uuid.UUID, amount pg
 	return r.queries.UpdateAccountBalance(ctx, params)
 }
 
-func (r *repo) GetAccountsBTimeline(ctx context.Context) ([]repository.GetAccountsBalanceTimelineRow, error) {
-	return r.queries.GetAccountsBalanceTimeline(ctx)
+func (r *repo) GetAccountsBTimeline(ctx context.Context, userID *uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error) {
+	return r.queries.GetAccountsBalanceTimeline(ctx, userID)
 }
 
 func (r *repo) GetAccountBTimeline(ctx context.Context, id uuid.UUID) (repository.GetAccountBalanceTimelineRow, error) {
 	return r.queries.GetAccountBalanceTimeline(ctx, id)
 }
 
-func (r *repo) GetAccountsTrends(ctx context.Context, startTime time.Time, endTime time.Time) ([]repository.GetAccountsWithTrendRow, error) {
+func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]repository.GetAccountsWithTrendRow, error) {
 	params := repository.GetAccountsWithTrendParams{
 		Column1: startTime,
 		Column2: endTime,
+		UserID:  userID,
 	}
 
 	return r.queries.GetAccountsWithTrend(ctx, params)
