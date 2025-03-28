@@ -3,23 +3,32 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "@/core/components/ui/sonner";
 import { ThemeProvider } from "@/features/preferences/contexts/theme.provider";
-import type { AuthContext } from "@/features/auth/contexts/auth.context";
 import type { QueryClient } from "@tanstack/react-query";
+import { AuthInterceptor } from "@/features/auth/components/auth-interceptor";
 
 interface RouterContext {
   queryClient: QueryClient;
-  auth: AuthContext;
+  auth: {
+    isAuthenticated: boolean;
+    isLoading: boolean;
+  };
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  component: () => (
+  component: RootComponent,
+});
+
+function RootComponent() {
+  return (
     <>
       <ThemeProvider defaultTheme="light" storageKey="finance-theme">
-        <Outlet />
+        <AuthInterceptor>
+          <Outlet />
+        </AuthInterceptor>
       </ThemeProvider>
       <Toaster />
       <ReactQueryDevtools buttonPosition="bottom-left" />
       <TanStackRouterDevtools position="bottom-right" />
     </>
-  ),
-});
+  );
+}

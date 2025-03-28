@@ -3,7 +3,6 @@ import { QueryClient } from "@tanstack/react-query";
 
 import { routeTree } from "./routeTree.gen";
 
-// Create a new React Query instance
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -13,7 +12,6 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Create a new router instance
 export const router = createRouter({
   routeTree,
   context: {
@@ -24,7 +22,6 @@ export const router = createRouter({
   defaultPreloadStaleTime: 0,
 });
 
-// Register the router instance for type safety
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;

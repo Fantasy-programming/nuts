@@ -22,6 +22,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
+import { useAuthStore } from "@/features/auth/stores/auth.store";
 
 // Form validation schema
 const userFormSchema = z.object({
@@ -49,10 +50,11 @@ export const Route = createFileRoute("/dashboard_/settings/account")({
 
 function RouteComponent() {
   const { deleteAccount } = useSettingsStore();
+  const { user, setUser } = useAuthStore(); // Get user from auth store and setUser function
   const queryClient = useQueryClient();
 
   const {
-    data: user
+    data: userData
   } = useSuspenseQuery({
     queryKey: ["user"],
     queryFn: userService.getMe,
@@ -61,8 +63,9 @@ function RouteComponent() {
 
   const changeInfoMutation = useMutation({
     mutationFn: userService.updateMe,
-    onSuccess: () => {
+    onSuccess: (updatedUser) => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
+      setUser(updatedUser); // Update user in auth store
     },
   });
 
@@ -72,17 +75,26 @@ function RouteComponent() {
     onError: (error) => {
       console.error("Failed to upload avatar:", error);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Update the user in auth store with the new avatar URL
+      if (user) {
+        setUser({
+          ...user,
+          avatar_url: data.avatar_url
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["user"] });
     },
   });
 
-  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(user.avatar_url);
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(userData.avatar_url);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const onSubmit = async (data: UserFormValues) => {
-    const hasChanges = data.email !== user.email || data.first_name !== (user.first_name || "") || data.last_name !== (user.last_name || "");
+    const hasChanges = data.email !== userData.email || 
+                      data.first_name !== (userData.first_name || "") || 
+                      data.last_name !== (userData.last_name || "");
 
     if (hasChanges) {
       try {
@@ -96,9 +108,9 @@ function RouteComponent() {
         console.error("Failed to update profile:", error);
         // Reset form to last known good values
         form.reset({
-          email: user.email,
-          first_name: user.first_name || "",
-          last_name: user.last_name || "",
+          email: userData.email,
+          first_name: userData.first_name || "",
+          last_name: userData.last_name || "",
         });
       } finally {
         setIsSubmitting(false);
@@ -109,9 +121,9 @@ function RouteComponent() {
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      email: user.email,
-      first_name: user.first_name || "",
-      last_name: user.last_name || "",
+      email: userData.email,
+      first_name: userData.first_name || "",
+      last_name: userData.last_name || "",
     },
     mode: "onBlur", // Submit when focus leaves the field
   });

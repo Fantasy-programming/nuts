@@ -1,21 +1,30 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { QueryClientProvider } from "@tanstack/react-query";
-
-import { useAuth } from "@/features/auth/hooks/use-auth";
-import { AuthProvider } from "@/features/auth/contexts/auth.provider";
+import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { router, queryClient } from "./router";
 
 function RouterWrapper() {
-  const auth = useAuth();
-  return <RouterProvider router={router} context={{ auth }} />;
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
+
+  return (
+    <RouterProvider
+      router={router}
+      context={{
+        auth: {
+          isAuthenticated,
+          isLoading
+        },
+        queryClient
+      }}
+    />
+  );
 }
 
 export function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <RouterWrapper />
-      </QueryClientProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <RouterWrapper />
+    </QueryClientProvider>
   );
 }

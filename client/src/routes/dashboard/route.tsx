@@ -60,7 +60,7 @@ import MobileBurger from "@/core/components/layouts/mobile-burger";
 import { createTransaction } from "@/features/transactions/services/transaction";
 import { RecordsDialog } from "@/features/transactions/components/records-dialog";
 import { RecordCreateSchema } from "@/features/transactions/services/transaction.types";
-import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { usePluginStore } from "@/features/plugins/store";
 import { renderIcon } from "@/core/components/icon-picker";
 
@@ -127,7 +127,7 @@ const navMain: navStuff[] = [
 function DashboardWrapper() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const logout = useAuthStore((state) => state.logout);
 
   const [theme, setTheme] = useState("light");
   const [isOpen, setIsOpen] = useState(false);

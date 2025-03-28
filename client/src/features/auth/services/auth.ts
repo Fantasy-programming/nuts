@@ -12,6 +12,8 @@ const login = async (credentials: LoginFormValues) => {
   await axios.post(`${BASEURI}/login`, credentials);
 };
 
+
+
 const logout = async () => {
   await axios.post(`${BASEURI}/logout`);
 };

@@ -24,10 +24,7 @@ export const Route = createFileRoute("/signup")({
         search: { redirect: location.href },
       });
     }
-  },
-  shouldReload({ context }) {
-    return !context.auth.isAuthenticated;
-  },
+  }
 });
 
 function RouteComponent() {
