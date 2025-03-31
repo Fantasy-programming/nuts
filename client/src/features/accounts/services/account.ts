@@ -1,10 +1,22 @@
 import { api as axios } from "@/lib/axios";
-import { Account, AccountCreate } from "./account.types";
+import type { Account, AccountCreate, AccountWTrend, AccountBalanceTimeline } from "./account.types";
 
 const BASEURI = "/accounts";
 
 const getAccounts = async (): Promise<Account[]> => {
-  const { data } = await axios.get<Account[]>(`${BASEURI}/`);
+  const { data } = await axios.get<Account[]>(`${BASEURI}`);
+  return data;
+};
+
+
+const getAccountsWTrends = async (): Promise<AccountWTrend[]> => {
+  const { data } = await axios.get<AccountWTrend[]>(`${BASEURI}/trends`);
+  return data;
+};
+
+
+const getAccountsBalanceTimeline = async (): Promise<AccountBalanceTimeline[]> => {
+  const { data } = await axios.get<AccountBalanceTimeline[]>(`${BASEURI}/timeline`);
   return data;
 };
 
