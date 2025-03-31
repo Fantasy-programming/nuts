@@ -1,10 +1,9 @@
-import { PluginConfigExternal } from './registry';
+import { PluginConfigExternal } from './types';
 
 // Dynamically import only index.ts files from all plugins
 const pluginModules = import.meta.glob<{ default: PluginConfigExternal }>(
   "./*/index.ts"
 );
-
 
 
 export async function loadPluginModule(pluginId: string) {

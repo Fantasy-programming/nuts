@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 import { Home, Building, Map as MapIcon, LineChart } from 'lucide-react';
-import type { PluginConfigExternal } from '../registry';
+import type { PluginConfigExternal } from '../types';
 
 import { PropertyValueChart } from './components/property-value-chart';
 import { RentalIncomeChart } from './components/rental-income-chart';

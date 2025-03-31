@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { PluginConfig } from './registry';
+import { PluginConfig } from './types';
 import { loadPluginModule } from './loader';
 
 interface PluginState {
