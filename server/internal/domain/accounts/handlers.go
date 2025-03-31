@@ -13,17 +13,19 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 )
 
 type Handler struct {
 	validator *validation.Validator
+	db        *pgxpool.Pool
 	repo      Repository
 	logger    *zerolog.Logger
 }
 
-func NewHandler(validator *validation.Validator, repo Repository, logger *zerolog.Logger) *Handler {
-	return &Handler{validator, repo, logger}
+func NewHandler(validator *validation.Validator, db *pgxpool.Pool, repo Repository, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, db, repo, logger}
 }
 
 func (h *Handler) GetAccounts(w http.ResponseWriter, r *http.Request) {
@@ -185,8 +187,9 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// save the account
-	account, err := h.repo.CreateAccount(ctx, repository.CreateAccountParams{
+	var account repository.Account
+
+	params := repository.CreateAccountParams{
 		CreatedBy: &userID,
 		Name:      req.Name,
 		Type:      act,
@@ -194,7 +197,15 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		Currency:  req.Currency,
 		Meta:      meta,
 		Color:     color,
-	})
+	}
+
+	if req.Balance == 0 {
+		account, err = h.repo.CreateAccount(ctx, params)
+	} else {
+		account, err = h.repo.CreateAccountWInitalTrs(ctx, params)
+	}
+
+	// save the account
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -437,8 +448,8 @@ func (h *Handler) GetAccountsTrends(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		endDate = time.Now()
-		startDate = endDate.AddDate(-1, 0, 0) // 1 year before endDate
+		endDate = time.Now().Add(24 * time.Hour) // Include today fully
+		startDate = endDate.AddDate(-1, 0, 0)    // 1 year before endDate
 	}
 
 	account, err := h.repo.GetAccountsTrends(ctx, &userID, startDate, endDate)

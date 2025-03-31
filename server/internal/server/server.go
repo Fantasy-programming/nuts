@@ -219,7 +219,6 @@ func (s *Server) NewI18n() {
 }
 
 func (s *Server) setGlobalMiddleware() {
-	s.router.Use(s.cors.Handler)
 	s.router.Use(chiMiddleware.RequestID)
 	s.router.Use(chiMiddleware.RealIP)
 	s.router.Use(chiMiddleware.Recoverer)
@@ -240,9 +239,15 @@ func (s *Server) Config() *config.Config {
 }
 
 func (s *Server) Run() {
+	// Apply CORS handler *before* the main router
+	var handler http.Handler = s.router
+	if s.cors != nil { // Check if cors is configured
+		handler = s.cors.Handler(handler) // Wrap the router
+	}
+
 	s.httpServer = &http.Server{
 		Addr:              s.cfg.Api.Host + ":" + s.cfg.Api.Port,
-		Handler:           s.router,
+		Handler:           handler,
 		ReadHeaderTimeout: s.cfg.ReadHeaderTimeout,
 	}
 

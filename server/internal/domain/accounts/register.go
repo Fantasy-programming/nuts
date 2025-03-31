@@ -13,8 +13,8 @@ import (
 
 func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
-	repo := NewRepository(queries)
-	h := NewHandler(validate, repo, logger)
+	repo := NewRepository(queries, db)
+	h := NewHandler(validate, db, repo, logger)
 
 	// Create the auth verify middleware
 	middleware := jwt.NewMiddleware(tkn)
@@ -22,8 +22,8 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 	router := router.NewRouter()
 	router.Use(middleware.Verify)
 	router.Get("/", h.GetAccounts)
-	router.Post("/", h.CreateAccount)
 	router.Get("/{id}", h.GetAccount)
+	router.Post("/", h.CreateAccount)
 	router.Put("/{id}", h.UpdateAccount)
 	router.Delete("/{id}", h.DeleteAccount)
 

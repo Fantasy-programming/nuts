@@ -327,6 +327,31 @@ func (q *Queries) GetCategoryById(ctx context.Context, id uuid.UUID) (Category, 
 	return i, err
 }
 
+const getCategoryByName = `-- name: GetCategoryByName :one
+SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
+FROM categories
+WHERE
+    name = $1
+LIMIT 1
+`
+
+func (q *Queries) GetCategoryByName(ctx context.Context, name string) (Category, error) {
+	row := q.db.QueryRow(ctx, getCategoryByName, name)
+	var i Category
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ParentID,
+		&i.IsDefault,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getDefaultCategories = `-- name: GetDefaultCategories :many
 SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
 FROM categories

@@ -65,172 +65,200 @@ WHERE id = sqlc.arg('id')
 RETURNING *;
 
 -- name: GetAccountsBalanceTimeline :many
-WITH months AS (
-    -- Generate a full year of months
+WITH relevant_period AS (
+    SELECT
+        date_trunc('month', now()) - INTERVAL '11 months' AS start_month,
+        date_trunc('month', now()) AS end_month,
+        now() - INTERVAL '1 year' AS start_boundary -- For transaction filtering
+),
+months AS (
+    -- Generate months for the relevant period
     SELECT generate_series(
-        date_trunc('month', now()) - INTERVAL '11 months',
-        date_trunc('month', now()),
+        (SELECT start_month FROM relevant_period),
+        (SELECT end_month FROM relevant_period),
         INTERVAL '1 month'
     ) AS month
-),
-monthly_transactions AS (
-    -- Aggregate transactions per month per account
-    SELECT
-        account_id,
-        date_trunc('month', transaction_datetime) AS month,
-        sum(
-            CASE
-                WHEN type = 'income' THEN amount
-                WHEN type = 'expense' THEN -amount
-                ELSE 0
-            END
-        ) AS monthly_net
-    FROM transactions
-    WHERE transaction_datetime >= now() - INTERVAL '1 year'
-    AND transactions.created_by = sqlc.arg('user_id')
-    GROUP BY account_id, month
 ),
 account_ids AS (
-    -- Get just the account IDs, filtered by user
+    -- Get active account IDs for the user
     SELECT
-        id AS account_id
+        id AS account_id,
+        created_at -- Needed to ensure we don't calculate balance before creation
     FROM accounts
     WHERE deleted_at IS NULL
-    AND created_by = sqlc.arg('user_id')
+    AND accounts.created_by = sqlc.arg('user_id')
 ),
-combined AS (
-    -- Left join generated months with transactions for all accounts
+initial_balances AS (
+    -- Calculate balance for each account just BEFORE the start_month
     SELECT
-        months.month,
-        coalesce(monthly_transactions.account_id, account_ids.account_id) AS account_id,
-        coalesce(monthly_transactions.monthly_net, 0) AS monthly_net
-    FROM months
-    CROSS JOIN account_ids
-    LEFT JOIN monthly_transactions ON months.month = monthly_transactions.month 
-        AND account_ids.account_id = monthly_transactions.account_id
+        t.account_id,
+        COALESCE(sum(
+            CASE
+                WHEN t.type = 'income' THEN t.amount
+                WHEN t.type = 'expense' THEN -t.amount
+                -- Transfers need careful handling: outflow from source, inflow to destination
+                WHEN t.type = 'transfer' AND t.account_id = t.account_id THEN -t.amount -- Assuming t.account_id is the source
+                WHEN t.type = 'transfer' AND t.account_id = t.destination_account_id THEN t.amount -- Assuming t.account_id is the destination
+                ELSE 0
+            END
+        ), 0)::DECIMAL AS balance_before_period
+    FROM transactions t
+    JOIN account_ids aids ON t.account_id = aids.account_id
+    WHERE t.transaction_datetime < (SELECT start_month FROM relevant_period)
+      AND t.created_by = sqlc.arg('user_id')
+    GROUP BY t.account_id
 ),
-running_balance AS (
-    -- Compute cumulative net transactions only (no initial balance)
-    SELECT
-        combined.account_id,
-        combined.month,
-        sum(combined.monthly_net) OVER (
-            PARTITION BY combined.account_id
-            ORDER BY combined.month ROWS BETWEEN UNBOUNDED PRECEDING
-            AND CURRENT ROW
-        ) AS balance
-    FROM combined
-)
--- SUM balances for all accounts per month
-SELECT
-    month::TIMESTAMPTZ,
-    sum(balance)::DECIMAL AS balance
-FROM running_balance
-GROUP BY month
-ORDER BY month;
-
-
-
--- name: GetAccountBalanceTimeline :one
-WITH months AS (
-    -- Generate a full year of months
-    SELECT generate_series(
-        date_trunc('month', now()) - INTERVAL '11 months',
-        date_trunc('month', now()),
-        INTERVAL '1 month'
-    ) AS month
-),
-
 monthly_transactions AS (
-    -- Aggregate transactions per month
+    -- Aggregate transactions per month per account WITHIN the relevant period
     SELECT
         t.account_id,
         date_trunc('month', t.transaction_datetime) AS month,
         sum(
             CASE
+                 WHEN t.type = 'income' THEN t.amount
+                 WHEN t.type = 'expense' THEN -t.amount
+                 WHEN t.type = 'transfer' AND t.account_id = t.account_id THEN -t.amount -- Source
+                 WHEN t.type = 'transfer' AND t.account_id = t.destination_account_id THEN t.amount -- Destination
+                 ELSE 0
+            END
+        ) AS monthly_net
+    FROM transactions t
+    JOIN account_ids aids ON t.account_id = aids.account_id
+    WHERE t.transaction_datetime >= (SELECT start_month FROM relevant_period)
+      AND t.transaction_datetime < ( (SELECT end_month FROM relevant_period) + INTERVAL '1 month') -- Cover full end month
+      AND t.created_by = sqlc.arg('user_id')
+    GROUP BY t.account_id, month
+),
+combined AS (
+    -- Create a row for each account and each month in the period
+    -- Start with the initial balance and add monthly nets
+    SELECT
+        m.month,
+        aids.account_id,
+        COALESCE(ib.balance_before_period, 0) AS initial_balance,
+        COALESCE(mt.monthly_net, 0) AS monthly_net
+    FROM months m
+    CROSS JOIN account_ids aids
+    LEFT JOIN initial_balances ib ON aids.account_id = ib.account_id
+    LEFT JOIN monthly_transactions mt ON aids.account_id = mt.account_id AND m.month = mt.month
+    -- Only include months after or including account creation month
+    WHERE m.month >= date_trunc('month', aids.created_at)
+),
+running_balance AS (
+    -- Compute cumulative balance for each account
+    SELECT
+        c.month,
+        c.account_id,
+        c.initial_balance + sum(c.monthly_net) OVER (
+            PARTITION BY c.account_id
+            ORDER BY c.month
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS balance
+    FROM combined c
+)
+-- Final SUM of balances across all accounts per month
+SELECT
+    rb.month::TIMESTAMPTZ as month,
+    sum(rb.balance)::DECIMAL AS balance
+FROM running_balance rb
+GROUP BY rb.month
+ORDER BY rb.month;
+
+
+
+-- name: GetAccountBalanceTimeline :many
+-- Changed to :many as it returns multiple rows (one per month)
+WITH relevant_period AS (
+    SELECT
+        date_trunc('month', now()) - INTERVAL '11 months' AS start_month,
+        date_trunc('month', now()) AS end_month,
+        now() - INTERVAL '1 year' AS start_boundary
+),
+months AS (
+    -- Generate months for the relevant period
+    SELECT generate_series(
+        (SELECT start_month FROM relevant_period),
+        (SELECT end_month FROM relevant_period),
+        INTERVAL '1 month'
+    ) AS month
+),
+account_info AS (
+    -- Get account creation date
+    SELECT created_at
+    FROM accounts
+    WHERE accounts.id = $1
+),
+initial_balance AS (
+     -- Calculate balance for the specific account just BEFORE the start_month
+    SELECT
+        COALESCE(sum(
+            CASE
                 WHEN t.type = 'income' THEN t.amount
                 WHEN t.type = 'expense' THEN -t.amount
+                WHEN t.type = 'transfer' AND t.account_id = $1 THEN -t.amount -- Source
+                WHEN t.type = 'transfer' AND t.destination_account_id = $1 THEN t.amount -- Destination
+                ELSE 0
+            END
+        ), 0)::DECIMAL AS balance_before_period
+    FROM transactions t
+    WHERE t.account_id = $1 OR t.destination_account_id = $1 -- Consider transfers in/out
+      AND t.transaction_datetime < (SELECT start_month FROM relevant_period)
+      -- Assuming created_by check is handled by ensuring $1 belongs to the user in app logic
+),
+monthly_transactions AS (
+    -- Aggregate transactions per month for the specific account WITHIN the period
+    SELECT
+        date_trunc('month', t.transaction_datetime) AS month,
+        sum(
+            CASE
+                WHEN t.type = 'income' THEN t.amount
+                WHEN t.type = 'expense' THEN -t.amount
+                WHEN t.type = 'transfer' AND t.account_id = $1 THEN -t.amount -- Source
+                WHEN t.type = 'transfer' AND t.destination_account_id = $1 THEN t.amount -- Destination
                 ELSE 0
             END
         ) AS monthly_net
     FROM transactions t
-    WHERE
-        t.account_id = $1
-        AND t.transaction_datetime >= now() - INTERVAL '1 year'
-    GROUP BY t.account_id, month
+    WHERE (t.account_id = $1 OR t.destination_account_id = $1) -- Consider transfers in/out
+      AND t.transaction_datetime >= (SELECT start_month FROM relevant_period)
+      AND t.transaction_datetime < ( (SELECT end_month FROM relevant_period) + INTERVAL '1 month')
+    GROUP BY month
 ),
-
-account_initial_balance AS (
-    -- Get the initial balance of the account
-    SELECT
-        a.id AS account_id,
-        a.balance AS initial_balance
-    FROM accounts a
-    WHERE a.id = $1
-),
-
 combined AS (
-    -- Left join generated months with transactions
+    -- Combine months, initial balance, and monthly nets
     SELECT
         m.month,
-        coalesce(mt.account_id, aib.account_id) AS account_id,
-        coalesce(mt.monthly_net, 0) AS monthly_net
+        COALESCE(ib.balance_before_period, 0) AS initial_balance,
+        COALESCE(mt.monthly_net, 0) AS monthly_net
     FROM months m
+    CROSS JOIN initial_balance ib
     LEFT JOIN monthly_transactions mt ON m.month = mt.month
-    CROSS JOIN account_initial_balance aib
+    JOIN account_info ai ON m.month >= date_trunc('month', ai.created_at) -- Filter months before account creation
 ),
-
 running_balance AS (
     -- Compute cumulative balance including the initial balance
     SELECT
         c.month,
-        aib.initial_balance
-        +
-        sum(c.monthly_net) OVER (
-            ORDER BY c.month ROWS BETWEEN UNBOUNDED PRECEDING
-            AND CURRENT ROW
+        c.initial_balance + sum(c.monthly_net) OVER (
+            ORDER BY c.month
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
         ) AS balance
     FROM combined c
-    INNER JOIN account_initial_balance aib
-        ON c.account_id = aib.account_id
 )
-
 SELECT
-    month,
-    balance
-FROM running_balance;
+    month::TIMESTAMPTZ,
+    balance::DECIMAL
+FROM running_balance
+ORDER BY month;
+
 
 
 -- name: GetAccountsWithTrend :many
-WITH months AS (
-    -- Generate months within the given period
-    SELECT generate_series(
-        date_trunc('month', $1::TIMESTAMPTZ),
-        date_trunc('month', $2::TIMESTAMPTZ),
-        INTERVAL '1 month'
-    ) AS month
+WITH period AS (
+    SELECT $1::TIMESTAMPTZ AS start_date, $2::TIMESTAMPTZ AS end_date
 ),
-
-monthly_transactions AS (
-    -- Aggregate transactions per month
-    SELECT
-        account_id,
-        date_trunc('month', transaction_datetime) AS month,
-        sum(
-            CASE
-                WHEN type = 'income' THEN amount
-                WHEN type = 'expense' THEN -amount
-                ELSE 0
-            END
-        ) AS monthly_net
-    FROM transactions
-    WHERE transaction_datetime BETWEEN $1 AND $2
-    AND transactions.created_by = sqlc.arg('user_id')
-    GROUP BY account_id, month
-),
-
 account_info AS (
-    -- Get account info without initial balance
+    -- Get account info, including creation date
     SELECT
         id AS account_id,
         name,
@@ -243,131 +271,131 @@ account_info AS (
         updated_at,
         deleted_at
     FROM accounts
-    WHERE (deleted_at IS NULL OR deleted_at > $2)
-    AND accounts.created_by = sqlc.arg('user_id')
+    WHERE accounts.created_by = sqlc.arg('user_id')
+      -- Include accounts active at any point during the period
+      AND created_at <= (SELECT end_date FROM period)
+      AND (deleted_at IS NULL OR deleted_at > (SELECT start_date FROM period))
 ),
-
-combined AS (
-    -- Join months with transactions, ensuring all months are included
+balance_calc AS (
+    -- Calculate balance at the start and end of the period for each account
     SELECT
-        months.month,
-        coalesce(
-            monthly_transactions.account_id,
-            account_info.account_id
-        ) AS account_id,
-        coalesce(
-            monthly_transactions.monthly_net,
-            0
-        ) AS monthly_net
-    FROM months
-    LEFT JOIN monthly_transactions ON months.month = monthly_transactions.month
-    CROSS JOIN account_info
-    -- Ignore months before the account was created
-    WHERE months.month >= account_info.created_at
+        t.account_id,
+        -- Balance just BEFORE start_date
+        COALESCE(sum(
+            CASE
+                WHEN t.transaction_datetime < (SELECT start_date FROM period) THEN
+                    CASE
+                        WHEN t.type = 'income' THEN t.amount
+                        WHEN t.type = 'expense' THEN -t.amount
+                        WHEN t.type = 'transfer' AND t.account_id = t.account_id THEN -t.amount
+                        WHEN t.type = 'transfer' AND t.account_id = t.destination_account_id THEN t.amount
+                        ELSE 0
+                    END
+                ELSE 0
+            END
+        ), 0)::DECIMAL AS start_balance,
+        -- Balance AT end_date (inclusive)
+        COALESCE(sum(
+            CASE
+                WHEN t.transaction_datetime <= (SELECT end_date FROM period) THEN
+                    CASE
+                        WHEN t.type = 'income' THEN t.amount
+                        WHEN t.type = 'expense' THEN -t.amount
+                        WHEN t.type = 'transfer' AND t.account_id = t.account_id THEN -t.amount
+                        WHEN t.type = 'transfer' AND t.account_id = t.destination_account_id THEN t.amount
+                        ELSE 0
+                    END
+                ELSE 0
+            END
+        ), 0)::DECIMAL AS end_balance
+    FROM transactions t
+    JOIN account_info ai ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
+    WHERE t.created_by = sqlc.arg('user_id')
+      AND t.transaction_datetime <= (SELECT end_date FROM period)
+      -- Filter transactions related to the accounts active in the period
+    GROUP BY t.account_id
 ),
-
-running_balance AS (
-    -- Compute cumulative balance without initial balance
-    SELECT
-        combined.month,
-        account_info.account_id,
-        account_info.name,
-        account_info.type,
-        account_info.currency,
-        account_info.color,
-        account_info.meta,
-        account_info.created_by,
-        account_info.created_at,
-        account_info.updated_at,
-        account_info.deleted_at,
-        sum(combined.monthly_net) OVER (
-            PARTITION BY combined.account_id
-            ORDER BY combined.month
-        ) AS balance
-    FROM combined
-    INNER JOIN account_info ON
-        combined.account_id = account_info.account_id
-),
-
 account_trend AS (
-    -- Calculate trend percentage
-    SELECT DISTINCT ON (rb.account_id)
-        rb.account_id,
-        rb.name,
-        rb.type,
-        rb.balance,
-        rb.currency,
-        rb.color,
-        rb.meta,
-        rb.updated_at,
-        CASE
-        -- If no transactions exist, return 0%
-            WHEN
-                NOT EXISTS (
-                    SELECT 1 FROM running_balance
-                    WHERE account_id = rb.account_id
-                )
-                THEN 0
-            -- If first month balance is zero, trend should also be 0%
-            WHEN (
-                SELECT balance FROM running_balance
-                WHERE account_id = rb.account_id
-                ORDER BY month ASC LIMIT 1
-            ) = 0
-                THEN 0
-
-            ELSE (
-                (
-                    SELECT balance FROM running_balance
-                    WHERE account_id = rb.account_id
-                    ORDER BY month DESC LIMIT 1
-                )
-                -
-                (
-                    SELECT balance FROM running_balance
-                    WHERE account_id = rb.account_id
-                    ORDER BY month ASC LIMIT 1
-                )
-            ) / (
-                    SELECT ABS(balance) FROM running_balance
-                    WHERE account_id = rb.account_id
-                    ORDER BY month ASC LIMIT 1
-            ) * 100
-        END AS trend
-    FROM running_balance rb
-),
-
-latest_transactions AS (
-    -- Fetch the last 3 transactions for each account
+    -- Calculate trend percentage based on actual start/end balances
     SELECT
-        transactions.account_id,
+        ai.account_id,
+        ai.name,
+        ai.type,
+        COALESCE(bc.end_balance, 0) AS balance, -- Current balance is the end_balance
+        ai.currency,
+        ai.color,
+        ai.meta,
+        ai.updated_at,
+        CASE
+            -- Avoid division by zero if start_balance is 0
+            WHEN COALESCE(bc.start_balance, 0) = 0 THEN
+                CASE
+                    -- If end balance is also 0, trend is 0
+                    WHEN COALESCE(bc.end_balance, 0) = 0 THEN 0
+                    -- If start is 0 but end is positive/negative, trend is infinite (represent as 100% or specific value?)
+                    -- Let's return 100% if end > start (0), -100% if end < start (0). Or null? Let's use 100/-100 for simplicity.
+                    WHEN COALESCE(bc.end_balance, 0) > 0 THEN 100.0
+                    ELSE -100.0 -- or potentially 0 or NULL depending on desired behaviour
+                END
+            -- Normal trend calculation
+            ELSE
+                ( (COALESCE(bc.end_balance, 0) - bc.start_balance) / ABS(bc.start_balance) * 100.0 )
+        END::DECIMAL AS trend
+    FROM account_info ai
+    LEFT JOIN balance_calc bc ON ai.account_id = bc.account_id
+    -- Ensure we only consider the balance if the account existed at the start date for trend calculation
+    -- If created within the period, trend starts from 0.
+    WHERE ai.created_at <= (SELECT end_date FROM period) -- Redundant check, but safe
+      AND (ai.deleted_at IS NULL OR ai.deleted_at > (SELECT start_date FROM period)) -- Ensure not deleted before period start
+),
+ranked_transactions AS (
+    -- Rank transactions within the period for each account to get the latest N
+    SELECT
+        t.id,
+        t.account_id,
+        t.amount,
+        t.type,
+        t.transaction_datetime,
+        t.description,
+        ROW_NUMBER() OVER (PARTITION BY t.account_id ORDER BY t.transaction_datetime DESC, t.created_at DESC) as rn
+    FROM transactions t
+    JOIN account_info ai ON t.account_id = ai.account_id -- Join to filter by user accounts implicitly
+    WHERE t.transaction_datetime <= (SELECT end_date FROM period)
+      AND t.created_by = sqlc.arg('user_id')
+      -- Optimization: Add t.transaction_datetime >= (SELECT start_date FROM period) if only transactions *within* the period are desired
+),
+latest_transactions AS (
+    -- Aggregate the top 3 transactions into JSONB
+    SELECT
+        rt.account_id,
         jsonb_agg(
             jsonb_build_object(
-                'id', transactions.id,
-                'amount', transactions.amount,
-                'type', transactions.type,
-                'transaction_datetime', transactions.transaction_datetime,
-                'description', transactions.description
+                'id', rt.id,
+                'amount', rt.amount,
+                'type', rt.type,
+                'transaction_datetime', rt.transaction_datetime,
+                'description', rt.description
             )
-            ORDER BY transactions.transaction_datetime DESC
-        ) AS transactions
-    FROM transactions
-    WHERE transactions.account_id IN (SELECT account_id FROM account_trend)
-    AND transactions.created_by = sqlc.arg('user_id')
-    GROUP BY transactions.account_id
+            ORDER BY rt.transaction_datetime DESC, rt.rn ASC -- Ensure consistent order in aggregation
+        ) FILTER (WHERE rt.rn <= 3) AS transactions -- Aggregate only the top 3
+    FROM ranked_transactions rt
+    WHERE rt.rn <= 3
+    GROUP BY rt.account_id
 )
-
 -- Final query joining trend with last 3 transactions
 SELECT
     at.account_id as id,
     at.name,
     at.type,
-    at.balance::DECIMAL AS balance,
+    at.balance::DECIMAL as balance, -- Balance at the end_date
     at.currency,
     at.color,
     at.meta,
     at.updated_at,
-    at.trend,
-    lt.transactions::JSONB AS transactions
+    at.trend::DECIMAL as trend,
+    COALESCE(lt.transactions, '[]'::JSONB)::JSONB AS transactions -- Return empty JSON array if no transactions
 FROM account_trend at
-LEFT JOIN latest_transactions lt ON at.account_id = lt.account_id;
+LEFT JOIN latest_transactions lt ON at.account_id = lt.account_id
+ORDER BY at.name; -- Or other desired order
+
+    

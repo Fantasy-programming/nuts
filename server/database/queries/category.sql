@@ -16,6 +16,13 @@ WHERE
     AND deleted_at IS NULL
 LIMIT 1;
 
+-- name: GetCategoryByName :one
+SELECT *
+FROM categories
+WHERE
+    name = sqlc.arg('name')
+LIMIT 1;
+
 -- name: ListCategories :many
 SELECT *
 FROM categories

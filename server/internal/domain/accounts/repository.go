@@ -2,11 +2,15 @@ package accounts
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/internal/repository/dto"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Repository defines the interface for account data operations
@@ -17,6 +21,8 @@ type Repository interface {
 	GetAccountByID(ctx context.Context, id uuid.UUID) (repository.GetAccountByIdRow, error)
 	// CreateAccount creates a new account
 	CreateAccount(ctx context.Context, account repository.CreateAccountParams) (repository.Account, error)
+	CreateAccountWInitalTrs(ctx context.Context, act repository.CreateAccountParams) (repository.Account, error)
+
 	// UpdateAccount updates an existing account
 	UpdateAccount(ctx context.Context, account repository.UpdateAccountParams) (repository.Account, error)
 	// DeleteAccount marks an account as deleted
@@ -26,18 +32,20 @@ type Repository interface {
 
 	// GetAccountsBTimeline
 	GetAccountsBTimeline(ctx context.Context, userID *uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error)
-	GetAccountBTimeline(ctx context.Context, id uuid.UUID) (repository.GetAccountBalanceTimelineRow, error)
+	GetAccountBTimeline(ctx context.Context, id uuid.UUID) ([]repository.GetAccountBalanceTimelineRow, error)
 	GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]repository.GetAccountsWithTrendRow, error)
 }
 
 type repo struct {
 	queries *repository.Queries
+	db      *pgxpool.Pool
 }
 
 // NewRepository creates a new account repository
-func NewRepository(queries *repository.Queries) Repository {
+func NewRepository(queries *repository.Queries, db *pgxpool.Pool) Repository {
 	return &repo{
 		queries: queries,
+		db:      db,
 	}
 }
 
@@ -54,6 +62,65 @@ func (r *repo) GetAccountByID(ctx context.Context, id uuid.UUID) (repository.Get
 // CreateAccount creates a new account
 func (r *repo) CreateAccount(ctx context.Context, account repository.CreateAccountParams) (repository.Account, error) {
 	return r.queries.CreateAccount(ctx, account)
+}
+
+func (r *repo) CreateAccountWInitalTrs(ctx context.Context, act repository.CreateAccountParams) (repository.Account, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return repository.Account{}, err
+	}
+
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(ctx); rbErr != nil && !errors.Is(rbErr, pgx.ErrTxClosed) {
+				// Log the rollback error, but return the original error
+				// Consider adding structured logging here
+			}
+		}
+	}()
+
+	qtx := r.queries.WithTx(tx)
+
+	// Create the account
+	account, err := qtx.CreateAccount(ctx, act)
+	if err != nil {
+		return repository.Account{}, err
+	}
+
+	// Category is set to income
+	category, err := qtx.GetCategoryByName(ctx, "Income")
+	if err != nil {
+		return repository.Account{}, err
+	}
+
+	description := "Initial Balance"
+
+	// Create the initial transaction
+	_, err = qtx.CreateTransaction(ctx, repository.CreateTransactionParams{
+		Amount:              act.Balance,
+		Type:                "income",
+		AccountID:           account.ID,
+		Description:         &description,
+		CategoryID:          category.ID,
+		TransactionDatetime: time.Now(),
+		Details: dto.Details{
+			PaymentMedium: "",
+			Location:      "",
+			Note:          "",
+			PaymentStatus: "",
+		},
+		CreatedBy: account.CreatedBy,
+	})
+	if err != nil {
+		return repository.Account{}, err
+	}
+
+	// Commit the transaction
+	if err = tx.Commit(ctx); err != nil {
+		return repository.Account{}, err
+	}
+
+	return account, nil
 }
 
 // UpdateAccount updates an existing account
@@ -79,7 +146,7 @@ func (r *repo) GetAccountsBTimeline(ctx context.Context, userID *uuid.UUID) ([]r
 	return r.queries.GetAccountsBalanceTimeline(ctx, userID)
 }
 
-func (r *repo) GetAccountBTimeline(ctx context.Context, id uuid.UUID) (repository.GetAccountBalanceTimelineRow, error) {
+func (r *repo) GetAccountBTimeline(ctx context.Context, id uuid.UUID) ([]repository.GetAccountBalanceTimelineRow, error) {
 	return r.queries.GetAccountBalanceTimeline(ctx, id)
 }
 
