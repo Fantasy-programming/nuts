@@ -1,8 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
-import { Search, Download, X, Settings } from 'lucide-react';
+import { loadPluginModule } from '@/features/plugins/loader';
+import { renderIcon } from '@/core/components/icon-picker';
+import { usePluginStore } from '@/features/plugins/store';
 
+import { Search, Download, X, Settings } from 'lucide-react';
+import { Switch } from '@/core/components/ui/switch';
+import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
+import { Input } from '@/core/components/ui/input';
 import {
   Card,
   CardContent,
@@ -11,8 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/core/components/ui/card';
-import { Switch } from '@/core/components/ui/switch';
-import { Badge } from '@/core/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -20,14 +25,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/core/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
-import { Input } from '@/core/components/ui/input';
 
-import { loadPluginModule } from '@/features/plugins/loader';
-import { renderIcon } from '@/core/components/icon-picker';
-
-import { usePluginStore } from '@/features/plugins/store';
-import type { PluginConfig } from '@/features/plugins/registry';
+import type { PluginConfig } from '@/features/plugins/types';
 
 export const Route = createFileRoute('/dashboard/plugins')({
   component: PluginManager,
@@ -60,52 +59,63 @@ export function PluginManager() {
 
 
   return (
-    <div className="space-y-6">
-      <div className="flex-col flex md:flex-row  justify-between">
-        <h2 className="text-3xl md:py-0 py-4 font-bold tracking-tight">Plugin Manager</h2>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search plugins..."
-            className="w-[250px] pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <div className="flex w-full items-center justify-between gap-2 px-4">
         </div>
-      </div>
-
-      <Tabs defaultValue="installed">
-        <TabsList>
-          <TabsTrigger value="installed">Installed</TabsTrigger>
-          <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
-        </TabsList>
-        <TabsContent value="installed" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPlugins.length > 0 ? (
-              filteredPlugins.map((plugin) => (
-                <Suspense
-                  fallback={<div>loading</div>}
-                  key={plugin.id}
-                >
-                  <PluginCard
-                    pluginConfig={plugin}
-                    onToggle={handleTogglePlugin}
-                    onRemove={removePlugin}
-                  /></Suspense>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground">No plugins found</p>
+      </header>
+      <main className="flex flex-1 overflow-hidden">
+        <div className="h-full w-full space-y-8 overflow-y-auto px-6 py-2">
+          <div className="space-y-6">
+            <div className="flex-col flex md:flex-row  justify-between">
+              <h2 className="text-3xl md:py-0 py-4 font-bold tracking-tight">Plugin Manager</h2>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search plugins..."
+                  className="w-[250px] pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-            )}
+            </div>
+
+            <Tabs defaultValue="installed">
+              <TabsList>
+                <TabsTrigger value="installed">Installed</TabsTrigger>
+                <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
+              </TabsList>
+              <TabsContent value="installed" className="mt-6">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredPlugins.length > 0 ? (
+                    filteredPlugins.map((plugin) => (
+                      <Suspense
+                        fallback={<div>loading</div>}
+                        key={plugin.id}
+                      >
+                        <PluginCard
+                          pluginConfig={plugin}
+                          onToggle={handleTogglePlugin}
+                          onRemove={removePlugin}
+                        /></Suspense>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-12">
+                      <p className="text-muted-foreground">No plugins found</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              <TabsContent value="marketplace" className="mt-6">
+                <MarketplaceContent />
+              </TabsContent>
+            </Tabs>
           </div>
-        </TabsContent>
-        <TabsContent value="marketplace" className="mt-6">
-          <MarketplaceContent />
-        </TabsContent>
-      </Tabs>
-    </div>
+        </div>
+      </main>
+
+    </>
   );
 }
 
