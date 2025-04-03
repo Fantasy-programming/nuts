@@ -1,82 +1,100 @@
+import { useState, useEffect } from 'react';
 import { Button } from "@/core/components/ui/button";
-import { Card } from "@/core/components/ui/card";
-import { BarChart, LineChart, PieChart, Plus, TrendingUp } from "lucide-react";
-import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogTrigger } from "@/core/components/ui/dialog-sheet";
-import { useState } from "react";
-import { ScrollArea, ScrollBar } from "@/core/components/ui/scroll-area";
-
-interface ChartTypeCardProps {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-}
-
-const ChartTypeCard: React.FC<ChartTypeCardProps> = ({ title, description, icon, onClick }) => {
-  return (
-    <div
-      onClick={onClick}
-      className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-    >
-      <div className="mb-2 text-primary">{icon}</div>
-      <h3 className="font-medium">{title}</h3>
-      <p className="text-sm text-gray-500 text-center mt-1">{description}</p>
-    </div>
-  );
-};
-
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/core/components/ui/dialog";
+import { ScrollArea } from "@/core/components/ui/scroll-area";
+import { PlusCircle } from 'lucide-react';
+import { getAvailableChartConfigs } from '@/features/dashboard/charts/loader';
+import type { DashboardChartModuleConfig } from '@/features/dashboard/charts/types';
 
 interface AddChartDialogProps {
-  onAddChart: (type: string, title?: string) => void;
+  onAddChart: (config: DashboardChartModuleConfig) => void;
 }
 
-//TODO: Better look + chart preview
 export function AddChartDialog({ onAddChart }: AddChartDialogProps) {
-  const [open, setOpen] = useState(false)
+  const [availableCharts, setAvailableCharts] = useState<DashboardChartModuleConfig[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    // Load configs when the dialog is about to open or is open
+    if (isOpen) {
+      setIsLoading(true);
+      getAvailableChartConfigs()
+        .then(configs => {
+          setAvailableCharts(configs);
+          setIsLoading(false);
+        })
+        .catch(err => {
+          console.error("Failed to load available chart configs:", err);
+          setIsLoading(false);
+          // Handle error state in UI if needed
+        });
+    }
+  }, [isOpen]); // Re-fetch if dialog re-opens (might be overkill if configs rarely change)
+
+  const handleSelectChart = (config: DashboardChartModuleConfig) => {
+    onAddChart(config);
+    setIsOpen(false); // Close dialog after adding
+  };
+
   return (
-    <ResponsiveDialog open={open} onOpenChange={setOpen}>
-      <ResponsiveDialogTrigger>
-        <Card className="border-muted hover:border-primary/80 hover:bg-accent/50 flex h-[340px] cursor-pointer items-center justify-center border-2 border-dashed transition-colors">
-          <Button variant="ghost" size="icon" className="text-muted-foreground h-20 w-20">
-            <Plus className="h-10 w-10" />
-          </Button>
-        </Card>
-      </ResponsiveDialogTrigger>
-      <ResponsiveDialogContent className="sm:max-w-[600px]">
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Add New Chart</ResponsiveDialogTitle>
-        </ResponsiveDialogHeader>
-        <ScrollArea>
-          <div className=" grid gap-3 p-3">
-            <ChartTypeCard
-              title="Line Chart"
-              description="Track changes over time"
-              icon={<LineChart className="h-8 w-8" />}
-              onClick={() => onAddChart('line', "Line Chart")}
-            />
-            <ChartTypeCard
-              title="Bar Chart"
-              description="Compare values across categories"
-              icon={<BarChart className="h-8 w-8" />}
-              onClick={() => onAddChart('bar', "Bar Chart")}
-            />
-            <ChartTypeCard
-              title="Area Chart"
-              description="Show cumulative totals over time"
-              icon={<TrendingUp className="h-8 w-8" />}
-              onClick={() => onAddChart('area', "Area Chart")}
-            />
-            <ChartTypeCard
-              title="Pie Chart"
-              description="Show proportions of a whole"
-              icon={<PieChart className="h-8 w-8" />}
-              onClick={() => onAddChart('pie', "Pie Chart")}
-            />
-          </div>
-          <ScrollBar orientation="vertical" />
-        </ScrollArea >
-      </ResponsiveDialogContent >
-    </ResponsiveDialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add Chart
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Add Chart to Dashboard</DialogTitle>
+          <DialogDescription>
+            Select a chart widget to add to your current view.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          {isLoading ? (
+            <div className="text-center p-4">Loading available charts...</div>
+          ) : availableCharts.length > 0 ? (
+            <ScrollArea className="h-[300px] pr-4"> {/* Added padding-right */}
+              <div className="space-y-2">
+                {availableCharts.map((config) => (
+                  <Button
+                    key={config.id}
+                    variant="ghost"
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => handleSelectChart(config)}
+                  >
+                    <div>
+                      <div className="font-medium">{config.title}</div>
+                      {config.description && (
+                        <p className="text-xs text-muted-foreground">
+                          {config.description}
+                        </p>
+                      )}
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="text-center p-4 text-muted-foreground">No charts available to add.</div>
+          )}
+        </div>
+        {/* Optional Footer with Close button */}
+        {/* <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+        </DialogFooter> */}
+      </DialogContent>
+    </Dialog>
   );
 }

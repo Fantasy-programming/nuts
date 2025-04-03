@@ -1,4 +1,4 @@
-import React from 'react';
+import { useMemo, memo, useCallback } from 'react';
 import { Line, LineChart, PieChart, Pie, XAxis, YAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, Cell } from "recharts";
 import {
   ChartContainer,
@@ -7,6 +7,7 @@ import {
   ChartLegend,
   ChartLegendContent
 } from "@/core/components/ui/chart";
+import { ChartSize } from '.';
 
 // Define chart data types
 export type ChartDataPoint = Record<string, string | number>;
@@ -23,6 +24,7 @@ interface ChartRendererProps {
   type: ChartConfig['type'];
   data: ChartDataPoint[];
   dataKeys: string[];
+  categoryKey: string;
   colors?: string[];
   stacked?: boolean;
   size?: 1 | 2 | 3;
@@ -31,7 +33,7 @@ interface ChartRendererProps {
 // Default colors that can be overridden
 const DEFAULT_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
-// Convert colors to shadcn format for chart config
+
 const createChartConfig = (dataKeys: string[], colors: string[]) => {
   return dataKeys.reduce((config, key, index) => {
     return {
@@ -44,34 +46,19 @@ const createChartConfig = (dataKeys: string[], colors: string[]) => {
   }, {});
 };
 
-export const ChartRenderer: React.FC<ChartRendererProps> = ({
+export const ChartRenderer = memo<ChartRendererProps>(({
   type,
   data,
   dataKeys,
   colors = DEFAULT_COLORS,
+  categoryKey,
   stacked = false,
   size = 1
 }) => {
   // Create shadcn chart config
   const chartConfig = createChartConfig(dataKeys, colors);
 
-  // Get category key (usually the x-axis value)
-  const categoryKey = Object.keys(data[0] || {}).find(key => typeof data[0][key] === 'string') || 'name';
-
   // Calculate appropriate dimensions based on chart size
-  const getChartHeight = () => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    if (isMobile) {
-      return 200; // Smaller height for all charts on mobile
-    }
-    switch (size) {
-      case 1: return 240;
-      case 2: return 240;
-      case 3: return 280;
-      default: return 240;
-    }
-  };
-
   const renderChart = () => {
     switch (type) {
       case "line":
@@ -161,33 +148,53 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
     }
   };
 
-  const height = getChartHeight()
 
   return (
-    <div style={{ height: height }} >
-      <ChartContainer className='w-full h-full' config={chartConfig}>
-        {renderChart()}
-      </ChartContainer>
-    </div>
+    <ChartContainer className='w-full h-full' config={chartConfig}>
+      {renderChart()}
+    </ChartContainer>
   );
-};
+});
 
 // A higher level component that takes care of configuration
-export const Chart: React.FC<{
+export const Chart = memo<{
   data: ChartDataPoint[];
   config: ChartConfig;
   size?: 1 | 2 | 3;
-}> = ({ data, config, size = 1 }) => {
+}>(({ data, config, size = 1 }) => {
   const { type, dataKeys, colors, stacked } = config;
 
+  const getChartHeight = useCallback((size: ChartSize) => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile) {
+      return 200; // Smaller height for all charts on mobile
+    }
+    switch (size) {
+      case 1: return 240;
+      case 2: return 240;
+      case 3: return 280;
+      default: return 240;
+    }
+  }, [])
+
+
+  const height = useMemo(() => getChartHeight(size), [size, getChartHeight])
+
+  // Get category key (usually the x-axis value)
+  const categoryKey = Object.keys(data[0] || {}).find(key => typeof data[0][key] === 'string') || 'name';
+
+
   return (
-    <ChartRenderer
-      type={type}
-      data={data}
-      dataKeys={dataKeys}
-      colors={colors}
-      stacked={stacked}
-      size={size}
-    />
+    <div style={{ height: height }} >
+      <ChartRenderer
+        type={type}
+        data={data}
+        dataKeys={dataKeys}
+        categoryKey={categoryKey}
+        colors={colors}
+        stacked={stacked}
+        size={size}
+      />
+    </div>
   );
-};
+});

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useMemo, useCallback, memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardHeader } from "@/core/components/ui/card";
@@ -13,8 +13,8 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/core/components/ui/context-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/core/components/ui/dialog";
-import { GripVertical, Lock, Maximize2, Minimize2, Pencil, Trash, Unlock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/core/components/ui/dialog";
+import { GripVertical, Lock, Maximize2, Pencil, Trash, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "@/features/dashboard/stores/dashboard.store";
 import { DraggableAttributes } from "@dnd-kit/core";
@@ -23,7 +23,6 @@ import { ChartConfig, ChartDataPoint, Chart } from "./chart-renderer";
 
 export type ChartSize = 1 | 2 | 3;
 
-// Store format for chart data
 export interface ChartItem {
   id: string;
   title: string;
@@ -36,9 +35,6 @@ export interface ChartItem {
   data: ChartDataPoint[];
 }
 
-
-
-
 type ChartCardContextValue = {
   id: string;
   size: ChartSize;
@@ -49,7 +45,7 @@ type ChartCardContextValue = {
   setNodeRef: (node: HTMLElement | null) => void;
   handleRename: (newTitle: string) => void;
   handleRemove: () => void;
-  handleResize: (size: 1 | 2 | 3) => void;
+  handleResize: (size: ChartSize) => void;
   handleToggleLock: () => void;
 };
 
@@ -78,6 +74,8 @@ interface ChartCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, className, children, ...props }: ChartCardProps) {
+
+  // Select actions
   const removeChart = useDashboardStore(state => state.removeChart);
   const updateChartTitle = useDashboardStore(state => state.updateChartTitle);
   const updateChartSize = useDashboardStore(state => state.updateChartSize);
@@ -85,7 +83,13 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: isLocked });
 
-  const contextValue: ChartCardContextValue = {
+  // Handler functions
+  const handleRename = useCallback((newTitle: string) => updateChartTitle(id, newTitle), [id, updateChartTitle]);
+  const handleRemove = useCallback(() => removeChart(id), [id, removeChart]);
+  const handleResize = useCallback((newSize: ChartSize) => updateChartSize(id, newSize), [id, updateChartSize]);
+  const handleToggleLock = useCallback(() => toggleChartLock(id), [id, toggleChartLock]);
+
+  const contextValue = useMemo<ChartCardContextValue>(() => ({
     id,
     size,
     isLocked,
@@ -93,35 +97,37 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
     attributes,
     listeners,
     setNodeRef,
-    handleRename: (newTitle) => {
-      updateChartTitle(id, newTitle);
-    },
-    handleRemove: () => removeChart(id),
-    handleResize: (size) => updateChartSize(id, size),
-    handleToggleLock: () => toggleChartLock(id),
-  };
+    handleRename,
+    handleRemove,
+    handleResize,
+    handleToggleLock,
+  }), [
+    id, size, isLocked, isDragging, attributes, listeners, setNodeRef,
+    handleRename, handleRemove, handleResize, handleToggleLock
+  ]);
 
-  const style = {
+  const style = useMemo(() => ({
     transform: CSS.Transform.toString(transform),
     transition,
-  };
+  }), [transform, transition]);
 
-  // Apply appropriate sizing classes based on the size prop
-  const sizeClasses = {
-    1: "col-span-1", // Ensure single column on mobile
-    2: "col-span-1 md:col-span-2", // Single column on mobile, two on medium+
-    3: "col-span-1 md:col-span-2 lg:col-span-3", // Single column on mobile, responsive on larger screens
-  };
+  const sizeClasses = useMemo(() => ({
+    1: "col-span-1",
+    2: "col-span-1 md:col-span-2",
+    3: "col-span-1 md:col-span-2 lg:col-span-3",
+  }), []);
 
   return (
     <ChartCardContext.Provider value={contextValue}>
       <Card
         ref={setNodeRef}
         style={style}
-        className={cn("group relative w-full h-full col-span-1",
-          isDragging && "opacity-50 z-10",
+        className={cn("group relative w-full h-full",
+          "transition-shadow duration-200",
+          isDragging ? "opacity-50 z-10 shadow-2xl" : "shadow-sm",
           sizeClasses[size],
-          className)}
+          className
+        )}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         {...props}
@@ -137,61 +143,86 @@ interface ChartCardHeadProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-export function ChartCardHeader({ children, ref }: ChartCardHeadProps) {
+export const ChartCardHeader = memo(({ children, className, ref }: ChartCardHeadProps) => {
+  console.log("Rendering ChartCardHeader"); // Debug log
   const { isDragging } = useChartCard();
-  return <CardHeader className={cn("flex flex-row items-center gap-2", isDragging && "cursor-grabbing")} ref={ref}>{children}</CardHeader>;
-}
 
+  return (
+    <CardHeader className={cn(
+      "flex flex-row items-center gap-2 space-y-0 py-3 px-4 border-b",
+      isDragging && "cursor-grabbing",
+      className
+    )} ref={ref}>
+      {children}
+    </CardHeader>
+  )
+})
 
-export function ChartCardTitle({ children }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className="flex-1 font-medium">{children}</div>;
-}
+ChartCardHeader.displayName = "ChartCardHeader";
+
+export const ChartCardTitle = memo(({ children, className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
+  console.log("Rendering ChartCardTitle"); // Debug log
+  return <h3 className={cn("flex-1 font-semibold text-sm", className)} {...props}>{children}</h3>;
+});
+
+ChartCardTitle.displayName = "ChartCardTitle";
 
 // ChartCard Content component
-export const ChartCardContent = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
+export const ChartCardContent = memo(({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
   const { size } = useChartCard();
 
   // Adjust padding based on chart size
-  const sizeClasses = {
-    1: "p-1 sm:p-2", // Less padding on mobile
-    2: "p-1 sm:p-3", // Less padding on mobile
-    3: "p-1 sm:p-4", // Less padding on mobile
-  };
+  const sizeClasses = useMemo(() => ({
+    1: "p-2 sm:p-3",
+    2: "p-3 sm:p-4",
+    3: "p-4 sm:p-5",
+  }), []);
 
   // Add minimum height classes based on size
-  const heightClasses = {
-    1: "min-h-[200px] sm:min-h-[240px]", // Smaller on mobile
-    2: "min-h-[200px] sm:min-h-[240px]", // Smaller on mobile
-    3: "min-h-[200px] sm:min-h-[280px]", // Smaller on mobile
-  };
+  const heightClasses = useMemo(() => ({
+    1: "min-h-[200px] sm:min-h-[240px]",
+    2: "min-h-[200px] sm:min-h-[240px]",
+    3: "min-h-[200px] sm:min-h-[280px]",
+  }), []);
 
 
   return (
-    <CardContent className={cn(sizeClasses[size], heightClasses[size], "overflow-hidden h-full", className)} {...props}>
+    <CardContent className={cn(
+      "overflow-hidden h-full",
+      sizeClasses[size],
+      heightClasses[size],
+      className
+    )} {...props}>
       <div className="w-full h-full">
         {children}
       </div>
     </CardContent>
   );
-};
+});
+
 ChartCardContent.displayName = "ChartCardContent";
 
-export function ChartCardHandle() {
+export const ChartCardHandle = memo(() => {
+  console.log("Rendering ChartCardHandle"); // Debug log
   const { isLocked, attributes, listeners } = useChartCard();
 
   if (isLocked)
     return (
-      <Button variant="ghost" size="icon" className="cursor-not-allowed">
+      <Button variant="ghost" size="icon" className="cursor-not-allowed opacity-50" disabled>
         <Lock className="h-4 w-4" />
+        <span className="sr-only">Chart Locked</span>
       </Button>
     );
 
   return (
     <Button variant="ghost" size="icon" className="cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
       <GripVertical className="h-4 w-4" />
+      <span className="sr-only">Drag to reorder chart</span>
     </Button>
   );
-}
+})
+
+ChartCardHandle.displayName = "ChartCardHandle";
 
 interface ChartCardMenuProps extends React.HTMLAttributes<HTMLDivElement> {
   hasContext?: boolean;
@@ -199,116 +230,115 @@ interface ChartCardMenuProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-export function ChartCardMenu({ children, ref, hasContext = true }: ChartCardMenuProps) {
+export const ChartCardMenu = memo(({ children, ref, hasContext = true }: ChartCardMenuProps) => {
+  console.log("Rendering ChartCardMenu"); // Debug log
   const { isLocked, handleRename, handleRemove, handleResize, handleToggleLock } = useChartCard();
 
   const [newTitle, setNewTitle] = useState("");
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
 
+
+  const openRenameDialog = useCallback(() => {
+    setIsRenameDialogOpen(true);
+  }, []);
+
+  const submitRename = useCallback(() => {
+    handleRename(newTitle);
+    setIsRenameDialogOpen(false);
+    setNewTitle(""); // Reset input
+  }, [handleRename, newTitle]);
+
+  const resizeFn = useCallback((size: ChartSize) => () => handleResize(size), [handleResize]);
+  const toggleLockFn = useCallback(() => handleToggleLock(), [handleToggleLock]);
+  const removeFn = useCallback(() => handleRemove(), [handleRemove]);
+
+  const menuContent = (
+    <ContextMenuContent ref={ref}>
+      <ContextMenuItem onSelect={openRenameDialog}>
+        <Pencil className="mr-2 h-4 w-4" />
+        Rename
+      </ContextMenuItem>
+      <ContextMenuSub>
+        <ContextMenuSubTrigger>
+          <Maximize2 className="mr-2 h-4 w-4" />
+          Resize
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent>
+          <ContextMenuItem onSelect={resizeFn(1)}>Normal</ContextMenuItem>
+          <ContextMenuItem onSelect={resizeFn(2)}>Wide</ContextMenuItem>
+          <ContextMenuItem onSelect={resizeFn(3)}>Full Width</ContextMenuItem>
+        </ContextMenuSubContent>
+      </ContextMenuSub>
+      <ContextMenuItem onSelect={toggleLockFn}>
+        {isLocked ? <><Unlock className="mr-2 h-4 w-4" />Unlock</> : <><Lock className="mr-2 h-4 w-4" />Lock</>}
+      </ContextMenuItem>
+      <ContextMenuItem className="text-red-600" onSelect={removeFn}>
+        <Trash className="mr-2 h-4 w-4" />
+        Delete
+      </ContextMenuItem>
+    </ContextMenuContent>
+  );
+
   return (
     <>
       {hasContext ? (
         <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <div>{children}</div>
-          </ContextMenuTrigger>
-          <ContextMenuContent ref={ref}>
-            {/* Trigger the rename dialog via state rather than a nested Dialog */}
-            <ContextMenuItem onClick={() => setIsRenameDialogOpen(true)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Rename
-            </ContextMenuItem>
+          <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+          {menuContent}
+        </ContextMenu>
+      ) : (
+        <div>{children}</div> // Render children directly if no context menu needed
+      )}
 
-            <ContextMenuSub>
-              <ContextMenuSubTrigger>
-                <Maximize2 className="mr-2 h-4 w-4" />
-                Resize
-              </ContextMenuSubTrigger>
-              <ContextMenuSubContent>
-                <ContextMenuItem onClick={() => handleResize(1)}>
-                  <Minimize2 className="mr-2 h-4 w-4" />
-                  Normal
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleResize(2)}>
-                  <Maximize2 className="mr-2 h-4 w-4" />
-                  Wide
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleResize(3)}>
-                  <Maximize2 className="mr-2 h-4 w-4" />
-                  Full Width
-                </ContextMenuItem>
-              </ContextMenuSubContent>
-            </ContextMenuSub>
-
-            <ContextMenuItem onClick={() => handleToggleLock()}>
-              {isLocked ? (
-                <>
-                  <Unlock className="mr-2 h-4 w-4" />
-                  Unlock
-                </>
-              ) : (
-                <>
-                  <Lock className="mr-2 h-4 w-4" />
-                  Lock
-                </>
-              )}
-            </ContextMenuItem>
-
-            <ContextMenuItem className="text-red-600" onClick={() => handleRemove()}>
-              <Trash className="mr-2 h-4 w-4" />
-              Delete
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>) : (<div>{children}</div>)}
-
-      {/* Render the dialog outside of the context menu */}
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename Chart</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Enter new title" />
-            <DialogClose asChild>
-              <Button
-                onClick={() => {
-                  handleRename(newTitle);
-                  setIsRenameDialogOpen(false);
-                }}
-              >
-                Save
-              </Button>
-            </DialogClose>
+            <Input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Enter new title"
+              aria-label="New chart title"
+            />
+            <Button onClick={submitRename}>Save Changes</Button>
           </div>
         </DialogContent>
       </Dialog>
     </>
   );
-}
+})
+
+ChartCardMenu.displayName = "ChartCardMenu";
 
 // A simple wrapper that combines ChartCard with the Chart renderer
-export function DataChart({ chart }: { chart: ChartItem }) {
+export const DataChart = memo(({ chart }: { chart: ChartItem }) => {
+  console.log(`Rendering DataChart: ${chart.id}`, chart); // Debug log
+
   return (
     <ChartCard key={chart.id} size={chart.size} isLocked={chart.isLocked} id={chart.id}>
       <ChartCardMenu>
-        <ChartCardHeader>
-          <ChartCardTitle>{chart.title}</ChartCardTitle>
-          <ChartCardHandle />
-        </ChartCardHeader>
-        <ChartCardContent>
-          <Chart
-            data={chart.data}
-            config={{
-              type: chart.type,
-              title: chart.title,
-              dataKeys: chart.dataKeys,
-              colors: chart.colors,
-              stacked: chart.stacked
-            }}
-            size={chart.size}
-          />
-        </ChartCardContent>
+        <section>
+          <ChartCardHeader>
+            <ChartCardTitle>{chart.title}</ChartCardTitle>
+            <ChartCardHandle />
+          </ChartCardHeader>
+          <ChartCardContent>
+            <Chart
+              data={chart.data}
+              config={{
+                type: chart.type,
+                title: chart.title,
+                dataKeys: chart.dataKeys,
+                colors: chart.colors,
+                stacked: chart.stacked
+              }}
+              size={chart.size}
+            />
+          </ChartCardContent>
+        </section>
       </ChartCardMenu>
     </ChartCard>
   );
-}
+})
