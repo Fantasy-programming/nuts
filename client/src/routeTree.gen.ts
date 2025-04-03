@@ -8,13 +8,12 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { createFileRoute } from "@tanstack/react-router";
-
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as SignupImport } from './routes/signup'
 import { Route as LoginImport } from './routes/login'
+import { Route as ForgotPasswordImport } from './routes/forgot-password'
 import { Route as ComponentsImport } from './routes/components'
 import { Route as DashboardRouteImport } from './routes/dashboard/route'
 import { Route as IndexImport } from './routes/index'
@@ -36,57 +35,53 @@ import { Route as DashboardSettingsFeedbackImport } from './routes/dashboard_/se
 import { Route as DashboardSettingsCategoriesImport } from './routes/dashboard_/settings/categories'
 import { Route as DashboardSettingsAccountImport } from './routes/dashboard_/settings/account'
 
-// Create Virtual Routes
-
-const ForgotPasswordLazyImport = createFileRoute("/forgot-password")();
-
 // Create/Update Routes
 
-const ForgotPasswordLazyRoute = ForgotPasswordLazyImport.update({
-  id: "/forgot-password",
-  path: "/forgot-password",
-  getParentRoute: () => rootRoute,
-} as any).lazy(() => import("./routes/forgot-password.lazy").then((d) => d.Route));
-
 const SignupRoute = SignupImport.update({
-  id: "/signup",
-  path: "/signup",
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
 
 const LoginRoute = LoginImport.update({
-  id: "/login",
-  path: "/login",
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
+
+const ForgotPasswordRoute = ForgotPasswordImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const ComponentsRoute = ComponentsImport.update({
-  id: "/components",
-  path: "/components",
+  id: '/components',
+  path: '/components',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
 
 const DashboardRouteRoute = DashboardRouteImport.update({
-  id: "/dashboard",
-  path: "/dashboard",
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
 
 const IndexRoute = IndexImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
 
 const DashboardIndexRoute = DashboardIndexImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => DashboardRouteRoute,
-} as any);
+} as any)
 
 const DashboardRecordsRoute = DashboardRecordsImport.update({
-  id: "/records",
-  path: "/records",
+  id: '/records',
+  path: '/records',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 
@@ -97,20 +92,20 @@ const DashboardPluginsRoute = DashboardPluginsImport.update({
 } as any)
 
 const DashboardHomeRoute = DashboardHomeImport.update({
-  id: "/home",
-  path: "/home",
+  id: '/home',
+  path: '/home',
   getParentRoute: () => DashboardRouteRoute,
-} as any);
+} as any)
 
 const DashboardAnalyticsRoute = DashboardAnalyticsImport.update({
-  id: "/analytics",
-  path: "/analytics",
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => DashboardRouteRoute,
-} as any);
+} as any)
 
 const DashboardAccountsRoute = DashboardAccountsImport.update({
-  id: "/accounts",
-  path: "/accounts",
+  id: '/accounts',
+  path: '/accounts',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 
@@ -121,68 +116,72 @@ const DashboardSplatRoute = DashboardSplatImport.update({
 } as any)
 
 const DashboardSettingsRouteRoute = DashboardSettingsRouteImport.update({
-  id: "/dashboard_/settings",
-  path: "/dashboard/settings",
+  id: '/dashboard_/settings',
+  path: '/dashboard/settings',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
 
 const DashboardSettingsIndexRoute = DashboardSettingsIndexImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any);
+} as any)
 
 const DashboardSettingsWebhookRoute = DashboardSettingsWebhookImport.update({
-  id: "/webhook",
-  path: "/webhook",
+  id: '/webhook',
+  path: '/webhook',
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any);
+} as any)
 
 const DashboardSettingsTagsRoute = DashboardSettingsTagsImport.update({
-  id: "/tags",
-  path: "/tags",
+  id: '/tags',
+  path: '/tags',
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any);
+} as any)
 
-const DashboardSettingsPreferencesRoute = DashboardSettingsPreferencesImport.update({
-  id: "/preferences",
-  path: "/preferences",
-  getParentRoute: () => DashboardSettingsRouteRoute,
-} as any);
+const DashboardSettingsPreferencesRoute =
+  DashboardSettingsPreferencesImport.update({
+    id: '/preferences',
+    path: '/preferences',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any)
 
 const DashboardSettingsNewsRoute = DashboardSettingsNewsImport.update({
-  id: "/news",
-  path: "/news",
+  id: '/news',
+  path: '/news',
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any);
+} as any)
 
-const DashboardSettingsMerchantsRoute = DashboardSettingsMerchantsImport.update({
-  id: "/merchants",
-  path: "/merchants",
-  getParentRoute: () => DashboardSettingsRouteRoute,
-} as any);
+const DashboardSettingsMerchantsRoute = DashboardSettingsMerchantsImport.update(
+  {
+    id: '/merchants',
+    path: '/merchants',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any,
+)
 
 const DashboardSettingsFeedbackRoute = DashboardSettingsFeedbackImport.update({
-  id: "/feedback",
-  path: "/feedback",
+  id: '/feedback',
+  path: '/feedback',
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any);
+} as any)
 
-const DashboardSettingsCategoriesRoute = DashboardSettingsCategoriesImport.update({
-  id: "/categories",
-  path: "/categories",
-  getParentRoute: () => DashboardSettingsRouteRoute,
-} as any);
+const DashboardSettingsCategoriesRoute =
+  DashboardSettingsCategoriesImport.update({
+    id: '/categories',
+    path: '/categories',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any)
 
 const DashboardSettingsAccountRoute = DashboardSettingsAccountImport.update({
-  id: "/account",
-  path: "/account",
+  id: '/account',
+  path: '/account',
   getParentRoute: () => DashboardSettingsRouteRoute,
-} as any);
+} as any)
 
 // Populate the FileRoutesByPath interface
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/': {
       id: '/'
@@ -205,6 +204,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ComponentsImport
       parentRoute: typeof rootRoute
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordImport
+      parentRoute: typeof rootRoute
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -217,13 +223,6 @@ declare module "@tanstack/react-router" {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupImport
-      parentRoute: typeof rootRoute
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordLazyImport
       parentRoute: typeof rootRoute
     }
     '/dashboard_/settings': {
@@ -368,43 +367,49 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardPluginsRoute: DashboardPluginsRoute,
   DashboardRecordsRoute: DashboardRecordsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
-};
-
-const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(DashboardRouteRouteChildren);
-
-interface DashboardSettingsRouteRouteChildren {
-  DashboardSettingsAccountRoute: typeof DashboardSettingsAccountRoute;
-  DashboardSettingsCategoriesRoute: typeof DashboardSettingsCategoriesRoute;
-  DashboardSettingsFeedbackRoute: typeof DashboardSettingsFeedbackRoute;
-  DashboardSettingsMerchantsRoute: typeof DashboardSettingsMerchantsRoute;
-  DashboardSettingsNewsRoute: typeof DashboardSettingsNewsRoute;
-  DashboardSettingsPreferencesRoute: typeof DashboardSettingsPreferencesRoute;
-  DashboardSettingsTagsRoute: typeof DashboardSettingsTagsRoute;
-  DashboardSettingsWebhookRoute: typeof DashboardSettingsWebhookRoute;
-  DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute;
 }
 
-const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren = {
-  DashboardSettingsAccountRoute: DashboardSettingsAccountRoute,
-  DashboardSettingsCategoriesRoute: DashboardSettingsCategoriesRoute,
-  DashboardSettingsFeedbackRoute: DashboardSettingsFeedbackRoute,
-  DashboardSettingsMerchantsRoute: DashboardSettingsMerchantsRoute,
-  DashboardSettingsNewsRoute: DashboardSettingsNewsRoute,
-  DashboardSettingsPreferencesRoute: DashboardSettingsPreferencesRoute,
-  DashboardSettingsTagsRoute: DashboardSettingsTagsRoute,
-  DashboardSettingsWebhookRoute: DashboardSettingsWebhookRoute,
-  DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
-};
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
+)
 
-const DashboardSettingsRouteRouteWithChildren = DashboardSettingsRouteRoute._addFileChildren(DashboardSettingsRouteRouteChildren);
+interface DashboardSettingsRouteRouteChildren {
+  DashboardSettingsAccountRoute: typeof DashboardSettingsAccountRoute
+  DashboardSettingsCategoriesRoute: typeof DashboardSettingsCategoriesRoute
+  DashboardSettingsFeedbackRoute: typeof DashboardSettingsFeedbackRoute
+  DashboardSettingsMerchantsRoute: typeof DashboardSettingsMerchantsRoute
+  DashboardSettingsNewsRoute: typeof DashboardSettingsNewsRoute
+  DashboardSettingsPreferencesRoute: typeof DashboardSettingsPreferencesRoute
+  DashboardSettingsTagsRoute: typeof DashboardSettingsTagsRoute
+  DashboardSettingsWebhookRoute: typeof DashboardSettingsWebhookRoute
+  DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute
+}
+
+const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
+  {
+    DashboardSettingsAccountRoute: DashboardSettingsAccountRoute,
+    DashboardSettingsCategoriesRoute: DashboardSettingsCategoriesRoute,
+    DashboardSettingsFeedbackRoute: DashboardSettingsFeedbackRoute,
+    DashboardSettingsMerchantsRoute: DashboardSettingsMerchantsRoute,
+    DashboardSettingsNewsRoute: DashboardSettingsNewsRoute,
+    DashboardSettingsPreferencesRoute: DashboardSettingsPreferencesRoute,
+    DashboardSettingsTagsRoute: DashboardSettingsTagsRoute,
+    DashboardSettingsWebhookRoute: DashboardSettingsWebhookRoute,
+    DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
+  }
+
+const DashboardSettingsRouteRouteWithChildren =
+  DashboardSettingsRouteRoute._addFileChildren(
+    DashboardSettingsRouteRouteChildren,
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/components': typeof ComponentsRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/forgot-password': typeof ForgotPasswordLazyRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/$': typeof DashboardSplatRoute
   '/dashboard/accounts': typeof DashboardAccountsRoute
@@ -427,9 +432,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/components': typeof ComponentsRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/forgot-password': typeof ForgotPasswordLazyRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
@@ -453,9 +458,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/components': typeof ComponentsRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/forgot-password': typeof ForgotPasswordLazyRoute
   '/dashboard_/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/$': typeof DashboardSplatRoute
   '/dashboard/accounts': typeof DashboardAccountsRoute
@@ -476,14 +481,14 @@ export interface FileRoutesById {
 }
 
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/dashboard'
     | '/components'
+    | '/forgot-password'
     | '/login'
     | '/signup'
-    | '/forgot-password'
     | '/dashboard/settings'
     | '/dashboard/$'
     | '/dashboard/accounts'
@@ -505,9 +510,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/components'
+    | '/forgot-password'
     | '/login'
     | '/signup'
-    | '/forgot-password'
     | '/dashboard/$'
     | '/dashboard/accounts'
     | '/dashboard/analytics'
@@ -529,9 +534,9 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/components'
+    | '/forgot-password'
     | '/login'
     | '/signup'
-    | '/forgot-password'
     | '/dashboard_/settings'
     | '/dashboard/$'
     | '/dashboard/accounts'
@@ -553,26 +558,28 @@ export interface FileRouteTypes {
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren;
-  ComponentsRoute: typeof ComponentsRoute;
-  LoginRoute: typeof LoginRoute;
-  SignupRoute: typeof SignupRoute;
-  ForgotPasswordLazyRoute: typeof ForgotPasswordLazyRoute;
-  DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren;
+  IndexRoute: typeof IndexRoute
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  ComponentsRoute: typeof ComponentsRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
+  DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   ComponentsRoute: ComponentsRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
-  ForgotPasswordLazyRoute: ForgotPasswordLazyRoute,
   DashboardSettingsRouteRoute: DashboardSettingsRouteRouteWithChildren,
-};
+}
 
-export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
+export const routeTree = rootRoute
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
 
 /* ROUTE_MANIFEST_START
 {
@@ -583,9 +590,9 @@ export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileT
         "/",
         "/dashboard",
         "/components",
+        "/forgot-password",
         "/login",
         "/signup",
-        "/forgot-password",
         "/dashboard_/settings"
       ]
     },
@@ -607,14 +614,14 @@ export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileT
     "/components": {
       "filePath": "components.tsx"
     },
+    "/forgot-password": {
+      "filePath": "forgot-password.tsx"
+    },
     "/login": {
       "filePath": "login.tsx"
     },
     "/signup": {
       "filePath": "signup.tsx"
-    },
-    "/forgot-password": {
-      "filePath": "forgot-password.lazy.tsx"
     },
     "/dashboard_/settings": {
       "filePath": "dashboard_/settings/route.tsx",

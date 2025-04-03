@@ -25,8 +25,8 @@ function RootComponent() {
         <AuthInterceptor>
           <Outlet />
         </AuthInterceptor>
+        <Toaster />
       </ThemeProvider>
-      <Toaster />
       <ReactQueryDevtools buttonPosition="bottom-left" />
       <TanStackRouterDevtools position="bottom-right" />
     </>
