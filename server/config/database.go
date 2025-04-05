@@ -6,7 +6,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-type Database struct {
+type DB struct {
 	Driver                 string        `required:"true"`
 	Host                   string        `default:"localhost"`
 	Name                   string        `default:"postgres"`
@@ -20,8 +20,8 @@ type Database struct {
 	Port                   uint16        `default:"5432"`
 }
 
-func DataStore() Database {
-	var db Database
+func DataStore() DB {
+	var db DB
 	envconfig.MustProcess("DB", &db)
 
 	return db

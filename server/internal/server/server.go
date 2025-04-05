@@ -33,7 +33,7 @@ type Server struct {
 	jwt     *jwt.Service
 
 	db        *pgxpool.Pool
-	storage   *storage.Storage
+	storage   storage.Storage
 	cors      *cors.Cors
 	router    router.Router
 	validator *validation.Validator
@@ -134,8 +134,79 @@ func (s *Server) NewTokenService() {
 }
 
 func (s *Server) NewStorage() {
-	strg := storage.NewMinio("nuts")
-	s.storage = strg
+	switch s.cfg.Storage.Host {
+	case "FS":
+		if s.cfg.FSPath == "" {
+			s.logger.Panic().Msg("Empty fs path for host 'Fs' set in ENV")
+		}
+		strg, err := storage.NewFS(s.cfg.FSPath)
+		if err != nil {
+			s.logger.Panic().Err(err).Msg("something went wrong")
+		}
+		s.storage = strg
+	case "Minio":
+		if s.cfg.AccessKey == "" || s.cfg.Region == "" || s.cfg.SecretKey == "" {
+			s.logger.Panic().Msg("Missing region, accesskey or secret key set in env for host 'Minio'")
+		}
+		strg, err := storage.NewMinio(context.Background(), s.cfg.MinioEndpoint, s.cfg.Region, s.cfg.AccessKey, s.cfg.SecretKey, s.cfg.MinioSSL)
+		if err != nil {
+			s.logger.Panic().Err(err).Msg("something went wrong")
+		}
+		s.storage = strg
+	case "S3":
+		if s.cfg.AccessKey == "" || s.cfg.Region == "" || s.cfg.SecretKey == "" {
+			s.logger.Panic().Msg("Missing region, accesskey or secret key set in env for host 'S3'")
+		}
+		strg, err := storage.NewS3(context.Background(), s.cfg.Region, s.cfg.AccessKey, s.cfg.SecretKey)
+		if err != nil {
+			s.logger.Panic().Err(err).Msg("something went wrong")
+		}
+		s.storage = strg
+	case "R2":
+		if s.cfg.AccessKey == "" || s.cfg.Region == "" || s.cfg.SecretKey == "" || s.cfg.R2AccountID != "" {
+			s.logger.Panic().Msg("Missing region, access key, accountID or secret key set in env for host 'S3'")
+		}
+
+		strg, err := storage.NewR2(context.Background(), s.cfg.R2AccountID, s.cfg.AccessKey, s.cfg.SecretKey)
+		if err != nil {
+			s.logger.Panic().Err(err).Msg("something went wrong")
+		}
+
+		s.storage = strg
+	default:
+		s.logger.Panic().Msg("Wrong host set in ENV")
+
+	}
+
+	if s.cfg.Storage.Host == "Fs" {
+		return
+	}
+
+	// Setup buckets
+	exist, err := s.storage.BucketExists(context.Background(), s.cfg.PublicBucketName)
+	if err != nil {
+		s.logger.Err(err).Msg("Failed to check public bucket existance")
+	}
+
+	if !exist {
+		err = s.storage.CreatePublicBucket(context.Background(), s.cfg.PublicBucketName, s.cfg.Region)
+		if err != nil {
+			s.logger.Panic().Err(err).Interface("env", s.cfg.Storage).Msg("Failed to create public bucket")
+		}
+	}
+
+	// Setup buckets
+	exist, err = s.storage.BucketExists(context.Background(), s.cfg.PrivateBucketName)
+	if err != nil {
+		s.logger.Err(err).Msg("Failed to check private bucket existance")
+	}
+
+	if !exist {
+		err = s.storage.CreateSecureBucket(context.Background(), s.cfg.PrivateBucketName, s.cfg.Region)
+		if err != nil {
+			s.logger.Panic().Err(err).Interface("env", s.cfg.Storage).Msg("Failed to create secure bucket")
+		}
+	}
 }
 
 func (s *Server) setCors() {
@@ -164,9 +235,9 @@ func (s *Server) ListRoutes() {
 
 func (s *Server) NewDatabase() {
 	dsn := fmt.Sprintf("postgres://%s:%d/%s?sslmode=%s&user=%s&password=%s",
-		s.cfg.Database.Host,
-		s.cfg.Database.Port,
-		s.cfg.Database.Name,
+		s.cfg.DB.Host,
+		s.cfg.DB.Port,
+		s.cfg.DB.Name,
 		s.cfg.SslMode,
 		s.cfg.User,
 		s.cfg.Pass,

@@ -35,7 +35,7 @@ func (s *Server) initAuth() {
 }
 
 func (s *Server) initUser() {
-	UserDomain := user.RegisterHTTPHandlers(s.db, s.storage, s.validator, s.jwt, s.logger)
+	UserDomain := user.RegisterHTTPHandlers(s.cfg, s.db, s.storage, s.validator, s.jwt, s.logger)
 	s.router.Mount("/users", UserDomain)
 }
 

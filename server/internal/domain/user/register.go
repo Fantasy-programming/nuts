@@ -3,6 +3,7 @@ package user
 import (
 	"net/http"
 
+	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
@@ -12,10 +13,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func RegisterHTTPHandlers(db *pgxpool.Pool, storage *storage.Storage, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
+func RegisterHTTPHandlers(cfg *config.Config, db *pgxpool.Pool, storage storage.Storage, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
 	repo := NewRepository(queries, storage)
-	h := NewHandler(validate, repo, storage, logger)
+	h := NewHandler(cfg, validate, repo, storage, logger)
 
 	// Create the auth verify middleware
 	middleware := jwt.NewMiddleware(tkn)

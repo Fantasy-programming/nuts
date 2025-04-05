@@ -2,45 +2,34 @@ package storage
 
 import (
 	"context"
-	"fmt"
-	"log"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"errors"
+	"io"
+	"time"
 )
 
-// Support R2, s3, minio and fs
-type Storage struct {
-	Client *s3.Client
-	Bucket string
-}
+var ErrOperationNotSupported = errors.New("operation not supported by this storage type")
 
-// TODO: Remove hard-coded vars
-// minio
-func NewMinio(bucket string) *Storage {
-	client := s3.NewFromConfig(aws.Config{Region: "us-east-1"}, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String("http://127.0.0.1:9000")
-		o.Credentials = credentials.NewStaticCredentialsProvider("minioadmin", "minioadmin", "")
-	})
-
-	return &Storage{client, bucket}
-}
-
-// CloudFlare R2
-func NewR2(accountID, accessKey, secretKey, bucket string) (*Storage, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
-		config.WithRegion("auto"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String(fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID))
-	})
-
-	return &Storage{client, bucket}, nil
+// Store defines the interface for interacting with different storage backends.
+type Storage interface {
+	// Upload uploads data from the reader to the specified bucket and key.
+	Upload(ctx context.Context, bucket, key string, size int64, body io.Reader) error
+	// Download retrieves the object from the specified bucket and key.
+	// The caller is responsible for closing the returned io.ReadCloser.
+	Download(ctx context.Context, bucket, key string) (io.ReadCloser, error)
+	// Delete removes the object from the specified bucket and key.
+	Delete(ctx context.Context, bucket, key string) error
+	// ListObjects lists objects in the specified bucket with the given prefix.
+	ListObjects(ctx context.Context, bucket, prefix string) ([]string, error)
+	// GenerateGetSignedURL creates a presigned URL for getting an object.
+	GenerateGetSignedURL(ctx context.Context, bucket, key string, expires time.Duration) (string, error)
+	// GeneratePutSignedURL creates a presigned URL for putting an object.
+	GeneratePutSignedURL(ctx context.Context, bucket, key string, expires time.Duration) (string, error)
+	// GenerateDeleteSignedURL creates a presigned URL for deleting an object.
+	GenerateDeleteSignedURL(ctx context.Context, bucket, key string, expires time.Duration) (string, error)
+	// BucketExists checks if a bucket exists.
+	BucketExists(ctx context.Context, bucket string) (bool, error)
+	// CreatePublicBucket creates a bucket (semantics depend on implementation, S3 won't make it world-readable by default).
+	CreatePublicBucket(ctx context.Context, bucket, region string) error
+	// CreateSecureBucket creates a bucket with stricter security settings (e.g., encryption, access blocks for S3).
+	CreateSecureBucket(ctx context.Context, bucket, region string) error
 }

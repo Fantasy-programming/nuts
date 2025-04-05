@@ -6,26 +6,27 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/Fantasy-Programming/nuts/config"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/pkg/storage"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
 type Handler struct {
+	cfg     *config.Config
 	v       *validation.Validator
 	repo    Repository
-	storage *storage.Storage
+	storage storage.Storage
 	logger  *zerolog.Logger
 }
 
-func NewHandler(validator *validation.Validator, repo Repository, storage *storage.Storage, logger *zerolog.Logger) *Handler {
-	return &Handler{validator, repo, storage, logger}
+func NewHandler(config *config.Config, validator *validation.Validator, repo Repository, storage storage.Storage, logger *zerolog.Logger) *Handler {
+	return &Handler{config, validator, repo, storage, logger}
 }
 
 func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
@@ -231,15 +232,12 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 	// Create a unique filename
 	ext := filepath.Ext(handler.Filename)
+	size := handler.Size
 	filename := uuid.New().String() + ext
 
 	// Upload file to S3
 
-	_, err = h.storage.Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: &h.storage.Bucket,
-		Key:    &filename,
-		Body:   file,
-	})
+	err = h.storage.Upload(ctx, h.cfg.PublicBucketName, filename, size, file)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -254,7 +252,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate avatar URL
-	avatarURL := fmt.Sprintf("http://localhost:9000/%s/%s", h.storage.Bucket, filename)
+	avatarURL := fmt.Sprintf("http://localhost:9000/%s/%s", h.cfg.PublicBucketName, filename)
 
 	// Update user in database with new avatar URL
 	params := repository.UpdateUserParams{

@@ -20,11 +20,11 @@ type Repository interface {
 
 type repo struct {
 	queries *repository.Queries
-	storage *storage.Storage
+	storage storage.Storage
 }
 
 // NewRepository creates a new user repository
-func NewRepository(queries *repository.Queries, storage *storage.Storage) Repository {
+func NewRepository(queries *repository.Queries, storage storage.Storage) Repository {
 	return &repo{
 		queries: queries,
 		storage: storage,

@@ -4,14 +4,16 @@ type Config struct {
 	Auth
 	Cors
 	Api
-	Database
+	DB
+	Storage
 }
 
 func New() *Config {
 	return &Config{
-		Auth:     AUTH(),
-		Cors:     NewCors(),
-		Api:      API(),
-		Database: DataStore(),
+		Auth:         AUTH(),
+		Cors:         NewCors(),
+		Api:          API(),
+		Storage:      NewStorage(),
+		DB:           DataStore(),
 	}
 }
