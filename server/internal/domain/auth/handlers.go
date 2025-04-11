@@ -75,7 +75,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
-				StatusCode: http.StatusBadRequest,
+				StatusCode: http.StatusUnauthorized,
 				ClientErr:  ErrWrongCred,
 				ActualErr:  err,
 				Logger:     h.log,
@@ -114,7 +114,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
-			StatusCode: http.StatusBadRequest,
+			StatusCode: http.StatusUnauthorized,
 			ClientErr:  ErrWrongCred,
 			ActualErr:  nil,
 			Logger:     h.log,

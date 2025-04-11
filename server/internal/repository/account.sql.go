@@ -201,7 +201,9 @@ SELECT
     created_by,
     updated_at
 FROM accounts
-WHERE id = $1 LIMIT 1
+WHERE id = $1
+AND deleted_at IS NULL
+LIMIT 1
 `
 
 type GetAccountByIdRow struct {
@@ -245,6 +247,7 @@ SELECT
     updated_at
 FROM accounts
 WHERE created_by = $1
+AND deleted_at IS NULL
 `
 
 type GetAccountsRow struct {
