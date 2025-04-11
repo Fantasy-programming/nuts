@@ -12,6 +12,7 @@
     pkgs.goose
     pkgs.httpie
     pkgs.k6
+    pkgs.awscli2
   ];
 
   languages.go.enable = true;

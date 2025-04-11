@@ -117,7 +117,7 @@ tasks:
   test:
     desc: Test all code (unit and integration)
     cmds:
-      - go test ./...
+      - ENVIRONMENT=test go test ./...
 
   test:unit:
     desc: Test only unit tests
