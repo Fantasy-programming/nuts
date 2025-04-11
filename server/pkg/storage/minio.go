@@ -27,6 +27,12 @@ func NewMinio(ctx context.Context, endpoint, region, accessKey, secretKey string
 		return nil, fmt.Errorf("failed to load minio config: %w", err)
 	}
 
+	// Check that the connection is successfull
+	_, err = minioClient.ListBuckets(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to MinIO: %v", err)
+	}
+
 	return &MinioStore{
 		Client: minioClient,
 	}, nil
@@ -41,11 +47,26 @@ func (s *MinioStore) Upload(ctx context.Context, bucket, key string, size int64,
 }
 
 func (s *MinioStore) Download(ctx context.Context, bucket, key string) (io.ReadCloser, error) {
-	resp, err := s.Client.GetObject(ctx, bucket, key, minio.GetObjectOptions{})
+	obj, err := s.Client.GetObject(ctx, bucket, key, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("minio download failed: %w", err)
 	}
-	return resp, nil
+
+	// read one byte to check obeject existence
+	buf := make([]byte, 1)
+	_, err = obj.Read(buf)
+	if err != nil && err != io.EOF {
+		obj.Close()
+		return nil, fmt.Errorf("minio download read failed: %w", err)
+	}
+
+	_, err = obj.Seek(0, io.SeekStart)
+	if err != nil {
+		obj.Close()
+		return nil, fmt.Errorf("minio download seek failed: %w", err)
+	}
+
+	return obj, nil
 }
 
 func (s *MinioStore) Delete(ctx context.Context, bucket, key string) error {

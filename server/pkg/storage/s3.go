@@ -50,57 +50,36 @@ func NewS3(ctx context.Context, region, accessKey, secretKey string) (Storage, e
 
 // NewR2 creates a new Store implementation for Cloudflare R2.
 func NewR2(ctx context.Context, accountID, accessKey, secretKey string) (Storage, error) {
-	resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		// R2 uses a specific endpoint format
-		return aws.Endpoint{
-			URL:           fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID),
-			SigningRegion: "auto", // R2 typically uses 'auto' region
-		}, nil
-	})
-
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
-		config.WithRegion("auto"), // R2 uses 'auto' or specific region hints like 'wnam', 'enam', 'apac'
-		config.WithEndpointResolverWithOptions(resolver),
+		config.WithRegion("auto"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load R2 config: %w", err)
 	}
 
-	client := s3.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID))
+	})
 
 	return &S3Store{
 		Client:        client,
 		PresignClient: s3.NewPresignClient(client),
 		uploader:      manager.NewUploader(client),
 		downloader:    manager.NewDownloader(client),
-		// R2 region concept is slightly different, 'auto' is often used
 		defaultRegion: "auto",
 	}, nil
 }
 
-// func NewR2(accountID, accessKey, secretKey string) (*Storage, error) {
-// 	cfg, err := config.LoadDefaultConfig(context.TODO(),
-// 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
-// 		config.WithRegion("auto"),
-// 	)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-//
-// 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-// 		o.BaseEndpoint = aws.String(fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID))
-// 	})
-//
-// 	return &Storage{Client: client}, nil
-// }
-
 func (s *S3Store) Upload(ctx context.Context, bucket, key string, size int64, body io.Reader) error {
-	_, err := s.uploader.Upload(ctx, &s3.PutObjectInput{
+	w, err := s.uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Body:   body,
 	})
+
+	fmt.Println(w, err)
+
 	if err != nil {
 		return fmt.Errorf("s3 upload failed: %w", err)
 	}
