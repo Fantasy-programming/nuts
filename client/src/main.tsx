@@ -1,7 +1,8 @@
+import React from "react"
 import ReactDOM from "react-dom/client";
 import { StrictMode } from "react";
-
 import { App } from "./app";
+import "./core/i18n/config.ts"
 
 import "./index.css";
 
@@ -10,7 +11,9 @@ if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <StrictMode>
-      <App />
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <App />
+      </React.Suspense>
     </StrictMode>
   );
 }
