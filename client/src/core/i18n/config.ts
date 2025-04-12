@@ -10,12 +10,12 @@ i18n
     // when a user visits our site for the first time.
     // We use English here, but feel free to use
     // whichever locale you want.                   
-    lng: "en",
+    lng: "en-US",
 
     // Fallback locale used when a translation is
     // missing in the active locale. Again, use your
     // preferred locale here.
-    fallbackLng: "en",
+    fallbackLng: "en-US",
 
     // Enables useful output in the browser’s
     // dev console.

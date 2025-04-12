@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { useSettingsStore } from "@/features/preferences/stores/settings.store";
+import { usePreferenceStore } from "@/features/preferences/stores/preferences.store";
 import { metaService } from "@/features/preferences/services/meta";
 import { preferencesService } from "@/features/preferences/services/preferences";
 import getSymbolFromCurrency from "currency-symbol-map";
@@ -41,6 +41,8 @@ const THEMES = [
   { value: "system", label: "System" },
 ];
 
+
+// TODO: Sync server state and zustand with react-query
 export const Route = createFileRoute("/dashboard_/settings/preferences")({
   component: RouteComponent,
   loader: async ({ context }) => {
@@ -62,8 +64,10 @@ export const Route = createFileRoute("/dashboard_/settings/preferences")({
   pendingMinMs: 200,
 });
 
+
+
 function RouteComponent() {
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
   const { currencies } = Route.useLoaderData();
 
   const { data: preferences } = useQuery({
@@ -75,36 +79,77 @@ function RouteComponent() {
   const [isCSelectorOpen, setIsCSelectorOpen] = useState(false);
   const [isLSelectorOpen, setIsLSelectorOpen] = useState(false);
 
+  const theme = usePreferenceStore((state) => state.theme)
+  const currency = usePreferenceStore((state) => state.currency)
+  const locale = usePreferenceStore((state) => state.locale)
+  const updateLocale = usePreferenceStore((state) => state.updateLocale);
+  const updateTheme = usePreferenceStore((state) => state.updateTheme);
+  const updateCurrency = usePreferenceStore((state) => state.updateCurrency);
 
-  const updatePreferencesMutation = useMutation({
-    mutationFn: preferencesService.updatePreferences,
-    onSuccess: (updatedPreferences) => {
-      queryClient.invalidateQueries({ queryKey: ["preferences"] });
-      updatePreferences(updatedPreferences); // Update local store with server response
-      setIsSaving(false);
-    },
-    onError: (error) => {
-      console.error("Failed to update preferences:", error);
-      setIsSaving(false);
-    }
-  });
+  // const updatePreferencesMutation = useMutation({
+  //   mutationFn: preferencesService.updatePreferences,
+  //   onSuccess: (updatedPreferences) => {
+  //     queryClient.invalidateQueries({ queryKey: ["preferences"] });
+  //     updatePreferences(updatedPreferences); // Update local store with server response
+  //     setIsSaving(false);
+  //   },
+  //   onError: (error) => {
+  //     console.error("Failed to update preferences:", error);
+  //     setIsSaving(false);
+  //   }
+  // });
 
-  // Handle preference updates
-  const handlePreferenceUpdate = (key: string, value: any) => {
+  const onThemeUpdate = (value: "system" | "light" | "dark") => {
     setIsSaving(true);
+    updateTheme(value);
+    setIsSaving(false);
 
-    // Update locally for immediate feedback
-    updatePreferences({ [key]: value });
+    // updatePreferencesMutation.mutate({
+    //   ...preferences,
+    //   theme: value
+    // })
+  }
 
-    // Update on server
-    updatePreferencesMutation.mutate({
-      ...preferences,
-      [key]: value
-    });
-  };
+  const onCurrencyUpdate = (value: string) => {
+    setIsSaving(true);
+    updateCurrency(value)
+    setIsSaving(false);
+    // updatePreferences({ currency: value });
+
+    // updatePreferencesMutation.mutate({
+    //   ...preferences,
+    //   currency: value
+    // })
+  }
 
 
-  const { updatePreferences } = useSettingsStore();
+  const onLocaleUpdate = (value: string) => {
+    setIsSaving(true);
+    updateLocale(value)
+    setIsSaving(false);
+    // updatePreferences({ locale: value });
+
+    // updatePreferencesMutation.mutate({
+    //   ...preferences,
+    //   locale: value
+    // })
+  }
+
+  // // Handle preference updates
+  // const handlePreferenceUpdate = (key: string, value: any) => {
+  //   setIsSaving(true);
+  //
+  //   // Update locally for immediate feedback
+  //   updatePreferences({ [key]: value });
+  //
+  //   // Update on server
+  //   updatePreferencesMutation.mutate({
+  //     ...preferences,
+  //     [key]: value
+  //   });
+  // };
+
+
 
   return (
     <Card>
@@ -120,7 +165,7 @@ function RouteComponent() {
             <ComboBoxTrigger>
               <Button variant="outline" role="combobox"
                 aria-expanded={isLSelectorOpen} className="justify-between">
-                {preferences?.locale ? <>{locales.find((locale => locale.value === preferences.locale))?.label}</> : <>Select Language</>}
+                {locale ? <>{locales.find((lcl => lcl.value === locale))?.label}</> : <>Select Language</>}
                 <ChevronsUpDown className="opacity-50" />
               </Button>
             </ComboBoxTrigger>
@@ -136,7 +181,7 @@ function RouteComponent() {
                         value={locale.value}
                         keywords={[locale.label]}
                         onSelect={(value) => {
-                          handlePreferenceUpdate("locale", value)
+                          onLocaleUpdate(value)
                           setIsLSelectorOpen(false)
                         }}
                       >
@@ -156,7 +201,7 @@ function RouteComponent() {
             <ComboBoxTrigger>
               <Button variant="outline" role="combobox"
                 aria-expanded={isCSelectorOpen} className="justify-between">
-                {preferences?.currency ? <>{currencies.find((currency => currency.code === preferences.currency))?.name} ({getSymbolFromCurrency(preferences.currency)})</> : <>Select Language</>}
+                {currency ? <>{currencies.find((c => c.code === currency))?.name} ({getSymbolFromCurrency(currency)})</> : <>Select Language</>}
                 <ChevronsUpDown className="opacity-50" />
               </Button>
             </ComboBoxTrigger>
@@ -172,7 +217,7 @@ function RouteComponent() {
                         value={currency.code}
                         keywords={[currency.code, currency.name]}
                         onSelect={(value) => {
-                          handlePreferenceUpdate("currency", value)
+                          onCurrencyUpdate(value)
                           setIsCSelectorOpen(false)
                         }}
                       >
@@ -188,7 +233,7 @@ function RouteComponent() {
 
         <div className="grid gap-2">
           <Label>Theme</Label>
-          <Select value={preferences?.theme} onValueChange={(value: "light" | "dark" | "system") => handlePreferenceUpdate("theme", value)}>
+          <Select value={theme} onValueChange={(value: "light" | "dark" | "system") => onThemeUpdate(value)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
