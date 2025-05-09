@@ -6,6 +6,7 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 // TokenRepository defines the interface for token storage
@@ -50,13 +51,7 @@ type TokenInfo struct {
 type Service struct {
 	repo   TokenRepository
 	config Config
-	logger Logger
-}
-
-// Logger defines a minimal logging interface
-type Logger interface {
-	Error(msg string, err error)
-	Info(msg string, args ...interface{})
+	logger *zerolog.Logger
 }
 
 type SessionInfo struct {

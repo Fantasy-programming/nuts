@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -66,7 +67,7 @@ func TestRouter(t *testing.T) {
 
 		r.Mount("/api", sub)
 
-		req := httptest.NewRequest("GET", "/api/test", nil)
+		req := httptest.NewRequest("GET", "/api/test/", nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 
@@ -217,6 +218,7 @@ func TestRouter(t *testing.T) {
 		r.Route("/api", func(api Router) {
 			api.Route("/v1", func(v1 Router) {
 				v1.Get("/users", func(w http.ResponseWriter, r *http.Request) {
+					fmt.Println("yes ?")
 					called = true
 				})
 			})
@@ -234,6 +236,7 @@ func TestRouter(t *testing.T) {
 
 		// Create middlewares that track execution
 		log := []string{}
+
 		authMiddleware := func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				log = append(log, "auth")

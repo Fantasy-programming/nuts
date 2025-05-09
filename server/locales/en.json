@@ -5,20 +5,22 @@
   "validation.max": "The {{.Field}} cannot be longer than {{.Param}} characters",
   "validation.strong_password": "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character",
   "validation.unique_email": "This email is already registered",
-
   "auth.wrong_credentials": "Wrong username or password",
   "auth.email_required": "Email is required",
   "auth.password_required": "Password doesn't meet the criteria",
   "auth.user_exists": "User already exists",
   "auth.logout_success": "Logged out successfully",
   "auth.user_created": "User created successfully",
-
   "accounts.name_required": "The name is required",
   "accounts.type_required": "The account type is required",
   "accounts.currency_required": "The currency is required",
   "accounts.color_required": "The color is required",
   "accounts.balance_required": "the balance is required",
-
+  "accounts.not_found": "The requested account wasn't found",
+  "accounts.account_invalid": "{{.Field}} isn't a valid account type",
+  "accounts.color_invalid": "{{.Field}} isn't a valid color type",
+  "accounts.invalid_start_date": "invalid start date format. Use YYYY-MM-DD",
+  "accounts.end_before_start": "start date cannot be after end date",
   "error.bad_request": "Bad request format",
   "error.internal": "An internal error occurred",
   "error.validation": "Validation failed"

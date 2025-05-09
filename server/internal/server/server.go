@@ -18,7 +18,6 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/finance"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
-	"github.com/Fantasy-Programming/nuts/pkg/logger"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
 	"github.com/Fantasy-Programming/nuts/pkg/storage"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -130,8 +129,6 @@ func (s *Server) NewTokenService() {
 
 	tokenRepo := jwt.NewSQLCTokenRepository(queries)
 
-	loggerAdapter := logger.NewZerologAdapter(s.logger)
-
 	jwtConfig := jwt.Config{
 		AccessTokenDuration:  15 * time.Minute,   // Adjust as needed
 		RefreshTokenDuration: 7 * 24 * time.Hour, // 7 days, adjust as needed
@@ -139,7 +136,7 @@ func (s *Server) NewTokenService() {
 	}
 
 	// Create the JWT service
-	s.jwt = jwt.NewService(tokenRepo, jwtConfig, loggerAdapter)
+	s.jwt = jwt.NewService(tokenRepo, jwtConfig, s.logger)
 }
 
 func (s *Server) NewStorage() {

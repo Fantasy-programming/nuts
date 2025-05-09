@@ -9,6 +9,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 var (
@@ -38,7 +39,7 @@ func DefaultConfig() Config {
 }
 
 // NewService creates a new token service
-func NewService(repo TokenRepository, config Config, logger Logger) *Service {
+func NewService(repo TokenRepository, config Config, logger *zerolog.Logger) *Service {
 	return &Service{
 		repo:   repo,
 		config: config,
@@ -79,7 +80,7 @@ func (s *Service) GenerateTokenPair(ctx context.Context, sessionInfo SessionInfo
 func (s *Service) StoreRefreshToken(ctx context.Context, session SessionInfo, refreshToken string) error {
 	// TODO: Move to a job (Delete expired user tokens)
 	if err := s.repo.DeleteExpiredTokens(ctx, session.UserID); err != nil {
-		s.logger.Error("failed to clean up expired tokens", err)
+		s.logger.Err(err).Msg("failed to clean up expired tokens")
 	}
 
 	expiresAt := time.Now().Add(s.config.RefreshTokenDuration)
@@ -125,8 +126,7 @@ func (s *Service) RefreshAccessToken(ctx context.Context, session SessionInfo, r
 
 	// Revoke Old Token
 	if err := s.repo.RevokeToken(ctx, tokenInfo.ID); err != nil {
-		s.logger.Error("failed to remove last used token", err)
-		// Continue despite error
+		s.logger.Err(err).Msg("failed to remove last used token")
 	}
 
 	session.UserID = userID
@@ -161,10 +161,7 @@ func (s *Service) RevokeSessions(ctx context.Context, id uuid.UUID) error {
 }
 
 func (s *Service) InvalidateTokens(ctx context.Context, userID uuid.UUID) error {
-	if err := s.repo.DeleteUserTokens(ctx, userID); err != nil {
-		return fmt.Errorf("failed to invalidate tokens: %w", err)
-	}
-	return nil
+	return s.repo.DeleteUserTokens(ctx, userID)
 }
 
 // generateToken creates a new JWT token

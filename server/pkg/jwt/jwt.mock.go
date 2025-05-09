@@ -16,8 +16,8 @@ type MockTokenRepository struct {
 }
 
 // NewMockTokenRepository creates a new mock repository
-func NewMockTokenRepository() *MockTokenRepository {
-	return &MockTokenRepository{
+func NewMockTokenRepository() MockTokenRepository {
+	return MockTokenRepository{
 		tokens: make(map[string]TokenInfo),
 	}
 }
