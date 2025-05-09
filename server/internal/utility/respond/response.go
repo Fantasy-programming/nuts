@@ -6,7 +6,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/middleware/i18n"
+	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
 	"github.com/Fantasy-Programming/nuts/internal/utility/log"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/rs/zerolog"

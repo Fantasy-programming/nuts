@@ -10,9 +10,11 @@ import (
 // Convert a float64 into a postgres numeric type
 func Numeric(number float64) (value pgtype.Numeric) {
 	parse := strconv.FormatFloat(number, 'f', -1, 64)
+
 	if err := value.Scan(parse); err != nil {
 		log.Fatal(err)
 	}
+
 	return value
 }
 

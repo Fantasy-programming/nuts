@@ -7,25 +7,39 @@ import (
 	"net/http"
 	"strings"
 
-	i18nMiddleware "github.com/Fantasy-Programming/nuts/internal/middleware/i18n"
+	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
 	"github.com/go-playground/validator/v10"
 )
 
-// ValidationError represents a single validation error
 type ValidationError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }
 
-// ValidationErrors is a slice of validation errors
 type ValidationErrors []ValidationError
 
-// Validator provides validation functionality
+func (v ValidationError) Error() string {
+	return fmt.Sprintf("%s: %s", v.Field, v.Message)
+}
+
+func (v ValidationErrors) Error() string {
+	if len(v) == 0 {
+		return ""
+	}
+
+	messages := make([]string, len(v))
+
+	for i, err := range v {
+		messages[i] = err.Error()
+	}
+
+	return strings.Join(messages, "; ")
+}
+
 type Validator struct {
 	Validator *validator.Validate
 }
 
-// New creates a new validator
 func New() *Validator {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	return &Validator{
@@ -34,12 +48,12 @@ func New() *Validator {
 }
 
 // ParseAndValidate parses the request body and validates it
-func ParseAndValidate(ctx context.Context, r *http.Request, req interface{}) (ValidationErrors, error) {
+func (v *Validator) ParseAndValidate(ctx context.Context, r *http.Request, req interface{}) (ValidationErrors, error) {
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("malformed request: %w", err)
 	}
 
-	if err := validator.New().Struct(req); err != nil {
+	if err := v.Validator.Struct(req); err != nil {
 		return TranslateErrors(ctx, err), nil
 	}
 
@@ -55,11 +69,12 @@ func TranslateErrors(ctx context.Context, err error) ValidationErrors {
 	}
 
 	validErrs, ok := err.(validator.ValidationErrors)
+
 	if !ok {
 		return validationErrors
 	}
 
-	i18nInstance, lang := i18nMiddleware.FromContext(ctx)
+	i18nInstance, lang := i18n.FromContext(ctx)
 
 	for _, fieldErr := range validErrs {
 		field := fieldName(fieldErr.Field())
@@ -74,6 +89,7 @@ func TranslateErrors(ctx context.Context, err error) ValidationErrors {
 
 		// Try to get a translation for this specific validation tag
 		var message string
+
 		if i18nInstance != nil {
 			messageID := fmt.Sprintf("validation.%s", tag)
 			message = i18nInstance.T(lang, messageID, templateData)
@@ -82,6 +98,7 @@ func TranslateErrors(ctx context.Context, err error) ValidationErrors {
 			message = defaultErrorMessage(tag, field, param)
 		}
 
+		// Add the validation error to the slice
 		validationErrors = append(validationErrors, ValidationError{
 			Field:   field,
 			Message: message,

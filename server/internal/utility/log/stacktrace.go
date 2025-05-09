@@ -11,7 +11,7 @@ import (
 // WithStackTrace adds a formatted stack trace to the zerolog event
 func WithStackTrace(e *zerolog.Event) *zerolog.Event {
 	// Skip 2 frames to ignore this function and its caller
-	stackTrace := captureStackTrace(2)
+	stackTrace := captureStackTrace(0)
 	return e.Str("stack_trace", stackTrace)
 }
 
@@ -21,6 +21,7 @@ func captureStackTrace(skip int) string {
 	// Capture up to 32 frames
 	pc := make([]uintptr, 32)
 	n := runtime.Callers(skip+1, pc)
+
 	if n == 0 {
 		return ""
 	}
