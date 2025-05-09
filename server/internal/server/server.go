@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,10 +13,10 @@ import (
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/config"
-	i18nMiddleware "github.com/Fantasy-Programming/nuts/internal/middleware/i18n"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/pkg/finance"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/pkg/logger"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
@@ -38,6 +39,8 @@ type Server struct {
 	router    router.Router
 	validator *validation.Validator
 	i18n      *i18n.I18n
+
+	paymentClient finance.PaymentProcessorClient
 
 	httpServer *http.Server
 }
@@ -76,12 +79,12 @@ func (s *Server) Init() {
 	s.NewLogger()
 	s.NewDatabase()
 	s.NewStorage()
+	s.SetupPaymentProcessors()
 	s.NewTokenService()
 	s.NewValidator()
 	s.NewI18n()
 	s.NewRouter()
 	s.setGlobalMiddleware()
-	s.setRequestLogger()
 	s.RegisterDomain()
 }
 
@@ -104,6 +107,13 @@ func (s *Server) setRequestLogger() {
 
 func (s *Server) NewLogger() {
 	logLevel := zerolog.TraceLevel // will be changed to info
+
+	env := os.Getenv("ENVIRONMENT")
+
+	if env == "test" {
+		logLevel = zerolog.Disabled
+	}
+
 	zerolog.SetGlobalLevel(logLevel)
 
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
@@ -115,7 +125,6 @@ func (s *Server) NewLogger() {
 	s.logger = &logger
 }
 
-// TODO: Abstract the logger entirely
 func (s *Server) NewTokenService() {
 	queries := repository.New(s.db)
 
@@ -134,49 +143,12 @@ func (s *Server) NewTokenService() {
 }
 
 func (s *Server) NewStorage() {
-	switch s.cfg.Storage.Host {
-	case "FS":
-		if s.cfg.FSPath == "" {
-			s.logger.Panic().Msg("Empty fs path for host 'Fs' set in ENV")
-		}
-		strg, err := storage.NewFS(s.cfg.FSPath)
-		if err != nil {
-			s.logger.Panic().Err(err).Msg("something went wrong")
-		}
-		s.storage = strg
-	case "Minio":
-		if s.cfg.AccessKey == "" || s.cfg.Region == "" || s.cfg.SecretKey == "" {
-			s.logger.Panic().Msg("Missing region, accesskey or secret key set in env for host 'Minio'")
-		}
-		strg, err := storage.NewMinio(context.Background(), s.cfg.MinioEndpoint, s.cfg.Region, s.cfg.AccessKey, s.cfg.SecretKey, s.cfg.MinioSSL)
-		if err != nil {
-			s.logger.Panic().Err(err).Msg("something went wrong")
-		}
-		s.storage = strg
-	case "S3":
-		if s.cfg.AccessKey == "" || s.cfg.Region == "" || s.cfg.SecretKey == "" {
-			s.logger.Panic().Msg("Missing region, accesskey or secret key set in env for host 'S3'")
-		}
-		strg, err := storage.NewS3(context.Background(), s.cfg.Region, s.cfg.AccessKey, s.cfg.SecretKey)
-		if err != nil {
-			s.logger.Panic().Err(err).Msg("something went wrong")
-		}
-		s.storage = strg
-	case "R2":
-		if s.cfg.AccessKey == "" || s.cfg.Region == "" || s.cfg.SecretKey == "" || s.cfg.R2AccountID != "" {
-			s.logger.Panic().Msg("Missing region, access key, accountID or secret key set in env for host 'S3'")
-		}
-
-		strg, err := storage.NewR2(context.Background(), s.cfg.R2AccountID, s.cfg.AccessKey, s.cfg.SecretKey)
-		if err != nil {
-			s.logger.Panic().Err(err).Msg("something went wrong")
-		}
-
-		s.storage = strg
-	default:
-		s.logger.Panic().Msg("Wrong host set in ENV")
-
+	storage, err := storage.NewStorageProvider(s.cfg.Storage, s.logger)
+	if err != nil {
+		s.logger.Panic().Err(err).Msg("INIT: Failed to setup storage")
 	}
+
+	s.storage = storage
 
 	if s.cfg.Storage.Host == "Fs" {
 		return
@@ -185,13 +157,13 @@ func (s *Server) NewStorage() {
 	// Setup buckets
 	exist, err := s.storage.BucketExists(context.Background(), s.cfg.PublicBucketName)
 	if err != nil {
-		s.logger.Err(err).Msg("Failed to check public bucket existance")
+		s.logger.Err(err).Msg("INIT: Failed to check public bucket existance")
 	}
 
 	if !exist {
 		err = s.storage.CreatePublicBucket(context.Background(), s.cfg.PublicBucketName, s.cfg.Region)
 		if err != nil {
-			s.logger.Panic().Err(err).Interface("env", s.cfg.Storage).Msg("Failed to create public bucket")
+			s.logger.Panic().Err(err).Interface("env", s.cfg.Storage).Msg("INIT: Failed to create public bucket")
 		}
 	}
 
@@ -289,14 +261,60 @@ func (s *Server) NewI18n() {
 	s.i18n = i18nInstance
 }
 
+func (s *Server) SetupPaymentProcessors() {
+	if s.cfg.BankApiProvider == "" {
+		return
+	}
+
+	hasCert := s.cfg.TellerCertPath != "" && s.cfg.TellerCertPrivateKeyPath != ""
+	var tlsConfig *tls.Config
+
+	if s.cfg.TellerApiEnv != "sandbox" {
+		if !hasCert {
+			s.logger.Panic().Interface("env", s.cfg.Integrations).Msg("Env: Tls certs (base + private) path not set in environment variables")
+		}
+
+		cert, err := tls.LoadX509KeyPair(s.cfg.TellerCertPath, s.cfg.TellerCertPrivateKeyPath)
+		if err != nil {
+			s.logger.Panic().Err(err).Msg("Error loading certificate files")
+		}
+
+		tlsConfig = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		}
+	}
+
+	transport := &http.Transport{
+		TLSClientConfig:       tlsConfig,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second, // Added
+	}
+
+	httpClient := &http.Client{
+		Transport: transport,
+		Timeout:   30 * time.Second,
+	}
+
+	// --- Service Initialization ---
+	s.paymentClient = finance.NewTellerClient(httpClient)
+}
+
 func (s *Server) setGlobalMiddleware() {
 	s.router.Use(chiMiddleware.RequestID)
 	s.router.Use(chiMiddleware.RealIP)
 	s.router.Use(chiMiddleware.Recoverer)
-	s.router.Use(i18nMiddleware.I18nMiddleware(s.i18n, nil))
+	s.router.Use(chiMiddleware.Timeout(60 * time.Second))
+	s.router.Use(i18n.I18nMiddleware(s.i18n, nil))
 
 	if s.cfg.RequestLog {
+		s.setRequestLogger()
 	}
+
+	// s.router.Use(func(w http.ResponseWriter, r *http.Request) {
+	// })
 
 	s.router.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -310,10 +328,10 @@ func (s *Server) Config() *config.Config {
 }
 
 func (s *Server) Run() {
-	// Apply CORS handler *before* the main router
 	var handler http.Handler = s.router
-	if s.cors != nil { // Check if cors is configured
-		handler = s.cors.Handler(handler) // Wrap the router
+
+	if s.cors != nil {
+		handler = s.cors.Handler(handler)
 	}
 
 	s.httpServer = &http.Server{
@@ -357,6 +375,7 @@ func (s *Server) closeResources() {
 func start(s *Server) {
 	s.logger.Info().Msgf("Starting API version: %s", s.Version)
 	s.logger.Info().Msgf("Serving at %s:%s\n", s.cfg.Api.Host, s.cfg.Api.Port)
+
 	err := s.httpServer.ListenAndServe()
 	if err != nil {
 		s.logger.Fatal().Err(err).Msg("Failed to start the server")

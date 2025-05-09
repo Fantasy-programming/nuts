@@ -6,6 +6,7 @@ type Config struct {
 	Api
 	DB
 	Storage
+	Integrations
 }
 
 func New() *Config {
@@ -15,5 +16,6 @@ func New() *Config {
 		Api:          API(),
 		Storage:      NewStorage(),
 		DB:           DataStore(),
+		Integrations: INTEGRATIONS(),
 	}
 }
