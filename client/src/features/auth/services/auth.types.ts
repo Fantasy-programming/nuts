@@ -36,14 +36,30 @@ export const userSchema = z.object({
   updated_at: z.date(),
 });
 
+
+export const userSessionSchema = z.object({
+  id: z.string().uuid(),
+  browser_name: z.string().email(),
+  device_name: z.string().optional(),
+  ip_address: z.string().optional(),
+  last_used_at: z.string(),
+  location: z.string(),
+  os_name: z.string(),
+
+});
+
 export type User = z.infer<typeof userSchema>;
 export type SignupFormValues = z.infer<typeof signupSchema>;
 export type LoginFormValues = z.infer<typeof loginSchema>;
+export type SessionSchema = z.infer<typeof userSessionSchema>
 
 export interface ErrorResponse {
   error: string;
   success: boolean;
 }
+
+export interface InitMFASchema { qr_code_url: string; secret: string }
+
 
 export type AuthNullable = UserInfo | null;
 

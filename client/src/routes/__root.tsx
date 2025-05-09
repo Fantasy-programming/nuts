@@ -5,6 +5,7 @@ import { Toaster } from "@/core/components/ui/sonner";
 import { ThemeProvider } from "@/features/preferences/contexts/theme.provider";
 import type { QueryClient } from "@tanstack/react-query";
 import { AuthInterceptor } from "@/features/auth/components/auth-interceptor";
+import { PreferencesProvider } from "@/features/preferences/components/preferences-provider";
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -23,12 +24,14 @@ function RootComponent() {
     <>
       <ThemeProvider defaultTheme="light" storageKey="finance-theme">
         <AuthInterceptor>
-          <Outlet />
+          <PreferencesProvider>
+            <Outlet />
+          </PreferencesProvider>
         </AuthInterceptor>
         <Toaster />
       </ThemeProvider>
-      <ReactQueryDevtools buttonPosition="bottom-left" />
-      <TanStackRouterDevtools position="bottom-right" />
+      {/* <ReactQueryDevtools buttonPosition="bottom-left"  /> */}
+      {/* <TanStackRouterDevtools position="bottom-right" /> */}
     </>
   );
 }

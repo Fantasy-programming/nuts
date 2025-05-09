@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { authService } from '../services/auth';
 import { userService } from '@/features/preferences/services/user';
-import { usePreferenceStore } from '@/features/preferences/stores/preferences.store';
 
 import type { AuthNullable } from '../services/auth.types';
 
@@ -12,7 +11,7 @@ interface LoginCredentials {
   password: string;
 }
 
-interface AuthState {
+export interface AuthState {
   user: AuthNullable;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -56,10 +55,6 @@ export const useAuthStore = create<AuthState>()(
             await authService.login(credentials);
             const userData = await userService.getMe();
 
-
-            // Get Preferences
-            await usePreferenceStore.getState().fetchPreferences()
-
             set({
               user: userData,
               isAuthenticated: true,
@@ -85,7 +80,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             set({ isLoading: true, error: null });
             await authService.logout();
-            usePreferenceStore.getState().resetPreferences();
+
             set({
               user: null,
               isAuthenticated: false,
@@ -112,7 +107,7 @@ export const useAuthStore = create<AuthState>()(
             set({ isLoading: true });
             await authService.refresh();
             const userData = await userService.getMe();
-            await usePreferenceStore.getState().fetchPreferences()
+
             set({
               user: userData,
               isAuthenticated: true,
