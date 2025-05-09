@@ -1,12 +1,10 @@
-# Nuts
-
 <p align="center">
 	<h1 align="center"><b>Nuts</b></h1>
 <p align="center">
     Your personal finance OS
     <br />
     <br />
-    <a href="">xxx</a>
+    <a href="https://nutsapp.ridyrich.engineer">Demo</a>
     ·
     <a href="https://nuts.ridyrich.engineer">Website</a>
     ·
@@ -55,9 +53,6 @@
 
 - PostHog (analytics)
 
-## Repo Activity
-
-![Alt](https://repobeats.axiom.co/api/embed/96aae855e5dd87c30d53c1d154b37cf7aa5a89b3.svg "Repobeats analytics image")
 
 ## License
 

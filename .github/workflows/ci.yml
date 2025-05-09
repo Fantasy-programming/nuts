@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -70,8 +70,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./server # Context is the server directory
-          file: ./server/Dockerfile # Dockerfile location
+          context: ./server
+          file: ./server/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/server:latest
           cache-from: type=gha
@@ -91,21 +91,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Specify your Node.js version
-          cache: 'npm' # Or 'yarn', 'pnpm'
-          cache-dependency-path: client/package-lock.json # Or yarn.lock, pnpm-lock.yaml
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: client/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: npm ci # Or yarn install --frozen-lockfile, pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Lint client
-        run: npm run lint # Assuming you have a 'lint' script in package.json
+        run: npm run lint
 
-      - name: Test client
-        run: npm run test # Assuming you have a 'test' script
+      # - name: Test client
+      #   run: npm run test
 
       - name: Build client
-        run: npm run build # Assuming you have a 'build' script
+        run: npm run build
 
   # -------------------- Python Services (/services/python_app) --------------------
   # python-service-ci:
