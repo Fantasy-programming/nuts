@@ -1,4 +1,12 @@
 {
   "greet": "Hello",
-  "dashboard": "dashboard"
+  "login": "Sign In",
+  "logout": "Sign out",
+  "navigation": {
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "transactions": "Transactions",
+    "analytics": "Analytics",
+    "plugins": "Plugins"
+  }
 }

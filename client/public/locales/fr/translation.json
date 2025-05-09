@@ -1,3 +1,12 @@
 {
-  "greet": "Salut"
+  "greet": "Salut",
+  "login": "Connexion",
+  "logout": "Déconnexion",
+  "navigation": {
+    "dashboard": "Dashboard",
+    "accounts": "Comptes",
+    "transactions": "Transactions",
+    "analytics": "Analytics",
+    "plugins": "Extensions"
+  }
 }
