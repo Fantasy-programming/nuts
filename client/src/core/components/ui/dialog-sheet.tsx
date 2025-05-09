@@ -22,8 +22,8 @@ import { useIsMobile } from "@/core/hooks/use-mobile"
 import { Fragment } from "react"
 
 interface ResponsiveDialogProps extends React.ComponentProps<typeof DialogPrimitive.Root> {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 const ResponsiveDialog = ({ children, open, onOpenChange }: ResponsiveDialogProps) => {
