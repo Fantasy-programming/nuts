@@ -15,7 +15,6 @@ tasks:
     cmds:
       - goose -dir database/migrations create "{{.NAME}}" sql
 
-
   migrate:
     desc: Migrates UP the database
     cmds:
@@ -40,7 +39,6 @@ tasks:
     desc: Checks integrity of program
     cmds:
       - task generate
-      - task swagger
       - task fmt
       - task vet
       - task lint
@@ -169,8 +167,3 @@ tasks:
     desc: Clear tests cache
     cmds:
       - go clean -testcache
-
-  swagger:
-    desc: Generates Swagger page for API reference
-    cmds:
-      - swag init -o internal/server/docs -g cmd/api/main.go

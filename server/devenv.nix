@@ -4,6 +4,7 @@
   env.GOOSE_DRIVER="postgres";
   env.GOOSE_DBSTRING="postgresql://test:secret@localhost:5432/nuts?sslmode=disable";
   env.PATH = "#{config.env.DEVENV_ROOT}/bin:$PATH";
+  env.MINIO_KMS_SECRET_KEY="key:v6SLmyrcQDB/+/RcYEbHPWdI102S/hMFthros3GaO5I=";
 
   packages = [
     pkgs.air
@@ -17,10 +18,10 @@
 
   languages.go.enable = true;
 
-  dotenv = {
-    enable = true;
-    filename = ".env.server";
-  };
+  # dotenv = {
+  #   enable = true;
+  #   filename = ".env.server";
+  # };
 
   services.postgres = {
     enable = true;
