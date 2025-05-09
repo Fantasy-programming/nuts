@@ -96,7 +96,7 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
-			StatusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusBadRequest, // Changed from StatusInternalServerError to StatusBadRequest
 			ClientErr:  message.ErrValidation,
 			ActualErr:  err,
 			Logger:     h.log,
@@ -204,7 +204,7 @@ func (h *Handler) UpdateTag(w http.ResponseWriter, r *http.Request) {
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
-			StatusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusBadRequest, // Changed from StatusInternalServerError to StatusBadRequest
 			ClientErr:  message.ErrValidation,
 			ActualErr:  err,
 			Logger:     h.log,

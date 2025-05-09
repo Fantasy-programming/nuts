@@ -5,10 +5,13 @@ import (
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/config"
+	"github.com/Fantasy-Programming/nuts/internal/domain/user"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/internal/utility/encrypt"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
+	"github.com/Fantasy-Programming/nuts/pkg/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -16,10 +19,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, config *config.Config, logger *zerolog.Logger) http.Handler {
+func RegisterHTTPHandlers(db *pgxpool.Pool, storage storage.Storage, validate *validation.Validator, tkn *jwt.Service, config *config.Config, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
-	repo := NewRepository(db, queries)
-	h := NewHandler(validate, tkn, repo, logger)
+	repo := user.NewRepository(db, queries, storage)
+	encrypt, err := encrypt.NewEncrypter(config.EncryptionSecretKeyHex)
+	if err != nil {
+		logger.Panic().Err(err).Msg("Failed to setup encrypter")
+	}
+
+	h := NewHandler(validate, encrypt, tkn, repo, logger)
+
+	// Create the auth verify middleware
+	middleware := jwt.NewMiddleware(tkn)
 
 	router := router.NewRouter()
 	router.Post("/login", h.Login)
@@ -48,6 +59,18 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 		router.Get("/oauth/{provider}", h.GoogleHandler)
 		router.Get("/oauth/{provider}/callback", h.GoogleCallbackHandler)
 	}
+
+	// Authed - Router
+	authedRouter := router.With(middleware.Verify)
+
+	// MFA
+	authedRouter.Post("/mfa/initiate", h.InitiateMfaSetup)
+	authedRouter.Post("/mfa/verify", h.VerifyMfaSetup)
+	authedRouter.Delete("/mfa", h.DisableMfa)
+
+	// SESSIONS
+	authedRouter.Get("/sessions", h.GetSessions)
+	authedRouter.Post("/sessions/{id}/logout", h.RevokeSession)
 
 	// Register validator
 	RegisterValidations(validate.Validator)

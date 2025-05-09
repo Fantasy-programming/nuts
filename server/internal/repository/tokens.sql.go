@@ -48,9 +48,17 @@ type GetRefreshTokenParams struct {
 	RefreshToken string    `json:"refresh_token"`
 }
 
-func (q *Queries) GetRefreshToken(ctx context.Context, arg GetRefreshTokenParams) (UserToken, error) {
+type GetRefreshTokenRow struct {
+	ID           uuid.UUID `json:"id"`
+	UserID       uuid.UUID `json:"user_id"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	LastUsedAt   time.Time `json:"last_used_at"`
+}
+
+func (q *Queries) GetRefreshToken(ctx context.Context, arg GetRefreshTokenParams) (GetRefreshTokenRow, error) {
 	row := q.db.QueryRow(ctx, getRefreshToken, arg.UserID, arg.RefreshToken)
-	var i UserToken
+	var i GetRefreshTokenRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -61,19 +69,102 @@ func (q *Queries) GetRefreshToken(ctx context.Context, arg GetRefreshTokenParams
 	return i, err
 }
 
+const getSessions = `-- name: GetSessions :many
+SELECT
+    id,
+    last_used_at,
+    user_agent,
+    ip_address,
+    location,
+    browser_name,
+    device_name,
+    os_name
+FROM user_tokens
+WHERE user_id = $1 AND expires_at > NOW() AND revoked = false
+`
+
+type GetSessionsRow struct {
+	ID          uuid.UUID `json:"id"`
+	LastUsedAt  time.Time `json:"last_used_at"`
+	UserAgent   *string   `json:"user_agent"`
+	IpAddress   *string   `json:"ip_address"`
+	Location    *string   `json:"location"`
+	BrowserName *string   `json:"browser_name"`
+	DeviceName  *string   `json:"device_name"`
+	OsName      *string   `json:"os_name"`
+}
+
+func (q *Queries) GetSessions(ctx context.Context, userID uuid.UUID) ([]GetSessionsRow, error) {
+	rows, err := q.db.Query(ctx, getSessions, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetSessionsRow{}
+	for rows.Next() {
+		var i GetSessionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.LastUsedAt,
+			&i.UserAgent,
+			&i.IpAddress,
+			&i.Location,
+			&i.BrowserName,
+			&i.DeviceName,
+			&i.OsName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revokeSession = `-- name: RevokeSession :exec
+UPDATE user_tokens
+SET
+    last_used_at = NOW(),
+    revoked = true
+WHERE id = $1
+`
+
+func (q *Queries) RevokeSession(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, revokeSession, id)
+	return err
+}
+
 const saveUserToken = `-- name: SaveUserToken :exec
-INSERT INTO user_tokens (user_id, refresh_token, expires_at)
-VALUES ($1, $2, $3)
+INSERT INTO user_tokens (user_id, refresh_token, expires_at, user_agent, ip_address, location, browser_name, device_name, os_name)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type SaveUserTokenParams struct {
 	UserID       uuid.UUID `json:"user_id"`
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`
+	UserAgent    *string   `json:"user_agent"`
+	IpAddress    *string   `json:"ip_address"`
+	Location     *string   `json:"location"`
+	BrowserName  *string   `json:"browser_name"`
+	DeviceName   *string   `json:"device_name"`
+	OsName       *string   `json:"os_name"`
 }
 
 func (q *Queries) SaveUserToken(ctx context.Context, arg SaveUserTokenParams) error {
-	_, err := q.db.Exec(ctx, saveUserToken, arg.UserID, arg.RefreshToken, arg.ExpiresAt)
+	_, err := q.db.Exec(ctx, saveUserToken,
+		arg.UserID,
+		arg.RefreshToken,
+		arg.ExpiresAt,
+		arg.UserAgent,
+		arg.IpAddress,
+		arg.Location,
+		arg.BrowserName,
+		arg.DeviceName,
+		arg.OsName,
+	)
 	return err
 }
 

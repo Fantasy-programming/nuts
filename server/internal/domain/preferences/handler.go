@@ -24,9 +24,14 @@ func NewHandler(validator *validation.Validator, repo Repository, logger *zerolo
 
 // UserPreferences holds the user preferences data structure
 type UpdateUserPreferencesReq struct {
-	Currency *string `json:"currency"`
-	Locale   *string `json:"locale"`
-	Theme    *string `json:"theme"`
+	Currency          *string `json:"currency"`
+	Locale            *string `json:"locale"`
+	Theme             *string `json:"theme"`
+	Timezone          *string `json:"timezone"`
+	TimeFormat        *string `json:"time_format"`
+	DateFormat        *string `json:"date_format"`
+	StartWeekOnMonday *bool   `json:"start_week_on_monday"`
+	DarkSidebar       *bool   `json:"dark_sidebar"`
 }
 
 func (h *Handler) GetPreferences(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +41,7 @@ func (h *Handler) GetPreferences(w http.ResponseWriter, r *http.Request) {
 			W:          w,
 			R:          r,
 			StatusCode: http.StatusUnauthorized,
-			ClientErr:  message.ErrInternalError,
+			ClientErr:  message.ErrUnauthorized, // Changed from ErrInternalError to ErrUnauthorized
 			ActualErr:  err,
 			Logger:     h.log,
 		})
@@ -67,7 +72,7 @@ func (h *Handler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 			W:          w,
 			R:          r,
 			StatusCode: http.StatusUnauthorized,
-			ClientErr:  message.ErrInternalError,
+			ClientErr:  message.ErrUnauthorized, // Changed from ErrInternalError to ErrUnauthorized
 			ActualErr:  err,
 			Logger:     h.log,
 		})
@@ -104,10 +109,15 @@ func (h *Handler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 
 	// Update preferences in database
 	params := repository.UpdatePreferencesParams{
-		UserID:   userID,
-		Currency: req.Currency,
-		Locale:   req.Locale,
-		Theme:    req.Theme,
+		UserID:            userID,
+		Currency:          req.Currency,
+		Locale:            req.Locale,
+		Theme:             req.Theme,
+		Timezone:          req.Timezone,
+		TimeFormat:        req.TimeFormat,
+		DateFormat:        req.DateFormat,
+		StartWeekOnMonday: req.StartWeekOnMonday,
+		DarkSidebar:       req.DarkSidebar,
 	}
 
 	updatedPrefs, err := h.repo.UpdatePreferences(r.Context(), params)

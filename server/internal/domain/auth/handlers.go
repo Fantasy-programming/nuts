@@ -1,21 +1,35 @@
 package auth
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"image/png"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/pquerna/otp/totp"
+
+	"github.com/Fantasy-Programming/nuts/internal/domain/user"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/internal/utility/encrypt"
 	"github.com/Fantasy-Programming/nuts/internal/utility/message"
+	"github.com/Fantasy-Programming/nuts/internal/utility/request"
 	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/internal/utility/ua"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/pkg/pass"
 	"github.com/jackc/pgx/v5"
-	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth"
 	"github.com/rs/zerolog"
+)
+
+const (
+	oauthSessionCookieName = "oauth_session_state"
+	googleProviderName     = "google"
 )
 
 var roles = []string{"user"}
@@ -28,14 +42,15 @@ var (
 )
 
 type Handler struct {
-	v    *validation.Validator
-	tkn  *jwt.Service
-	repo Repository
-	log  *zerolog.Logger
+	v       *validation.Validator
+	encrypt *encrypt.Encrypter
+	tkn     *jwt.Service
+	repo    user.Repository
+	log     *zerolog.Logger
 }
 
-func NewHandler(validator *validation.Validator, tokenService *jwt.Service, repo Repository, logger *zerolog.Logger) *Handler {
-	return &Handler{validator, tokenService, repo, logger}
+func NewHandler(validator *validation.Validator, encrypt *encrypt.Encrypter, tokenService *jwt.Service, repo user.Repository, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, encrypt, tokenService, repo, logger}
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +111,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := pass.ComparePassAndHash(req.Password, user.Password)
+	res, err := pass.ComparePassAndHash(req.Password, *user.Password)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -123,7 +138,28 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenPair, err := h.tkn.GenerateTokenPair(ctx, user.ID, roles)
+	// Extract useful information
+
+	userAgent := r.UserAgent()
+	parser := ua.Get()
+	agent := parser.Parse(userAgent)
+
+	browser := agent.Browser().String()
+	system := agent.OS().String()
+	device := agent.Device().String()
+	ip := r.RemoteAddr
+	location := "todo"
+
+	tokenPair, err := h.tkn.GenerateTokenPair(ctx, jwt.SessionInfo{
+		UserID:      user.ID,
+		Roles:       roles,
+		UserAgent:   &userAgent,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser,
+		DeviceName:  &device,
+		OsName:      &system,
+	})
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -233,7 +269,7 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	queryParam := repository.CreateUserParams{
 		Email:    req.Email,
-		Password: password,
+		Password: &password,
 	}
 
 	_, err = h.repo.CreateUserWithDefaults(ctx, queryParam)
@@ -269,8 +305,28 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userAgent := r.UserAgent()
+	parser := ua.Get()
+	agent := parser.Parse(userAgent)
+
+	browser := agent.Browser().String()
+	system := agent.OS().String()
+	device := agent.Device().String()
+	ip := r.RemoteAddr
+	location := "todo"
+
+	session := jwt.SessionInfo{
+		Roles:       roles,
+		UserAgent:   &userAgent,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser,
+		DeviceName:  &device,
+		OsName:      &system,
+	}
+
 	// Get new token pair
-	tokenPair, err := h.tkn.RefreshAccessToken(ctx, cookie.Value)
+	tokenPair, err := h.tkn.RefreshAccessToken(ctx, session, cookie.Value)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, jwt.ErrUnauthorized) || errors.Is(err, jwt.ErrInvalidToken) {
@@ -288,13 +344,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secure := false
-
-	host := os.Getenv("ENVIRONMENT")
-
-	if host == "production" {
-		secure = true
-	}
+	secure := os.Getenv("ENVIRONMENT") == "production"
 
 	// Set new cookies
 	http.SetCookie(w, &http.Cookie{
@@ -346,26 +396,93 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GoogleHandler(w http.ResponseWriter, r *http.Request) {
-	gothic.BeginAuthHandler(w, r)
+	providerName := "google"
+
+	provider, err := goth.GetProvider(providerName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	sess, err := provider.BeginAuth("state")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	url, err := sess.GetAuthURL()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Store the session in a cookie (base64-encoded to avoid unsafe characters)
+	marshaledSession := sess.Marshal()
+	encodedSession := base64.StdEncoding.EncodeToString([]byte(marshaledSession))
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     oauthSessionCookieName,
+		Value:    encodedSession,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   os.Getenv("ENVIRONMENT") == "production",
+		MaxAge:   int(10 * time.Minute / time.Second),
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 func (h *Handler) GoogleCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user, err := gothic.CompleteUserAuth(w, r)
+
+	cookie, err := r.Cookie(oauthSessionCookieName)
 	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusUnauthorized,
-			ClientErr:  message.ErrForbidden,
-			ActualErr:  err,
-			Logger:     h.log,
-		})
+		http.Error(w, "OAuth session cookie not found", http.StatusBadRequest)
 		return
 	}
 
-	// Save user to the database
-	dbUser, err := h.repo.FindORCreateOAuthUser(ctx, user)
+	provider, err := goth.GetProvider(googleProviderName)
+	if err != nil {
+		http.Error(w, "Failed to Get Provider", http.StatusInternalServerError)
+		return
+	}
+
+	decodedSession, err := base64.StdEncoding.DecodeString(cookie.Value)
+	if err != nil {
+		http.Error(w, "Failed to decode OAuth session", http.StatusBadRequest)
+		return
+	}
+
+	sess, err := provider.UnmarshalSession(string(decodedSession))
+	if err != nil {
+		http.Error(w, "Failed to unmarshal OAuth session", http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     oauthSessionCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   os.Getenv("ENVIRONMENT") == "production",
+		MaxAge:   -1, // Delete immediately
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	_, err = sess.Authorize(provider, r.URL.Query())
+	if err != nil {
+		http.Error(w, "OAuth authorization failed: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	gothUser, err := provider.FetchUser(sess)
+	if err != nil {
+		http.Error(w, "Failed to fetch user", http.StatusInternalServerError)
+		return
+	}
+
+	dbUser, err := h.repo.FindORCreateOAuthUser(ctx, gothUser, googleProviderName) // Pass providerName
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -376,10 +493,31 @@ func (h *Handler) GoogleCallbackHandler(w http.ResponseWriter, r *http.Request) 
 			Logger:     h.log,
 		})
 		return
+	}
+
+	userAgent := r.UserAgent()
+	parser := ua.Get()
+	agent := parser.Parse(userAgent)
+
+	browser := agent.Browser().String()
+	system := agent.OS().String()
+	device := agent.Device().String()
+	ip := r.RemoteAddr
+	location := "todo"
+
+	session := jwt.SessionInfo{
+		UserID:      dbUser.ID,
+		Roles:       roles,
+		UserAgent:   &userAgent,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser,
+		DeviceName:  &device,
+		OsName:      &system,
 	}
 
 	// Generate JWT token
-	tokenPair, err := h.tkn.GenerateTokenPair(ctx, dbUser.ID, roles)
+	tokenPair, err := h.tkn.GenerateTokenPair(ctx, session)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -392,10 +530,8 @@ func (h *Handler) GoogleCallbackHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Generate tokens for the user
 	secure := os.Getenv("ENVIRONMENT") == "production"
 
-	// Set cookies with tokens
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    tokenPair.AccessToken,
@@ -416,12 +552,360 @@ func (h *Handler) GoogleCallbackHandler(w http.ResponseWriter, r *http.Request) 
 		Expires:  time.Now().Add(7 * 24 * time.Hour),
 	})
 
-	// Redirect to the secure area
 	redirectURL := os.Getenv("REDIRECT_SECURE")
-
 	if redirectURL == "" {
 		redirectURL = "http://localhost:5173/dashboard"
 	}
-
 	http.Redirect(w, r, redirectURL, http.StatusFound)
+}
+
+func (h *Handler) InitiateMfaSetup(w http.ResponseWriter, r *http.Request) {
+	userID, err := jwt.GetUserID(r)
+	ctx := r.Context()
+
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	user, err := h.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusUnauthorized,
+			ClientErr:  message.ErrUnauthorized,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	// Generate TOTP key
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "nuts",
+		AccountName: user.Email,
+		SecretSize:  20,
+	})
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	// Encrypt the secret before storing
+	encryptedSecret, err := h.encrypt.Encrypt([]byte(key.Secret()))
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	// Store the encrypted secret (this also resets mfa_enabled to false)
+	err = h.repo.StoreMFASecret(ctx, repository.StoreMFASecretParams{
+		ID:        userID,
+		MfaSecret: encryptedSecret,
+	})
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	// Generate QR code image data URI
+	img, err := key.Image(200, 200) // 200x200 pixels
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	var buf bytes.Buffer
+	err = png.Encode(&buf, img)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    img,
+		})
+		return
+	}
+
+	qrCodeUrl := "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	response := InitiateMfaResponse{
+		QrCodeUrl: qrCodeUrl,
+		Secret:    key.Secret(), // Raw secret for manual entry
+	}
+
+	respond.Json(w, http.StatusOK, response, h.log)
+}
+
+func (h *Handler) VerifyMfaSetup(w http.ResponseWriter, r *http.Request) {
+	userID, err := jwt.GetUserID(r)
+	ctx := r.Context()
+
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	var req VerifyMfaRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil { /* Bad Request */
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    r.Body,
+		})
+		return
+	}
+
+	if err := h.v.Validator.Struct(req); err != nil { /* Validation Error */
+		// validationErrors := validation.TranslateErrors(ctx, err)
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    req,
+		})
+		return
+	}
+
+	// Get the stored *encrypted* secret
+	encryptedSecret, err := h.repo.GetMFASecret(ctx, userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	if encryptedSecret == nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	// Decrypt the secret
+	decryptedSecretBytes, err := h.encrypt.Decrypt(encryptedSecret)
+	if err != nil {
+		h.log.Error().Err(err).Msg("Failed to decrypt MFA secret")
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+	decryptedSecret := string(decryptedSecretBytes)
+
+	// Validate the OTP
+	valid := totp.Validate(req.Otp, decryptedSecret)
+
+	if !valid {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	// Mark MFA as enabled in the database
+	err = h.repo.EnableMFA(ctx, userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	respond.Status(w, http.StatusOK)
+}
+
+func (h *Handler) DisableMfa(w http.ResponseWriter, r *http.Request) {
+	userID, err := jwt.GetUserID(r)
+	ctx := r.Context()
+
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	// Potentially add password confirmation here for extra security before disabling MFA
+
+	err = h.repo.DisableMFA(ctx, userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	respond.Status(w, http.StatusOK)
+}
+
+func (h *Handler) GetSessions(w http.ResponseWriter, r *http.Request) {
+	userID, err := jwt.GetUserID(r)
+	ctx := r.Context()
+
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	sessions, err := h.tkn.GetSessions(ctx, userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    userID,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, sessions, h.log)
+}
+
+func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
+	sessionID, err := request.ParseUUID(r, "id")
+	ctx := r.Context()
+
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    sessionID,
+		})
+		return
+	}
+
+	err = h.tkn.RevokeSessions(ctx, sessionID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.log,
+			Details:    nil,
+		})
+		return
+	}
+
+	respond.Status(w, http.StatusOK)
 }

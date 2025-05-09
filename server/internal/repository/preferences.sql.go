@@ -12,43 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
-const createPreferences = `-- name: CreatePreferences :one
+const createDefaultPreferences = `-- name: CreateDefaultPreferences :exec
 INSERT INTO preferences (
-    user_id,
-    locale,
-    theme,
-    currency
+    user_id
 ) VALUES (
-    $1, $2, $3, $4
-) RETURNING id, user_id, locale, theme, currency, created_at, updated_at, deleted_at
+    $1
+)
 `
 
-type CreatePreferencesParams struct {
-	UserID   uuid.UUID `json:"user_id"`
-	Locale   string    `json:"locale"`
-	Theme    string    `json:"theme"`
-	Currency string    `json:"currency"`
-}
-
-func (q *Queries) CreatePreferences(ctx context.Context, arg CreatePreferencesParams) (Preference, error) {
-	row := q.db.QueryRow(ctx, createPreferences,
-		arg.UserID,
-		arg.Locale,
-		arg.Theme,
-		arg.Currency,
-	)
-	var i Preference
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Locale,
-		&i.Theme,
-		&i.Currency,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-	)
-	return i, err
+func (q *Queries) CreateDefaultPreferences(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, createDefaultPreferences, userID)
+	return err
 }
 
 const deletePreferences = `-- name: DeletePreferences :exec
@@ -70,7 +44,12 @@ SELECT
     id,
     locale,
     theme,
+    timezone,
+    time_format,
+    date_format,
     currency,
+    start_week_on_monday,
+    dark_sidebar,
     created_at,
     updated_at
 FROM preferences
@@ -81,12 +60,17 @@ LIMIT 1
 `
 
 type GetPreferencesByUserIdRow struct {
-	ID        uuid.UUID `json:"id"`
-	Locale    string    `json:"locale"`
-	Theme     string    `json:"theme"`
-	Currency  string    `json:"currency"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID                uuid.UUID `json:"id"`
+	Locale            string    `json:"locale"`
+	Theme             string    `json:"theme"`
+	Timezone          string    `json:"timezone"`
+	TimeFormat        string    `json:"time_format"`
+	DateFormat        string    `json:"date_format"`
+	Currency          string    `json:"currency"`
+	StartWeekOnMonday bool      `json:"start_week_on_monday"`
+	DarkSidebar       bool      `json:"dark_sidebar"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 func (q *Queries) GetPreferencesByUserId(ctx context.Context, userID uuid.UUID) (GetPreferencesByUserIdRow, error) {
@@ -96,7 +80,12 @@ func (q *Queries) GetPreferencesByUserId(ctx context.Context, userID uuid.UUID) 
 		&i.ID,
 		&i.Locale,
 		&i.Theme,
+		&i.Timezone,
+		&i.TimeFormat,
+		&i.DateFormat,
 		&i.Currency,
+		&i.StartWeekOnMonday,
+		&i.DarkSidebar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -169,18 +158,28 @@ SET
     locale = coalesce($1, locale),
     theme = coalesce($2, theme),
     currency = coalesce($3, currency),
+    timezone = coalesce($4, timezone),
+    time_format = coalesce($5, time_format),
+    date_format = coalesce($6, date_format),
+    start_week_on_monday = coalesce($7, start_week_on_monday),
+    dark_sidebar = coalesce($8, dark_sidebar),
     updated_at = current_timestamp
 WHERE
-    user_id = $4
+    user_id = $9
     AND deleted_at IS NULL
-RETURNING id, user_id, locale, theme, currency, created_at, updated_at, deleted_at
+RETURNING id, user_id, locale, theme, currency, created_at, updated_at, deleted_at, timezone, time_format, date_format, start_week_on_monday, dark_sidebar
 `
 
 type UpdatePreferencesParams struct {
-	Locale   *string   `json:"locale"`
-	Theme    *string   `json:"theme"`
-	Currency *string   `json:"currency"`
-	UserID   uuid.UUID `json:"user_id"`
+	Locale            *string   `json:"locale"`
+	Theme             *string   `json:"theme"`
+	Currency          *string   `json:"currency"`
+	Timezone          *string   `json:"timezone"`
+	TimeFormat        *string   `json:"time_format"`
+	DateFormat        *string   `json:"date_format"`
+	StartWeekOnMonday *bool     `json:"start_week_on_monday"`
+	DarkSidebar       *bool     `json:"dark_sidebar"`
+	UserID            uuid.UUID `json:"user_id"`
 }
 
 func (q *Queries) UpdatePreferences(ctx context.Context, arg UpdatePreferencesParams) (Preference, error) {
@@ -188,6 +187,11 @@ func (q *Queries) UpdatePreferences(ctx context.Context, arg UpdatePreferencesPa
 		arg.Locale,
 		arg.Theme,
 		arg.Currency,
+		arg.Timezone,
+		arg.TimeFormat,
+		arg.DateFormat,
+		arg.StartWeekOnMonday,
+		arg.DarkSidebar,
 		arg.UserID,
 	)
 	var i Preference
@@ -200,6 +204,11 @@ func (q *Queries) UpdatePreferences(ctx context.Context, arg UpdatePreferencesPa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Timezone,
+		&i.TimeFormat,
+		&i.DateFormat,
+		&i.StartWeekOnMonday,
+		&i.DarkSidebar,
 	)
 	return i, err
 }

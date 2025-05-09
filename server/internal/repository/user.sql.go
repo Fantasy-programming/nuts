@@ -12,6 +12,37 @@ import (
 	"github.com/google/uuid"
 )
 
+const addLinkedAccount = `-- name: AddLinkedAccount :exec
+INSERT INTO linked_accounts (
+    user_id,
+    provider,
+    provider_user_id,
+    email
+) VALUES (
+    $1, $2, $3, $4
+) ON CONFLICT (
+    user_id,
+    provider
+) DO UPDATE SET provider_user_id = $3, email = $4
+`
+
+type AddLinkedAccountParams struct {
+	UserID         uuid.UUID `json:"user_id"`
+	Provider       string    `json:"provider"`
+	ProviderUserID string    `json:"provider_user_id"`
+	Email          *string   `json:"email"`
+}
+
+func (q *Queries) AddLinkedAccount(ctx context.Context, arg AddLinkedAccountParams) error {
+	_, err := q.db.Exec(ctx, addLinkedAccount,
+		arg.UserID,
+		arg.Provider,
+		arg.ProviderUserID,
+		arg.Email,
+	)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
     email,
@@ -20,14 +51,14 @@ INSERT INTO users (
     password
 ) VALUES (
     $1, $2, $3, $4
-) RETURNING id, email, first_name, last_name, password, created_at, updated_at, deleted_at, avatar_url
+) RETURNING id, email, first_name, last_name, password, created_at, updated_at, deleted_at, avatar_url, mfa_secret, mfa_enabled, mfa_verified_at
 `
 
 type CreateUserParams struct {
 	Email     string  `json:"email"`
 	FirstName *string `json:"first_name"`
 	LastName  *string `json:"last_name"`
-	Password  string  `json:"password"`
+	Password  *string `json:"password"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -48,8 +79,26 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.AvatarUrl,
+		&i.MfaSecret,
+		&i.MfaEnabled,
+		&i.MfaVerifiedAt,
 	)
 	return i, err
+}
+
+const deleteLinkedAccount = `-- name: DeleteLinkedAccount :exec
+DELETE FROM linked_accounts
+WHERE user_id = $1 AND provider = $2
+`
+
+type DeleteLinkedAccountParams struct {
+	UserID   uuid.UUID `json:"user_id"`
+	Provider string    `json:"provider"`
+}
+
+func (q *Queries) DeleteLinkedAccount(ctx context.Context, arg DeleteLinkedAccountParams) error {
+	_, err := q.db.Exec(ctx, deleteLinkedAccount, arg.UserID, arg.Provider)
+	return err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
@@ -60,6 +109,81 @@ WHERE id = $1
 func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
+}
+
+const disableMFA = `-- name: DisableMFA :exec
+UPDATE users
+SET
+    mfa_enabled = FALSE,
+    mfa_secret = NULL,
+    mfa_verified_at = NULL
+WHERE id = $1
+`
+
+func (q *Queries) DisableMFA(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, disableMFA, id)
+	return err
+}
+
+const enableMFA = `-- name: EnableMFA :exec
+UPDATE users
+SET
+    mfa_enabled = TRUE,
+    mfa_verified_at = now()
+WHERE id = $1 AND mfa_secret IS NOT NULL
+`
+
+func (q *Queries) EnableMFA(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, enableMFA, id)
+	return err
+}
+
+const getLinkedAccounts = `-- name: GetLinkedAccounts :many
+SELECT
+    provider_user_id AS id,
+    provider,
+    created_at
+FROM linked_accounts
+WHERE user_id = $1
+`
+
+type GetLinkedAccountsRow struct {
+	ID        string    `json:"id"`
+	Provider  string    `json:"provider"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (q *Queries) GetLinkedAccounts(ctx context.Context, userID uuid.UUID) ([]GetLinkedAccountsRow, error) {
+	rows, err := q.db.Query(ctx, getLinkedAccounts, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetLinkedAccountsRow{}
+	for rows.Next() {
+		var i GetLinkedAccountsRow
+		if err := rows.Scan(&i.ID, &i.Provider, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMFASecret = `-- name: GetMFASecret :one
+SELECT mfa_secret
+FROM users
+WHERE id = $1
+`
+
+func (q *Queries) GetMFASecret(ctx context.Context, id uuid.UUID) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getMFASecret, id)
+	var mfa_secret []byte
+	err := row.Scan(&mfa_secret)
+	return mfa_secret, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
@@ -81,7 +205,7 @@ type GetUserByEmailRow struct {
 	Email     string    `json:"email"`
 	FirstName *string   `json:"first_name"`
 	LastName  *string   `json:"last_name"`
-	Password  string    `json:"password"`
+	Password  *string   `json:"password"`
 	AvatarUrl *string   `json:"avatar_url"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -111,6 +235,7 @@ SELECT
     last_name,
     password,
     avatar_url,
+    mfa_enabled,
     created_at,
     updated_at
 FROM users
@@ -118,14 +243,15 @@ WHERE id = $1 LIMIT 1
 `
 
 type GetUserByIdRow struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	FirstName *string   `json:"first_name"`
-	LastName  *string   `json:"last_name"`
-	Password  string    `json:"password"`
-	AvatarUrl *string   `json:"avatar_url"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         uuid.UUID `json:"id"`
+	Email      string    `json:"email"`
+	FirstName  *string   `json:"first_name"`
+	LastName   *string   `json:"last_name"`
+	Password   *string   `json:"password"`
+	AvatarUrl  *string   `json:"avatar_url"`
+	MfaEnabled bool      `json:"mfa_enabled"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (GetUserByIdRow, error) {
@@ -138,10 +264,38 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (GetUserByIdRow
 		&i.LastName,
 		&i.Password,
 		&i.AvatarUrl,
+		&i.MfaEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const hasPasswordAuth = `-- name: HasPasswordAuth :one
+SELECT
+    password IS NOT NULL
+FROM users
+WHERE id = $1
+`
+
+func (q *Queries) HasPasswordAuth(ctx context.Context, id uuid.UUID) (interface{}, error) {
+	row := q.db.QueryRow(ctx, hasPasswordAuth, id)
+	var column_1 interface{}
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const isMFAEnabled = `-- name: IsMFAEnabled :one
+SELECT mfa_enabled
+FROM users
+WHERE id = $1
+`
+
+func (q *Queries) IsMFAEnabled(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, isMFAEnabled, id)
+	var mfa_enabled bool
+	err := row.Scan(&mfa_enabled)
+	return mfa_enabled, err
 }
 
 const listUsers = `-- name: ListUsers :many
@@ -172,7 +326,7 @@ type ListUsersRow struct {
 	FirstName *string   `json:"first_name"`
 	LastName  *string   `json:"last_name"`
 	AvatarUrl *string   `json:"avatar_url"`
-	Password  string    `json:"password"`
+	Password  *string   `json:"password"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -206,6 +360,42 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUse
 	return items, nil
 }
 
+const storeMFASecret = `-- name: StoreMFASecret :exec
+UPDATE users
+SET
+    mfa_secret = $1,
+    mfa_enabled = FALSE,
+    mfa_verified_at = NULL
+WHERE id = $2
+`
+
+type StoreMFASecretParams struct {
+	MfaSecret []byte    `json:"mfa_secret"`
+	ID        uuid.UUID `json:"id"`
+}
+
+func (q *Queries) StoreMFASecret(ctx context.Context, arg StoreMFASecretParams) error {
+	_, err := q.db.Exec(ctx, storeMFASecret, arg.MfaSecret, arg.ID)
+	return err
+}
+
+const updatePassword = `-- name: UpdatePassword :exec
+UPDATE users
+SET
+    password = $1
+WHERE id = $2
+`
+
+type UpdatePasswordParams struct {
+	Password *string   `json:"password"`
+	ID       uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
+	_, err := q.db.Exec(ctx, updatePassword, arg.Password, arg.ID)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET
@@ -214,7 +404,7 @@ SET
     last_name = coalesce($3, last_name),
     avatar_url = coalesce($4, avatar_url)
 WHERE id = $5
-RETURNING id, email, first_name, last_name, password, created_at, updated_at, deleted_at, avatar_url
+RETURNING id, email, first_name, last_name, password, created_at, updated_at, deleted_at, avatar_url, mfa_secret, mfa_enabled, mfa_verified_at
 `
 
 type UpdateUserParams struct {
@@ -244,6 +434,9 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.AvatarUrl,
+		&i.MfaSecret,
+		&i.MfaEnabled,
+		&i.MfaVerifiedAt,
 	)
 	return i, err
 }

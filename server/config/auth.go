@@ -10,6 +10,13 @@ type Auth struct {
 	GoogleClientID     string `split_words:"true" required:"false"`
 	GoogleClientSecret string `split_words:"true" required:"false"`
 	GoogleCallbackURL  string `split_words:"true" required:"false"`
+
+	GithubAuthEnabled  bool   `split_words:"true" required:"false" default:"false"`
+	GithubClientID     string `split_words:"true" required:"false"`
+	GithubClientSecret string `split_words:"true" required:"false"`
+	GithubCallbackURL  string `split_words:"true" required:"false"`
+
+	EncryptionSecretKeyHex string `split_words:"true" required:"true"`
 }
 
 func AUTH() Auth {

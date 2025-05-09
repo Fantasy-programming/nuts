@@ -15,7 +15,7 @@ import (
 
 func RegisterHTTPHandlers(cfg *config.Config, db *pgxpool.Pool, storage storage.Storage, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
-	repo := NewRepository(queries, storage)
+	repo := NewRepository(db, queries, storage)
 	h := NewHandler(cfg, validate, repo, storage, logger)
 
 	// Create the auth verify middleware

@@ -152,15 +152,29 @@ type Currency struct {
 	Name *string `json:"name"`
 }
 
+type LinkedAccount struct {
+	ID             uuid.UUID `json:"id"`
+	UserID         uuid.UUID `json:"user_id"`
+	Provider       string    `json:"provider"`
+	ProviderUserID string    `json:"provider_user_id"`
+	Email          *string   `json:"email"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
 type Preference struct {
-	ID        uuid.UUID          `json:"id"`
-	UserID    uuid.UUID          `json:"user_id"`
-	Locale    string             `json:"locale"`
-	Theme     string             `json:"theme"`
-	Currency  string             `json:"currency"`
-	CreatedAt time.Time          `json:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at"`
-	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+	ID                uuid.UUID          `json:"id"`
+	UserID            uuid.UUID          `json:"user_id"`
+	Locale            string             `json:"locale"`
+	Theme             string             `json:"theme"`
+	Currency          string             `json:"currency"`
+	CreatedAt         time.Time          `json:"created_at"`
+	UpdatedAt         time.Time          `json:"updated_at"`
+	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
+	Timezone          string             `json:"timezone"`
+	TimeFormat        string             `json:"time_format"`
+	DateFormat        string             `json:"date_format"`
+	StartWeekOnMonday bool               `json:"start_week_on_monday"`
+	DarkSidebar       bool               `json:"dark_sidebar"`
 }
 
 type Tag struct {
@@ -188,23 +202,35 @@ type Transaction struct {
 }
 
 type User struct {
-	ID        uuid.UUID          `json:"id"`
-	Email     string             `json:"email"`
-	FirstName *string            `json:"first_name"`
-	LastName  *string            `json:"last_name"`
-	Password  string             `json:"password"`
-	CreatedAt time.Time          `json:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at"`
-	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
-	AvatarUrl *string            `json:"avatar_url"`
+	ID            uuid.UUID          `json:"id"`
+	Email         string             `json:"email"`
+	FirstName     *string            `json:"first_name"`
+	LastName      *string            `json:"last_name"`
+	Password      *string            `json:"password"`
+	CreatedAt     time.Time          `json:"created_at"`
+	UpdatedAt     time.Time          `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
+	AvatarUrl     *string            `json:"avatar_url"`
+	MfaSecret     []byte             `json:"mfa_secret"`
+	MfaEnabled    bool               `json:"mfa_enabled"`
+	MfaVerifiedAt pgtype.Timestamptz `json:"mfa_verified_at"`
 }
 
 type UserToken struct {
-	ID           uuid.UUID `json:"id"`
-	UserID       uuid.UUID `json:"user_id"`
-	RefreshToken string    `json:"refresh_token"`
-	ExpiresAt    time.Time `json:"expires_at"`
-	LastUsedAt   time.Time `json:"last_used_at"`
+	ID           uuid.UUID          `json:"id"`
+	UserID       uuid.UUID          `json:"user_id"`
+	RefreshToken string             `json:"refresh_token"`
+	ExpiresAt    time.Time          `json:"expires_at"`
+	LastUsedAt   time.Time          `json:"last_used_at"`
+	UserAgent    *string            `json:"user_agent"`
+	IpAddress    *string            `json:"ip_address"`
+	IsCurrent    *bool              `json:"is_current"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	Location     *string            `json:"location"`
+	BrowserName  *string            `json:"browser_name"`
+	DeviceName   *string            `json:"device_name"`
+	OsName       *string            `json:"os_name"`
+	Revoked      *bool              `json:"revoked"`
 }
 
 type WebhookEvent struct {

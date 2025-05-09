@@ -40,7 +40,7 @@ func (h *Handler) GetAccounts(w http.ResponseWriter, r *http.Request) {
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
 			Logger:     h.logger,
-			Details:    userID,
+			Details:    r.RequestURI,
 		})
 		return
 	}
@@ -54,7 +54,10 @@ func (h *Handler) GetAccounts(w http.ResponseWriter, r *http.Request) {
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
 			Logger:     h.logger,
-			Details:    userID,
+			Details: map[string]interface{}{
+				"requestUrl": r.RequestURI,
+				"operation":  "GetAccounts",
+			},
 		})
 		return
 	}
@@ -73,8 +76,12 @@ func (h *Handler) GetAccount(w http.ResponseWriter, r *http.Request) {
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
 			Logger:     h.logger,
-			Details:    accountID,
+			Details: map[string]interface{}{
+				"requestUrl": r.RequestURI,
+				"operation":  "GetAccount",
+			},
 		})
+
 		return
 	}
 
@@ -113,7 +120,8 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateAccountRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	valErr, err := h.validator.ParseAndValidate(ctx, r, req)
+	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -124,18 +132,15 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 			Details:    r.Body,
 		})
 		return
-
 	}
 
-	// Validate balance
-	if err := h.validator.Validator.Struct(req); err != nil {
-		// validationErrors := validation.TranslateErrors(ctx, err)
+	if valErr != nil {
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
-			StatusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrValidation,
-			ActualErr:  err,
+			ActualErr:  valErr,
 			Logger:     h.logger,
 			Details:    req,
 		})

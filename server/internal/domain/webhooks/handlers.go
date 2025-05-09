@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
@@ -20,7 +21,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var Secret = "fadfadfsf"
+// Get webhook secret from environment variable with fallback for development
+func getWebhookSecret() string {
+	secret := os.Getenv("WEBHOOK_SECRET")
+	if secret == "" {
+		// Log a warning in production environment
+		if os.Getenv("APP_ENV") == "production" {
+			// This is very dangerous and should be properly configured
+			fmt.Println("WARNING: WEBHOOK_SECRET not set in production environment")
+		}
+		return "dev_webhook_secret_replace_in_production"
+	}
+	return secret
+}
 
 type Handler struct {
 	v      *validation.Validator
@@ -383,7 +396,7 @@ func (h *Handler) TestWebhook(res http.ResponseWriter, r *http.Request) {
 
 	webhook, err := h.repo.GetWebhook(ctx, webhookID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if (err == pgx.ErrNoRows) {
 			respond.Error(respond.ErrorOptions{
 				W:          res,
 				R:          r,

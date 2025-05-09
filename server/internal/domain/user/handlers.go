@@ -60,13 +60,33 @@ func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	act, err := h.repo.GetLinkedAccounts(ctx, id)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    id,
+		})
+		return
+	}
+
+	hasPassword := user.Password != nil
+
 	respond.Json(w, http.StatusOK, &GetUserResponse{
-		AvatarUrl: user.AvatarUrl,
-		Email:     user.Email,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		AvatarUrl:  user.AvatarUrl,
+		Email:      user.Email,
+		FirstName:  user.FirstName,
+		LastName:   user.LastName,
+		MfaEnabled: user.MfaEnabled,
+		CreatedAt:  user.CreatedAt,
+		UpdatedAt:  user.UpdatedAt,
+
+		LinkedAccounts: &act,
+		HasPassword:    hasPassword,
 	}, h.logger)
 }
 

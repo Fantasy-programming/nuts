@@ -27,20 +27,20 @@ type Repository interface {
 	// GetTransactionsStats(ctx context.Context, params repository.GetTransactionStatsParams) (repository.GetTransactionStatsRow, error)
 }
 
-type repo struct {
-	db      *pgxpool.Pool
-	queries *repository.Queries
+type Trsrepo struct {
+	DB      *pgxpool.Pool
+	Queries *repository.Queries
 }
 
 func NewRepository(db *pgxpool.Pool, queries *repository.Queries) Repository {
-	return &repo{
-		db:      db,
-		queries: queries,
+	return &Trsrepo{
+		DB:      db,
+		Queries: queries,
 	}
 }
 
-func (r *repo) GetTransactions(ctx context.Context, params repository.ListTransactionsParams) ([]Group, error) {
-	transactions, err := r.queries.ListTransactions(ctx, params)
+func (r *Trsrepo) GetTransactions(ctx context.Context, params repository.ListTransactionsParams) ([]Group, error) {
+	transactions, err := r.Queries.ListTransactions(ctx, params)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return []Group{}, nil
@@ -48,7 +48,7 @@ func (r *repo) GetTransactions(ctx context.Context, params repository.ListTransa
 		return nil, err
 	}
 
-	accounts, err := r.queries.GetAccounts(ctx, params.UserID)
+	accounts, err := r.Queries.GetAccounts(ctx, params.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -69,13 +69,13 @@ func (r *repo) GetTransactions(ctx context.Context, params repository.ListTransa
 }
 
 // GetTransaction retrieves a specific transaction by its ID
-func (r *repo) GetTransaction(ctx context.Context, id uuid.UUID) (repository.Transaction, error) {
-	return r.queries.GetTransactionById(ctx, id)
+func (r *Trsrepo) GetTransaction(ctx context.Context, id uuid.UUID) (repository.Transaction, error) {
+	return r.Queries.GetTransactionById(ctx, id)
 }
 
 // CreateTransaction creates a new transaction
-func (r *repo) CreateTransaction(ctx context.Context, params repository.CreateTransactionParams) (repository.Transaction, error) {
-	tx, err := r.db.Begin(ctx)
+func (r *Trsrepo) CreateTransaction(ctx context.Context, params repository.CreateTransactionParams) (repository.Transaction, error) {
+	tx, err := r.DB.Begin(ctx)
 	if err != nil {
 		return repository.Transaction{}, err
 	}
@@ -89,7 +89,7 @@ func (r *repo) CreateTransaction(ctx context.Context, params repository.CreateTr
 		}
 	}()
 
-	qtx := r.queries.WithTx(tx)
+	qtx := r.Queries.WithTx(tx)
 
 	transaction, err := qtx.CreateTransaction(ctx, params)
 	if err != nil {
@@ -112,14 +112,18 @@ func (r *repo) CreateTransaction(ctx context.Context, params repository.CreateTr
 	return transaction, nil
 }
 
+func (r *Trsrepo) CreateTransactionClean(ctx context.Context, params repository.CreateTransactionParams) (repository.Transaction, error) {
+	return r.Queries.CreateTransaction(ctx, params)
+}
+
 // UpdateTransaction updates an existing transaction
-func (r *repo) UpdateTransaction(ctx context.Context, params repository.UpdateTransactionParams) (repository.Transaction, error) {
-	return r.queries.UpdateTransaction(ctx, params)
+func (r *Trsrepo) UpdateTransaction(ctx context.Context, params repository.UpdateTransactionParams) (repository.Transaction, error) {
+	return r.Queries.UpdateTransaction(ctx, params)
 }
 
 // DeleteTransaction deletes a transaction
-func (r *repo) DeleteTransaction(ctx context.Context, id uuid.UUID) error {
-	return r.queries.DeleteTransaction(ctx, id)
+func (r *Trsrepo) DeleteTransaction(ctx context.Context, id uuid.UUID) error {
+	return r.Queries.DeleteTransaction(ctx, id)
 }
 
 // TransfertParams holds parameters for creating a transfer transaction
@@ -136,15 +140,15 @@ type TransfertParams struct {
 }
 
 // CreateTransfertTransaction handles the creation of a transfer transaction between accounts
-func (r *repo) CreateTransfertTransaction(ctx context.Context, params TransfertParams) (repository.Transaction, error) {
+func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params TransfertParams) (repository.Transaction, error) {
 	// Start transaction
-	tx, err := r.db.Begin(ctx)
+	tx, err := r.DB.Begin(ctx)
 	if err != nil {
 		return repository.Transaction{}, err
 	}
 	defer tx.Rollback(ctx)
 
-	qtx := r.queries.WithTx(tx)
+	qtx := r.Queries.WithTx(tx)
 
 	// Verify accounts exist and belong to user
 	sourceAcc, err := qtx.GetAccountById(ctx, params.AccountID)
