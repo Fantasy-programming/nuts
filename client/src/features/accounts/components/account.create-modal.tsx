@@ -5,20 +5,20 @@ import { Button } from "@/core/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs"
 import { Input } from "@/core/components/ui/input"
 import { accountFormSchema, AccountSubmit, AccountFormSchema } from "../services/account.types"
-import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from "@/core/components/ui/dialog-sheet";
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogTrigger, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from "@/core/components/ui/dialog-sheet";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 
 
-export default function AddAccountModal({
-  isOpen,
+export function AddAccountModal({
+  children,
   onClose,
   onAddAccount,
 }: {
-  isOpen: boolean
-  onClose: () => void
+  children: React.ReactNode
+  onClose?: () => void
   onAddAccount: AccountSubmit
 }) {
   const [activeTab, setActiveTab] = useState("linked")
@@ -46,7 +46,10 @@ export default function AddAccountModal({
 
 
   return (
-    <ResponsiveDialog open={isOpen} onOpenChange={onClose}>
+    <ResponsiveDialog>
+      <ResponsiveDialogTrigger asChild>
+        {children}
+      </ResponsiveDialogTrigger>
       <ResponsiveDialogContent className="sm:max-w-[500px]">
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>Add New Account</ResponsiveDialogTitle>

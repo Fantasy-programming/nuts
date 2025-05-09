@@ -1,0 +1,44 @@
+import { useEffect, ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { usePreferencesStore } from '../stores/preferences.store.ts';
+import { preferencesService } from '../services/preferences';
+
+interface PreferencesProviderProps {
+  children: ReactNode;
+}
+
+export function PreferencesProvider({ children }: PreferencesProviderProps) {
+
+  const setLoading = usePreferencesStore((state) => state.setLoading)
+  const setError = usePreferencesStore((state) => state.setError)
+  const setPreferences = usePreferencesStore(state => state.setPreferences)
+
+  const { data, isLoading, error, isSuccess, isError } = useQuery({
+    queryKey: ['preferences'],
+    queryFn: preferencesService.getPreferences,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
+  });
+
+  // Effect to synchronize React Query state with Zustand store
+  useEffect(() => {
+    if (isLoading && !isSuccess && !isError) {
+      setLoading(true);
+    }
+
+    if (isSuccess && data) {
+      setPreferences(data);
+    }
+
+    // If fetch fails, update error state in Zustand
+    if (isError && error) {
+      setError(error.message);
+      console.error("PreferencesProvider: Failed to fetch preferences:", error);
+    }
+  }, [isLoading, isSuccess, isError, data, error, setPreferences, setLoading, setError]);
+
+
+  return <>{children}</>;
+}

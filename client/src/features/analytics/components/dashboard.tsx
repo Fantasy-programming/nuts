@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   BarChart3,
   PieChart,
   LineChart,
   TrendingUp,
-  Calendar,
   DollarSign,
   CreditCard,
   ArrowUpRight,
@@ -14,9 +13,6 @@ import {
   Sparkles,
   Clock,
   Filter,
-  Download,
-  Share2,
-  ChevronDown,
   Layers,
   Zap,
   Lightbulb,
@@ -34,10 +30,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/core/components/ui/badge"
 import { Separator } from "@/core/components/ui/separator"
 import { ScrollArea, ScrollBar } from "@/core/components/ui/scroll-area"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/core/components/ui/popover"
-import { Calendar as CalendarComponent } from "@/core/components/ui/calendar"
-import { format } from "date-fns"
 
 import SpendingOverviewChart from "./spending-overview-chart"
 import IncomeExpenseChart from "./income-expense-chart"
@@ -55,17 +47,8 @@ export default function AnalyticsDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [timeframe, setTimeframe] = useState("month")
   const [date, setDate] = useState<Date>(new Date())
-  const [isLoading, setIsLoading] = useState(true)
   const [favoriteInsights, setFavoriteInsights] = useState<string[]>([])
 
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
 
   const toggleFavorite = (insightId: string) => {
     setFavoriteInsights((prev) =>
@@ -73,27 +56,6 @@ export default function AnalyticsDashboard() {
     )
   }
 
-  const formatDateRange = () => {
-    const currentMonth = format(date, "MMMM yyyy")
-
-    if (timeframe === "day") {
-      return format(date, "MMMM d, yyyy")
-    } else if (timeframe === "week") {
-      // This is simplified - would need more logic for proper week range
-      return `Week of ${format(date, "MMMM d, yyyy")}`
-    } else if (timeframe === "month") {
-      return currentMonth
-    } else if (timeframe === "quarter") {
-      const quarter = Math.floor(date.getMonth() / 3) + 1
-      return `Q${quarter} ${date.getFullYear()}`
-    } else if (timeframe === "year") {
-      return date.getFullYear().toString()
-    } else if (timeframe === "all") {
-      return "All Time"
-    }
-
-    return currentMonth
-  }
 
   const insights = [
     {
@@ -145,78 +107,6 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Header with title and actions */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground mt-1">Gain insights into your financial health and spending patterns</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="flex gap-2">
-                <Calendar className="h-4 w-4" />
-                {formatDateRange()}
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <div className="p-3 border-b">
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Select timeframe</h4>
-                  <Select value={timeframe} onValueChange={setTimeframe}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select timeframe" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="day">Day</SelectItem>
-                      <SelectItem value="week">Week</SelectItem>
-                      <SelectItem value="month">Month</SelectItem>
-                      <SelectItem value="quarter">Quarter</SelectItem>
-                      <SelectItem value="year">Year</SelectItem>
-                      <SelectItem value="all">All Time</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <CalendarComponent
-                mode="single"
-                selected={date}
-                onSelect={(date) => date && setDate(date)}
-                className="rounded-md border"
-              />
-            </PopoverContent>
-          </Popover>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Download className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>Export as PDF</DropdownMenuItem>
-              <DropdownMenuItem>Export as CSV</DropdownMenuItem>
-              <DropdownMenuItem>Export as Image</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>Share via Email</DropdownMenuItem>
-              <DropdownMenuItem>Copy Link</DropdownMenuItem>
-              <DropdownMenuItem>Schedule Report</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Financial summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-100 dark:border-blue-900">
           <CardContent className="p-6">
@@ -343,7 +233,7 @@ export default function AnalyticsDashboard() {
                   Wealth Building
                 </TabsTrigger>
               </TabsList>
-              <ScrollBar orientation="horizontal" className="h-1" />
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
             <DropdownMenu>

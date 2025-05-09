@@ -2,6 +2,14 @@ import { RecordSchema } from "@/features/transactions/services/transaction.types
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/core/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/core/components/ui/avatar";
+import { Button } from "@/core/components/ui/button"
+import { MoreHorizontal } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/core/components/ui/dropdown-menu"
 
 export const recordsTableColumns: ColumnDef<RecordSchema & { groupId: string; groupDate: Date; groupTotal: number }>[] = [
   {
@@ -70,5 +78,30 @@ export const recordsTableColumns: ColumnDef<RecordSchema & { groupId: string; gr
     size: 150,
     maxSize: 150,
     minSize: 150,
+  },
+
+  {
+    id: "actions",
+    size: 80,
+    cell: () => {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem >Edit</DropdownMenuItem>
+            <DropdownMenuItem className="text-red-600">
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+    enableSorting: false,
+    enableHiding: false, // Usually you want actions always visible
   },
 ];

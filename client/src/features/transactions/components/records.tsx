@@ -1,5 +1,3 @@
-"use client"
-
 import { useMemo, useState, useEffect, Fragment, useCallback } from "react"
 import {
   type ColumnFiltersState,
@@ -22,6 +20,15 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/core/components/ui/dropdown-menu"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@/core/components/ui/context-menu";
 import { Input } from "@/core/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/core/components/ui/table"
 import { RecordsFilters } from "./records.filters"
@@ -31,7 +38,9 @@ import { useIsMobile } from "@/core/hooks/use-mobile"
 import { Avatar, AvatarFallback } from "@/core/components/ui/avatar"
 import { Card, CardContent } from "@/core/components/ui/card"
 import { Badge } from "@/core/components/ui/badge"
-import { GrouppedRecordsArraySchema } from "../services/transaction.types"
+import { GrouppedRecordsArraySchema, RecordSchema } from "../services/transaction.types"
+import EditTransactionSheet from "./edit-records-sheet"
+import DeleteTransactionDialog from "./delete-records-dialog"
 
 export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsArraySchema }) => {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -45,6 +54,11 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
   const [accountFilters, setAccountFilters] = useState<string[]>([])
   const [, setDateRangeFilter] = useState<string>("")
   const [searchFilter, setSearchFilter] = useState("")
+
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<RecordSchema | null>(null)
 
   const isMobile = useIsMobile()
 
@@ -155,6 +169,54 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
       currency: "USD",
     }).format(amount)
   }
+
+
+  //  Update the handleEditTransaction function to use Sheet instead of Modal
+  const handleEditTransaction = (id: number) => {
+
+    setIsEditModalOpen(true)
+    // if (transaction) {
+    //   setSelectedTransaction(transaction)
+    //   setIsEditModalOpen(true)
+    // }
+  }
+
+  const handleUpdateTransaction = (id: string, updatedTransaction: RecordSchema) => {
+    // setTransactions(transactions.map((t) => (t.id === id ? { ...t, ...updatedTransaction } : t)))
+  }
+
+  const openDeleteDialog = (id: string) => {
+    setIsDeleteDialogOpen(true)
+    // const transaction = transactions.find((t) => t.id === id)
+    // if (transaction) {
+    //   setSelectedTransaction(transaction)
+    //   setIsDeleteDialogOpen(true)
+    // }
+  }
+
+  const handleDeleteTransaction = (id: number) => {
+    setTransactions(transactions.filter((t) => t.id !== id))
+    setSelectedTransactions(selectedTransactions.filter((t) => t !== id))
+  }
+
+  const handleDeleteSelected = () => {
+    setTransactions(transactions.filter((t) => !selectedTransactions.includes(t.id)))
+    setSelectedTransactions([])
+  }
+
+
+
+  const menuContent = (
+    <ContextMenuContent >
+      <ContextMenuItem >
+        Edit
+      </ContextMenuItem>
+      <ContextMenuItem >
+        Delete
+      </ContextMenuItem>
+    </ContextMenuContent>
+  );
+
 
   return (
     <div className="space-y-4">
@@ -383,19 +445,24 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
                                 const row = table.getRowModel().rows.find((r) => r.original.id === transaction.id)
                                 if (!row) return null
                                 return (
-                                  <TableRow key={transaction.id} data-state={row.getIsSelected() && "selected"}>
-                                    {row.getVisibleCells().map((cell, cellIndex) => (
-                                      <TableCell
-                                        key={cell.id}
-                                        style={{
-                                          width: cell.column.getSize(),
-                                        }}
-                                        className={cellIndex === 0 ? "pl-4" : ""}
-                                      >
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
+                                  <ContextMenu>
+                                    <ContextMenuTrigger asChild>
+                                      <TableRow key={transaction.id} data-state={row.getIsSelected() && "selected"}>
+                                        {row.getVisibleCells().map((cell, cellIndex) => (
+                                          <TableCell
+                                            key={cell.id}
+                                            style={{
+                                              width: cell.column.getSize(),
+                                            }}
+                                            className={cellIndex === 0 ? "pl-4" : ""}
+                                          >
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                          </TableCell>
+                                        ))}
+                                      </TableRow>
+                                    </ContextMenuTrigger>
+                                    {menuContent}
+                                  </ContextMenu>
                                 )
                               })}
                             </TableBody>
@@ -408,6 +475,32 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
               ))}
             </TableBody>
           </Table>
+
+
+          {/* Modals */}
+          {/* <AddTransactionModal */}
+          {/*   isOpen={isAddModalOpen} */}
+          {/*   onClose={() => setIsAddModalOpen(false)} */}
+          {/*   onAddTransaction={handleAddTransaction} */}
+          {/*   categories={categories} */}
+          {/*   accounts={accounts} */}
+          {/* /> */}
+
+          <EditTransactionSheet
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            transaction={selectedTransaction}
+            onUpdateTransaction={handleUpdateTransaction}
+            categories={categories}
+            accounts={accounts}
+          />
+
+          <DeleteTransactionDialog
+            isOpen={isDeleteDialogOpen}
+            onClose={() => setIsDeleteDialogOpen(false)}
+            transaction={selectedTransaction}
+            onDeleteTransaction={handleDeleteTransaction}
+          />
         </div>
       )}
 

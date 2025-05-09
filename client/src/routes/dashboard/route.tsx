@@ -9,22 +9,25 @@ import { cn } from "@/lib/utils"
 import { userService } from "@/features/preferences/services/user";
 import { useTheme } from "@/features/preferences/hooks/use-theme";
 import { useShallow } from 'zustand/react/shallow'
+import { useTranslation } from "react-i18next";
+
 
 import {
-  ChevronDown,
-  ChartColumn,
-  LayoutGrid,
-  LogOut,
-  Moon,
-  ArrowRightLeft,
-  Settings,
-  Sun,
-  SunMedium,
-  PlugZap,
-  Wallet,
-  type LucideIcon
-} from "lucide-react";
-
+  RiBarChartBoxLine,
+  RiBarChartBoxFill,
+  RiSettingsLine,
+  RiBankCard2Line,
+  RiBankCard2Fill,
+  RiStackLine,
+  RiStackFill,
+  RiArrowDownSLine,
+  RiSunLine,
+  RiMoonLine,
+  RiLogoutBoxLine,
+  type RemixiconComponentType,
+  RiDashboardLine,
+  RiDashboardFill
+} from "@remixicon/react";
 import LogoWTXT from "@/core/assets/icons/ICWLG"
 import { Nuts } from "@/core/assets/icons/Logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
@@ -34,7 +37,6 @@ import {
   DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -49,52 +51,55 @@ import {
   SidebarInset,
   SidebarMenu,
   SidebarGroupLabel,
+  SidebarGroupContent,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarRail,
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
   useSidebar,
+  SidebarMenuAction,
 } from "@/core/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/core/components/ui/collapsible";
 import type { FileRoutesByTo } from "@/routeTree.gen";
+import { ChevronRight } from "lucide-react";
+import { Theme } from "@/features/preferences/contexts/theme.context";
 
-type ValidRoutes = keyof FileRoutesByTo;
+export type ValidRoutes = keyof FileRoutesByTo;
 
 type navStuff = {
   title: string;
   url: ValidRoutes;
-  icon: LucideIcon;
+  icon: RemixiconComponentType;
+  activeIcon: RemixiconComponentType;
 };
 
 const navMain: navStuff[] = [
   {
-    title: "Dashboard",
+    title: "navigation.dashboard",
     url: "/dashboard/home",
-    icon: LayoutGrid,
+    icon: RiDashboardLine,
+    activeIcon: RiDashboardFill,
   },
   {
-    title: "Accounts",
+    title: "navigation.accounts",
     url: "/dashboard/accounts",
-    icon: Wallet,
+    icon: RiStackLine,
+    activeIcon: RiStackFill,
   },
   {
-    title: "Transactions",
+    title: "navigation.transactions",
     url: "/dashboard/records",
-    icon: ArrowRightLeft,
+    icon: RiBankCard2Line,
+    activeIcon: RiBankCard2Fill,
   },
   {
-    title: "Analytics",
+    title: "navigation.analytics",
     url: "/dashboard/analytics",
-    icon: ChartColumn,
-  },
-  {
-    title: "Plugins",
-    url: "/dashboard/plugins",
-    icon: PlugZap,
-  },
+    icon: RiBarChartBoxLine,
+    activeIcon: RiBarChartBoxFill,
+  }
 ];
 
 
@@ -153,7 +158,7 @@ function DashboardWrapper() {
   useHotkeys(
     "g+s",
     () => {
-      navigate({ to: "/dashboard/settings/account" });
+      navigate({ to: "/dashboard/settings/profile" });
     },
     []
   );
@@ -164,9 +169,9 @@ function DashboardWrapper() {
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0" >
+      <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
         <SideBarHeader />
-        <SidebarContent>
+        <SidebarContent className="-mt-2">
           <SideBarMainLinks />
           <SideBarPluginsLinks />
         </SidebarContent>
@@ -175,12 +180,9 @@ function DashboardWrapper() {
             <SideBarFooterMenu />
           </Suspense>
         </SidebarFooter>
-        <SidebarRail />
       </Sidebar>
-      <SidebarInset className="overflow-hidden">
-        <div className="bg-card smooth-corners-sm border-background m-2 h-full rounded-xl border-2 shadow-sm">
-          <Outlet />
-        </div>
+      <SidebarInset className="overflow-hidden px-4 md:px-6 py-4 ">
+        <Outlet />
       </SidebarInset>
     </SidebarProvider>
   );
@@ -199,66 +201,73 @@ const SideBarFooterMenu = memo(() => {
 
   const logout = useAuthStore((state) => state.logout);
   const { theme, setTheme } = useTheme();
+  const { isMobile } = useSidebar();
+  const { t } = useTranslation();
+
   const onLogout = useCallback(async () => {
     await logout()
     navigate({ to: "/login", replace: true })
   }, [logout, navigate]);
 
   return (
-    <SidebarMenu>
+    <SidebarMenu className="group-data-[collapsible=icon]:items-center">
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg" className="w-full justify-start group-data-[collapsible=icon]:justify-center">
-              <Suspense fallback="loading..." >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatar_url} />
-                  <AvatarFallback>
-                    {user.first_name?.[0]}
-                    {user.last_name?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="ml-3 flex flex-1 flex-col group-data-[collapsible=icon]:hidden">
-                  <span className="text-sm font-semibold text-ellipsis text-nowrap">
-                    {user?.first_name && user?.last_name && (
-                      `${user.first_name} ${user.last_name}`
-                    )}
-                  </span>
-                  <span className="text-muted-foreground text-xs">{user.email}</span>
-                </div></Suspense>
-              <ChevronDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
+            <SidebarMenuButton size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+              <Avatar className="in-data-[state=expanded]:size-6 transition-[width,height] duration-200 ease-in-out">
+                <AvatarImage src={user.avatar_url} alt={user.first_name} />
+                <AvatarFallback>
+                  {user.first_name?.[0]}
+                  {user.last_name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="grid flex-1 text-left items-center text-sm leading-tight ms-1">
+                <span className="truncate font-medium">
+                  {user?.first_name && user?.last_name && (
+                    `${user.first_name} ${user.last_name}`
+                  )}
+                </span>
+              </div>
+              <div className="size-8 rounded-lg flex items-center justify-center bg-sidebar-accent/50 in-[[data-slot=dropdown-menu-trigger]:hover]:bg-transparent">
+                <RiArrowDownSLine className="size-5 opacity-40" size={20} />
+              </div>
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="start" alignOffset={-8} forceMount>
+          <DropdownMenuContent
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            align="end"
+            sideOffset={4}
+            side={isMobile ? "bottom" : "right"}
+            forceMount>
             <DropdownMenuItem asChild>
-              <Link to="/dashboard/settings">
-                <Settings className="mr-2 h-4 w-4" />
+              <Link to="/dashboard/settings" className="gap-3 px-1">
+                <RiSettingsLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
                 Account settings
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <SunMedium className="mr-2 h-4 w-4" />
+              <DropdownMenuSubTrigger className="gap-3 px-1">
+                <RiSunLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
                 Theme
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
                   <DropdownMenuRadioItem value="light">
-                    <Sun className="mr-2 h-4 w-4" />
+                    <RiSunLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
                     Light
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="dark">
-                    <Moon className="mr-2 h-4 w-4" />
+                    <RiMoonLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
                     Dark
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onLogout()}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
+            <DropdownMenuItem className="gap-3 px-1" onClick={() => onLogout()}>
+              <RiLogoutBoxLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
+              {t("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -274,49 +283,54 @@ const SideBarHeader = memo(() => {
   console.log("Rendering SideBarHeader");
 
   return (
-    <SidebarHeader>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton size="lg" tooltip="Nuts Finance">
-            <div className="flex w-full items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
-              {state === "collapsed" ? (
-                <Nuts className="size-4" fill="#000" />
-              ) : (
-                <LogoWTXT className="size-16" fill="#000" />
-              )}
-            </div>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
+    <SidebarHeader className="h-16 max-md:mt-2 mb-2 justify-center">
+      <div className="flex w-full items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
+        {state === "collapsed" ? (
+          <Nuts className="size-4" fill="#000" />
+        ) : (
+          <LogoWTXT className="size-16" fill="#000" />
+        )}
+      </div>
     </SidebarHeader>
   )
 })
 
 const SideBarMainLinks = memo(() => {
-  console.log("Rendering SideBMainLinks"); // Add console.log for debugging renders
+  console.log("Rendering SideBMainLinks"); // Add console.log for debugging renders 
+  const { t } = useTranslation();
+
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>General</SidebarGroupLabel>
-      <SidebarMenu>
-        {navMain.map((item) => (
-          <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton
-              asChild
-              tooltip={item.title}
-              className="px-6"
-            >
-              <Link to={item.url} className={cn(
-                "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
-              )}
-                activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
+      <SidebarGroupLabel className="uppercase text-muted-foreground/60">General</SidebarGroupLabel>
+      <SidebarGroupContent className="px-1 group-data-[collapsible=icon]:px-0">
+        <SidebarMenu className="group-data-[collapsible=icon]:items-center">
+          {navMain.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.title}
+                className="group/menu-button text-gray-950/60 font-medium gap-3 h-9 rounded-md   [&>svg]:size-auto"
               >
-                {item.icon && <item.icon className="size-4 font-medium stroke-2" />}
-                <span>{item.title}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
+                <Link to={item.url} activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
+                >{({ isActive }) => (
+                  <>
+                    {isActive ? (
+                      <item.activeIcon size={16} aria-hidden="true" className="text-muted-foreground/60 group-data-[active=true]/menu-button:text-primary" />
+                    ) : (
+                      <item.icon size={16} aria-hidden="true" className="text-muted-foreground/60 group-data-[active=true]/menu-button:text-primary" />
+                    )
+                    }
+
+                    <span>{t(item.title)}</span>
+                  </>
+                )
+                  }
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
     </SidebarGroup>
   )
 })
@@ -330,64 +344,73 @@ const SideBarPluginsLinks = memo(() => {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Plugins</SidebarGroupLabel>
-      <SidebarMenu>
-        <Collapsible defaultOpen={false} className="group/collapsible">
+      <SidebarGroupLabel className="uppercase text-muted-foreground/60">Plugins</SidebarGroupLabel>
+      <SidebarGroupContent className="px-1 group-data-[collapsible=icon]:px-0">
+        <SidebarMenu className="group-data-[collapsible=icon]:items-center">
           {
             plugins.map((item) => {
               return item.routeConfigs.map((route) => {
                 return (
-                  <SidebarMenuItem key={route.label}>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton asChild className="px-6" tooltip={route.label} >
+                  <Collapsible className="group/collapsible" key={route.label}>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild
+                        className="group/menu-button text-gray-950/60 font-medium gap-3 h-9 rounded-md bg-gradient-to-r hover:bg-transparent hover:from-sidebar-accent hover:to-sidebar-accent/40 data-[active=true]:from-primary/20 data-[active=true]:to-primary/5 [&>svg]:size-auto"
+                        tooltip={route.label} >
                         <Link to={'/dashboard/$'}
                           params={{
                             _splat: route.path
                           }}
-                          className={cn(
-                            "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
-                          )}
 
                           activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
                         >
-                          {renderIcon(route.iconName)}
-                          <span className="ml-2">{route.label}</span>
+                          {renderIcon(route.iconName, { size: 16, "aria-hidden": true, className: "text-muted-foreground/60 group-data-[active=true]/menu-button:text-primary" })}
+                          <span >{route.label}</span>
                         </Link>
                       </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    {
-                      route?.subroutes ? (
-                        <CollapsibleContent >
-                          <SidebarMenuSub>
-                            {route.subroutes.map((item) => (
-                              <SidebarMenuSubItem key={item.label}>
-                                <SidebarMenuSubButton asChild>
-                                  <Link to={'/dashboard/$'} params={{
-                                    _splat: item.path
-                                  }} className={cn(
-                                    "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
+                      {
+                        route?.subroutes ? (
+                          <>
+                            <CollapsibleTrigger asChild>
+                              <SidebarMenuAction
+                                className="left-2 bg-sidebar-accent text-sidebar-accent-foreground data-[state=open]:rotate-90"
+                                showOnHover
+                              >
+                                <ChevronRight />
+                              </SidebarMenuAction>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent >
+                              <SidebarMenuSub>
+                                {route.subroutes.map((item) => (
+                                  <SidebarMenuSubItem key={item.label}>
+                                    <SidebarMenuSubButton asChild>
+                                      <Link to={'/dashboard/$'} params={{
+                                        _splat: item.path
+                                      }} className={cn(
+                                        "flex text-sm  items-center w-full text-gray-950/60 justify-start  gap-3 hover:shadow-sm transition-all",
 
-                                  )}
-                                    activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
-                                  >
-                                    <span className="ml-2">{item.label}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
+                                      )}
+                                        activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
+                                      >
+                                        <span className="ml-2">{item.label}</span>
+                                      </Link>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                ))}
 
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      ) : null
-                    }
+                              </SidebarMenuSub>
+                            </CollapsibleContent>
+                          </>
+                        ) : null
+                      }
 
-                  </SidebarMenuItem>
+                    </SidebarMenuItem>
+                  </Collapsible>
                 );
               });
             })
           }
-        </Collapsible>
-      </SidebarMenu>
+        </SidebarMenu>
+      </SidebarGroupContent>
     </SidebarGroup>
   )
 })

@@ -3,7 +3,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import { accountService } from "../services/account";
 
 
-export default function AccountBalanceChart() {
+export function AccountBalanceChart() {
 
   const {
     data, isError

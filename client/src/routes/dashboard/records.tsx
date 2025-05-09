@@ -52,9 +52,9 @@ function RouteComponent() {
   return (
 
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-        <div className="flex w-full items-center justify-between gap-2 px-4">
-          <div className="hidden sm:block" />
+      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+        <div className="flex w-full items-center justify-between gap-2">
+          <h2 className="text-2xl font-bold tracking-tight">Transactions</h2>
           <MobileBurger />
           <div className="flex items-center gap-6">
             <RecordsDialog onSubmit={onSubmit} open={isOpen} onOpenChange={setIsOpen}>
@@ -75,7 +75,7 @@ function RouteComponent() {
         </div>
       </header>
       <main className="flex flex-1 overflow-hidden">
-        <div className="h-full w-full space-y-8 overflow-y-auto px-6 py-2">
+        <div className="h-full w-full space-y-8 overflow-y-auto py-2">
           <div className="space-y-8">
             <RecordsTable transactions={data} />
           </div>
