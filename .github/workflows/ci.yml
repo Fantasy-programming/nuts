@@ -1,0 +1,169 @@
+name: Nuts CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # -------------------- Go Server (/server) --------------------
+  go-server-ci:
+    name: Go Server - CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-server-${{ hashFiles('server/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-server-
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Run golangci-lint
+        run: ~/go/bin/golangci-lint run ./...
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Build Go application
+        run: go build -v -o ../bin/server_binary . # Output to a root /bin directory
+
+  go-server-docker:
+    name: Go Server - Build & Push Docker
+    runs-on: ubuntu-latest
+    needs: go-server-ci # Run only if CI passes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' # Only on push to main
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server # Context is the server directory
+          file: ./server/Dockerfile # Dockerfile location
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/server:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # -------------------- Client (/client) --------------------
+  client-ci:
+    name: Client - CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Specify your Node.js version
+          cache: 'npm' # Or 'yarn', 'pnpm'
+          cache-dependency-path: client/package-lock.json # Or yarn.lock, pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: npm ci # Or yarn install --frozen-lockfile, pnpm install --frozen-lockfile
+
+      - name: Lint client
+        run: npm run lint # Assuming you have a 'lint' script in package.json
+
+      - name: Test client
+        run: npm run test # Assuming you have a 'test' script
+
+      - name: Build client
+        run: npm run build # Assuming you have a 'build' script
+
+  # -------------------- Python Services (/services/python_app) --------------------
+  # python-service-ci:
+  #   name: Python Service - CI
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: services/python_app # TODO: Adjust to your Python app's directory
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.11' # Specify your Python version
+  #
+  #     - name: Cache pip dependencies
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ~/.cache/pip
+  #         key: ${{ runner.os }}-pip-python-app-${{ hashFiles('services/python_app/requirements.txt') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-pip-python-app-
+  #
+  #     - name: Install Python dependencies
+  #       run: pip install -r requirements.txt
+  #
+  #     - name: Lint with Flake8
+  #       run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics # Customize as needed
+  #       # Or: pip install black flake8 && black --check . && flake8 .
+  #
+  #     - name: Test with Pytest
+  #       run: pytest # Assuming pytest is in requirements.txt and tests are discoverable
+  #
+  # # -------------------- Node.js Services (/services/node_app) --------------------
+  # node-service-ci:
+  #   name: Node.js Service - CI
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: services/node_app # TODO: Adjust to your Node.js app's directory
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20' # Specify your Node.js version
+  #         cache: 'npm'
+  #         cache-dependency-path: services/node_app/package-lock.json
+  #
+  #     - name: Install dependencies
+  #       run: npm ci
+  #
+  #     - name: Lint service
+  #       run: npm run lint # Assuming a 'lint' script
+  #
+  #     - name: Test service
+  #       run: npm run test # Assuming a 'test' script

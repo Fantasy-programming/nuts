@@ -18,11 +18,6 @@
 
   languages.go.enable = true;
 
-  # dotenv = {
-  #   enable = true;
-  #   filename = ".env.server";
-  # };
-
   services.postgres = {
     enable = true;
     initialScript = "CREATE USER test SUPERUSER;";

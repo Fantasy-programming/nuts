@@ -25,8 +25,18 @@ tasks:
     cmds:
       - goose -dir database/migrations status
 
+  migrate:status:prod:
+    desc: Migrates UP bt one step the database (serverless production)
+    cmds:
+      - GOOSE_DBSTRING="${DB_REMOTE}" goose -dir database/migrations status
+
   migrate:step:
     desc: Migrates UP bt one step the database
+    cmds:
+      - goose -dir database/migrations up-by-one
+
+  migrate:step:prod:
+    desc: Migrates UP bt one step the database (serverless production)
     cmds:
       - goose -dir database/migrations up-by-one
 
