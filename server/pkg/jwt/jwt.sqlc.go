@@ -23,9 +23,15 @@ func NewSQLCTokenRepository(queries *repository.Queries) *SQLCTokenRepository {
 }
 
 // SaveToken stores a token in the database
-func (r *SQLCTokenRepository) SaveToken(ctx context.Context, userID uuid.UUID, refreshToken string, expiresAt time.Time) error {
+func (r *SQLCTokenRepository) SaveToken(ctx context.Context, session SessionInfo, refreshToken string, expiresAt time.Time) error {
 	err := r.queries.SaveUserToken(ctx, repository.SaveUserTokenParams{
-		UserID:       userID,
+		UserID:       session.UserID,
+		UserAgent:    session.UserAgent,
+		OsName:       session.OsName,
+		IpAddress:    session.IpAddress,
+		Location:     session.Location,
+		BrowserName:  session.BrowserName,
+		DeviceName:   session.DeviceName,
 		RefreshToken: refreshToken,
 		ExpiresAt:    expiresAt,
 	})
@@ -70,4 +76,12 @@ func (r *SQLCTokenRepository) UpdateTokenLastUsed(ctx context.Context, tokenID u
 // DeleteUserTokens removes all tokens for a user
 func (r *SQLCTokenRepository) DeleteUserTokens(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.DeleteUserToken(ctx, userID)
+}
+
+func (r *SQLCTokenRepository) GetTokens(ctx context.Context, userID uuid.UUID) ([]repository.GetSessionsRow, error) {
+	return r.queries.GetSessions(ctx, userID)
+}
+
+func (r *SQLCTokenRepository) RevokeToken(ctx context.Context, id uuid.UUID) error {
+	return r.queries.RevokeSession(ctx, id)
 }

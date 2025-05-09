@@ -3,8 +3,12 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
+
+	"github.com/Fantasy-Programming/nuts/config"
+	"github.com/rs/zerolog"
 )
 
 var ErrOperationNotSupported = errors.New("operation not supported by this storage type")
@@ -32,4 +36,56 @@ type Storage interface {
 	CreatePublicBucket(ctx context.Context, bucket, region string) error
 	// CreateSecureBucket creates a bucket with stricter security settings (e.g., encryption, access blocks for S3).
 	CreateSecureBucket(ctx context.Context, bucket, region string) error
+}
+
+func NewStorageProvider(cfg config.Storage, logger *zerolog.Logger) (Storage, error) {
+	switch cfg.Host {
+	case "FS":
+		if cfg.FSPath == "" {
+			return nil, fmt.Errorf("empty fs path for host 'Fs' set in ENV")
+		}
+
+		strg, err := NewFS(cfg.FSPath)
+		if err != nil {
+			return nil, err
+		}
+
+		return strg, nil
+	case "Minio":
+		if cfg.AccessKey == "" || cfg.Region == "" || cfg.SecretKey == "" {
+			return nil, fmt.Errorf("missing region, accesskey or secret key set in env for host 'Minio'")
+		}
+
+		strg, err := NewMinio(context.Background(), cfg.MinioEndpoint, cfg.Region, cfg.AccessKey, cfg.SecretKey, cfg.MinioSSL)
+		if err != nil {
+			return nil, err
+		}
+		return strg, nil
+	case "S3":
+
+		if cfg.AccessKey == "" || cfg.Region == "" || cfg.SecretKey == "" {
+			return nil, fmt.Errorf("missing region, accesskey or secret key set in env for host 'S3'")
+		}
+
+		strg, err := NewS3(context.Background(), cfg.Region, cfg.AccessKey, cfg.SecretKey)
+		if err != nil {
+			return nil, err
+		}
+		return strg, nil
+
+	case "R2":
+		if cfg.AccessKey == "" || cfg.Region == "" || cfg.SecretKey == "" || cfg.R2AccountID != "" {
+			return nil, fmt.Errorf("missing region, access key, accountID or secret key set in env for host 'S3'")
+		}
+
+		strg, err := NewR2(context.Background(), cfg.R2AccountID, cfg.AccessKey, cfg.SecretKey)
+		if err != nil {
+			return nil, err
+		}
+
+		return strg, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported storage host: %s", cfg.Host)
+	}
 }

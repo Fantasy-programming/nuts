@@ -2,6 +2,7 @@ package jwt_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -70,13 +71,17 @@ func TestRefreshAccessToken(t *testing.T) {
 
 	// Generate initial token pair
 	initialTokens, err := service.GenerateTokenPair(ctx, userID, roles)
+
+	fmt.Println("initial iD: ", userID)
+
 	require.NoError(t, err)
 
 	// Test refresh
 	newTokens, err := service.RefreshAccessToken(ctx, initialTokens.RefreshToken)
 
-	// Assert
 	require.NoError(t, err)
+
+	// Assert
 	assert.NotEmpty(t, newTokens.AccessToken)
 	assert.NotEmpty(t, newTokens.RefreshToken)
 	assert.NotEqual(t, initialTokens.AccessToken, newTokens.AccessToken)
