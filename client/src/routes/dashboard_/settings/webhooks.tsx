@@ -12,7 +12,7 @@ import { Badge } from "@/core/components/ui/badge";
 import { createFileRoute } from "@tanstack/react-router";
 import { useSettingsStore } from "@/features/preferences/stores/settings.store";
 
-export const Route = createFileRoute("/dashboard_/settings/webhook")({
+export const Route = createFileRoute("/dashboard_/settings/webhooks")({
   component: RouteComponent,
 });
 

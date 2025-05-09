@@ -33,7 +33,7 @@ const userFormSchema = z.object({
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
-export const Route = createFileRoute("/dashboard_/settings/account")({
+export const Route = createFileRoute("/dashboard_/settings/profile")({
   component: RouteComponent,
   loader: ({ context }) => {
     const queryClient = context.queryClient
@@ -92,9 +92,9 @@ function RouteComponent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const onSubmit = async (data: UserFormValues) => {
-    const hasChanges = data.email !== userData.email || 
-                      data.first_name !== (userData.first_name || "") || 
-                      data.last_name !== (userData.last_name || "");
+    const hasChanges = data.email !== userData.email ||
+      data.first_name !== (userData.first_name || "") ||
+      data.last_name !== (userData.last_name || "");
 
     if (hasChanges) {
       try {
@@ -175,19 +175,6 @@ function RouteComponent() {
 
             <Form {...form}>
               <form className="space-y-4" onBlur={form.handleSubmit(onSubmit)}>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
