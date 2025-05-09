@@ -2,13 +2,17 @@
 
 CREATE TABLE IF NOT EXISTS user_tokens (
     id UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
-	  user_id UUID NOT NULL,
-	  refresh_token TEXT NOT NULL,
-	  expires_at TIMESTAMPTZ NOT NULL,
-	  last_used_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-	  UNIQUE(user_id, refresh_token)
+    user_id UUID NOT NULL,
+    refresh_token TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    last_used_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    UNIQUE (user_id, refresh_token)
 );
+
+
+-- created_at TIMESTAMP DEFAULT NOW(),
+-- revoked BOOLEAN DEFAULT false,
 
 -- Index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_id ON user_tokens(user_id);

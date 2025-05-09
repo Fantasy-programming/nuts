@@ -23,7 +23,9 @@ SELECT
     created_by,
     updated_at
 FROM accounts
-WHERE id = $1 LIMIT 1;
+WHERE id = $1
+AND deleted_at IS NULL
+LIMIT 1;
 
 -- name: GetAccounts :many
 SELECT
@@ -36,7 +38,8 @@ SELECT
     meta,
     updated_at
 FROM accounts
-WHERE created_by = sqlc.arg('user_id');
+WHERE created_by = sqlc.arg('user_id')
+AND deleted_at IS NULL;
 
 -- name: UpdateAccount :one
 UPDATE accounts
