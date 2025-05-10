@@ -42,7 +42,7 @@ func NewStorageProvider(cfg config.Storage, logger *zerolog.Logger) (Storage, er
 	switch cfg.Host {
 	case "Fs":
 		if cfg.FSPath == "" {
-			return nil, fmt.Errorf("empty fs path for host 'Fs' set in ENV")
+			return nil, fmt.Errorf("missing STORAGE_FS_PATH for host 'Fs' set in ENV")
 		}
 
 		strg, err := NewFS(cfg.FSPath)
@@ -52,8 +52,16 @@ func NewStorageProvider(cfg config.Storage, logger *zerolog.Logger) (Storage, er
 
 		return strg, nil
 	case "Minio":
-		if cfg.AccessKey == "" || cfg.Region == "" || cfg.SecretKey == "" {
-			return nil, fmt.Errorf("missing region, accesskey or secret key set in env for host 'Minio'")
+		if cfg.AccessKey == "" {
+			return nil, fmt.Errorf("missing STORAGE_ACCESS_KEY in env for host 'Minio'")
+		}
+
+		if cfg.Region == "" {
+			return nil, fmt.Errorf("missing STORAGE_REGION in env for host 'Minio'")
+		}
+
+		if cfg.SecretKey == "" {
+			return nil, fmt.Errorf("missing STORAGE_SECRET_KEY in env for host 'Minio'")
 		}
 
 		strg, err := NewMinio(context.Background(), cfg.MinioEndpoint, cfg.Region, cfg.AccessKey, cfg.SecretKey, cfg.MinioSSL)
@@ -62,9 +70,16 @@ func NewStorageProvider(cfg config.Storage, logger *zerolog.Logger) (Storage, er
 		}
 		return strg, nil
 	case "S3":
+		if cfg.AccessKey == "" {
+			return nil, fmt.Errorf("missing STORAGE_ACCESS_KEY in env for host 'S3'")
+		}
 
-		if cfg.AccessKey == "" || cfg.Region == "" || cfg.SecretKey == "" {
-			return nil, fmt.Errorf("missing region, accesskey or secret key set in env for host 'S3'")
+		if cfg.Region == "" {
+			return nil, fmt.Errorf("missing STORAGE_REGION in env for host 'S3'")
+		}
+
+		if cfg.SecretKey == "" {
+			return nil, fmt.Errorf("missing STORAGE_SECRET_KEY in env for host 'S3'")
 		}
 
 		strg, err := NewS3(context.Background(), cfg.Region, cfg.AccessKey, cfg.SecretKey)
@@ -74,8 +89,21 @@ func NewStorageProvider(cfg config.Storage, logger *zerolog.Logger) (Storage, er
 		return strg, nil
 
 	case "R2":
-		if cfg.AccessKey == "" || cfg.Region == "" || cfg.SecretKey == "" || cfg.R2AccountID != "" {
-			return nil, fmt.Errorf("missing region, access key, accountID or secret key set in env for host 'S3'")
+
+		if cfg.AccessKey == "" {
+			return nil, fmt.Errorf("missing STORAGE_ACCESS_KEY in env for host 'R2'")
+		}
+
+		if cfg.Region == "" {
+			return nil, fmt.Errorf("missing STORAGE_REGION in env for host 'R2'")
+		}
+
+		if cfg.SecretKey == "" {
+			return nil, fmt.Errorf("missing STORAGE_SECRET_KEY in env for host 'R2'")
+		}
+
+		if cfg.R2AccountID == "" {
+			return nil, fmt.Errorf("missing STORAGE_R2_ACCOUNT_ID in env for host 'R2'")
 		}
 
 		strg, err := NewR2(context.Background(), cfg.R2AccountID, cfg.AccessKey, cfg.SecretKey)
