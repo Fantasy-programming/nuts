@@ -3,6 +3,7 @@ package transactions
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -83,8 +84,7 @@ func (r *Trsrepo) CreateTransaction(ctx context.Context, params repository.Creat
 	defer func() {
 		if err != nil {
 			if rbErr := tx.Rollback(ctx); rbErr != nil && !errors.Is(rbErr, pgx.ErrTxClosed) {
-				// Log the rollback error, but return the original error
-				// Consider adding structured logging here
+				fmt.Println("Failed to rollback")
 			}
 		}
 	}()
@@ -146,7 +146,15 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 	if err != nil {
 		return repository.Transaction{}, err
 	}
-	defer tx.Rollback(ctx)
+
+	defer func() {
+		if rollbackErr := tx.Rollback(ctx); rollbackErr != nil && rollbackErr != pgx.ErrTxClosed {
+			// Log the rollback error
+
+			fmt.Println("Transaction rollback failed")
+			// r.Logger.Error().Err(rollbackErr).Msg("Transaction rollback failed")
+		}
+	}()
 
 	qtx := r.Queries.WithTx(tx)
 

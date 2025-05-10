@@ -7,6 +7,7 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // MockTokenRepository implements TokenRepository for testing
@@ -106,8 +107,7 @@ func (m *MockTokenRepository) GetTokens(ctx context.Context, userID uuid.UUID) (
 		}
 	}
 	if len(userTokens) == 0 {
-		// To mimic sqlc behavior when no rows are found, though for a list, an empty slice is often fine.
-		// return nil, pgx.ErrNoRows // Or just return the empty slice and nil error
+		return nil, pgx.ErrNoRows
 	}
 	return userTokens, nil
 }

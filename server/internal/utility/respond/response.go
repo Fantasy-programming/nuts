@@ -4,6 +4,7 @@ package respond
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
@@ -13,15 +14,15 @@ import (
 )
 
 type ErrorResponse struct {
-	Status  string      `json:"status"`
-	Message string      `json:"message"`
-	Error   interface{} `json:"error,omitempty"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Error   any    `json:"error,omitempty"`
 }
 
 type SuccessResponse struct {
-	Status  string      `json:"status"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+	Data    any    `json:"data,omitempty"`
 }
 
 type ErrorOptions struct {
@@ -31,7 +32,7 @@ type ErrorOptions struct {
 	ClientErr  error
 	ActualErr  error
 	Logger     *zerolog.Logger
-	Details    interface{}
+	Details    any
 }
 
 // Respond with a translated error message
@@ -53,7 +54,11 @@ func Error(opts ErrorOptions) {
 		Interface("details", opts.Details).
 		Msg("Error response")
 
-	json.NewEncoder(opts.W).Encode(response)
+	if err := json.NewEncoder(opts.W).Encode(response); err != nil {
+		log.WithStackTrace(opts.Logger.Error()).
+			Err(err).
+			Msg("Failed to encode JSON error response")
+	}
 }
 
 // Handle sending multiple error (mostly used for validation)
@@ -76,11 +81,15 @@ func Errors(opts ErrorOptions) {
 		Interface("details", opts.Details).
 		Msg("Error response")
 
-	json.NewEncoder(opts.W).Encode(response)
+	if err := json.NewEncoder(opts.W).Encode(response); err != nil {
+		log.WithStackTrace(opts.Logger.Error()).
+			Err(err).
+			Msg("Failed to encode JSON error response")
+	}
 }
 
 // JsonResponse responds with a success message and optional data
-func Json(w http.ResponseWriter, statusCode int, data interface{}, logger *zerolog.Logger) {
+func Json(w http.ResponseWriter, statusCode int, data any, logger *zerolog.Logger) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
@@ -92,11 +101,16 @@ func Json(w http.ResponseWriter, statusCode int, data interface{}, logger *zerol
 	}
 
 	logger.Info().Int("status_code", statusCode).Interface("data", data).Msg("Success response")
-	json.NewEncoder(w).Encode(data)
+
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.WithStackTrace(logger.Error()).
+			Err(err).
+			Msg("Failed to encode JSON error response")
+	}
 }
 
 // TranslatedResponse responds with a translated success message
-func Response(w http.ResponseWriter, r *http.Request, statusCode int, messageKey string, data interface{}) {
+func Response(w http.ResponseWriter, r *http.Request, statusCode int, messageKey string, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
@@ -108,7 +122,9 @@ func Response(w http.ResponseWriter, r *http.Request, statusCode int, messageKey
 		Data:    data,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		fmt.Println("error")
+	}
 }
 
 // Status responds with just a status code

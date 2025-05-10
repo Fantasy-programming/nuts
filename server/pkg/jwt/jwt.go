@@ -21,8 +21,10 @@ var (
 	ErrFailedTokenStore = errors.New("failed to store token")
 )
 
+type AuthContextKey string
+
 // Store user information in the request context
-var ContextKey = "user"
+var ContextKey AuthContextKey = "user"
 
 const (
 	AccessToken  TokenType = "access"
@@ -191,7 +193,7 @@ func (s *Service) generateToken(userID uuid.UUID, roles []string, tokenType Toke
 
 // parseToken validates and parses a JWT token
 func (s *Service) parseToken(tokenString string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}

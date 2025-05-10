@@ -25,14 +25,14 @@ type VerifyMfaRequest struct {
 	Otp string `json:"otp" validate:"required,len=6,numeric"`
 }
 
-func RegisterValidations(v *validator.Validate) {
+func RegisterValidations(v *validator.Validate) error {
 	// nil checks
 	if v == nil {
-		return
+		return nil
 	}
 
 	// Register custom validations
-	v.RegisterValidation("strong_password", validateStrongPassword)
+	return v.RegisterValidation("strong_password", validateStrongPassword)
 }
 
 func validateStrongPassword(fl validator.FieldLevel) bool {

@@ -72,7 +72,7 @@ func FromContext(ctx context.Context) (*I18n, string) {
 }
 
 // T translates a message using i18n instance from context
-func T(ctx context.Context, messageID string, templateData map[string]interface{}) string {
+func T(ctx context.Context, messageID string, templateData map[string]any) string {
 	i18nInstance, lang := FromContext(ctx)
 
 	if i18nInstance == nil {

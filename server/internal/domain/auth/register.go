@@ -73,7 +73,10 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, storage storage.Storage, validate *v
 	authedRouter.Post("/sessions/{id}/logout", h.RevokeSession)
 
 	// Register validator
-	RegisterValidations(validate.Validator)
+	err = RegisterValidations(validate.Validator)
+	if err != nil {
+		logger.Panic().Err(err).Msg("Failed to setup validator")
+	}
 
 	return router
 }

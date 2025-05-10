@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -43,7 +44,12 @@ func TestMinioIntegration(t *testing.T) {
 		Started:          true,
 	})
 	require.NoError(t, err)
-	defer container.Terminate(ctx)
+
+	defer func() {
+		if containerErr := container.Terminate(ctx); containerErr != nil {
+			fmt.Println("Transaction rollback failed")
+		}
+	}()
 
 	// Get container endpoint
 	endpoint, err := container.Endpoint(ctx, "")

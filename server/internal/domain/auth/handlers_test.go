@@ -107,7 +107,8 @@ func (s *HandlerTestSuite) SetupSuite() {
 	s.router = router.NewRouter()
 
 	// Register validator
-	auth.RegisterValidations(validator.Validator)
+	err = auth.RegisterValidations(validator.Validator)
+	require.NoError(t, err)
 }
 
 func (s *HandlerTestSuite) SetupTest() {

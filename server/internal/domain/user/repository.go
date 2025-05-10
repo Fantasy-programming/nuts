@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/pkg/storage"
@@ -74,8 +75,7 @@ func (r *repo) CreateUserWithDefaults(ctx context.Context, params repository.Cre
 	defer func() {
 		if err != nil {
 			if rbErr := tx.Rollback(ctx); rbErr != nil && !errors.Is(rbErr, pgx.ErrTxClosed) {
-				// Log the rollback error, but return the original error
-				// Consider adding structured logging here
+				fmt.Println("Failed to roll the transaction")
 			}
 		}
 	}()
@@ -139,8 +139,7 @@ func (r *repo) FindORCreateOAuthUser(ctx context.Context, oauthUser goth.User, p
 					AvatarUrl: &oauthUser.AvatarURL,
 				})
 				if err != nil {
-					// h.log.Warn().Err(err).Msg("Failed to update user avatar")
-					// Continue even if avatar update fails
+					fmt.Println("Failed to update user avatar")
 				}
 			}
 

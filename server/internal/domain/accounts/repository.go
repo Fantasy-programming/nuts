@@ -3,6 +3,7 @@ package accounts
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
@@ -73,8 +74,7 @@ func (r *repo) CreateAccountWInitalTrs(ctx context.Context, act repository.Creat
 	defer func() {
 		if err != nil {
 			if rbErr := tx.Rollback(ctx); rbErr != nil && !errors.Is(rbErr, pgx.ErrTxClosed) {
-				// Log the rollback error, but return the original error
-				// Consider adding structured logging here
+				fmt.Println("Failed to do things")
 			}
 		}
 	}()

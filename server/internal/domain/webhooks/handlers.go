@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
@@ -22,18 +21,18 @@ import (
 )
 
 // Get webhook secret from environment variable with fallback for development
-func getWebhookSecret() string {
-	secret := os.Getenv("WEBHOOK_SECRET")
-	if secret == "" {
-		// Log a warning in production environment
-		if os.Getenv("APP_ENV") == "production" {
-			// This is very dangerous and should be properly configured
-			fmt.Println("WARNING: WEBHOOK_SECRET not set in production environment")
-		}
-		return "dev_webhook_secret_replace_in_production"
-	}
-	return secret
-}
+// func getWebhookSecret() string {
+// 	secret := os.Getenv("WEBHOOK_SECRET")
+// 	if secret == "" {
+// 		// Log a warning in production environment
+// 		if os.Getenv("APP_ENV") == "production" {
+// 			// This is very dangerous and should be properly configured
+// 			fmt.Println("WARNING: WEBHOOK_SECRET not set in production environment")
+// 		}
+// 		return "dev_webhook_secret_replace_in_production"
+// 	}
+// 	return secret
+// }
 
 type Handler struct {
 	v      *validation.Validator
@@ -396,7 +395,7 @@ func (h *Handler) TestWebhook(res http.ResponseWriter, r *http.Request) {
 
 	webhook, err := h.repo.GetWebhook(ctx, webhookID)
 	if err != nil {
-		if (err == pgx.ErrNoRows) {
+		if err == pgx.ErrNoRows {
 			respond.Error(respond.ErrorOptions{
 				W:          res,
 				R:          r,
@@ -436,9 +435,9 @@ func (h *Handler) TestWebhook(res http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create test payload
-	testPayload := map[string]interface{}{
+	testPayload := map[string]any{
 		"event": "test",
-		"data": map[string]interface{}{
+		"data": map[string]any{
 			"message":    "This is a test webhook event",
 			"webhook_id": webhook.ID.String(),
 			"timestamp":  time.Now().Format(time.RFC3339),
@@ -474,7 +473,7 @@ func (h *Handler) TestWebhook(res http.ResponseWriter, r *http.Request) {
 }
 
 // deliverWebhook sends a payload to the webhook endpoint
-func (h *Handler) deliverWebhook(webhook repository.WebhookSubscription, payload interface{}) (bool, error) {
+func (h *Handler) deliverWebhook(webhook repository.WebhookSubscription, payload any) (bool, error) {
 	// Convert payload to JSON
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
