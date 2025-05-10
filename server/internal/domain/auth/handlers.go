@@ -57,7 +57,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	ctx := r.Context()
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	valErr, err := h.v.ParseAndValidate(ctx, r, req)
+	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -70,14 +71,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.v.Validator.Struct(req); err != nil {
-		// validationErrors := validation.TranslateErrors(ctx, err)
+	if valErr != nil {
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrValidation,
-			ActualErr:  err,
+			ActualErr:  valErr,
 			Logger:     h.log,
 			Details:    req,
 		})

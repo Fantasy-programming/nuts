@@ -11,20 +11,23 @@ import (
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	ogJwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupTest() (*jwt.Service, *jwt.MockTokenRepository, *jwt.MockLogger) {
+func setupTest() (*jwt.Service, *jwt.MockTokenRepository, *zerolog.Logger) {
 	repo := jwt.NewMockTokenRepository()
-	logger := jwt.NewMockLogger()
+	logger := zerolog.New(nil)
+
 	config := jwt.Config{
 		AccessTokenDuration:  15 * time.Minute,
 		RefreshTokenDuration: 24 * time.Hour,
 		SigningKey:           "test-signing-key",
 	}
-	service := jwt.NewService(repo, config, logger)
-	return service, repo, logger
+
+	service := jwt.NewService(repo, config, &logger)
+	return service, repo, &logger
 }
 
 func TestGenerateTokenPair(t *testing.T) {
@@ -33,9 +36,26 @@ func TestGenerateTokenPair(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	roles := []string{"user", "admin"}
+	userAgent := "this is a user agent"
+	ip := "127.0.0.0"
+	location := "canada"
+	browser_name := "chrome"
+	device_name := "desktop"
+	osName := "windows"
+
+	sessionInfo := jwt.SessionInfo{
+		UserID:      userID,
+		UserAgent:   &userAgent,
+		Roles:       roles,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser_name,
+		DeviceName:  &device_name,
+		OsName:      &osName,
+	}
 
 	// Test
-	tokenPair, err := service.GenerateTokenPair(ctx, userID, roles)
+	tokenPair, err := service.GenerateTokenPair(ctx, sessionInfo)
 
 	// Assert
 	require.NoError(t, err)
@@ -68,16 +88,33 @@ func TestRefreshAccessToken(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	roles := []string{"user"}
+	userAgent := "this is a user agent"
+	ip := "127.0.0.0"
+	location := "canada"
+	browser_name := "chrome"
+	device_name := "desktop"
+	osName := "windows"
+
+	sessionInfo := jwt.SessionInfo{
+		UserID:      userID,
+		UserAgent:   &userAgent,
+		Roles:       roles,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser_name,
+		DeviceName:  &device_name,
+		OsName:      &osName,
+	}
 
 	// Generate initial token pair
-	initialTokens, err := service.GenerateTokenPair(ctx, userID, roles)
+	initialTokens, err := service.GenerateTokenPair(ctx, sessionInfo)
 
 	fmt.Println("initial iD: ", userID)
 
 	require.NoError(t, err)
 
 	// Test refresh
-	newTokens, err := service.RefreshAccessToken(ctx, initialTokens.RefreshToken)
+	newTokens, err := service.RefreshAccessToken(ctx, sessionInfo, initialTokens.RefreshToken)
 
 	require.NoError(t, err)
 
@@ -94,9 +131,25 @@ func TestInvalidateTokens(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	roles := []string{"user"}
+	userAgent := "this is a user agent"
+	ip := "127.0.0.0"
+	location := "canada"
+	browser_name := "chrome"
+	device_name := "desktop"
+	osName := "windows"
 
+	sessionInfo := jwt.SessionInfo{
+		UserID:      userID,
+		UserAgent:   &userAgent,
+		Roles:       roles,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser_name,
+		DeviceName:  &device_name,
+		OsName:      &osName,
+	}
 	// Generate token pair
-	initialTokens, err := service.GenerateTokenPair(ctx, userID, roles)
+	initialTokens, err := service.GenerateTokenPair(ctx, sessionInfo)
 	require.NoError(t, err)
 
 	// Verify refresh token exists
@@ -119,9 +172,25 @@ func TestMiddleware(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	roles := []string{"user"}
+	userAgent := "this is a user agent"
+	ip := "127.0.0.0"
+	location := "canada"
+	browser_name := "chrome"
+	device_name := "desktop"
+	osName := "windows"
 
+	sessionInfo := jwt.SessionInfo{
+		UserID:      userID,
+		UserAgent:   &userAgent,
+		Roles:       roles,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser_name,
+		DeviceName:  &device_name,
+		OsName:      &osName,
+	}
 	// Generate token pair
-	tokenPair, err := service.GenerateTokenPair(ctx, userID, roles)
+	tokenPair, err := service.GenerateTokenPair(ctx, sessionInfo)
 	require.NoError(t, err)
 
 	// Create test handler
@@ -162,20 +231,39 @@ func TestMiddleware(t *testing.T) {
 func TestTokenExpiration(t *testing.T) {
 	// Setup custom config with short expiration
 	repo := jwt.NewMockTokenRepository()
-	logger := jwt.NewMockLogger()
+	logger := zerolog.New(nil)
+
 	config := jwt.Config{
 		AccessTokenDuration:  1 * time.Millisecond, // Very short for testing
 		RefreshTokenDuration: 10 * time.Millisecond,
 		SigningKey:           "test-signing-key",
 	}
-	service := jwt.NewService(repo, config, logger)
+
+	service := jwt.NewService(repo, config, &logger)
 
 	ctx := context.Background()
 	userID := uuid.New()
 	roles := []string{"user"}
+	userAgent := "this is a user agent"
+	ip := "127.0.0.0"
+	location := "canada"
+	browser_name := "chrome"
+	device_name := "desktop"
+	osName := "windows"
+
+	sessionInfo := jwt.SessionInfo{
+		UserID:      userID,
+		UserAgent:   &userAgent,
+		Roles:       roles,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser_name,
+		DeviceName:  &device_name,
+		OsName:      &osName,
+	}
 
 	// Generate token pair
-	tokenPair, err := service.GenerateTokenPair(ctx, userID, roles)
+	tokenPair, err := service.GenerateTokenPair(ctx, sessionInfo)
 	require.NoError(t, err)
 
 	// Wait for token to expire
@@ -186,13 +274,13 @@ func TestTokenExpiration(t *testing.T) {
 	assert.Error(t, err)
 
 	// Generate new tokens and wait for refresh token to expire
-	tokenPair, err = service.GenerateTokenPair(ctx, userID, roles)
+	tokenPair, err = service.GenerateTokenPair(ctx, sessionInfo)
 	require.NoError(t, err)
 
 	// Wait for refresh token to expire
 	time.Sleep(15 * time.Millisecond)
 
 	// Try to refresh with expired token
-	_, err = service.RefreshAccessToken(ctx, tokenPair.RefreshToken)
+	_, err = service.RefreshAccessToken(ctx, sessionInfo, tokenPair.RefreshToken)
 	assert.Error(t, err)
 }

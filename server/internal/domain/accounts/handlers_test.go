@@ -1,4 +1,4 @@
-package accounts
+package accounts_test
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/internal/domain/accounts"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
 	"github.com/Fantasy-Programming/nuts/internal/utility/types"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
@@ -30,8 +31,8 @@ import (
 type HandlerTestSuite struct {
 	suite.Suite
 	router       router.Router
-	handler      *Handler
-	repo         Repository
+	handler      *accounts.Handler
+	repo         accounts.Repository
 	logger       *zerolog.Logger
 	container    *TestPostgresContainer
 	dbPool       *pgxpool.Pool
@@ -82,7 +83,6 @@ func (s *HandlerTestSuite) SetupSuite() {
 	fmt.Println("yes")
 
 	repo := jwt.NewMockTokenRepository()
-	loggerMC := jwt.NewMockLogger()
 
 	// Setup JWT config
 	jwtConfig := jwt.Config{
@@ -91,11 +91,29 @@ func (s *HandlerTestSuite) SetupSuite() {
 		RefreshTokenDuration: 7 * 24 * time.Hour,
 	}
 
-	s.jwt = jwt.NewService(repo, jwtConfig, loggerMC)
+	s.jwt = jwt.NewService(repo, jwtConfig, &logger)
 
 	// Create JWT tokens for test user
 	roles := []string{"user"}
-	tokenPair, err := s.jwt.GenerateTokenPair(context.Background(), s.userID, roles)
+	userAgent := "this is a user agent"
+	ip := "127.0.0.0"
+	location := "canada"
+	browser_name := "chrome"
+	device_name := "desktop"
+	osName := "windows"
+
+	sessionInfo := jwt.SessionInfo{
+		UserID:      s.userID,
+		UserAgent:   &userAgent,
+		Roles:       roles,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser_name,
+		DeviceName:  &device_name,
+		OsName:      &osName,
+	}
+
+	tokenPair, err := s.jwt.GenerateTokenPair(context.Background(), sessionInfo)
 	require.NoError(t, err)
 	s.authToken = tokenPair.AccessToken
 	s.refreshToken = tokenPair.RefreshToken
@@ -107,10 +125,10 @@ func (s *HandlerTestSuite) SetupSuite() {
 	validator := validation.New()
 
 	// Create repository
-	s.repo = NewRepository(queries, dbPool)
+	s.repo = accounts.NewRepository(queries, dbPool)
 
 	// Create handler
-	s.handler = NewHandler(validator, dbPool, s.repo, &logger)
+	s.handler = accounts.NewHandler(validator, dbPool, s.repo, &logger)
 
 	// Setup router
 	s.router = router.NewRouter()
@@ -182,7 +200,7 @@ func (s *HandlerTestSuite) TestCreateAccount() {
 	s.router.Post("/", s.handler.CreateAccount)
 
 	// Create test request
-	createReq := CreateAccountRequest{
+	createReq := accounts.CreateAccountRequest{
 		Name:     "Test Account",
 		Type:     "cash",
 		Balance:  1000.50,
@@ -330,7 +348,7 @@ func (s *HandlerTestSuite) TestUpdateAccount() {
 	require.NoError(t, err)
 
 	// Create update request
-	updateReq := CreateAccountRequest{
+	updateReq := accounts.CreateAccountRequest{
 		Name:     "Updated Account",
 		Type:     "cash",
 		Balance:  1200.50,
@@ -399,12 +417,12 @@ func (s *HandlerTestSuite) TestCreateAccountInvalidInput() {
 	// Test cases for invalid inputs
 	testCases := []struct {
 		name     string
-		request  CreateAccountRequest
+		request  accounts.CreateAccountRequest
 		expected int
 	}{
 		{
 			name: "Empty Name",
-			request: CreateAccountRequest{
+			request: accounts.CreateAccountRequest{
 				Name:     "",
 				Type:     "cash",
 				Balance:  100.0,
@@ -415,7 +433,7 @@ func (s *HandlerTestSuite) TestCreateAccountInvalidInput() {
 		},
 		{
 			name: "Invalid Account Type",
-			request: CreateAccountRequest{
+			request: accounts.CreateAccountRequest{
 				Name:     "Test Account",
 				Type:     "invalid-type",
 				Balance:  100.0,
@@ -426,7 +444,7 @@ func (s *HandlerTestSuite) TestCreateAccountInvalidInput() {
 		},
 		{
 			name: "Invalid Color Format",
-			request: CreateAccountRequest{
+			request: accounts.CreateAccountRequest{
 				Name:     "Test Account",
 				Type:     "cash",
 				Balance:  100.0,

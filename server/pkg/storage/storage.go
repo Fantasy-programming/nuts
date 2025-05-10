@@ -40,7 +40,7 @@ type Storage interface {
 
 func NewStorageProvider(cfg config.Storage, logger *zerolog.Logger) (Storage, error) {
 	switch cfg.Host {
-	case "FS":
+	case "Fs":
 		if cfg.FSPath == "" {
 			return nil, fmt.Errorf("empty fs path for host 'Fs' set in ENV")
 		}

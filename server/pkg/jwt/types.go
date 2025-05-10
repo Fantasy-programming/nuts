@@ -47,6 +47,11 @@ type TokenInfo struct {
 	LastUsedAt   time.Time
 }
 
+type FullToken struct {
+	ID         uuid.UUID
+	LastUsedAt time.Time
+}
+
 // Service manages JWT token operations
 type Service struct {
 	repo   TokenRepository

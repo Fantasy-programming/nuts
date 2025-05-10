@@ -1,6 +1,6 @@
 module github.com/Fantasy-Programming/nuts
 
-go 1.23.2
+go 1.23.8
 
 toolchain go1.24.1
 

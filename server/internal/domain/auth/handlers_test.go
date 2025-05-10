@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"bytes"
@@ -10,11 +10,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/config"
+	"github.com/Fantasy-Programming/nuts/internal/domain/auth"
+	"github.com/Fantasy-Programming/nuts/internal/domain/user"
 	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/internal/utility/encrypt"
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/pkg/pass"
 	"github.com/Fantasy-Programming/nuts/pkg/router"
+	"github.com/Fantasy-Programming/nuts/pkg/storage"
 	"github.com/docker/go-connections/nat"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,8 +34,8 @@ import (
 type HandlerTestSuite struct {
 	suite.Suite
 	router       router.Router
-	handler      *Handler
-	repo         Repository
+	handler      *auth.Handler
+	repo         user.Repository
 	logger       *zerolog.Logger
 	container    *TestPostgresContainer
 	dbPool       *pgxpool.Pool
@@ -75,32 +80,34 @@ func (s *HandlerTestSuite) SetupSuite() {
 
 	// Create mock token repo
 	tokenRepo := jwt.NewMockTokenRepository()
-	loggerMC := jwt.NewMockLogger()
 
 	// Setup JWT service
-	s.jwt = jwt.NewService(tokenRepo, jwtConfig, loggerMC)
+	s.jwt = jwt.NewService(tokenRepo, jwtConfig, &logger)
+
+	// setup mockStorage
+
+	storage, err := storage.NewStorageProvider(config.Storage{
+		Host:   "fs",
+		FSPath: "/.tests",
+	}, &logger)
+	require.NoError(t, err)
 
 	// Create repository
 	queries := repository.New(dbPool)
-	s.repo = NewRepository(dbPool, queries)
+	s.repo = user.NewRepository(dbPool, queries, storage)
 
-	// Create test config
-	// cfg := &config.Config{
-	// 	Auth: config.Auth{
-	// 		GoogleClientID:     "test-client-id",
-	// 		GoogleClientSecret: "test-client-secret",
-	// 		GoogleCallbackURL:  "http://localhost:8080/auth/oauth/google/callback",
-	// 	},
-	// }
+	// Create encrypter
+	encrypter, err := encrypt.NewEncrypter("a26bfb49e294808885b7cde63663f318bbeefd3117448cd293a44d73bda549c5")
+	require.NoError(t, err)
 
 	// Create handler
-	s.handler = NewHandler(validator, s.jwt, s.repo, &logger)
+	s.handler = auth.NewHandler(validator, encrypter, s.jwt, s.repo, &logger)
 
 	// Setup router
 	s.router = router.NewRouter()
 
 	// Register validator
-	RegisterValidations(validator.Validator)
+	auth.RegisterValidations(validator.Validator)
 }
 
 func (s *HandlerTestSuite) SetupTest() {
@@ -201,7 +208,7 @@ func (s *HandlerTestSuite) TestSignup() {
 	s.router.Post("/signup", s.handler.Signup)
 
 	// Create signup request
-	signupReq := SignupRequest{
+	signupReq := auth.SignupRequest{
 		Email:    "new@example.com",
 		Password: "Password123!",
 	}
@@ -240,12 +247,12 @@ func (s *HandlerTestSuite) TestSignupInvalidData() {
 
 	testCases := []struct {
 		name     string
-		request  SignupRequest
+		request  auth.SignupRequest
 		expected int
 	}{
 		{
 			name: "Empty Email",
-			request: SignupRequest{
+			request: auth.SignupRequest{
 				Email:    "",
 				Password: "Password123!",
 			},
@@ -253,7 +260,7 @@ func (s *HandlerTestSuite) TestSignupInvalidData() {
 		},
 		{
 			name: "Invalid Email Format",
-			request: SignupRequest{
+			request: auth.SignupRequest{
 				Email:    "not-an-email",
 				Password: "Password123!",
 			},
@@ -261,7 +268,7 @@ func (s *HandlerTestSuite) TestSignupInvalidData() {
 		},
 		{
 			name: "Password Too Short",
-			request: SignupRequest{
+			request: auth.SignupRequest{
 				Email:    "test@example.com",
 				Password: "short",
 			},
@@ -295,7 +302,7 @@ func (s *HandlerTestSuite) TestLogin() {
 	require.NotEqual(t, uuid.Nil, userID)
 
 	// Create login request
-	loginReq := LoginRequest{
+	loginReq := auth.LoginRequest{
 		Email:    "login@example.com",
 		Password: password,
 	}
@@ -347,12 +354,12 @@ func (s *HandlerTestSuite) TestLoginInvalidCredentials() {
 
 	testCases := []struct {
 		name     string
-		request  LoginRequest
+		request  auth.LoginRequest
 		expected int
 	}{
 		{
 			name: "Wrong Password",
-			request: LoginRequest{
+			request: auth.LoginRequest{
 				Email:    "valid@example.com",
 				Password: "WrongPassword123!",
 			},
@@ -360,7 +367,7 @@ func (s *HandlerTestSuite) TestLoginInvalidCredentials() {
 		},
 		{
 			name: "User Not Found",
-			request: LoginRequest{
+			request: auth.LoginRequest{
 				Email:    "nonexistent@example.com",
 				Password: "Password123!",
 			},
@@ -368,7 +375,7 @@ func (s *HandlerTestSuite) TestLoginInvalidCredentials() {
 		},
 		{
 			name: "Empty Email",
-			request: LoginRequest{
+			request: auth.LoginRequest{
 				Email:    "",
 				Password: "Password123!",
 			},
@@ -376,7 +383,7 @@ func (s *HandlerTestSuite) TestLoginInvalidCredentials() {
 		},
 		{
 			name: "Empty Password",
-			request: LoginRequest{
+			request: auth.LoginRequest{
 				Email:    "valid@example.com",
 				Password: "",
 			},
@@ -412,7 +419,25 @@ func (s *HandlerTestSuite) TestRefresh() {
 
 	// Generate tokens
 	roles := []string{"user"}
-	tokenPair, err := s.jwt.GenerateTokenPair(context.Background(), userID, roles)
+	userAgent := "this is a user agent"
+	ip := "127.0.0.0"
+	location := "canada"
+	browser_name := "chrome"
+	device_name := "desktop"
+	osName := "windows"
+
+	sessionInfo := jwt.SessionInfo{
+		UserID:      userID,
+		UserAgent:   &userAgent,
+		Roles:       roles,
+		IpAddress:   &ip,
+		Location:    &location,
+		BrowserName: &browser_name,
+		DeviceName:  &device_name,
+		OsName:      &osName,
+	}
+
+	tokenPair, err := s.jwt.GenerateTokenPair(context.Background(), sessionInfo)
 	require.NoError(t, err)
 
 	originalAccessToken := tokenPair.AccessToken
@@ -502,7 +527,24 @@ func (s *HandlerTestSuite) TestLogout() {
 
 		// Generate tokens
 		roles := []string{"user"}
-		tokenPair, err := s.jwt.GenerateTokenPair(context.Background(), userID, roles)
+		userAgent := "this is a user agent"
+		ip := "127.0.0.0"
+		location := "canada"
+		browser_name := "chrome"
+		device_name := "desktop"
+		osName := "windows"
+
+		sessionInfo := jwt.SessionInfo{
+			UserID:      userID,
+			UserAgent:   &userAgent,
+			Roles:       roles,
+			IpAddress:   &ip,
+			Location:    &location,
+			BrowserName: &browser_name,
+			DeviceName:  &device_name,
+			OsName:      &osName,
+		}
+		tokenPair, err := s.jwt.GenerateTokenPair(context.Background(), sessionInfo)
 		require.NoError(t, err)
 		s.authToken = tokenPair.AccessToken
 		s.refreshToken = tokenPair.RefreshToken

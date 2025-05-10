@@ -3,7 +3,6 @@ package jwt
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/internal/repository"
@@ -16,19 +15,19 @@ type MockTokenRepository struct {
 }
 
 // NewMockTokenRepository creates a new mock repository
-func NewMockTokenRepository() MockTokenRepository {
-	return MockTokenRepository{
+func NewMockTokenRepository() *MockTokenRepository {
+	return &MockTokenRepository{
 		tokens: make(map[string]TokenInfo),
 	}
 }
 
 // SaveToken stores a token in the mock repository
-func (m *MockTokenRepository) SaveToken(ctx context.Context, userID uuid.UUID, refreshToken string, expiresAt time.Time) error {
+func (m *MockTokenRepository) SaveToken(ctx context.Context, session SessionInfo, refreshToken string, expiresAt time.Time) error {
 	tokenID := uuid.New()
 
 	m.tokens[refreshToken] = TokenInfo{
 		ID:           tokenID,
-		UserID:       userID,
+		UserID:       session.UserID,
 		RefreshToken: refreshToken,
 		ExpiresAt:    expiresAt,
 		LastUsedAt:   time.Now(),
@@ -113,7 +112,7 @@ func (m *MockTokenRepository) GetTokens(ctx context.Context, userID uuid.UUID) (
 	return userTokens, nil
 }
 
-func (m *MockTokenRepository) RemoveToken(ctx context.Context, id uuid.UUID) error {
+func (m *MockTokenRepository) RevokeToken(ctx context.Context, id uuid.UUID) error {
 	for key, token := range m.tokens {
 		if token.ID == id {
 			delete(m.tokens, key)
@@ -123,30 +122,4 @@ func (m *MockTokenRepository) RemoveToken(ctx context.Context, id uuid.UUID) err
 
 	// To mimic sqlc behavior when no row is affected/found for deletion
 	return errors.New("token not found for removal") // Or return nil if you prefer idempotent deletes
-}
-
-// Mock logger
-
-// MockLogger implements the Logger interface for testing
-type MockLogger struct {
-	Logs []string
-}
-
-// NewMockLogger creates a new mock logger
-func NewMockLogger() *MockLogger {
-	return &MockLogger{
-		Logs: make([]string, 0),
-	}
-}
-
-// Error logs an error message
-func (m *MockLogger) Error(msg string, err error) {
-	logMsg := fmt.Sprintf("ERROR: %s - %v", msg, err)
-	m.Logs = append(m.Logs, logMsg)
-}
-
-// Info logs an informational message
-func (m *MockLogger) Info(msg string, args ...interface{}) {
-	logMsg := fmt.Sprintf("INFO: %s - %v", msg, args)
-	m.Logs = append(m.Logs, logMsg)
 }
