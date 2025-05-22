@@ -1,7 +1,7 @@
 import { Skeleton } from "@/core/components/ui/skeleton"
 import { Card, CardContent, CardFooter, CardHeader } from "@/core/components/ui/card"
 
-export default function AccountsLoading() {
+export function AccountsLoading() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

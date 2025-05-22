@@ -2,13 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 
 import { accountService } from "@/features/accounts/services/account";
-import { AccountGroup } from "@/features/accounts/components/account";
-import AccountsLoading from "@/features/accounts/components/account.loading";
+import { DraggableAccountGroups } from "@/features/accounts/components/account";
+import { AccountsLoading } from "@/features/accounts/components/account.loading";
 import { AccountFormSchema } from "@/features/accounts/services/account.types";
 import { AddAccountModal } from "@/features/accounts/components/account.create-modal";
 import { NetWorthCard } from "@/features/accounts/components/account.net-worth";
 import { Button } from "@/core/components/ui/button";
 import { Plus } from "lucide-react";
+import { groupAccountsByType } from "@/features/accounts/components/account.utils";
 
 
 
@@ -35,6 +36,9 @@ function RouteComponent() {
   });
 
   const cashTotal = data.reduce((sum, account) => sum + account.balance, 0)
+  const grouppedAccounts = groupAccountsByType(data)
+
+
 
   const createAccount = useMutation({
     mutationFn: accountService.createAccount,
@@ -93,16 +97,23 @@ function RouteComponent() {
       </header>
       <main className="flex flex-1 overflow-hidden">
         <div className="h-full w-full space-y-8 overflow-y-auto  py-2">
-          <NetWorthCard accounts={data} />
+          <NetWorthCard cashTotal={cashTotal} />
 
-          <AccountGroup
-            title="Cash"
-            accounts={data}
-            totalBalance={cashTotal}
-            trend={{ value: 431.89, period: "1 month change" }}
-            onEdit={onUpdate}
-            onDelete={onDelete}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <DraggableAccountGroups
+                initialAccounts={grouppedAccounts}
+                period={"1 month change"}
+                onEdit={onUpdate}
+                onDelete={onDelete}
+              />
+            </div>
+            <div className="lg:col-span-1">
+              <div className="sticky top-8">
+                {/* <SummaryCard assets={summaryData.assets} liabilities={summaryData.liabilities} /> */}
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </>

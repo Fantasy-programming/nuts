@@ -19,14 +19,11 @@ export const accountSchema = z.object({
 });
 
 export const accountWTrendSchema = accountSchema.extend({
-  transactions: z.object({
-    id: z.string(),
-    amount: z.coerce.number(),
-    type: z.enum(["expense", "income", "transfer"]),
-    transaction_datetime: z.coerce.date(),
-    description: z.string().min(1, "Description is required"),
-  }).array().optional(),
-  trend: z.number()
+  trend: z.number(),
+  balance_timeseries: z.array(z.object({
+    date: z.coerce.date(),
+    balance: z.number()
+  }))
 })
 
 export const accountBalanceTimelineSchema = z.object({
@@ -42,11 +39,21 @@ export const accountCreateSchema = accountSchema.omit({
 export const accountFormSchema = accountSchema.omit({
   id: true,
   updated_at: true,
-  meta: true,
+  // meta: true,
 })
+
+
+export const groupedAccountSchema = z.object({
+  type: z.enum(["cash", "savings", "investment", "credit"], { message: "Invalid account type" }),
+  total: z.number(),
+  trend: z.number(),
+  accounts: z.array(accountWTrendSchema)
+});
+
 
 export type Account = z.infer<typeof accountSchema>;
 export type AccountWTrend = z.infer<typeof accountWTrendSchema>;
+export type GroupedAccount = z.infer<typeof groupedAccountSchema>;
 export type AccountBalanceTimeline = z.infer<typeof accountBalanceTimelineSchema>;
 export type AccountCreate = z.infer<typeof accountCreateSchema>;
 export type AccountFormSchema = z.infer<typeof accountFormSchema>;
