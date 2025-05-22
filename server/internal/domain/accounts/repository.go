@@ -159,7 +159,8 @@ func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTi
 
 	defer rows.Close()
 
-	var results []AccountWithTrend
+	results := []AccountWithTrend{}
+
 	for rows.Next() {
 		var rawTimeseries json.RawMessage
 		var a AccountWithTrend

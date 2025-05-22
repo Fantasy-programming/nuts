@@ -40,7 +40,7 @@ account_info AS (
     WHERE accounts.created_by = $3
     -- Include accounts active at any point during the period
     AND created_at <= (SELECT end_date FROM period)
-    AND (deleted_at IS NULL OR deleted_at > (SELECT start_date FROM period))
+    AND deleted_at IS NULL
 ),
 
 balance_calc AS (
@@ -115,7 +115,7 @@ account_trend AS (
     -- Ensure we only consider the balance if the account existed at the start date for trend calculation
     -- If created within the period, trend starts from 0.
     WHERE ai.created_at <= (SELECT end_date FROM period) -- Redundant check, but safe
-      AND (ai.deleted_at IS NULL OR ai.deleted_at > (SELECT start_date FROM period)) -- Ensure not deleted before period start
+      AND ai.deleted_at IS NULL -- Ensure not deleted before period start
 ),
 
 balance_timeseries AS (

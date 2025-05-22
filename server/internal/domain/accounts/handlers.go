@@ -1,8 +1,6 @@
 package accounts
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -247,7 +245,8 @@ func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateAccountRequest
 
-	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -260,15 +259,13 @@ func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate and parse
-	if err := h.validator.Validator.Struct(req); err != nil {
-		// validationErrors := validation.TranslateErrors(ctx, err)
-		respond.Error(respond.ErrorOptions{
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrValidation,
-			ActualErr:  err,
+			ActualErr:  valErr,
 			Logger:     h.logger,
 			Details:    req,
 		})
@@ -459,8 +456,6 @@ func (h *Handler) GetAccountsTrends(w http.ResponseWriter, r *http.Request) {
 	}
 
 	account, err := h.repo.GetAccountsTrends(ctx, &userID, startDate, endDate)
-
-	fmt.Println(err)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -473,6 +468,8 @@ func (h *Handler) GetAccountsTrends(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	h.logger.Debug().Any("account:", account)
 
 	respond.Json(w, http.StatusOK, account, h.logger)
 }
