@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -34,7 +35,7 @@ type Repository interface {
 	// GetAccountsBTimeline
 	GetAccountsBTimeline(ctx context.Context, userID *uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error)
 	GetAccountBTimeline(ctx context.Context, id uuid.UUID) ([]repository.GetAccountBalanceTimelineRow, error)
-	GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]repository.GetAccountsWithTrendRow, error)
+	GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]AccountWithTrend, error)
 }
 
 type repo struct {
@@ -150,12 +151,29 @@ func (r *repo) GetAccountBTimeline(ctx context.Context, id uuid.UUID) ([]reposit
 	return r.queries.GetAccountBalanceTimeline(ctx, id)
 }
 
-func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]repository.GetAccountsWithTrendRow, error) {
-	params := repository.GetAccountsWithTrendParams{
-		Column1: startTime,
-		Column2: endTime,
-		UserID:  userID,
+func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]AccountWithTrend, error) {
+	rows, err := r.db.Query(ctx, getAccountsWithTrendSQL, startTime, endTime, userID)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.queries.GetAccountsWithTrend(ctx, params)
+	defer rows.Close()
+
+	var results []AccountWithTrend
+	for rows.Next() {
+		var rawTimeseries json.RawMessage
+		var a AccountWithTrend
+		err := rows.Scan(
+			&a.ID, &a.Name, &a.Type, &a.Balance, &a.Currency,
+			&a.Color, &a.Meta, &a.UpdatedAt, &a.Trend, &rawTimeseries,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(rawTimeseries, &a.BalanceTimeseries); err != nil {
+			return nil, err
+		}
+		results = append(results, a)
+	}
+	return results, nil
 }

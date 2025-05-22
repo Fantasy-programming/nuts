@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -54,7 +55,7 @@ func (h *Handler) GetAccounts(w http.ResponseWriter, r *http.Request) {
 			ClientErr:  message.ErrInternalError,
 			ActualErr:  err,
 			Logger:     h.logger,
-			Details: map[string]interface{}{
+			Details: map[string]any{
 				"requestUrl": r.RequestURI,
 				"operation":  "GetAccounts",
 			},
@@ -76,7 +77,7 @@ func (h *Handler) GetAccount(w http.ResponseWriter, r *http.Request) {
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
 			Logger:     h.logger,
-			Details: map[string]interface{}{
+			Details: map[string]any{
 				"requestUrl": r.RequestURI,
 				"operation":  "GetAccount",
 			},
@@ -120,7 +121,7 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateAccountRequest
 
-	valErr, err := h.validator.ParseAndValidate(ctx, r, req)
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -458,6 +459,8 @@ func (h *Handler) GetAccountsTrends(w http.ResponseWriter, r *http.Request) {
 	}
 
 	account, err := h.repo.GetAccountsTrends(ctx, &userID, startDate, endDate)
+
+	fmt.Println(err)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,

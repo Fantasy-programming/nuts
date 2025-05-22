@@ -57,7 +57,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	ctx := r.Context()
 
-	valErr, err := h.v.ParseAndValidate(ctx, r, req)
+	valErr, err := h.v.ParseAndValidate(ctx, r, &req)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -370,6 +370,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	respond.Json(w, http.StatusOK, nil, h.log)
 }
 
+// TODO: Revoke the active session on logout
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	secure := os.Getenv("ENVIRONMENT") == "production"
 

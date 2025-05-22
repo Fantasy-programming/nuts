@@ -25,4 +25,15 @@ const createAccount = async (account: AccountCreate): Promise<Account> => {
   return data.data;
 };
 
-export const accountService = { getAccounts, createAccount };
+
+const updateAccount = async ({ id, account }: { id: string, account: AccountCreate }): Promise<Account> => {
+  const data = await axios.put<Account>(`${BASEURI}/${id}`, account);
+  return data.data;
+};
+
+
+const deleteAccount = async (id: string) => {
+  await axios.delete(`${BASEURI}/${id}`);
+};
+
+export const accountService = { getAccounts, getAccountsBalanceTimeline, getAccountsWTrends, createAccount, updateAccount, deleteAccount };
