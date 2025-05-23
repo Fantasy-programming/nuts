@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose,
 } from "@/core/components/ui/dialog"
 import {
   Drawer,
@@ -17,6 +18,7 @@ import {
   DrawerTitle,
   DrawerDescription,
   DrawerFooter,
+  DrawerClose,
 } from "@/core/components/ui/drawer"
 import { useIsMobile } from "@/core/hooks/use-mobile"
 import { Fragment } from "react"
@@ -165,6 +167,25 @@ const ResponsiveDialogFooter = ({ children, className, ...props }: React.Compone
   )
 }
 
+
+const ResponsiveDialogClose = ({ children, className, ...props }: React.ComponentProps<typeof DialogClose>) => {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <DrawerClose className={className} {...props}>
+        {children}
+      </DrawerClose>
+    )
+  }
+
+  return (
+    <DialogClose className={className} {...props}>
+      {children}
+    </DialogClose>
+  )
+}
+
 export {
   ResponsiveDialog,
   ResponsiveDialogTrigger,
@@ -173,5 +194,6 @@ export {
   ResponsiveDialogTitle,
   ResponsiveDialogDescription,
   ResponsiveDialogFooter,
+  ResponsiveDialogClose
 }
 

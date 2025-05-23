@@ -1,5 +1,7 @@
-import { useCallback } from "react"
-import { Building, CreditCard, PiggyBank, Wallet, TrendingUp } from "lucide-react"
+import { useCallback, useId, useEffect } from "react"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { accountTypeOptions } from "./account.constants";
 
 import { Button } from "@/core/components/ui/button"
 import {
@@ -12,13 +14,13 @@ import {
 } from "@/core/components/ui/dialog"
 import { Input } from "@/core/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select"
+import { SearchableSelect } from "@/core/components/ui/search-select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar"
 import { AccountWTrend, accountFormSchema, AccountFormSchema } from "../services/account.types"
 import { AccountUpdate } from "../services/account.types"
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
 
+//TODO: Make the currency label reflect the account label + use a hook for the input sizing
 export default function EditAccountModal({
   isOpen,
   onClose,
@@ -31,6 +33,8 @@ export default function EditAccountModal({
   onUpdateAccount: AccountUpdate
 }) {
 
+  const typeFieldId = useId();
+
   const form = useForm<AccountFormSchema>({
     resolver: zodResolver(accountFormSchema),
     defaultValues: {
@@ -42,6 +46,20 @@ export default function EditAccountModal({
       meta: account.meta,
     },
   });
+
+
+  useEffect(() => {
+    if (account) {
+      form.reset({ // Call reset with the new account's data
+        name: account.name,
+        type: account.type,
+        currency: account.currency,
+        color: account.color,
+        balance: account.balance,
+        meta: account.meta,
+      });
+    }
+  }, [account, form]);
 
   const handleSubmit = useCallback(
     (values: AccountFormSchema) => {
@@ -106,47 +124,17 @@ export default function EditAccountModal({
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Account Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLinkedAccount}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select account type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="credit">Credit</SelectItem>
-                          <SelectItem value="checking">
-                            <div className="flex items-center gap-2">
-                              <Building className="h-4 w-4 text-blue-500" />
-                              <span>Checking</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="savings">
-                            <div className="flex items-center gap-2">
-                              <PiggyBank className="h-4 w-4 text-emerald-500" />
-                              <span>Savings</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="investment">
-                            <div className="flex items-center gap-2">
-                              <TrendingUp className="h-4 w-4 text-purple-500" />
-                              <span>Investment</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="cash">
-                            <div className="flex items-center gap-2">
-                              <Wallet className="h-4 w-4 text-amber-500" />
-                              <span>Cash</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="other">
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="h-4 w-4 text-slate-500" />
-                              <span>Other</span>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel htmlFor={typeFieldId}>Account Type</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          id={typeFieldId}
+                          options={accountTypeOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select account type"
+                          searchPlaceholder="Search account type..."
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -163,13 +151,19 @@ export default function EditAccountModal({
                       <FormControl>
                         <>
                           <div className="relative">
-                            <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
+                            <span
+                              className="
+                              pointer-events-none  flex items-center justify-center   peer-disabled:opacity-50
+                              absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground
+                              ">
+
+                              $</span>
                             <Input type="number"
                               disabled={isLinkedAccount}
                               step="0.01"
                               min="0"
                               placeholder="0.00"
-                              className="pl-8"
+                              className="peer pl-8"
                               {...field} onChange={(e) => field.onChange(Number.parseFloat(e.target.value))} />
                           </div>
 
