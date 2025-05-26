@@ -248,7 +248,7 @@ const SideBarFooterMenu = memo(() => {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-3 px-1">
+              <DropdownMenuSubTrigger className="gap-3 px-1 ps-2">
                 <RiSunLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
                 Theme
               </DropdownMenuSubTrigger>
@@ -265,7 +265,7 @@ const SideBarFooterMenu = memo(() => {
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-            <DropdownMenuItem className="gap-3 px-1" onClick={() => onLogout()}>
+            <DropdownMenuItem className="gap-3 px-1 ps-2" onClick={() => onLogout()}>
               <RiLogoutBoxLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
               {t("logout")}
             </DropdownMenuItem>

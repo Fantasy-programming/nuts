@@ -1,4 +1,3 @@
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,17 +8,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/core/components/ui/alert-dialog"
+import { RecordSchema } from "../services/transaction.types"
 
-export default function DeleteTransactionDialog({
+export function DeleteTransactionDialog({
   isOpen,
   onClose,
   transaction,
   onDeleteTransaction,
+  isDeleting
 }: {
   isOpen: boolean
   onClose: () => void
-  transaction: any | null
-  onDeleteTransaction: (id: number) => void
+  transaction: RecordSchema | null
+  onDeleteTransaction: (id: string) => void
+  isDeleting: boolean | undefined
 }) {
   const handleDelete = () => {
     if (transaction) {
@@ -44,6 +46,7 @@ export default function DeleteTransactionDialog({
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
+            disabled={isDeleting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             Delete

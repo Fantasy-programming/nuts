@@ -5,14 +5,16 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React, { useMemo, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
+import type { Account } from "@/features/accounts/services/account.types"
+import type { Category } from "@/features/categories/services/category.types";
 
 interface TransactionFiltersProps {
   onCategoryChange: (values: string[]) => void;
   onAccountChange: (values: string[]) => void;
   onDateRangeChange: (value: string) => void;
   onReset: () => void;
-  categories: string[];
-  accounts: string[];
+  categories: Category[];
+  accounts: Account[];
 }
 
 export function RecordsFilters({ onCategoryChange, onAccountChange, onDateRangeChange, onReset, categories, accounts }: TransactionFiltersProps) {

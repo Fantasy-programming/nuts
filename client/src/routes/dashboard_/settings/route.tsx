@@ -15,25 +15,13 @@ import {
   Globe,
   Coins,
   Wrench,
-  // Webhook,
-  // Server,
-  // Users,
-  // Database,
-  // Trash2,
-  // CreditCard,
-  // FileText,
-  // Workflow,
-  // UploadCloud,
-  // Plug,
-  // Home,
   type LucideIcon,
 } from "lucide-react"
 
-import type { ValidRoutes } from "@/routes/dashboard/route" // Adjust path as needed
+import type { ValidRoutes } from "@/routes/dashboard/route"
 import { useNavigate } from "@tanstack/react-router"
 import { useHotkeys } from "react-hotkeys-hook"
 import { Button } from "@/core/components/ui/button"
-import { useAuthStore } from "@/features/auth/stores/auth.store"
 import type { AuthNullable } from '@/features/auth/services/auth.types';
 
 import {
@@ -60,7 +48,7 @@ type NavCategory = {
 }
 
 
-const settingsNavigation = (context: AuthNullable): NavCategory[] => [
+const settingsNavigation = (): NavCategory[] => [
   {
     title: "ACCOUNT",
     items: [
@@ -71,59 +59,20 @@ const settingsNavigation = (context: AuthNullable): NavCategory[] => [
   {
     title: "PREFERENCES",
     items: [
-      { to: "/dashboard/settings/appearance", label: "Appearance", icon: Palette }, // Theme
-      { to: "/dashboard/settings/localization", label: "Localization", icon: Globe }, // Combines Locale, Timezone, Date/Time formats, Currency format, Start week
-      { to: "/dashboard/settings/features", label: "Features", icon: Wrench }, // Or Plugins
-      // { to: "/dashboard/settings/general", label: "General", icon: Settings2 },
+      { to: "/dashboard/settings/appearance", label: "Appearance", icon: Palette },
+      { to: "/dashboard/settings/localization", label: "Localization", icon: Globe },
+      { to: "/dashboard/settings/features", label: "Features", icon: Wrench },
     ],
   },
-  // {
-  //   title: "DATA & CONNECTIONS",
-  //   items: [
-  //     { to: "/dashboard/settings/accounts", label: "Connected Accounts", icon: Database }, // Banks etc. + Base Currencies
-  //     { to: "/dashboard/settings/integrations", label: "Integrations", icon: Plug },
-  //     { to: "/dashboard/settings/imports", label: "Imports", icon: UploadCloud },
-  //     { to: "/dashboard/settings/data", label: "Data Management", icon: Trash2 }, // Delete history etc.
-  //   ],
-  // },
   {
     title: "TRANSACTION SETUP",
     items: [
       { to: "/dashboard/settings/tags", label: "Tags", icon: Tags },
       { to: "/dashboard/settings/categories", label: "Categories", icon: List },
       { to: "/dashboard/settings/merchants", label: "Merchants", icon: Store },
-      // { to: "/dashboard/settings/templates", label: "Templates", icon: FileText },
-      // { to: "/dashboard/settings/rules", label: "Rules", icon: Workflow }, // Automatic Rules
-      { to: "/dashboard/settings/currencies", label: "Currencies", icon: Coins }, // Custom currencies / rates
+      { to: "/dashboard/settings/currencies", label: "Currencies", icon: Coins },
     ],
   },
-  // {
-  //   title: "HOUSEHOLD",
-  //   items: [
-  //     { to: "/dashboard/settings/household/members", label: "Members", icon: Users },
-  //     { to: "/dashboard/settings/household/details", label: "Details", icon: Home },
-  //   ],
-  //   // Example condition: Only show if the user is part of a household or has household features enabled
-  //   // condition: (ctx) => !!ctx.user?.hasHouseholdFeature, // Adjust condition based on your auth context/logic
-  // },
-  // {
-  //   title: "BILLING",
-  //   items: [
-  //     { to: "/dashboard/settings/billing", label: "Plan & Billing", icon: CreditCard },
-  //   ],
-  //   // Example condition: Only show if the app has paid plans
-  //   // condition: (ctx) => ctx.auth.isSubscribed || ctx.auth.hasBillingFeature, // Adjust condition
-  // },
-  // {
-  //   title: "ADVANCED",
-  //   items: [
-  //     { to: "/dashboard/settings/webhooks", label: "Webhooks", icon: Webhook },
-  //     // Self-hosting specific settings might warrant their own sub-page or be grouped here
-  //     { to: "/dashboard/settings/self-hosting", label: "Self-Hosting", icon: Server }, // API Keys, Invites etc.
-  //   ],
-  //   // Example condition: Only show for admins or if self-hosting is enabled
-  //   // condition: (ctx) => ctx.auth.isAdmin || ctx.auth.isSelfHosted, // Adjust condition
-  // },
   {
     title: "ABOUT",
     items: [
@@ -149,12 +98,12 @@ export const Route = createFileRoute("/dashboard_/settings")({
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const user = useAuthStore((state) => state.user); // Get auth context
+  // const user = useAuthStore((state) => state.user); // Get auth context
   const currentPath = useLocation({
     select: (location) => location.pathname,
   })
 
-  const navigation = settingsNavigation(user)
+  const navigation = settingsNavigation()
   // .filter(category => !category.condition || category.condition(context)); // Filter based on condition
 
   // Handle ESC key to go back to dashboard

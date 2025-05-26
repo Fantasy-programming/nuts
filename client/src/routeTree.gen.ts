@@ -19,21 +19,25 @@ import { Route as DashboardRouteImport } from './routes/dashboard/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as DashboardIndexImport } from './routes/dashboard/index'
 import { Route as DashboardRecordsImport } from './routes/dashboard/records'
-import { Route as DashboardPluginsImport } from './routes/dashboard/plugins'
 import { Route as DashboardHomeImport } from './routes/dashboard/home'
 import { Route as DashboardAnalyticsImport } from './routes/dashboard/analytics'
 import { Route as DashboardAccountsImport } from './routes/dashboard/accounts'
 import { Route as DashboardSplatImport } from './routes/dashboard/$'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard_/settings/route'
 import { Route as DashboardSettingsIndexImport } from './routes/dashboard_/settings/index'
-import { Route as DashboardSettingsWebhookImport } from './routes/dashboard_/settings/webhook'
+import { Route as DashboardSettingsWebhooksImport } from './routes/dashboard_/settings/webhooks'
 import { Route as DashboardSettingsTagsImport } from './routes/dashboard_/settings/tags'
-import { Route as DashboardSettingsPreferencesImport } from './routes/dashboard_/settings/preferences'
+import { Route as DashboardSettingsSecurityImport } from './routes/dashboard_/settings/security'
+import { Route as DashboardSettingsRulesImport } from './routes/dashboard_/settings/rules'
+import { Route as DashboardSettingsProfileImport } from './routes/dashboard_/settings/profile'
 import { Route as DashboardSettingsNewsImport } from './routes/dashboard_/settings/news'
 import { Route as DashboardSettingsMerchantsImport } from './routes/dashboard_/settings/merchants'
+import { Route as DashboardSettingsLocalizationImport } from './routes/dashboard_/settings/localization'
 import { Route as DashboardSettingsFeedbackImport } from './routes/dashboard_/settings/feedback'
+import { Route as DashboardSettingsFeaturesImport } from './routes/dashboard_/settings/features'
+import { Route as DashboardSettingsCurrenciesImport } from './routes/dashboard_/settings/currencies'
 import { Route as DashboardSettingsCategoriesImport } from './routes/dashboard_/settings/categories'
-import { Route as DashboardSettingsAccountImport } from './routes/dashboard_/settings/account'
+import { Route as DashboardSettingsAppearanceImport } from './routes/dashboard_/settings/appearance'
 
 // Create/Update Routes
 
@@ -85,12 +89,6 @@ const DashboardRecordsRoute = DashboardRecordsImport.update({
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 
-const DashboardPluginsRoute = DashboardPluginsImport.update({
-  id: '/plugins',
-  path: '/plugins',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-
 const DashboardHomeRoute = DashboardHomeImport.update({
   id: '/home',
   path: '/home',
@@ -127,9 +125,9 @@ const DashboardSettingsIndexRoute = DashboardSettingsIndexImport.update({
   getParentRoute: () => DashboardSettingsRouteRoute,
 } as any)
 
-const DashboardSettingsWebhookRoute = DashboardSettingsWebhookImport.update({
-  id: '/webhook',
-  path: '/webhook',
+const DashboardSettingsWebhooksRoute = DashboardSettingsWebhooksImport.update({
+  id: '/webhooks',
+  path: '/webhooks',
   getParentRoute: () => DashboardSettingsRouteRoute,
 } as any)
 
@@ -139,12 +137,23 @@ const DashboardSettingsTagsRoute = DashboardSettingsTagsImport.update({
   getParentRoute: () => DashboardSettingsRouteRoute,
 } as any)
 
-const DashboardSettingsPreferencesRoute =
-  DashboardSettingsPreferencesImport.update({
-    id: '/preferences',
-    path: '/preferences',
-    getParentRoute: () => DashboardSettingsRouteRoute,
-  } as any)
+const DashboardSettingsSecurityRoute = DashboardSettingsSecurityImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => DashboardSettingsRouteRoute,
+} as any)
+
+const DashboardSettingsRulesRoute = DashboardSettingsRulesImport.update({
+  id: '/rules',
+  path: '/rules',
+  getParentRoute: () => DashboardSettingsRouteRoute,
+} as any)
+
+const DashboardSettingsProfileRoute = DashboardSettingsProfileImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => DashboardSettingsRouteRoute,
+} as any)
 
 const DashboardSettingsNewsRoute = DashboardSettingsNewsImport.update({
   id: '/news',
@@ -160,11 +169,31 @@ const DashboardSettingsMerchantsRoute = DashboardSettingsMerchantsImport.update(
   } as any,
 )
 
+const DashboardSettingsLocalizationRoute =
+  DashboardSettingsLocalizationImport.update({
+    id: '/localization',
+    path: '/localization',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any)
+
 const DashboardSettingsFeedbackRoute = DashboardSettingsFeedbackImport.update({
   id: '/feedback',
   path: '/feedback',
   getParentRoute: () => DashboardSettingsRouteRoute,
 } as any)
+
+const DashboardSettingsFeaturesRoute = DashboardSettingsFeaturesImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => DashboardSettingsRouteRoute,
+} as any)
+
+const DashboardSettingsCurrenciesRoute =
+  DashboardSettingsCurrenciesImport.update({
+    id: '/currencies',
+    path: '/currencies',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any)
 
 const DashboardSettingsCategoriesRoute =
   DashboardSettingsCategoriesImport.update({
@@ -173,11 +202,12 @@ const DashboardSettingsCategoriesRoute =
     getParentRoute: () => DashboardSettingsRouteRoute,
   } as any)
 
-const DashboardSettingsAccountRoute = DashboardSettingsAccountImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => DashboardSettingsRouteRoute,
-} as any)
+const DashboardSettingsAppearanceRoute =
+  DashboardSettingsAppearanceImport.update({
+    id: '/appearance',
+    path: '/appearance',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -260,13 +290,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardHomeImport
       parentRoute: typeof DashboardRouteImport
     }
-    '/dashboard/plugins': {
-      id: '/dashboard/plugins'
-      path: '/plugins'
-      fullPath: '/dashboard/plugins'
-      preLoaderRoute: typeof DashboardPluginsImport
-      parentRoute: typeof DashboardRouteImport
-    }
     '/dashboard/records': {
       id: '/dashboard/records'
       path: '/records'
@@ -281,11 +304,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexImport
       parentRoute: typeof DashboardRouteImport
     }
-    '/dashboard_/settings/account': {
-      id: '/dashboard_/settings/account'
-      path: '/account'
-      fullPath: '/dashboard/settings/account'
-      preLoaderRoute: typeof DashboardSettingsAccountImport
+    '/dashboard_/settings/appearance': {
+      id: '/dashboard_/settings/appearance'
+      path: '/appearance'
+      fullPath: '/dashboard/settings/appearance'
+      preLoaderRoute: typeof DashboardSettingsAppearanceImport
       parentRoute: typeof DashboardSettingsRouteImport
     }
     '/dashboard_/settings/categories': {
@@ -295,11 +318,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsCategoriesImport
       parentRoute: typeof DashboardSettingsRouteImport
     }
+    '/dashboard_/settings/currencies': {
+      id: '/dashboard_/settings/currencies'
+      path: '/currencies'
+      fullPath: '/dashboard/settings/currencies'
+      preLoaderRoute: typeof DashboardSettingsCurrenciesImport
+      parentRoute: typeof DashboardSettingsRouteImport
+    }
+    '/dashboard_/settings/features': {
+      id: '/dashboard_/settings/features'
+      path: '/features'
+      fullPath: '/dashboard/settings/features'
+      preLoaderRoute: typeof DashboardSettingsFeaturesImport
+      parentRoute: typeof DashboardSettingsRouteImport
+    }
     '/dashboard_/settings/feedback': {
       id: '/dashboard_/settings/feedback'
       path: '/feedback'
       fullPath: '/dashboard/settings/feedback'
       preLoaderRoute: typeof DashboardSettingsFeedbackImport
+      parentRoute: typeof DashboardSettingsRouteImport
+    }
+    '/dashboard_/settings/localization': {
+      id: '/dashboard_/settings/localization'
+      path: '/localization'
+      fullPath: '/dashboard/settings/localization'
+      preLoaderRoute: typeof DashboardSettingsLocalizationImport
       parentRoute: typeof DashboardSettingsRouteImport
     }
     '/dashboard_/settings/merchants': {
@@ -316,11 +360,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsNewsImport
       parentRoute: typeof DashboardSettingsRouteImport
     }
-    '/dashboard_/settings/preferences': {
-      id: '/dashboard_/settings/preferences'
-      path: '/preferences'
-      fullPath: '/dashboard/settings/preferences'
-      preLoaderRoute: typeof DashboardSettingsPreferencesImport
+    '/dashboard_/settings/profile': {
+      id: '/dashboard_/settings/profile'
+      path: '/profile'
+      fullPath: '/dashboard/settings/profile'
+      preLoaderRoute: typeof DashboardSettingsProfileImport
+      parentRoute: typeof DashboardSettingsRouteImport
+    }
+    '/dashboard_/settings/rules': {
+      id: '/dashboard_/settings/rules'
+      path: '/rules'
+      fullPath: '/dashboard/settings/rules'
+      preLoaderRoute: typeof DashboardSettingsRulesImport
+      parentRoute: typeof DashboardSettingsRouteImport
+    }
+    '/dashboard_/settings/security': {
+      id: '/dashboard_/settings/security'
+      path: '/security'
+      fullPath: '/dashboard/settings/security'
+      preLoaderRoute: typeof DashboardSettingsSecurityImport
       parentRoute: typeof DashboardSettingsRouteImport
     }
     '/dashboard_/settings/tags': {
@@ -330,11 +388,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsTagsImport
       parentRoute: typeof DashboardSettingsRouteImport
     }
-    '/dashboard_/settings/webhook': {
-      id: '/dashboard_/settings/webhook'
-      path: '/webhook'
-      fullPath: '/dashboard/settings/webhook'
-      preLoaderRoute: typeof DashboardSettingsWebhookImport
+    '/dashboard_/settings/webhooks': {
+      id: '/dashboard_/settings/webhooks'
+      path: '/webhooks'
+      fullPath: '/dashboard/settings/webhooks'
+      preLoaderRoute: typeof DashboardSettingsWebhooksImport
       parentRoute: typeof DashboardSettingsRouteImport
     }
     '/dashboard_/settings/': {
@@ -354,7 +412,6 @@ interface DashboardRouteRouteChildren {
   DashboardAccountsRoute: typeof DashboardAccountsRoute
   DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
   DashboardHomeRoute: typeof DashboardHomeRoute
-  DashboardPluginsRoute: typeof DashboardPluginsRoute
   DashboardRecordsRoute: typeof DashboardRecordsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
@@ -364,7 +421,6 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAccountsRoute: DashboardAccountsRoute,
   DashboardAnalyticsRoute: DashboardAnalyticsRoute,
   DashboardHomeRoute: DashboardHomeRoute,
-  DashboardPluginsRoute: DashboardPluginsRoute,
   DashboardRecordsRoute: DashboardRecordsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
@@ -374,27 +430,37 @@ const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
 )
 
 interface DashboardSettingsRouteRouteChildren {
-  DashboardSettingsAccountRoute: typeof DashboardSettingsAccountRoute
+  DashboardSettingsAppearanceRoute: typeof DashboardSettingsAppearanceRoute
   DashboardSettingsCategoriesRoute: typeof DashboardSettingsCategoriesRoute
+  DashboardSettingsCurrenciesRoute: typeof DashboardSettingsCurrenciesRoute
+  DashboardSettingsFeaturesRoute: typeof DashboardSettingsFeaturesRoute
   DashboardSettingsFeedbackRoute: typeof DashboardSettingsFeedbackRoute
+  DashboardSettingsLocalizationRoute: typeof DashboardSettingsLocalizationRoute
   DashboardSettingsMerchantsRoute: typeof DashboardSettingsMerchantsRoute
   DashboardSettingsNewsRoute: typeof DashboardSettingsNewsRoute
-  DashboardSettingsPreferencesRoute: typeof DashboardSettingsPreferencesRoute
+  DashboardSettingsProfileRoute: typeof DashboardSettingsProfileRoute
+  DashboardSettingsRulesRoute: typeof DashboardSettingsRulesRoute
+  DashboardSettingsSecurityRoute: typeof DashboardSettingsSecurityRoute
   DashboardSettingsTagsRoute: typeof DashboardSettingsTagsRoute
-  DashboardSettingsWebhookRoute: typeof DashboardSettingsWebhookRoute
+  DashboardSettingsWebhooksRoute: typeof DashboardSettingsWebhooksRoute
   DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute
 }
 
 const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
   {
-    DashboardSettingsAccountRoute: DashboardSettingsAccountRoute,
+    DashboardSettingsAppearanceRoute: DashboardSettingsAppearanceRoute,
     DashboardSettingsCategoriesRoute: DashboardSettingsCategoriesRoute,
+    DashboardSettingsCurrenciesRoute: DashboardSettingsCurrenciesRoute,
+    DashboardSettingsFeaturesRoute: DashboardSettingsFeaturesRoute,
     DashboardSettingsFeedbackRoute: DashboardSettingsFeedbackRoute,
+    DashboardSettingsLocalizationRoute: DashboardSettingsLocalizationRoute,
     DashboardSettingsMerchantsRoute: DashboardSettingsMerchantsRoute,
     DashboardSettingsNewsRoute: DashboardSettingsNewsRoute,
-    DashboardSettingsPreferencesRoute: DashboardSettingsPreferencesRoute,
+    DashboardSettingsProfileRoute: DashboardSettingsProfileRoute,
+    DashboardSettingsRulesRoute: DashboardSettingsRulesRoute,
+    DashboardSettingsSecurityRoute: DashboardSettingsSecurityRoute,
     DashboardSettingsTagsRoute: DashboardSettingsTagsRoute,
-    DashboardSettingsWebhookRoute: DashboardSettingsWebhookRoute,
+    DashboardSettingsWebhooksRoute: DashboardSettingsWebhooksRoute,
     DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
   }
 
@@ -415,17 +481,21 @@ export interface FileRoutesByFullPath {
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/home': typeof DashboardHomeRoute
-  '/dashboard/plugins': typeof DashboardPluginsRoute
   '/dashboard/records': typeof DashboardRecordsRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/settings/account': typeof DashboardSettingsAccountRoute
+  '/dashboard/settings/appearance': typeof DashboardSettingsAppearanceRoute
   '/dashboard/settings/categories': typeof DashboardSettingsCategoriesRoute
+  '/dashboard/settings/currencies': typeof DashboardSettingsCurrenciesRoute
+  '/dashboard/settings/features': typeof DashboardSettingsFeaturesRoute
   '/dashboard/settings/feedback': typeof DashboardSettingsFeedbackRoute
+  '/dashboard/settings/localization': typeof DashboardSettingsLocalizationRoute
   '/dashboard/settings/merchants': typeof DashboardSettingsMerchantsRoute
   '/dashboard/settings/news': typeof DashboardSettingsNewsRoute
-  '/dashboard/settings/preferences': typeof DashboardSettingsPreferencesRoute
+  '/dashboard/settings/profile': typeof DashboardSettingsProfileRoute
+  '/dashboard/settings/rules': typeof DashboardSettingsRulesRoute
+  '/dashboard/settings/security': typeof DashboardSettingsSecurityRoute
   '/dashboard/settings/tags': typeof DashboardSettingsTagsRoute
-  '/dashboard/settings/webhook': typeof DashboardSettingsWebhookRoute
+  '/dashboard/settings/webhooks': typeof DashboardSettingsWebhooksRoute
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute
 }
 
@@ -439,17 +509,21 @@ export interface FileRoutesByTo {
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/home': typeof DashboardHomeRoute
-  '/dashboard/plugins': typeof DashboardPluginsRoute
   '/dashboard/records': typeof DashboardRecordsRoute
   '/dashboard': typeof DashboardIndexRoute
-  '/dashboard/settings/account': typeof DashboardSettingsAccountRoute
+  '/dashboard/settings/appearance': typeof DashboardSettingsAppearanceRoute
   '/dashboard/settings/categories': typeof DashboardSettingsCategoriesRoute
+  '/dashboard/settings/currencies': typeof DashboardSettingsCurrenciesRoute
+  '/dashboard/settings/features': typeof DashboardSettingsFeaturesRoute
   '/dashboard/settings/feedback': typeof DashboardSettingsFeedbackRoute
+  '/dashboard/settings/localization': typeof DashboardSettingsLocalizationRoute
   '/dashboard/settings/merchants': typeof DashboardSettingsMerchantsRoute
   '/dashboard/settings/news': typeof DashboardSettingsNewsRoute
-  '/dashboard/settings/preferences': typeof DashboardSettingsPreferencesRoute
+  '/dashboard/settings/profile': typeof DashboardSettingsProfileRoute
+  '/dashboard/settings/rules': typeof DashboardSettingsRulesRoute
+  '/dashboard/settings/security': typeof DashboardSettingsSecurityRoute
   '/dashboard/settings/tags': typeof DashboardSettingsTagsRoute
-  '/dashboard/settings/webhook': typeof DashboardSettingsWebhookRoute
+  '/dashboard/settings/webhooks': typeof DashboardSettingsWebhooksRoute
   '/dashboard/settings': typeof DashboardSettingsIndexRoute
 }
 
@@ -466,17 +540,21 @@ export interface FileRoutesById {
   '/dashboard/accounts': typeof DashboardAccountsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/home': typeof DashboardHomeRoute
-  '/dashboard/plugins': typeof DashboardPluginsRoute
   '/dashboard/records': typeof DashboardRecordsRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard_/settings/account': typeof DashboardSettingsAccountRoute
+  '/dashboard_/settings/appearance': typeof DashboardSettingsAppearanceRoute
   '/dashboard_/settings/categories': typeof DashboardSettingsCategoriesRoute
+  '/dashboard_/settings/currencies': typeof DashboardSettingsCurrenciesRoute
+  '/dashboard_/settings/features': typeof DashboardSettingsFeaturesRoute
   '/dashboard_/settings/feedback': typeof DashboardSettingsFeedbackRoute
+  '/dashboard_/settings/localization': typeof DashboardSettingsLocalizationRoute
   '/dashboard_/settings/merchants': typeof DashboardSettingsMerchantsRoute
   '/dashboard_/settings/news': typeof DashboardSettingsNewsRoute
-  '/dashboard_/settings/preferences': typeof DashboardSettingsPreferencesRoute
+  '/dashboard_/settings/profile': typeof DashboardSettingsProfileRoute
+  '/dashboard_/settings/rules': typeof DashboardSettingsRulesRoute
+  '/dashboard_/settings/security': typeof DashboardSettingsSecurityRoute
   '/dashboard_/settings/tags': typeof DashboardSettingsTagsRoute
-  '/dashboard_/settings/webhook': typeof DashboardSettingsWebhookRoute
+  '/dashboard_/settings/webhooks': typeof DashboardSettingsWebhooksRoute
   '/dashboard_/settings/': typeof DashboardSettingsIndexRoute
 }
 
@@ -494,17 +572,21 @@ export interface FileRouteTypes {
     | '/dashboard/accounts'
     | '/dashboard/analytics'
     | '/dashboard/home'
-    | '/dashboard/plugins'
     | '/dashboard/records'
     | '/dashboard/'
-    | '/dashboard/settings/account'
+    | '/dashboard/settings/appearance'
     | '/dashboard/settings/categories'
+    | '/dashboard/settings/currencies'
+    | '/dashboard/settings/features'
     | '/dashboard/settings/feedback'
+    | '/dashboard/settings/localization'
     | '/dashboard/settings/merchants'
     | '/dashboard/settings/news'
-    | '/dashboard/settings/preferences'
+    | '/dashboard/settings/profile'
+    | '/dashboard/settings/rules'
+    | '/dashboard/settings/security'
     | '/dashboard/settings/tags'
-    | '/dashboard/settings/webhook'
+    | '/dashboard/settings/webhooks'
     | '/dashboard/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -517,17 +599,21 @@ export interface FileRouteTypes {
     | '/dashboard/accounts'
     | '/dashboard/analytics'
     | '/dashboard/home'
-    | '/dashboard/plugins'
     | '/dashboard/records'
     | '/dashboard'
-    | '/dashboard/settings/account'
+    | '/dashboard/settings/appearance'
     | '/dashboard/settings/categories'
+    | '/dashboard/settings/currencies'
+    | '/dashboard/settings/features'
     | '/dashboard/settings/feedback'
+    | '/dashboard/settings/localization'
     | '/dashboard/settings/merchants'
     | '/dashboard/settings/news'
-    | '/dashboard/settings/preferences'
+    | '/dashboard/settings/profile'
+    | '/dashboard/settings/rules'
+    | '/dashboard/settings/security'
     | '/dashboard/settings/tags'
-    | '/dashboard/settings/webhook'
+    | '/dashboard/settings/webhooks'
     | '/dashboard/settings'
   id:
     | '__root__'
@@ -542,17 +628,21 @@ export interface FileRouteTypes {
     | '/dashboard/accounts'
     | '/dashboard/analytics'
     | '/dashboard/home'
-    | '/dashboard/plugins'
     | '/dashboard/records'
     | '/dashboard/'
-    | '/dashboard_/settings/account'
+    | '/dashboard_/settings/appearance'
     | '/dashboard_/settings/categories'
+    | '/dashboard_/settings/currencies'
+    | '/dashboard_/settings/features'
     | '/dashboard_/settings/feedback'
+    | '/dashboard_/settings/localization'
     | '/dashboard_/settings/merchants'
     | '/dashboard_/settings/news'
-    | '/dashboard_/settings/preferences'
+    | '/dashboard_/settings/profile'
+    | '/dashboard_/settings/rules'
+    | '/dashboard_/settings/security'
     | '/dashboard_/settings/tags'
-    | '/dashboard_/settings/webhook'
+    | '/dashboard_/settings/webhooks'
     | '/dashboard_/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -606,7 +696,6 @@ export const routeTree = rootRoute
         "/dashboard/accounts",
         "/dashboard/analytics",
         "/dashboard/home",
-        "/dashboard/plugins",
         "/dashboard/records",
         "/dashboard/"
       ]
@@ -626,14 +715,19 @@ export const routeTree = rootRoute
     "/dashboard_/settings": {
       "filePath": "dashboard_/settings/route.tsx",
       "children": [
-        "/dashboard_/settings/account",
+        "/dashboard_/settings/appearance",
         "/dashboard_/settings/categories",
+        "/dashboard_/settings/currencies",
+        "/dashboard_/settings/features",
         "/dashboard_/settings/feedback",
+        "/dashboard_/settings/localization",
         "/dashboard_/settings/merchants",
         "/dashboard_/settings/news",
-        "/dashboard_/settings/preferences",
+        "/dashboard_/settings/profile",
+        "/dashboard_/settings/rules",
+        "/dashboard_/settings/security",
         "/dashboard_/settings/tags",
-        "/dashboard_/settings/webhook",
+        "/dashboard_/settings/webhooks",
         "/dashboard_/settings/"
       ]
     },
@@ -653,10 +747,6 @@ export const routeTree = rootRoute
       "filePath": "dashboard/home.tsx",
       "parent": "/dashboard"
     },
-    "/dashboard/plugins": {
-      "filePath": "dashboard/plugins.tsx",
-      "parent": "/dashboard"
-    },
     "/dashboard/records": {
       "filePath": "dashboard/records.tsx",
       "parent": "/dashboard"
@@ -665,16 +755,28 @@ export const routeTree = rootRoute
       "filePath": "dashboard/index.tsx",
       "parent": "/dashboard"
     },
-    "/dashboard_/settings/account": {
-      "filePath": "dashboard_/settings/account.tsx",
+    "/dashboard_/settings/appearance": {
+      "filePath": "dashboard_/settings/appearance.tsx",
       "parent": "/dashboard_/settings"
     },
     "/dashboard_/settings/categories": {
       "filePath": "dashboard_/settings/categories.tsx",
       "parent": "/dashboard_/settings"
     },
+    "/dashboard_/settings/currencies": {
+      "filePath": "dashboard_/settings/currencies.tsx",
+      "parent": "/dashboard_/settings"
+    },
+    "/dashboard_/settings/features": {
+      "filePath": "dashboard_/settings/features.tsx",
+      "parent": "/dashboard_/settings"
+    },
     "/dashboard_/settings/feedback": {
       "filePath": "dashboard_/settings/feedback.tsx",
+      "parent": "/dashboard_/settings"
+    },
+    "/dashboard_/settings/localization": {
+      "filePath": "dashboard_/settings/localization.tsx",
       "parent": "/dashboard_/settings"
     },
     "/dashboard_/settings/merchants": {
@@ -685,16 +787,24 @@ export const routeTree = rootRoute
       "filePath": "dashboard_/settings/news.tsx",
       "parent": "/dashboard_/settings"
     },
-    "/dashboard_/settings/preferences": {
-      "filePath": "dashboard_/settings/preferences.tsx",
+    "/dashboard_/settings/profile": {
+      "filePath": "dashboard_/settings/profile.tsx",
+      "parent": "/dashboard_/settings"
+    },
+    "/dashboard_/settings/rules": {
+      "filePath": "dashboard_/settings/rules.tsx",
+      "parent": "/dashboard_/settings"
+    },
+    "/dashboard_/settings/security": {
+      "filePath": "dashboard_/settings/security.tsx",
       "parent": "/dashboard_/settings"
     },
     "/dashboard_/settings/tags": {
       "filePath": "dashboard_/settings/tags.tsx",
       "parent": "/dashboard_/settings"
     },
-    "/dashboard_/settings/webhook": {
-      "filePath": "dashboard_/settings/webhook.tsx",
+    "/dashboard_/settings/webhooks": {
+      "filePath": "dashboard_/settings/webhooks.tsx",
       "parent": "/dashboard_/settings"
     },
     "/dashboard_/settings/": {

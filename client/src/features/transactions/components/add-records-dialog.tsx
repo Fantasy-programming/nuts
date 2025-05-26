@@ -1,290 +1,632 @@
-"use client"
+import { useForm } from "react-hook-form";
+import { useState, useCallback } from "react";
+import { useQueries } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DateTimePicker } from "@/core/components/ui/datetime";
 
-import type React from "react"
-
-import { useState } from "react"
-import { format } from "date-fns"
-import { CalendarIcon, X, Plus } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
+import { Label } from "@/core/components/ui/label";
+import { Button } from "@/core/components/ui/button";
+import { Root } from "@radix-ui/react-visually-hidden";
 import {
-  Dialog,
-  DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import NestedCategorySelect from "./nested-category-select"
+  InnerDialog,
+  InnerDialogContent,
+  InnerDialogHeader,
+  InnerDialogTitle,
+  InnerDialogTrigger,
+} from "@/core/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/core/components/ui/tabs";
+import { Input } from "@/core/components/ui/input";
+import { accountService } from "@/features/accounts/services/account";
+import { RecordsSubmit, RecordCreateSchema, recordCreateSchema } from "@/features/transactions/services/transaction.types";
+import { categoryService } from "@/features/categories/services/category";
+import { Textarea } from "@/core/components/ui/textarea";
+import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Sparkles, Pencil } from "lucide-react";
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogTrigger } from "@/core/components/ui/dialog-sheet";
 
-export default function AddTransactionModal({
-  isOpen,
-  onClose,
-  onAddTransaction,
-  categories,
-  accounts,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  onAddTransaction: (transaction: any) => void
-  categories: any[]
-  accounts: any[]
-}) {
-  const [formData, setFormData] = useState({
-    description: "",
-    amount: "",
-    date: new Date(),
-    categoryId: "",
-    accountId: "",
-    notes: "",
-    tags: [] as string[],
-  })
 
-  const [transactionType, setTransactionType] = useState("expense")
-  const [newTag, setNewTag] = useState("")
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleDateChange = (date: Date | undefined) => {
-    if (date) {
-      setFormData((prev) => ({ ...prev, date }))
-    }
-  }
-
-  const handleAddTag = () => {
-    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
-      setFormData((prev) => ({
-        ...prev,
-        tags: [...prev.tags, newTag.trim()],
-      }))
-      setNewTag("")
-    }
-  }
-
-  const handleRemoveTag = (tag: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((t) => t !== tag),
-    }))
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!formData.description || !formData.amount || !formData.categoryId || !formData.accountId) {
-      return
-    }
-
-    const amount = Number.parseFloat(formData.amount)
-    if (isNaN(amount)) return
-
-    onAddTransaction({
-      description: formData.description,
-      amount: transactionType === "expense" ? -Math.abs(amount) : Math.abs(amount),
-      date: format(formData.date, "yyyy-MM-dd"),
-      categoryId: Number.parseInt(formData.categoryId),
-      accountId: Number.parseInt(formData.accountId),
-      notes: formData.notes,
-      tags: formData.tags,
-    })
-
-    resetForm()
-    onClose()
-  }
-
-  const resetForm = () => {
-    setFormData({
-      description: "",
-      amount: "",
-      date: new Date(),
-      categoryId: "",
-      accountId: "",
-      notes: "",
-      tags: [],
-    })
-    setTransactionType("expense")
-    setNewTag("")
-  }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Add New Transaction</DialogTitle>
-          <DialogDescription>Enter the details of your transaction.</DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <Tabs defaultValue="expense" value={transactionType} onValueChange={setTransactionType}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="expense">Expense</TabsTrigger>
-              <TabsTrigger value="income">Income</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                name="description"
-                placeholder="What was this transaction for?"
-                value={formData.description}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="amount">Amount</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
-                <Input
-                  id="amount"
-                  name="amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  className="pl-8"
-                  value={formData.amount}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="date">Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.date && "text-muted-foreground",
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? format(formData.date, "PPP") : "Select a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={formData.date} onSelect={handleDateChange} initialFocus />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="category">Category</Label>
-              <NestedCategorySelect
-                categories={categories}
-                value={formData.categoryId}
-                onValueChange={(value) => handleSelectChange("categoryId", value)}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="account">Account</Label>
-              <Select
-                value={formData.accountId}
-                onValueChange={(value) => handleSelectChange("accountId", value)}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        {account.institution ? (
-                          <div className="h-4 w-4 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                            {account.institution.substring(0, 1)}
-                          </div>
-                        ) : (
-                          <div className="h-4 w-4 rounded-full bg-muted"></div>
-                        )}
-                        <span>{account.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                name="notes"
-                placeholder="Add any additional details"
-                value={formData.notes}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="tags">Tags (Optional)</Label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {formData.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="gap-1">
-                    {tag}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => handleRemoveTag(tag)} />
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  id="tags"
-                  placeholder="Add a tag"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleAddTag()
-                    }
-                  }}
-                />
-                <Button type="button" variant="outline" size="icon" onClick={handleAddTag}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </form>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={!formData.description || !formData.amount || !formData.categoryId || !formData.accountId}
-          >
-            Add Transaction
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
+interface DialogProps extends React.PropsWithChildren {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onSubmit: RecordsSubmit;
 }
 
+export function RecordsDialog({ onSubmit, children, open, onOpenChange }: DialogProps) {
+  return (
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Create New Transaction</ResponsiveDialogTitle>
+          <Root>
+            <DialogDescription>Record a new transaction</DialogDescription>
+          </Root>
+        </ResponsiveDialogHeader>
+        <RecordsForm onSubmit={onSubmit} />
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
+  );
+}
+
+interface ParsedTransaction {
+  type: "expense" | "income";
+  description: string;
+  amount: number;
+  category: string;
+  date: string;
+}
+
+export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
+  const [transactionType, setTransactionType] = useState<"expense" | "income" | "transfer">("expense");
+  const [naturalInput, setNaturalInput] = useState("");
+  const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([]);
+  const [editingTransaction, setEditingTransaction] = useState<ParsedTransaction | null>(null);
+
+  const form = useForm<RecordCreateSchema>({
+    resolver: zodResolver(recordCreateSchema),
+    defaultValues: {
+      type: "expense",
+      amount: 0,
+      transaction_datetime: new Date(),
+      description: "",
+      category_id: "",
+      account_id: "",
+      details: {
+        payment_medium: "",
+        location: "",
+        note: "",
+        payment_status: "completed",
+      },
+    },
+  });
+
+  const [{ data: accounts, isLoading: loadingAct }, { data: categories, isLoading: loadingCtg }] = useQueries({
+    queries: [
+      {
+        queryKey: ["accounts"],
+        queryFn: accountService.getAccounts,
+      },
+      {
+        queryKey: ["categories"],
+        queryFn: categoryService.getCategories,
+      },
+    ],
+  });
+
+
+  const transfertCatID = categories?.find((cat) => cat.name === "Transfers")?.id;
+
+  const handleSubmit = useCallback(
+    (values: RecordCreateSchema) => {
+      onSubmit(values);
+      form.reset();
+    },
+    [onSubmit, form]
+  );
+
+  const handleTabChange = useCallback(
+    (value: string) => {
+      setTransactionType(value as "expense" | "income" | "transfer");
+      form.reset(
+        value === "transfer"
+          ? {
+            type: "transfer",
+            amount: 0,
+            transaction_datetime: new Date(),
+            description: "",
+            category_id: transfertCatID,
+            account_id: "",
+            destination_account_id: "", // Required for transfers
+            details: {
+              payment_medium: "",
+              location: "",
+              note: "",
+              payment_status: "completed",
+            },
+          }
+          : {
+            type: value as "expense" | "income",
+            amount: 0,
+            transaction_datetime: new Date(),
+            description: "",
+            category_id: "",
+            account_id: "",
+            details: {
+              payment_medium: "",
+              location: "",
+              note: "",
+              payment_status: "completed",
+            },
+          }
+      );
+    },
+    [form, transfertCatID]
+  );
+
+  const handleNaturalInput = useCallback(() => {
+    // This is where you'd integrate with a natural language processing service
+    // For now, we'll just demonstrate the UI with some mock parsed transactions
+    const mockParsed: ParsedTransaction[] = [
+      {
+        type: "expense",
+        description: "Grocery shopping at Walmart",
+        amount: 120.5,
+        category: "Food",
+        date: new Date().toISOString(),
+      },
+      {
+        type: "expense",
+        description: "Gas station fill up",
+        amount: 45.0,
+        category: "Transportation",
+        date: new Date().toISOString(),
+      },
+    ];
+    setParsedTransactions(mockParsed);
+  }, []);
+
+  const handleUpdateParsedTransaction = (updatedTransaction: ParsedTransaction) => {
+    setParsedTransactions((current) => current.map((t) => (t.description === editingTransaction?.description ? updatedTransaction : t)));
+    setEditingTransaction(null);
+  };
+
+  return (
+    <Tabs value={transactionType} onValueChange={(v) => handleTabChange(v)} >
+      <TabsList className="grid w-full grid-cols-4 px-4 md:px-0">
+        <TabsTrigger value="expense" className="flex items-center gap-2">
+          <ArrowDownLeft className="h-4 w-4" />
+          Expense
+        </TabsTrigger>
+        <TabsTrigger value="income" className="flex items-center gap-2">
+          <ArrowUpRight className="h-4 w-4" />
+          Income
+        </TabsTrigger>
+        <TabsTrigger value="transfer" className="flex items-center gap-2">
+          <ArrowLeftRight className="h-4 w-4" />
+          Transfer
+        </TabsTrigger>
+        <TabsTrigger value="natural" className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4" />
+          Natural
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="expense">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-4 md:p-0">
+            <FormField
+              control={form.control}
+              name="account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>From Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={loadingAct}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {accounts?.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" min={0} placeholder="0.00" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="category_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={loadingCtg}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories?.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input placeholder="What was this expense for?" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="transaction_datetime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <DateTimePicker hourCycle={12} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" className="w-full">
+              Create Expense
+            </Button>
+          </form>
+        </Form>
+      </TabsContent>
+
+      {/* Income Form */}
+      <TabsContent value="income">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-4 md:p-0">
+            <FormField
+              control={form.control}
+              name="account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>To Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {accounts?.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" min={0} placeholder="0.00" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="category_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories?.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Source of income" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="transaction_datetime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <DateTimePicker hourCycle={12} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" className="w-full">
+              Create Income
+            </Button>
+          </form>
+        </Form>
+      </TabsContent>
+
+      {/* Transfer Form */}
+      <TabsContent value="transfer">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-4 md:p-0">
+            <FormField
+              control={form.control}
+              name="account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>From Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {accounts?.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="destination_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>To Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {accounts
+                        ?.filter((account) => account.id !== form.watch("account_id"))
+                        .map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" min={0} placeholder="0.00" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Reason for transfer" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="transaction_datetime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <DateTimePicker hourCycle={12} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" className="w-full">
+              Create Transfer
+            </Button>
+          </form>
+        </Form>
+      </TabsContent>
+
+      {/* Natural Language Input */}
+      <TabsContent value="natural">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label>Enter your transactions naturally</Label>
+            <Textarea
+              placeholder="Example: Spent $45 on gas yesterday, bought groceries at Walmart for $120.50 today"
+              className="min-h-[100px]"
+              value={naturalInput}
+              onChange={(e) => setNaturalInput(e.target.value)}
+            />
+            <p className="text-muted-foreground text-sm">Enter multiple transactions in plain English. We'll parse them for you.</p>
+          </div>
+
+          <Button onClick={handleNaturalInput} className="w-full" disabled={!naturalInput.trim()}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Parse Transactions
+          </Button>
+
+          {parsedTransactions.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="font-medium">Parsed Transactions</h4>
+              <div className="space-y-2">
+                <InnerDialog>
+                  {parsedTransactions.map((transaction, index) => (
+                    <div key={index} className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <p className="font-medium">{transaction.description}</p>
+                        <p className="text-muted-foreground text-sm">
+                          {transaction.category} • {new Date(transaction.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-red-500">-${transaction.amount.toFixed(2)}</p>
+                        <InnerDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingTransaction(transaction)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </InnerDialogTrigger>
+                      </div>
+                    </div>
+                  ))}
+
+                  <InnerDialogContent>
+                    {editingTransaction && (
+                      <>
+                        <InnerDialogHeader>
+                          <InnerDialogTitle>Edit Transaction</InnerDialogTitle>
+                        </InnerDialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Description</Label>
+                            <Input
+                              value={editingTransaction.description}
+                              onChange={(e) =>
+                                setEditingTransaction({
+                                  ...editingTransaction,
+                                  description: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Amount</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={editingTransaction.amount}
+                              onChange={(e) =>
+                                setEditingTransaction({
+                                  ...editingTransaction,
+                                  amount: parseFloat(e.target.value),
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Category</Label>
+                            <Select
+                              value={editingTransaction.category}
+                              onValueChange={(value) =>
+                                setEditingTransaction({
+                                  ...editingTransaction,
+                                  category: value,
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Food">Food</SelectItem>
+                                <SelectItem value="Transportation">Transportation</SelectItem>
+                                <SelectItem value="Utilities">Utilities</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Date</Label>
+                            <Input
+                              type="date"
+                              value={new Date(editingTransaction.date).toISOString().split("T")[0]}
+                              onChange={(e) =>
+                                setEditingTransaction({
+                                  ...editingTransaction,
+                                  date: new Date(e.target.value).toISOString(),
+                                })
+                              }
+                            />
+                          </div>
+                          <Button className="w-full" onClick={() => handleUpdateParsedTransaction(editingTransaction)}>
+                            Update Transaction
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </InnerDialogContent>
+                </InnerDialog>
+              </div>
+              <Button className="w-full">Create All Transactions</Button>
+            </div>
+          )}
+        </div>
+      </TabsContent>
+    </Tabs>
+  );
+}

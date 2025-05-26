@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect, Fragment, useCallback } from "react"
 import {
   type ColumnFiltersState,
   type SortingState,
-  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -10,58 +9,75 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown, ChevronRight, Filter, Plus, Minus } from "lucide-react"
 
+import { ChevronDown, ChevronRight, Filter, Plus, Minus, Trash2 } from "lucide-react"
 import { Button } from "@/core/components/ui/button"
 import { Checkbox } from "@/core/components/ui/checkbox"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/core/components/ui/dropdown-menu"
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/core/components/ui/context-menu";
 import { Input } from "@/core/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/core/components/ui/table"
-import { RecordsFilters } from "./records.filters"
+import { RecordsFilters } from "./records-table.filters"
 import { formatDate } from "@/lib/utils"
-import { recordsTableColumns } from "./records.column"
+import { getRecordsTableColumns } from "./records-table.column"
 import { useIsMobile } from "@/core/hooks/use-mobile"
 import { Avatar, AvatarFallback } from "@/core/components/ui/avatar"
 import { Card, CardContent } from "@/core/components/ui/card"
 import { Badge } from "@/core/components/ui/badge"
 import { GrouppedRecordsArraySchema, RecordSchema } from "../services/transaction.types"
-import EditTransactionSheet from "./edit-records-sheet"
-import DeleteTransactionDialog from "./delete-records-dialog"
+import EditTransactionSheet from "./edt-records-sheet"
+import { DeleteTransactionDialog } from "./del-records-dialog"
+import type { Account } from "@/features/accounts/services/account.types"
+import type { Category } from "@/features/categories/services/category.types";
 
-export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsArraySchema }) => {
+interface RecordsTableProps {
+  transactions: GrouppedRecordsArraySchema;
+  accounts: Account[];
+  categories: Category[];
+  // Mutation functions passed from parent
+  onUpdateTransaction: (params: { id: string; data: RecordSchema }) => Promise<void>;
+  onDeleteTransaction: (id: string | string[]) => Promise<void>;
+  // Optional: pass loading states from parent mutations for disabling UI elements
+  isUpdating?: boolean;
+  isDeleting?: boolean;
+}
+
+
+export const RecordsTable = ({
+  transactions,
+  accounts,
+  categories,
+  onUpdateTransaction,
+  onDeleteTransaction,
+  isUpdating,
+  isDeleting,
+}: RecordsTableProps) => {
   const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
-  const [showFilters, setShowFilters] = useState(false)
 
+  // Filters
+  const [showFilters, setShowFilters] = useState(false)
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [categoryFilters, setCategoryFilters] = useState<string[]>([])
   const [accountFilters, setAccountFilters] = useState<string[]>([])
-  const [, setDateRangeFilter] = useState<string>("")
+  // Assuming dateRangeFilter is a string for now, e.g., "last7days" or "custom_start_end"
+  // If it's an object { from: Date, to: Date }, adjust RecordsFilters and filtering logic
+  const [dateRangeFilterValue, setDateRangeFilterValue] = useState<string>("")
   const [searchFilter, setSearchFilter] = useState("")
 
-
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState<RecordSchema | null>(null)
+  const [deletingTransaction, setDeletingTransaction] = useState<RecordSchema | null>(null)
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedTransaction, setSelectedTransaction] = useState<RecordSchema | null>(null)
 
   const isMobile = useIsMobile()
 
+  // Flatten transactions
   const allTransactions = useMemo(() => {
     return transactions.flatMap((group) =>
       group.transactions.map((transaction) => ({
@@ -73,24 +89,75 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
     )
   }, [transactions])
 
+
+
+  const filteredGroups = useMemo(() => {
+    // TODO: Implement date range filtering if dateRangeFilterValue is used
+    // For now, date filtering is assumed to happen upstream or needs to be added here.
+    return transactions
+      .map((group) => {
+        const filteredTransactions = group.transactions.filter((transaction) => {
+          const matchesSearch = searchFilter
+            ? Object.values(transaction).some((value) =>
+              String(value).toLowerCase().includes(searchFilter.toLowerCase()),
+            )
+            : true
+          const matchesCategory = categoryFilters.length === 0 || categoryFilters.includes(transaction.category.id)
+          const matchesAccount = accountFilters.length === 0 || accountFilters.includes(transaction.account.id)
+          // const matchesDate = checkDateRange(transaction.date, dateRangeFilterValue); // Implement checkDateRange
+          return matchesSearch && matchesCategory && matchesAccount // && matchesDate
+        })
+        return {
+          ...group,
+          transactions: filteredTransactions,
+        }
+      })
+      .filter((group) => group.transactions.length > 0)
+  }, [transactions, searchFilter, categoryFilters, accountFilters /*, dateRangeFilterValue */])
+
+
+
+  // Handlers (pre)
+  const handleOpenEditSheet = useCallback((transaction: RecordSchema) => {
+    setEditingTransaction(transaction)
+    setIsEditSheetOpen(true)
+  }, [])
+
+  const handleOpenDeleteDialog = useCallback((transaction: RecordSchema) => {
+    setDeletingTransaction(transaction)
+    setIsDeleteDialogOpen(true)
+  }, [])
+
+
+
+  const columns = useMemo(
+    () => getRecordsTableColumns({
+      onEdit: handleOpenEditSheet,
+      onDelete: handleOpenDeleteDialog,
+      isUpdating,
+      isDeleting,
+    }),
+    [handleOpenEditSheet, handleOpenDeleteDialog, isUpdating, isDeleting] // Add dependencies
+  );
+
   const table = useReactTable({
     data: allTransactions,
-    columns: recordsTableColumns,
+    columns: columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
-      columnVisibility,
       rowSelection,
     },
   })
+
+  //handlers - post
 
   const toggleGroup = useCallback((groupId: string) => {
     setOpenGroups((prev) => {
@@ -104,26 +171,13 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
     })
   }, [])
 
-  const filteredGroups = useMemo(() => {
-    return transactions
-      .map((group) => {
-        const filteredTransactions = group.transactions.filter((transaction) => {
-          const matchesSearch = searchFilter
-            ? Object.values(transaction).some((value) =>
-              String(value).toLowerCase().includes(searchFilter.toLowerCase()),
-            )
-            : true
-          const matchesCategory = categoryFilters.length === 0 || categoryFilters.includes(transaction.category.id)
-          const matchesAccount = accountFilters.length === 0 || accountFilters.includes(transaction.account.id)
-          return matchesSearch && matchesCategory && matchesAccount
-        })
-        return {
-          ...group,
-          transactions: filteredTransactions,
-        }
-      })
-      .filter((group) => group.transactions.length > 0)
-  }, [transactions, searchFilter, categoryFilters, accountFilters])
+  const toggleAllGroups = useCallback(() => {
+    if (openGroups.size === filteredGroups.length) {
+      setOpenGroups(new Set())
+    } else {
+      setOpenGroups(new Set(filteredGroups.map((g) => g.id)))
+    }
+  }, [filteredGroups, openGroups.size])
 
   const handleCategoryChange = useCallback((values: string[]) => {
     setCategoryFilters(values)
@@ -134,88 +188,72 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
   }
 
   const handleDateRangeChange = (value: string) => {
-    setDateRangeFilter(value)
+    setDateRangeFilterValue(value) // Corrected: was setDateRangeFilter
   }
 
   const handleResetFilters = () => {
     setCategoryFilters([])
     setAccountFilters([])
-    setDateRangeFilter("")
+    setDateRangeFilterValue("") // Corrected
     setSearchFilter("")
-    table.resetColumnFilters()
+    table.resetColumnFilters() // Resets table's internal column filters
   }
 
-  const toggleAllGroups = useCallback(() => {
-    if (openGroups.size === filteredGroups.length) {
-      setOpenGroups(new Set())
-    } else {
-      setOpenGroups(new Set(filteredGroups.map((g) => g.id)))
+  // Called by EditTransactionSheet on submit
+  const handleConfirmUpdateTransaction = async (id: string, data: RecordSchema) => {
+    try {
+      await onUpdateTransaction({ id, data });
+      setIsEditSheetOpen(false)
+      setEditingTransaction(null)
+      // Optionally: show success toast
+    } catch (error) {
+      // Optionally: show error toast from EditTransactionSheet or here
+      console.error("Failed to update transaction:", error);
     }
-  }, [filteredGroups, openGroups.size])
+  }
 
-  const categories = useMemo(() => Array.from(new Set(allTransactions.map((t) => t.category.id))), [allTransactions])
+  // Called by DeleteTransactionDialog on confirm
+  const handleConfirmDeleteTransaction = async (id: string) => {
+    try {
+      await onDeleteTransaction(id);
+      setIsDeleteDialogOpen(false)
+      setDeletingTransaction(null)
+      // Optionally: show success toast
+    } catch (error) {
+      // Optionally: show error toast
+      console.error("Failed to delete transaction:", error);
+    }
+  }
 
-  const accounts = useMemo(() => Array.from(new Set(allTransactions.map((t) => t.account.id))), [allTransactions])
+  const handleDeleteSelectedRows = async () => {
+    const selectedRowOriginals = table.getFilteredSelectedRowModel().rows.map(row => row.original as RecordSchema);
+    const idsToDelete = selectedRowOriginals.map(t => t.id);
+    if (idsToDelete.length > 0) {
+      try {
+        await onDeleteTransaction(idsToDelete);
+        table.resetRowSelection(); // Clear selection
+        // Optionally: show success toast
+      } catch (error) {
+        // Optionally: show error toast
+        console.error("Failed to delete selected transactions:", error);
+      }
+    }
+  }
+
 
   useEffect(() => {
-    if (searchFilter || categoryFilters.length > 0 || accountFilters.length > 0) {
+    if (searchFilter || categoryFilters.length > 0 || accountFilters.length > 0 || dateRangeFilterValue) {
       setOpenGroups(new Set(filteredGroups.map((g) => g.id)))
     }
-  }, [filteredGroups, searchFilter, categoryFilters, accountFilters])
+  }, [filteredGroups, searchFilter, categoryFilters, accountFilters, dateRangeFilterValue])
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "USD", // Consider making this dynamic or a prop
     }).format(amount)
   }
-
-
-  //  Update the handleEditTransaction function to use Sheet instead of Modal
-  const handleEditTransaction = (id: number) => {
-
-    setIsEditModalOpen(true)
-    // if (transaction) {
-    //   setSelectedTransaction(transaction)
-    //   setIsEditModalOpen(true)
-    // }
-  }
-
-  const handleUpdateTransaction = (id: string, updatedTransaction: RecordSchema) => {
-    // setTransactions(transactions.map((t) => (t.id === id ? { ...t, ...updatedTransaction } : t)))
-  }
-
-  const openDeleteDialog = (id: string) => {
-    setIsDeleteDialogOpen(true)
-    // const transaction = transactions.find((t) => t.id === id)
-    // if (transaction) {
-    //   setSelectedTransaction(transaction)
-    //   setIsDeleteDialogOpen(true)
-    // }
-  }
-
-  const handleDeleteTransaction = (id: number) => {
-    setTransactions(transactions.filter((t) => t.id !== id))
-    setSelectedTransactions(selectedTransactions.filter((t) => t !== id))
-  }
-
-  const handleDeleteSelected = () => {
-    setTransactions(transactions.filter((t) => !selectedTransactions.includes(t.id)))
-    setSelectedTransactions([])
-  }
-
-
-
-  const menuContent = (
-    <ContextMenuContent >
-      <ContextMenuItem >
-        Edit
-      </ContextMenuItem>
-      <ContextMenuItem >
-        Delete
-      </ContextMenuItem>
-    </ContextMenuContent>
-  );
 
 
   return (
@@ -226,7 +264,7 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
             placeholder="Search transactions..."
             value={searchFilter}
             onChange={(event) => setSearchFilter(event.target.value)}
-            className="max-w-full md:max-w-sm"
+            className="max-w-full md:max-w-sm bg-card"
           />
           <Button
             variant="outline"
@@ -238,34 +276,23 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
             <span className="hidden sm:inline">Filters</span>
           </Button>
         </div>
-
-        {!isMobile && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Columns <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <div className="flex items-center gap-2">
+          {table.getFilteredSelectedRowModel().rows.length > 0 && !isMobile && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteSelectedRows}
+              disabled={isDeleting || table.getFilteredSelectedRowModel().rows.length === 0}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete ({table.getFilteredSelectedRowModel().rows.length})
+            </Button>
+          )}
+        </div>
       </div>
+
+
+
 
       {showFilters && (
         <RecordsFilters
@@ -359,7 +386,7 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
       ) : (
         /* Desktop View */
         <div className="rounded-md border">
-          <Table>
+          <Table className="bg-card">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -439,11 +466,12 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
 
                         {/* Subtable for transactions */}
                         {openGroups.has(group.id) && (
-                          <Table>
+                          <Table className="bg-card">
                             <TableBody>
                               {group.transactions.map((transaction) => {
                                 const row = table.getRowModel().rows.find((r) => r.original.id === transaction.id)
                                 if (!row) return null
+                                const originalTransaction = row.original as RecordSchema;
                                 return (
                                   <ContextMenu>
                                     <ContextMenuTrigger asChild>
@@ -461,7 +489,14 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
                                         ))}
                                       </TableRow>
                                     </ContextMenuTrigger>
-                                    {menuContent}
+                                    <ContextMenuContent>
+                                      <ContextMenuItem onSelect={() => handleOpenEditSheet(originalTransaction)} disabled={isUpdating}>
+                                        Edit
+                                      </ContextMenuItem>
+                                      <ContextMenuItem onSelect={() => handleOpenDeleteDialog(originalTransaction)} disabled={isDeleting} className="text-destructive">
+                                        Delete
+                                      </ContextMenuItem>
+                                    </ContextMenuContent>
                                   </ContextMenu>
                                 )
                               })}
@@ -473,33 +508,34 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
                   </TableRow>
                 </Fragment>
               ))}
+              {filteredGroups.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={table.getAllColumns().length} className="h-24 text-center">
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
 
 
-          {/* Modals */}
-          {/* <AddTransactionModal */}
-          {/*   isOpen={isAddModalOpen} */}
-          {/*   onClose={() => setIsAddModalOpen(false)} */}
-          {/*   onAddTransaction={handleAddTransaction} */}
-          {/*   categories={categories} */}
-          {/*   accounts={accounts} */}
-          {/* /> */}
-
           <EditTransactionSheet
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            transaction={selectedTransaction}
-            onUpdateTransaction={handleUpdateTransaction}
-            categories={categories}
+            isOpen={isEditSheetOpen}
+            onClose={() => { setIsEditSheetOpen(false); setEditingTransaction(null); }}
+            transaction={editingTransaction}
+            onUpdateTransaction={handleConfirmUpdateTransaction} // This now calls the prop
+            // Pass accounts and categories if EditTransactionSheet needs them for dropdowns
             accounts={accounts}
+            categories={categories}
+            isSubmitting={isUpdating}
           />
 
           <DeleteTransactionDialog
             isOpen={isDeleteDialogOpen}
-            onClose={() => setIsDeleteDialogOpen(false)}
-            transaction={selectedTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
+            onClose={() => { setIsDeleteDialogOpen(false); setDeletingTransaction(null); }}
+            transaction={deletingTransaction}
+            onDeleteTransaction={handleConfirmDeleteTransaction} // This now calls the prop
+            isDeleting={isDeleting}
           />
         </div>
       )}
@@ -523,9 +559,8 @@ export const RecordsTable = ({ transactions }: { transactions: GrouppedRecordsAr
           </Button>
         </div>
       </div>
-    </div>
+    </div >
   )
 }
 
 export default RecordsTable
-
