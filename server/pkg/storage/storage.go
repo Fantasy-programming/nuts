@@ -89,7 +89,6 @@ func NewStorageProvider(cfg config.Storage, logger *zerolog.Logger) (Storage, er
 		return strg, nil
 
 	case "R2":
-
 		if cfg.AccessKey == "" {
 			return nil, fmt.Errorf("missing STORAGE_ACCESS_KEY in env for host 'R2'")
 		}

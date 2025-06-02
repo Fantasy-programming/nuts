@@ -47,7 +47,8 @@
 - Plaid (Bank connection in Canada and US)
 - Teller (Bank connection in the US)
 - GoCardLess (Bank connection EU)
-
+- Brankas (Bank connection East asia)
+- Mono / okra (Bank connection africa)
 - Paystack (Payment processing)
 - Resend (Email & Marketing)
 
