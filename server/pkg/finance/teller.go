@@ -3,349 +3,491 @@ package finance
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 )
 
-const tellerBaseURL = "https://api.teller.io"
+type TellerConfig struct {
+	environment        string
+	BaseURL            string
+	CertPath           string
+	CertPrivateKeyPath string
+}
 
-// --- Teller Client Implementation ---
-
-// Ensure TellerClient implements PaymentProcessorClient
-var _ PaymentProcessorClient = (*TellerClient)(nil)
-
-// TellerClient interacts with the Teller API.
-type TellerClient struct {
+// TellerProvider implements the Provider interface for Teller
+type TellerProvider struct {
+	config     TellerConfig
 	httpClient *http.Client
+	logger     *zerolog.Logger
 	baseURL    string
 }
 
-// NewTellerClient creates a new Teller API client.
-// httpClient should be pre-configured with TLS certs if required.
-func NewTellerClient(httpClient *http.Client) *TellerClient {
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 30 * time.Second} // Default client
-	}
-	return &TellerClient{
-		httpClient: httpClient,
-		baseURL:    tellerBaseURL,
-	}
+// Teller API response structures
+type tellerAccount struct {
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	Type         string            `json:"type"`
+	Subtype      string            `json:"subtype"`
+	Status       string            `json:"status"`
+	Currency     string            `json:"currency"`
+	Institution  tellerInstitution `json:"institution"`
+	LastFour     string            `json:"last_four"`
+	Links        map[string]any    `json:"links"`
+	Details      map[string]any    `json:"details"`
+	EnrollmentID string            `json:"enrollment_id"`
+	Balance      tellerBalance     `json:"balance"`
 }
 
-// ListAccounts retrieves a list of accounts for the user.
-func (c *TellerClient) ListAccounts(ctx context.Context, accessToken string) (*http.Response, error) {
-	return c.request(ctx, "GET", "/accounts", accessToken, nil)
+type tellerBalance struct {
+	Available float64 `json:"available"`
+	Ledger    float64 `json:"ledger"`
+}
+type tellerTransactionDetailsCounterParty struct {
+	Name *string `json:"name"`
+	Type *string `json:"type"`
 }
 
-// GetAccountDetails retrieves details for a specific account.
-func (c *TellerClient) GetAccountDetails(ctx context.Context, accessToken, accountID string) (*http.Response, error) {
-	path := fmt.Sprintf("/accounts/%s/details", url.PathEscape(accountID))
-	return c.request(ctx, "GET", path, accessToken, nil)
+type tellerTransactionDetails struct {
+	ProcessingStatus string                               `json:"processing_status"`  // Either pending or complete.
+	Category         *string                              `json:"category,omitempty"` // accommodation, advertising, bar, charity, clothing, dining, education, electronics, entertainment, fuel, general, groceries, health, home, income, insurance, investment, loan, office, phone, service, shopping, software, sport, tax, transport, transportation, and utilities.
+	CounterParty     tellerTransactionDetailsCounterParty `json:"counterparty,omitempty"`
 }
 
-// GetAccountBalances retrieves balances for a specific account.
-func (c *TellerClient) GetAccountBalances(ctx context.Context, accessToken, accountID string) (*http.Response, error) {
-	path := fmt.Sprintf("/accounts/%s/balances", url.PathEscape(accountID))
-	return c.request(ctx, "GET", path, accessToken, nil)
+type tellerTransaction struct {
+	Details        tellerTransactionDetails `json:"details"`
+	RunningBalance string                   `json:"running_balance"`
+	Description    string                   `json:"description"`
+	ID             string                   `json:"id"`
+	Date           string                   `json:"date"`
+	AccountID      string                   `json:"account_id"`
+	Links          map[string]any           `json:"links"`
+	Amount         string                   `json:"amount"`
+	Status         string                   `json:"status"`
+	Type           string                   `json:"type"`
 }
 
-// ListAccountTransactions retrieves transactions for a specific account.
-func (c *TellerClient) ListAccountTransactions(ctx context.Context, accessToken, accountID string) (*http.Response, error) {
-	path := fmt.Sprintf("/accounts/%s/transactions", url.PathEscape(accountID))
-	return c.request(ctx, "GET", path, accessToken, nil)
+type tellerInstitution struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	PrimaryColor string `json:"primary_color"`
+	Logo         string `json:"logo"`
 }
 
-// ListAccountPayees retrieves payees for a specific account and scheme.
-func (c *TellerClient) ListAccountPayees(ctx context.Context, accessToken, accountID, scheme string) (*http.Response, error) {
-	path := fmt.Sprintf("/accounts/%s/payments/%s/payees", url.PathEscape(accountID), url.PathEscape(scheme))
-	return c.request(ctx, "GET", path, accessToken, nil)
+type tellerConnectResponse struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
-// CreateAccountPayee creates a payee for a specific account and scheme.
-// data should be a struct or map that can be marshalled to JSON.
-func (c *TellerClient) CreateAccountPayee(ctx context.Context, accessToken, accountID, scheme string, data interface{}) (*http.Response, error) {
-	path := fmt.Sprintf("/accounts/%s/payments/%s/payees", url.PathEscape(accountID), url.PathEscape(scheme))
-	return c.request(ctx, "POST", path, accessToken, data)
-}
+func NewTellerProvider(config TellerConfig, logger *zerolog.Logger) (*TellerProvider, error) {
+	hasCert := config.CertPath != "" && config.CertPrivateKeyPath != ""
+	var tlsConfig *tls.Config
 
-// CreateAccountPayment creates a payment for a specific account and scheme.
-// data should be a struct or map that can be marshalled to JSON.
-func (c *TellerClient) CreateAccountPayment(ctx context.Context, accessToken, accountID, scheme string, data interface{}) (*http.Response, error) {
-	path := fmt.Sprintf("/accounts/%s/payments/%s", url.PathEscape(accountID), url.PathEscape(scheme))
-	return c.request(ctx, "POST", path, accessToken, data)
-}
-
-// request makes an HTTP request to the Teller API.
-// Caller is responsible for closing the response body if the error is nil.
-func (c *TellerClient) request(ctx context.Context, method, path, accessToken string, data interface{}) (*http.Response, error) {
-	fullURL := c.baseURL + path
-
-	var bodyReader io.Reader
-
-	if data != nil {
-		jsonData, err := json.Marshal(data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request data: %w", err)
+	if config.environment != "sandbox" {
+		if !hasCert {
+			return nil, fmt.Errorf("env: Tls certs (base + private) path not set in environment variables")
 		}
-		bodyReader = bytes.NewBuffer(jsonData)
+
+		cert, err := tls.LoadX509KeyPair(config.CertPath, config.CertPrivateKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("error loading certificate files")
+		}
+
+		tlsConfig = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		}
+
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, fullURL, bodyReader)
+	transport := &http.Transport{
+		TLSClientConfig:       tlsConfig,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second, // Added
+	}
+
+	httpClient := &http.Client{
+		Transport: transport,
+		Timeout:   30 * time.Second,
+	}
+
+	return &TellerProvider{
+		config:     config,
+		httpClient: httpClient,
+		logger:     logger,
+		baseURL:    config.BaseURL,
+	}, nil
+}
+
+// IGNORE
+func (t *TellerProvider) CreateLinkToken(ctx context.Context, req LinkTokenRequest) (*LinkTokenResponse, error) {
+	return &LinkTokenResponse{}, nil
+}
+
+// IGNORE
+func (t *TellerProvider) ExchangePublicToken(ctx context.Context, req ExchangeTokenRequest) (*ExchangeTokenResponse, error) {
+	return &ExchangeTokenResponse{}, nil
+}
+
+func (t *TellerProvider) GetAccounts(ctx context.Context, accessToken string) ([]Account, error) {
+	resp, err := t.makeRequest(ctx, "GET", "/accounts", nil, accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get accounts: %w", err)
+	}
+
+	var tellerAccounts []tellerAccount
+
+	if err := json.Unmarshal(resp, &tellerAccounts); err != nil {
+		return nil, fmt.Errorf("failed to parse accounts response: %w", err)
+	}
+
+	accounts := make([]Account, 0, len(tellerAccounts))
+	for _, ta := range tellerAccounts {
+
+		fullAccount, err := t.GetAccountBalanceInternal(ctx, accessToken, ta.ID)
+		if err != nil {
+			t.logger.Warn().Err(err).Str("account_id", ta.ID).Msg("Failed to fetch full account balance")
+			continue
+		}
+
+		ta.Balance = *fullAccount
+
+		account := t.convertTellerAccount(ta)
+		accounts = append(accounts, account)
+	}
+
+	return accounts, nil
+}
+
+func (t *TellerProvider) GetAccount(ctx context.Context, accessToken, accountID string) (*Account, error) {
+	resp, err := t.makeRequest(ctx, "GET", fmt.Sprintf("/accounts/%s", accountID), nil, accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get account: %w", err)
+	}
+
+	var tellerAccount tellerAccount
+	if err := json.Unmarshal(resp, &tellerAccount); err != nil {
+		return nil, fmt.Errorf("failed to parse account response: %w", err)
+	}
+
+	accountBalance, err := t.GetAccountBalanceInternal(ctx, accessToken, tellerAccount.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get account: %w", err)
+	}
+
+	tellerAccount.Balance = *accountBalance
+
+	account := t.convertTellerAccount(tellerAccount)
+	return &account, nil
+}
+
+func (t *TellerProvider) GetAccountBalance(ctx context.Context, accessToken, accountID string) (*Account, error) {
+	// For Teller, balance is included in the account data
+	return t.GetAccount(ctx, accessToken, accountID)
+}
+
+func (t *TellerProvider) GetAccountBalanceInternal(ctx context.Context, accessToken, accountID string) (*tellerBalance, error) {
+	resp, err := t.makeRequest(ctx, "GET", fmt.Sprintf("/accounts/%s/balances", accountID), nil, accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get account: %w", err)
+	}
+
+	var tellerBalance tellerBalance
+	if err := json.Unmarshal(resp, &tellerBalance); err != nil {
+		return nil, fmt.Errorf("failed to parse account balance response: %w", err)
+	}
+
+	return &tellerBalance, nil
+}
+
+// GetTransactions retrieves transactions for an account within a date range
+func (t *TellerProvider) GetTransactions(ctx context.Context, accessToken, accountID string, args GetTransactionsArgs) ([]Transaction, error) {
+	params := url.Values{}
+	params.Set("count", strconv.Itoa(args.Count))
+	params.Set("from_id", args.FromID)
+
+	endpoint := fmt.Sprintf("/accounts/%s/transactions?%s", accountID, params.Encode())
+	resp, err := t.makeRequest(ctx, "GET", endpoint, nil, accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transactions: %w", err)
+	}
+
+	var tellerTransactions []tellerTransaction
+	if err := json.Unmarshal(resp, &tellerTransactions); err != nil {
+		return nil, fmt.Errorf("failed to parse transactions response: %w", err)
+	}
+
+	transactions := make([]Transaction, 0, len(tellerTransactions))
+	for _, tt := range tellerTransactions {
+		transaction, err := t.convertTellerTransaction(tt, accountID)
+		if err != nil {
+			t.logger.Warn().Err(err).Str("transaction_id", tt.ID).Msg("Failed to convert transaction")
+			continue
+		}
+		transactions = append(transactions, transaction)
+	}
+
+	return transactions, nil
+}
+
+// IGNORE
+func (t *TellerProvider) GetRecentTransactions(ctx context.Context, accessToken, accountID string, count int) ([]Transaction, error) {
+	return nil, nil
+}
+
+// GetInstitutions retrieves all supported institutions
+func (t *TellerProvider) GetInstitutions(ctx context.Context) ([]Institution, error) {
+	resp, err := t.makeRequest(ctx, "GET", "/institutions", nil, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get institutions: %w", err)
+	}
+
+	var tellerInstitutions []tellerInstitution
+	if err := json.Unmarshal(resp, &tellerInstitutions); err != nil {
+		return nil, fmt.Errorf("failed to parse institutions response: %w", err)
+	}
+
+	institutions := make([]Institution, 0, len(tellerInstitutions))
+	for _, ti := range tellerInstitutions {
+		institution := Institution{
+			ID:       ti.ID,
+			Name:     ti.Name,
+			Logo:     ti.Logo,
+			Primary:  ti.PrimaryColor,
+			Provider: "teller",
+		}
+		institutions = append(institutions, institution)
+	}
+
+	return institutions, nil
+}
+
+// IGNORE
+func (t *TellerProvider) GetInstitution(ctx context.Context, institutionID string) (*Institution, error) {
+	return &Institution{}, nil
+}
+
+// IGNORE
+func (t *TellerProvider) SearchInstitutions(ctx context.Context, query string) ([]Institution, error) {
+	return nil, nil
+}
+
+// GetConnectionStatus checks if the connection is still valid
+func (t *TellerProvider) GetConnectionStatus(ctx context.Context, accessToken string) (bool, error) {
+	_, err := t.makeRequest(ctx, "GET", "/accounts", nil, accessToken)
+	if err != nil {
+		if strings.Contains(err.Error(), "401") || strings.Contains(err.Error(), "403") {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check connection status: %w", err)
+	}
+	return true, nil
+}
+
+// IGNORE (Teller connections don't typically need manual refresh)
+func (t *TellerProvider) RefreshConnection(ctx context.Context, accessToken string) error {
+	return nil
+}
+
+// RemoveConnection removes/disconnects the account connection (TODO: Adapt this to teller (add account_id))
+func (t *TellerProvider) RemoveConnection(ctx context.Context, accessToken string) error {
+	endpoint := fmt.Sprintf("/accounts/%s", "id_here")
+	_, err := t.makeRequest(ctx, "DELETE", endpoint, nil, accessToken)
+	if err != nil {
+		return fmt.Errorf("failed to remove connection: %w", err)
+	}
+	return nil
+}
+
+// GetProviderName returns the provider name
+func (t *TellerProvider) GetProviderName() string {
+	return "teller"
+}
+
+// GetSupportedCountries returns supported countries
+func (t *TellerProvider) GetSupportedCountries() []string {
+	return []string{"US", "CA"} // Teller primarily supports US and Canada
+}
+
+// GetSupportedAccountTypes returns supported account types
+func (t *TellerProvider) GetSupportedAccountTypes() []AccountType {
+	return []AccountType{
+		AccountTypeChecking,
+		AccountTypeSavings,
+		AccountTypeCredit,
+		AccountTypeInvestment,
+		AccountTypeLoan,
+	}
+}
+
+// Helper methods
+
+// makeRequest makes an HTTP request to the Teller API
+func (t *TellerProvider) makeRequest(ctx context.Context, method, endpoint string, body any, accessToken string) ([]byte, error) {
+	var reqBody io.Reader
+	if body != nil {
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		}
+		reqBody = bytes.NewBuffer(jsonData)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, t.baseURL+endpoint, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.SetBasicAuth(accessToken, "") // Teller uses the access token as the username
-	if data != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	req.Header.Set("Accept", "application/json")
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "nuts-finance/1.0")
 
-	resp, err := c.httpClient.Do(req)
+	// Authentication
+	if accessToken != "" {
+		req.SetBasicAuth(accessToken, "")
+	} else {
+		return nil, fmt.Errorf("accessToken is empty")
+	}
+
+	resp, err := t.httpClient.Do(req)
 	if err != nil {
-		// Check for context cancellation/deadline exceeded before wrapping
-		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-			return nil, err // Return context error directly
-		}
-		// Check for URL error (e.g., DNS lookup failure, connection refused)
-		var urlErr *url.Error
-		if errors.As(err, &urlErr) {
-			return nil, fmt.Errorf("network error contacting %s: %w", urlErr.URL, err)
-		}
-		// Generic request execution error
-		return nil, fmt.Errorf("failed to execute request to %s: %w", fullURL, err)
+		return nil, fmt.Errorf("request failed: %w", err)
 	}
+	defer resp.Body.Close()
 
-	// Don't handle status codes here, let the handler do it.
-	// Just return the response or an execution error.
-
-	return resp, nil
-}
-
-// AccountsHandler handles incoming API requests and proxies them to a PaymentProcessorClient.
-type AccountsHandler struct {
-	// Use the interface type here
-	client PaymentProcessorClient
-}
-
-// NewAccountsHandler creates a new handler with a specific PaymentProcessorClient implementation.
-func NewAccountsHandler(client PaymentProcessorClient) *AccountsHandler {
-	return &AccountsHandler{client: client}
-}
-
-// Helper to proxy the request and write the response (remains the same logic, uses interface methods)
-func (h *AccountsHandler) proxyRequest(w http.ResponseWriter, r *http.Request, processorCall func(ctx context.Context, token string) (*http.Response, error)) {
-	token, err := getBearerToken(r)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	// Call the function which will use the interface method
-	processorResp, err := processorCall(r.Context(), token)
+	if resp.StatusCode >= 400 {
+		t.logger.Error().
+			Int("status_code", resp.StatusCode).
+			Str("response_body", string(respBody)).
+			Str("endpoint", endpoint).
+			Msg("Teller API error")
+
+		var tellerErr struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		_ = json.Unmarshal(respBody, &tellerErr)
+
+		switch resp.StatusCode {
+		case 401, 403:
+			return nil, fmt.Errorf("authentication failed: %s (%s)", tellerErr.Error.Message, tellerErr.Error.Code)
+		case 404:
+			return nil, fmt.Errorf("not found: %s (%s)", tellerErr.Error.Message, tellerErr.Error.Code)
+		case 410:
+			return nil, fmt.Errorf("gone: %s (%s)", tellerErr.Error.Message, tellerErr.Error.Code)
+		case 422:
+			return nil, fmt.Errorf("unprocessable entity: %s (%s)", tellerErr.Error.Message, tellerErr.Error.Code)
+		case 429:
+			return nil, fmt.Errorf("rate limit exceeded: %s (%s)", tellerErr.Error.Message, tellerErr.Error.Code)
+		case 502:
+			return nil, fmt.Errorf("bad gateway: %s (%s)", tellerErr.Error.Message, tellerErr.Error.Code)
+		default:
+			return nil, fmt.Errorf("API error: %d - %s (%s)", resp.StatusCode, tellerErr.Error.Message, tellerErr.Error.Code)
+		}
+	}
+
+	return respBody, nil
+}
+
+// convertTellerAccount converts a Teller account to the standard Account struct
+func (t *TellerProvider) convertTellerAccount(ta tellerAccount) Account {
+	accountType := t.mapTellerAccountType(ta.Type, ta.Subtype)
+
+	var availableBalance *float64
+	if ta.Balance.Available != 0 {
+		availableBalance = &ta.Balance.Available
+	}
+
+	var accountNumber *string
+	if ta.LastFour != "" {
+		masked := "****" + ta.LastFour
+		accountNumber = &masked
+	}
+
+	return Account{
+		ID:                ta.ID,
+		Name:              ta.Name,
+		Type:              accountType,
+		Balance:           ta.Balance.Ledger,
+		AvailableBalance:  availableBalance,
+		Currency:          strings.ToUpper(ta.Currency),
+		AccountNumber:     accountNumber,
+		InstitutionName:   ta.Institution.Name,
+		InstitutionID:     ta.Institution.ID,
+		LastUpdated:       time.Now(),
+		IsActive:          ta.Status == "open",
+		ProviderAccountID: ta.ID,
+		EnrollmentID:      &ta.EnrollmentID,
+		Subtype:           &ta.Subtype,
+		Status:            &ta.Status,
+	}
+}
+
+// convertTellerTransaction converts a Teller transaction to the standard Transaction struct
+func (t *TellerProvider) convertTellerTransaction(tt tellerTransaction, accountID string) (Transaction, error) {
+	amount, err := strconv.ParseFloat(tt.Amount, 64)
 	if err != nil {
-		log.Printf("Error calling payment processor API: %v", err)
-		// Check for specific context errors for better client feedback
-		if errors.Is(err, context.DeadlineExceeded) {
-			http.Error(w, "Gateway Timeout", http.StatusGatewayTimeout)
-		} else if errors.Is(err, context.Canceled) {
-			// Client likely disconnected
-			// Consider just logging or a specific code like 499 Client Closed Request (Nginx specific)
-			log.Printf("Client request cancelled: %v", err)
-		} else {
-			http.Error(w, "Internal Server Error communicating with payment processor", http.StatusBadGateway) // 502 might be more appropriate
-		}
-		return
-	}
-	defer processorResp.Body.Close()
-
-	// Copy headers from processor response to our response
-	for key, values := range processorResp.Header {
-		if strings.EqualFold(key, "Content-Type") || strings.EqualFold(key, "Content-Length") {
-			for _, value := range values {
-				w.Header().Add(key, value)
-			}
-		}
+		return Transaction{}, fmt.Errorf("failed to parse amount: %w", err)
 	}
 
-	// Write the status code from processor's response
-	w.WriteHeader(processorResp.StatusCode)
-
-	// Copy the body from processor's response
-	if _, err := io.Copy(w, processorResp.Body); err != nil {
-		log.Printf("Error copying response body: %v", err)
-	}
-}
-
-// Helper to proxy POST requests (remains the same logic, uses interface methods)
-func (h *AccountsHandler) proxyPostRequest(w http.ResponseWriter, r *http.Request, processorCall func(ctx context.Context, token string, data map[string]interface{}) (*http.Response, error)) {
-	token, err := getBearerToken(r)
+	date, err := time.Parse("2006-01-02", tt.Date)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
+		return Transaction{}, fmt.Errorf("failed to parse date: %w", err)
 	}
 
-	// Decode JSON body from incoming request
-	var requestData map[string]interface{} // Use map for generic JSON
-	if r.Body != nil && r.ContentLength > 0 {
-		// Limit request body size
-		maxRequestSize := int64(1 << 20) // 1 MB limit
-		r.Body = http.MaxBytesReader(w, r.Body, maxRequestSize)
+	return Transaction{
+		ID:                    tt.ID,
+		AccountID:             accountID,
+		Amount:                amount,
+		Currency:              "USD", // Teller typically uses USD
+		Description:           tt.Description,
+		Date:                  date,
+		MerchantName:          tt.Details.CounterParty.Name,
+		Type:                  strings.ToLower(tt.Type),
+		Status:                strings.ToLower(tt.Status),
+		ProviderTransactionID: tt.ID,
+		Metadata: map[string]string{
+			"running_balance": tt.RunningBalance,
+		},
+	}, nil
+}
 
-		decoder := json.NewDecoder(r.Body)
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&requestData); err != nil {
-			var syntaxError *json.SyntaxError
-			var unmarshalTypeError *json.UnmarshalTypeError
-			var maxBytesError *http.MaxBytesError
-
-			switch {
-			case errors.As(err, &syntaxError):
-				msg := fmt.Sprintf("Request body contains badly-formed JSON (at character %d)", syntaxError.Offset)
-				http.Error(w, msg, http.StatusBadRequest)
-			case errors.Is(err, io.ErrUnexpectedEOF):
-				msg := "Request body contains badly-formed JSON"
-				http.Error(w, msg, http.StatusBadRequest)
-			case errors.As(err, &unmarshalTypeError):
-				msg := fmt.Sprintf("Request body contains an invalid value for the %q field (at character %d)", unmarshalTypeError.Field, unmarshalTypeError.Offset)
-				http.Error(w, msg, http.StatusBadRequest)
-			case errors.Is(err, io.EOF):
-				// Allow empty body if needed by API? Or return error?
-				// For now, let's treat empty body as potentially valid if ContentLength > 0 but Decode gets EOF
-				// But if ContentLength was 0, requestData will be nil anyway.
-				// Consider erroring: http.Error(w, "Request body must not be empty", http.StatusBadRequest)
-				requestData = nil // Ensure it's nil if body was just whitespace or empty braces
-			case errors.As(err, &maxBytesError):
-				msg := fmt.Sprintf("Request body must not be larger than %d bytes", maxBytesError.Limit)
-				http.Error(w, msg, http.StatusRequestEntityTooLarge)
-			default:
-				log.Printf("Error decoding request body: %v", err)
-				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // Generic bad request
-			}
-			return
+// mapTellerAccountType maps Teller account types to standard account types
+func (t *TellerProvider) mapTellerAccountType(accountType, subtype string) AccountType {
+	switch strings.ToLower(accountType) {
+	case "depository":
+		switch strings.ToLower(subtype) { // also money_market, certificate_of_deposit, treasury, sweep
+		case "checking":
+			return AccountTypeChecking
+		case "savings":
+			return AccountTypeSavings
+		default:
+			return AccountTypeChecking
 		}
-		// Check if there is anything else in the body after decoding the JSON.
-		if err := decoder.Decode(&struct{}{}); err != io.EOF {
-			msg := "Request body must only contain a single JSON object"
-			http.Error(w, msg, http.StatusBadRequest)
-			return
-		}
-
+	case "credit":
+		return AccountTypeCredit
+	case "loan":
+		return AccountTypeLoan
+	case "investment":
+		return AccountTypeInvestment
+	default:
+		return AccountTypeOther
 	}
-	// It's crucial to close the request body *after* processing it.
-	if r.Body != nil {
-		defer r.Body.Close()
-	}
-
-	// Call the function which will use the interface method
-	processorResp, err := processorCall(r.Context(), token, requestData)
-	if err != nil {
-		log.Printf("Error calling payment processor API: %v", err)
-		if errors.Is(err, context.DeadlineExceeded) {
-			http.Error(w, "Gateway Timeout", http.StatusGatewayTimeout)
-		} else if errors.Is(err, context.Canceled) {
-			log.Printf("Client request cancelled: %v", err)
-		} else {
-			http.Error(w, "Internal Server Error communicating with payment processor", http.StatusBadGateway) // 502 might be more appropriate
-		}
-		return
-	}
-	defer processorResp.Body.Close()
-
-	// Copy headers
-	for key, values := range processorResp.Header {
-		if strings.EqualFold(key, "Content-Type") || strings.EqualFold(key, "Content-Length") {
-			for _, value := range values {
-				w.Header().Add(key, value)
-			}
-		}
-	}
-	// Write status code
-	w.WriteHeader(processorResp.StatusCode)
-	// Copy body
-	if _, err := io.Copy(w, processorResp.Body); err != nil {
-		log.Printf("Error copying response body: %v", err)
-	}
-}
-
-// Helper to extract bearer token (remains the same)
-func getBearerToken(r *http.Request) (string, error) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return "", errors.New("missing Authorization header")
-	}
-	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-		return "", errors.New("invalid Authorization header format")
-	}
-	return parts[1], nil
-}
-
-// --- Route Handlers (Unchanged Internally, Call Interface Methods) ---
-
-func (h *AccountsHandler) HandleListAccounts(w http.ResponseWriter, r *http.Request) {
-	h.proxyRequest(w, r, func(ctx context.Context, token string) (*http.Response, error) {
-		// This now calls the interface method
-		return h.client.ListAccounts(ctx, token)
-	})
-}
-
-func (h *AccountsHandler) HandleGetDetails(w http.ResponseWriter, r *http.Request) {
-	accountID := chi.URLParam(r, "account_id")
-	h.proxyRequest(w, r, func(ctx context.Context, token string) (*http.Response, error) {
-		// This now calls the interface method
-		return h.client.GetAccountDetails(ctx, token, accountID)
-	})
-}
-
-func (h *AccountsHandler) HandleGetBalances(w http.ResponseWriter, r *http.Request) {
-	accountID := chi.URLParam(r, "account_id")
-	h.proxyRequest(w, r, func(ctx context.Context, token string) (*http.Response, error) {
-		// This now calls the interface method
-		return h.client.GetAccountBalances(ctx, token, accountID)
-	})
-}
-
-func (h *AccountsHandler) HandleGetTransactions(w http.ResponseWriter, r *http.Request) {
-	accountID := chi.URLParam(r, "account_id")
-	h.proxyRequest(w, r, func(ctx context.Context, token string) (*http.Response, error) {
-		// This now calls the interface method
-		return h.client.ListAccountTransactions(ctx, token, accountID)
-	})
-}
-
-func (h *AccountsHandler) HandleGetPayees(w http.ResponseWriter, r *http.Request) {
-	accountID := chi.URLParam(r, "account_id")
-	scheme := chi.URLParam(r, "scheme")
-	h.proxyRequest(w, r, func(ctx context.Context, token string) (*http.Response, error) {
-		// This now calls the interface method
-		return h.client.ListAccountPayees(ctx, token, accountID, scheme)
-	})
-}
-
-func (h *AccountsHandler) HandlePostPayees(w http.ResponseWriter, r *http.Request) {
-	accountID := chi.URLParam(r, "account_id")
-	scheme := chi.URLParam(r, "scheme")
-	h.proxyPostRequest(w, r, func(ctx context.Context, token string, data map[string]interface{}) (*http.Response, error) {
-		// This now calls the interface method
-		return h.client.CreateAccountPayee(ctx, token, accountID, scheme, data)
-	})
-}
-
-func (h *AccountsHandler) HandlePostPayments(w http.ResponseWriter, r *http.Request) {
-	accountID := chi.URLParam(r, "account_id")
-	scheme := chi.URLParam(r, "scheme")
-	h.proxyPostRequest(w, r, func(ctx context.Context, token string, data map[string]interface{}) (*http.Response, error) {
-		// This now calls the interface method
-		return h.client.CreateAccountPayment(ctx, token, accountID, scheme, data)
-	})
 }
