@@ -21,20 +21,22 @@ INSERT INTO accounts (
     balance,
     currency,
     color,
-    meta
+    meta,
+    connection_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at
+    $1, $2, $3, $4, $5, $6, $7, $8
+) RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, connection_id
 `
 
 type CreateAccountParams struct {
-	CreatedBy *uuid.UUID     `json:"created_by"`
-	Name      string         `json:"name"`
-	Type      ACCOUNTTYPE    `json:"type"`
-	Balance   pgtype.Numeric `json:"balance"`
-	Currency  string         `json:"currency"`
-	Color     COLORENUM      `json:"color"`
-	Meta      []byte         `json:"meta"`
+	CreatedBy    *uuid.UUID     `json:"created_by"`
+	Name         string         `json:"name"`
+	Type         interface{}    `json:"type"`
+	Balance      pgtype.Numeric `json:"balance"`
+	Currency     string         `json:"currency"`
+	Color        interface{}    `json:"color"`
+	Meta         []byte         `json:"meta"`
+	ConnectionID *uuid.UUID     `json:"connection_id"`
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
@@ -46,6 +48,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		arg.Currency,
 		arg.Color,
 		arg.Meta,
+		arg.ConnectionID,
 	)
 	var i Account
 	err := row.Scan(
@@ -61,6 +64,8 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsExternal,
+		&i.ConnectionID,
 	)
 	return i, err
 }
@@ -70,7 +75,7 @@ UPDATE accounts
 SET
     deleted_at = current_timestamp
 WHERE id = $1
-RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at
+RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, connection_id
 `
 
 func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) error {
@@ -199,7 +204,8 @@ SELECT
     meta,
     color,
     created_by,
-    updated_at
+    updated_at,
+    connection_id
 FROM accounts
 WHERE
     id = $1
@@ -208,15 +214,16 @@ LIMIT 1
 `
 
 type GetAccountByIdRow struct {
-	ID        uuid.UUID      `json:"id"`
-	Name      string         `json:"name"`
-	Type      ACCOUNTTYPE    `json:"type"`
-	Balance   pgtype.Numeric `json:"balance"`
-	Currency  string         `json:"currency"`
-	Meta      []byte         `json:"meta"`
-	Color     COLORENUM      `json:"color"`
-	CreatedBy *uuid.UUID     `json:"created_by"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	ID           uuid.UUID      `json:"id"`
+	Name         string         `json:"name"`
+	Type         ACCOUNTTYPE    `json:"type"`
+	Balance      pgtype.Numeric `json:"balance"`
+	Currency     string         `json:"currency"`
+	Meta         []byte         `json:"meta"`
+	Color        COLORENUM      `json:"color"`
+	CreatedBy    *uuid.UUID     `json:"created_by"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	ConnectionID *uuid.UUID     `json:"connection_id"`
 }
 
 func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountByIdRow, error) {
@@ -232,6 +239,7 @@ func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountB
 		&i.Color,
 		&i.CreatedBy,
 		&i.UpdatedAt,
+		&i.ConnectionID,
 	)
 	return i, err
 }
@@ -245,7 +253,8 @@ SELECT
     currency,
     color,
     meta,
-    updated_at
+    updated_at,
+    connection_id
 FROM accounts
 WHERE
     created_by = $1
@@ -253,14 +262,15 @@ WHERE
 `
 
 type GetAccountsRow struct {
-	ID        uuid.UUID      `json:"id"`
-	Name      string         `json:"name"`
-	Type      ACCOUNTTYPE    `json:"type"`
-	Balance   pgtype.Numeric `json:"balance"`
-	Currency  string         `json:"currency"`
-	Color     COLORENUM      `json:"color"`
-	Meta      []byte         `json:"meta"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	ID           uuid.UUID      `json:"id"`
+	Name         string         `json:"name"`
+	Type         ACCOUNTTYPE    `json:"type"`
+	Balance      pgtype.Numeric `json:"balance"`
+	Currency     string         `json:"currency"`
+	Color        COLORENUM      `json:"color"`
+	Meta         []byte         `json:"meta"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	ConnectionID *uuid.UUID     `json:"connection_id"`
 }
 
 func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAccountsRow, error) {
@@ -281,6 +291,7 @@ func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAcco
 			&i.Color,
 			&i.Meta,
 			&i.UpdatedAt,
+			&i.ConnectionID,
 		); err != nil {
 			return nil, err
 		}
@@ -648,18 +659,18 @@ SET
     meta = coalesce($6, meta),
     updated_by = $7
 WHERE id = $8
-RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at
+RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, connection_id
 `
 
 type UpdateAccountParams struct {
-	Name      *string         `json:"name"`
-	Type      NullACCOUNTTYPE `json:"type"`
-	Balance   pgtype.Numeric  `json:"balance"`
-	Currency  *string         `json:"currency"`
-	Color     NullCOLORENUM   `json:"color"`
-	Meta      []byte          `json:"meta"`
-	UpdatedBy *uuid.UUID      `json:"updated_by"`
-	ID        uuid.UUID       `json:"id"`
+	Name      *string        `json:"name"`
+	Type      interface{}    `json:"type"`
+	Balance   pgtype.Numeric `json:"balance"`
+	Currency  *string        `json:"currency"`
+	Color     interface{}    `json:"color"`
+	Meta      []byte         `json:"meta"`
+	UpdatedBy *uuid.UUID     `json:"updated_by"`
+	ID        uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (Account, error) {
@@ -687,6 +698,8 @@ func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (A
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IsExternal,
+		&i.ConnectionID,
 	)
 	return i, err
 }

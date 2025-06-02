@@ -1,12 +1,10 @@
 -- +goose Up
 
--- 1: Tables 
 CREATE TABLE currencies (
     code CHAR(3) PRIMARY KEY,
     name TEXT
 );
 
--- 2: Insert currencies
 -- +goose StatementBegin
 INSERT INTO currencies (code, name) VALUES
 ('AED', 'United Arab Emirates Dirham'),

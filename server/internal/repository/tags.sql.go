@@ -18,13 +18,13 @@ INSERT INTO tags (
     color
 ) VALUES (
     $1, $2, $3
-) RETURNING id, user_id, name, color
+) RETURNING id, user_id, name, color, created_at
 `
 
 type CreateTagParams struct {
-	UserID uuid.UUID `json:"user_id"`
-	Name   string    `json:"name"`
-	Color  COLORENUM `json:"color"`
+	UserID uuid.UUID   `json:"user_id"`
+	Name   string      `json:"name"`
+	Color  interface{} `json:"color"`
 }
 
 func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error) {
@@ -35,6 +35,7 @@ func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (Tag, erro
 		&i.UserID,
 		&i.Name,
 		&i.Color,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -66,9 +67,16 @@ FROM tags
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetTagById(ctx context.Context, id uuid.UUID) (Tag, error) {
+type GetTagByIdRow struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+	Name   string    `json:"name"`
+	Color  COLORENUM `json:"color"`
+}
+
+func (q *Queries) GetTagById(ctx context.Context, id uuid.UUID) (GetTagByIdRow, error) {
 	row := q.db.QueryRow(ctx, getTagById, id)
-	var i Tag
+	var i GetTagByIdRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -128,19 +136,26 @@ LIMIT
 `
 
 type ListTagsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
 }
 
-func (q *Queries) ListTags(ctx context.Context, arg ListTagsParams) ([]Tag, error) {
+type ListTagsRow struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+	Name   string    `json:"name"`
+	Color  COLORENUM `json:"color"`
+}
+
+func (q *Queries) ListTags(ctx context.Context, arg ListTagsParams) ([]ListTagsRow, error) {
 	rows, err := q.db.Query(ctx, listTags, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Tag{}
+	items := []ListTagsRow{}
 	for rows.Next() {
-		var i Tag
+		var i ListTagsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -165,14 +180,14 @@ SET
 WHERE
     id = $3
     AND user_id = $4
-RETURNING id, user_id, name, color
+RETURNING id, user_id, name, color, created_at
 `
 
 type UpdateTagParams struct {
-	Name   *string       `json:"name"`
-	Color  NullCOLORENUM `json:"color"`
-	ID     uuid.UUID     `json:"id"`
-	UserID uuid.UUID     `json:"user_id"`
+	Name   *string     `json:"name"`
+	Color  interface{} `json:"color"`
+	ID     uuid.UUID   `json:"id"`
+	UserID uuid.UUID   `json:"user_id"`
 }
 
 func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, error) {
@@ -188,6 +203,7 @@ func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, erro
 		&i.UserID,
 		&i.Name,
 		&i.Color,
+		&i.CreatedAt,
 	)
 	return i, err
 }

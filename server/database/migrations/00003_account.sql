@@ -1,10 +1,9 @@
 -- +goose Up
 
--- 1: Enum types
+-- TODO: Get rid of the color enum and use hex instead
 CREATE TYPE "COLOR_ENUM" AS ENUM ('red', 'green', 'blue');
 CREATE TYPE "ACCOUNT_TYPE" AS ENUM ('cash', 'momo', 'credit');
 
--- 2: Tables
 CREATE TABLE accounts (
     id UUID NOT NULL DEFAULT (uuid_generate_v4()),
     name VARCHAR(100) NOT NULL,
@@ -13,7 +12,7 @@ CREATE TABLE accounts (
     currency CHAR(3) NOT NULL REFERENCES currencies (code),
     color "COLOR_ENUM" NOT NULL DEFAULT 'blue',
     meta JSONB,
-    created_by UUID REFERENCES users (id),
+    created_by UUID REFERENCES users (id) ON DELETE CASCADE,
     updated_by UUID REFERENCES users (id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
@@ -21,13 +20,11 @@ CREATE TABLE accounts (
     CONSTRAINT accounts_pkey PRIMARY KEY (id)
 );
 
--- 3: Triggers
 CREATE TRIGGER update_accounts_updated_at
 BEFORE UPDATE ON accounts
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
--- 4: Indexes
 CREATE INDEX idx_accounts_name ON accounts (name);
 CREATE INDEX idx_accounts_currency ON accounts (currency);
 

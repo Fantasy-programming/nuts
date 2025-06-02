@@ -6,9 +6,10 @@ INSERT INTO accounts (
     balance,
     currency,
     color,
-    meta
+    meta,
+    connection_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 ) RETURNING *;
 
 -- name: GetAccountById :one
@@ -21,7 +22,8 @@ SELECT
     meta,
     color,
     created_by,
-    updated_at
+    updated_at,
+    connection_id
 FROM accounts
 WHERE
     id = $1
@@ -37,7 +39,8 @@ SELECT
     currency,
     color,
     meta,
-    updated_at
+    updated_at,
+    connection_id
 FROM accounts
 WHERE
     created_by = sqlc.arg('user_id')

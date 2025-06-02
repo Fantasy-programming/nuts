@@ -110,8 +110,8 @@ LIMIT
 `
 
 type ListPreferencesParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
 }
 
 type ListPreferencesRow struct {

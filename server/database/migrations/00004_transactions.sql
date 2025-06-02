@@ -1,6 +1,5 @@
 -- +goose Up
 
--- 1: Tables
 CREATE TABLE categories (
     id UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     name VARCHAR(100) NOT NULL,
@@ -21,14 +20,13 @@ CREATE TABLE categories (
     ON DELETE SET NULL
 );
 
-
 CREATE TABLE transactions (
     id UUID NOT NULL DEFAULT (uuid_generate_v4()),
     amount NUMERIC NOT NULL,
     type VARCHAR(10) NOT NULL CHECK (type IN ('transfer', 'income', 'expense')),
-    account_id UUID NOT NULL REFERENCES accounts (id),
+    account_id UUID NOT NULL REFERENCES accounts (id) ON DELETE CASCADE,
     category_id UUID NOT NULL REFERENCES categories (id),
-    destination_account_id UUID REFERENCES accounts (id),
+    destination_account_id UUID REFERENCES accounts (id) ON DELETE SET NULL,
     transaction_datetime TIMESTAMPTZ NOT NULL,
     description TEXT,
     details JSONB,
@@ -40,8 +38,6 @@ CREATE TABLE transactions (
     CONSTRAINT transactions_pkey PRIMARY KEY (id)
 );
 
-
--- 3: Triggers
 CREATE TRIGGER update_transactions_updated_at
 BEFORE UPDATE ON transactions
 FOR EACH ROW

@@ -131,18 +131,20 @@ func (e COLORENUM) Valid() bool {
 }
 
 type Account struct {
-	ID        uuid.UUID          `json:"id"`
-	Name      string             `json:"name"`
-	Type      ACCOUNTTYPE        `json:"type"`
-	Balance   pgtype.Numeric     `json:"balance"`
-	Currency  string             `json:"currency"`
-	Color     COLORENUM          `json:"color"`
-	Meta      []byte             `json:"meta"`
-	CreatedBy *uuid.UUID         `json:"created_by"`
-	UpdatedBy *uuid.UUID         `json:"updated_by"`
-	CreatedAt time.Time          `json:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at"`
-	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+	ID           uuid.UUID          `json:"id"`
+	Name         string             `json:"name"`
+	Type         ACCOUNTTYPE        `json:"type"`
+	Balance      pgtype.Numeric     `json:"balance"`
+	Currency     string             `json:"currency"`
+	Color        COLORENUM          `json:"color"`
+	Meta         []byte             `json:"meta"`
+	CreatedBy    *uuid.UUID         `json:"created_by"`
+	UpdatedBy    *uuid.UUID         `json:"updated_by"`
+	CreatedAt    time.Time          `json:"created_at"`
+	UpdatedAt    time.Time          `json:"updated_at"`
+	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+	IsExternal   *bool              `json:"is_external"`
+	ConnectionID *uuid.UUID         `json:"connection_id"`
 }
 
 type Category struct {
@@ -160,6 +162,21 @@ type Category struct {
 type Currency struct {
 	Code string  `json:"code"`
 	Name *string `json:"name"`
+}
+
+type FinancialSyncJob struct {
+	ID                 uuid.UUID          `json:"id"`
+	UserID             uuid.UUID          `json:"user_id"`
+	ConnectionID       uuid.UUID          `json:"connection_id"`
+	ProviderName       string             `json:"provider_name"`
+	JobType            string             `json:"job_type"`
+	Status             string             `json:"status"`
+	StartedAt          pgtype.Timestamptz `json:"started_at"`
+	CompletedAt        pgtype.Timestamptz `json:"completed_at"`
+	ErrorMessage       *string            `json:"error_message"`
+	AccountsSynced     *int32             `json:"accounts_synced"`
+	TransactionsSynced *int32             `json:"transactions_synced"`
+	CreatedAt          time.Time          `json:"created_at"`
 }
 
 type LinkedAccount struct {
@@ -188,10 +205,11 @@ type Preference struct {
 }
 
 type Tag struct {
-	ID     uuid.UUID `json:"id"`
-	UserID uuid.UUID `json:"user_id"`
-	Name   string    `json:"name"`
-	Color  COLORENUM `json:"color"`
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Name      string    `json:"name"`
+	Color     COLORENUM `json:"color"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Transaction struct {
@@ -224,6 +242,21 @@ type User struct {
 	MfaSecret     []byte             `json:"mfa_secret"`
 	MfaEnabled    bool               `json:"mfa_enabled"`
 	MfaVerifiedAt pgtype.Timestamptz `json:"mfa_verified_at"`
+}
+
+type UserFinancialConnection struct {
+	ID                   uuid.UUID          `json:"id"`
+	UserID               uuid.UUID          `json:"user_id"`
+	ProviderName         string             `json:"provider_name"`
+	AccessTokenEncrypted string             `json:"access_token_encrypted"`
+	ItemID               *string            `json:"item_id"`
+	InstitutionID        *string            `json:"institution_id"`
+	InstitutionName      *string            `json:"institution_name"`
+	Status               *string            `json:"status"`
+	LastSyncAt           pgtype.Timestamptz `json:"last_sync_at"`
+	ExpiresAt            pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt            time.Time          `json:"created_at"`
+	UpdatedAt            time.Time          `json:"updated_at"`
 }
 
 type UserToken struct {

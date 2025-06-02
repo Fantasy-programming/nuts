@@ -278,9 +278,9 @@ FROM users
 WHERE id = $1
 `
 
-func (q *Queries) HasPasswordAuth(ctx context.Context, id uuid.UUID) (interface{}, error) {
+func (q *Queries) HasPasswordAuth(ctx context.Context, id uuid.UUID) (*bool, error) {
 	row := q.db.QueryRow(ctx, hasPasswordAuth, id)
-	var column_1 interface{}
+	var column_1 *bool
 	err := row.Scan(&column_1)
 	return column_1, err
 }
@@ -316,8 +316,8 @@ LIMIT
 `
 
 type ListUsersParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
 }
 
 type ListUsersRow struct {

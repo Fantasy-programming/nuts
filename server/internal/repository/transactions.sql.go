@@ -31,15 +31,15 @@ INSERT INTO transactions (
 `
 
 type CreateTransactionParams struct {
-	Amount               pgtype.Numeric `json:"amount"`
-	Type                 string         `json:"type"`
-	AccountID            uuid.UUID      `json:"account_id"`
-	DestinationAccountID *uuid.UUID     `json:"destination_account_id"`
-	CategoryID           uuid.UUID      `json:"category_id"`
-	Description          *string        `json:"description"`
-	TransactionDatetime  time.Time      `json:"transaction_datetime"`
-	Details              dto.Details    `json:"details"`
-	CreatedBy            *uuid.UUID     `json:"created_by"`
+	Amount               pgtype.Numeric     `json:"amount"`
+	Type                 string             `json:"type"`
+	AccountID            uuid.UUID          `json:"account_id"`
+	DestinationAccountID *uuid.UUID         `json:"destination_account_id"`
+	CategoryID           uuid.UUID          `json:"category_id"`
+	Description          *string            `json:"description"`
+	TransactionDatetime  pgtype.Timestamptz `json:"transaction_datetime"`
+	Details              dto.Details        `json:"details"`
+	CreatedBy            *uuid.UUID         `json:"created_by"`
 }
 
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
@@ -104,15 +104,15 @@ ORDER BY total_amount DESC
 `
 
 type GetCategorySpendingParams struct {
-	UserID    *uuid.UUID `json:"user_id"`
-	StartDate time.Time  `json:"start_date"`
-	EndDate   time.Time  `json:"end_date"`
+	UserID    *uuid.UUID         `json:"user_id"`
+	StartDate pgtype.Timestamptz `json:"start_date"`
+	EndDate   pgtype.Timestamptz `json:"end_date"`
 }
 
 type GetCategorySpendingRow struct {
-	CategoryName     string `json:"category_name"`
-	TotalAmount      int64  `json:"total_amount"`
-	TransactionCount int64  `json:"transaction_count"`
+	CategoryName     string         `json:"category_name"`
+	TotalAmount      pgtype.Numeric `json:"total_amount"`
+	TransactionCount int64          `json:"transaction_count"`
 }
 
 func (q *Queries) GetCategorySpending(ctx context.Context, arg GetCategorySpendingParams) ([]GetCategorySpendingRow, error) {
@@ -186,10 +186,10 @@ type GetTransactionStatsParams struct {
 }
 
 type GetTransactionStatsRow struct {
-	TotalCount     int64 `json:"total_count"`
-	TotalIncome    int64 `json:"total_income"`
-	TotalExpenses  int64 `json:"total_expenses"`
-	TotalTransfers int64 `json:"total_transfers"`
+	TotalCount     int64          `json:"total_count"`
+	TotalIncome    pgtype.Numeric `json:"total_income"`
+	TotalExpenses  pgtype.Numeric `json:"total_expenses"`
+	TotalTransfers pgtype.Numeric `json:"total_transfers"`
 }
 
 func (q *Queries) GetTransactionStats(ctx context.Context, arg GetTransactionStatsParams) (GetTransactionStatsRow, error) {
@@ -215,7 +215,7 @@ SELECT
     transactions.details,
     transactions.updated_at,
     categories.id, categories.name, categories.parent_id, categories.is_default, categories.created_by, categories.updated_by, categories.created_at, categories.updated_at, categories.deleted_at,
-    accounts.id, accounts.name, accounts.type, accounts.balance, accounts.currency, accounts.color, accounts.meta, accounts.created_by, accounts.updated_by, accounts.created_at, accounts.updated_at, accounts.deleted_at
+    accounts.id, accounts.name, accounts.type, accounts.balance, accounts.currency, accounts.color, accounts.meta, accounts.created_by, accounts.updated_by, accounts.created_at, accounts.updated_at, accounts.deleted_at, accounts.is_external, accounts.connection_id
 FROM transactions
 JOIN categories ON transactions.category_id = categories.id
 JOIN accounts ON transactions.account_id = accounts.id
@@ -304,6 +304,8 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Account.CreatedAt,
 			&i.Account.UpdatedAt,
 			&i.Account.DeletedAt,
+			&i.Account.IsExternal,
+			&i.Account.ConnectionID,
 		); err != nil {
 			return nil, err
 		}

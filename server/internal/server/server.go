@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -39,7 +38,7 @@ type Server struct {
 	validator *validation.Validator
 	i18n      *i18n.I18n
 
-	paymentClient finance.PaymentProcessorClient
+	openfinance *finance.ProviderManager
 
 	httpServer *http.Server
 }
@@ -78,7 +77,9 @@ func (s *Server) Init() {
 	s.NewLogger()
 	s.NewDatabase()
 	s.NewStorage()
-	s.SetupPaymentProcessors()
+	s.NewOPFinanceManager()
+	// s.SetupPaymentProcessors()
+
 	s.NewTokenService()
 	s.NewValidator()
 	s.NewI18n()
@@ -258,45 +259,13 @@ func (s *Server) NewI18n() {
 	s.i18n = i18nInstance
 }
 
-func (s *Server) SetupPaymentProcessors() {
-	if s.cfg.BankApiProvider == "" {
-		return
+// TODO: If the error is that there is no provider then ignore
+func (s *Server) NewOPFinanceManager() {
+	manager, err := finance.NewProviderManager(s.cfg.Integrations, s.logger)
+	if err != nil {
+		s.logger.Fatal().Err(err).Msg("Failed to setup Open finance Manager")
 	}
-
-	hasCert := s.cfg.TellerCertPath != "" && s.cfg.TellerCertPrivateKeyPath != ""
-	var tlsConfig *tls.Config
-
-	if s.cfg.TellerApiEnv != "sandbox" {
-		if !hasCert {
-			s.logger.Panic().Interface("env", s.cfg.Integrations).Msg("Env: Tls certs (base + private) path not set in environment variables")
-		}
-
-		cert, err := tls.LoadX509KeyPair(s.cfg.TellerCertPath, s.cfg.TellerCertPrivateKeyPath)
-		if err != nil {
-			s.logger.Panic().Err(err).Msg("Error loading certificate files")
-		}
-
-		tlsConfig = &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			MinVersion:   tls.VersionTLS12,
-		}
-	}
-
-	transport := &http.Transport{
-		TLSClientConfig:       tlsConfig,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second, // Added
-	}
-
-	httpClient := &http.Client{
-		Transport: transport,
-		Timeout:   30 * time.Second,
-	}
-
-	// --- Service Initialization ---
-	s.paymentClient = finance.NewTellerClient(httpClient)
+	s.openfinance = manager
 }
 
 func (s *Server) setGlobalMiddleware() {
