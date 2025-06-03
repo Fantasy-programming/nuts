@@ -12,6 +12,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/utility/types"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -186,7 +187,7 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 		DestinationAccountID: &params.DestinationAccountID,
 		CategoryID:           params.CategoryID,
 		Description:          params.Description,
-		TransactionDatetime:  params.TransactionDatetime,
+		TransactionDatetime:  pgtype.Timestamptz{Time: params.TransactionDatetime, Valid: true},
 		Details:              params.Details,
 		CreatedBy:            &params.UserID,
 	})

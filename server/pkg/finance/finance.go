@@ -159,6 +159,8 @@ func NewProviderManager(cfg config.Integrations, logger *zerolog.Logger) (*Provi
 		logger:    logger,
 	}
 
+	logger.Debug().Any("config", cfg.EnabledFinancialProviders).Msg("see oo")
+
 	// Initialize enabled providers
 	for _, providerName := range cfg.EnabledFinancialProviders {
 		provider, err := createProvider(providerName, cfg, logger)
@@ -230,11 +232,16 @@ func createProvider(name string, cfg config.Integrations, logger *zerolog.Logger
 			BaseURL:     cfg.PlaidBaseUri,
 		}, logger)
 	case "teller":
-		return NewTellerProvider(TellerConfig{BaseURL: cfg.TellerBaseUri}, logger)
+		return NewTellerProvider(TellerConfig{
+			BaseURL:            cfg.TellerBaseUri,
+			Environment:        cfg.TellerEnvironment,
+			CertPath:           cfg.TellerCertPath,
+			CertPrivateKeyPath: cfg.TellerCertPrivateKeyPath,
+		}, logger)
 	case "gocardless":
 		// return NewGoCardlessProvider(cfg.GoCardless, logger)
 	case "mono":
-		// return NewMonoProvider(cfg.Mono, logger)
+		return NewMonoProvider(cfg.MonoSecretKey, logger)
 	case "brankas":
 		// return NewBrankasProvider(cfg.Brankas, logger)
 	default:

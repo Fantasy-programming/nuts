@@ -36,6 +36,31 @@ type Repository interface {
 	GetAccountsBTimeline(ctx context.Context, userID *uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error)
 	GetAccountBTimeline(ctx context.Context, id uuid.UUID) ([]repository.GetAccountBalanceTimelineRow, error)
 	GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]AccountWithTrend, error)
+
+	// Connection management
+	CreateConnection(ctx context.Context, params repository.CreateConnectionParams) (repository.UserFinancialConnection, error)
+	GetConnectionByID(ctx context.Context, id uuid.UUID) (repository.UserFinancialConnection, error)
+	GetConnectionsByUserID(ctx context.Context, userID uuid.UUID) ([]repository.UserFinancialConnection, error)
+	GetConnectionByProviderItemID(ctx context.Context, params repository.GetConnectionByProviderItemIDParams) (repository.UserFinancialConnection, error)
+	UpdateConnection(ctx context.Context, params repository.UpdateConnectionParams) (repository.UserFinancialConnection, error)
+	DeleteConnection(ctx context.Context, params repository.DeleteConnectionParams) error
+	SetConnectionSyncStatus(ctx context.Context, params repository.SetConnectionSyncStatusParams) (repository.UserFinancialConnection, error)
+	SetConnectionErrorStatus(ctx context.Context, params repository.SetConnectionErrorStatusParams) (repository.UserFinancialConnection, error)
+	ListConnections(ctx context.Context, params repository.ListConnectionsParams) ([]repository.UserFinancialConnection, error)
+
+	// Linked Accounts Methods
+
+	// Connection management
+	// CreateConnection(ctx context.Context, connection UserFinancialConnection) (*UserFinancialConnection, error)
+	// GetUserConnections(ctx context.Context, userID uuid.UUID) ([]UserFinancialConnection, error)
+	// GetConnectionByProvider(ctx context.Context, userID uuid.UUID, provider string) (*UserFinancialConnection, error)
+	// UpdateConnection(ctx context.Context, connectionID uuid.UUID, updates map[string]interface{}) error
+	// DeleteConnection(ctx context.Context, connectionID uuid.UUID) error
+
+	// Sync job management
+	// CreateSyncJob(ctx context.Context, job FinancialSyncJob) (*FinancialSyncJob, error)
+	// UpdateSyncJob(ctx context.Context, jobID uuid.UUID, updates map[string]interface{}) error
+	// GetUserSyncJobs(ctx context.Context, userID uuid.UUID, limit int) ([]FinancialSyncJob, error)
 }
 
 type repo struct {
@@ -103,7 +128,7 @@ func (r *repo) CreateAccountWInitalTrs(ctx context.Context, act repository.Creat
 		AccountID:           account.ID,
 		Description:         &description,
 		CategoryID:          category.ID,
-		TransactionDatetime: time.Now(),
+		TransactionDatetime: pgtype.Timestamptz{Time: time.Now(), Valid: true},
 		Details: dto.Details{
 			PaymentMedium: "",
 			Location:      "",
@@ -177,4 +202,42 @@ func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTi
 		results = append(results, a)
 	}
 	return results, nil
+}
+
+// Connection Stuff
+
+func (r *repo) CreateConnection(ctx context.Context, params repository.CreateConnectionParams) (repository.UserFinancialConnection, error) {
+	return r.queries.CreateConnection(ctx, params)
+}
+
+func (r *repo) GetConnectionByID(ctx context.Context, id uuid.UUID) (repository.UserFinancialConnection, error) {
+	return r.queries.GetConnectionByID(ctx, id)
+}
+
+func (r *repo) GetConnectionsByUserID(ctx context.Context, userID uuid.UUID) ([]repository.UserFinancialConnection, error) {
+	return r.queries.GetConnectionsByUserID(ctx, userID)
+}
+
+func (r *repo) GetConnectionByProviderItemID(ctx context.Context, params repository.GetConnectionByProviderItemIDParams) (repository.UserFinancialConnection, error) {
+	return r.queries.GetConnectionByProviderItemID(ctx, params)
+}
+
+func (r *repo) UpdateConnection(ctx context.Context, params repository.UpdateConnectionParams) (repository.UserFinancialConnection, error) {
+	return r.queries.UpdateConnection(ctx, params)
+}
+
+func (r *repo) DeleteConnection(ctx context.Context, params repository.DeleteConnectionParams) error {
+	return r.queries.DeleteConnection(ctx, params)
+}
+
+func (r *repo) SetConnectionSyncStatus(ctx context.Context, params repository.SetConnectionSyncStatusParams) (repository.UserFinancialConnection, error) {
+	return r.queries.SetConnectionSyncStatus(ctx, params)
+}
+
+func (r *repo) SetConnectionErrorStatus(ctx context.Context, params repository.SetConnectionErrorStatusParams) (repository.UserFinancialConnection, error) {
+	return r.queries.SetConnectionErrorStatus(ctx, params)
+}
+
+func (r *repo) ListConnections(ctx context.Context, params repository.ListConnectionsParams) ([]repository.UserFinancialConnection, error) {
+	return r.queries.ListConnections(ctx, params)
 }

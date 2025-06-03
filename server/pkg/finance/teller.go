@@ -17,7 +17,7 @@ import (
 )
 
 type TellerConfig struct {
-	environment        string
+	Environment        string
 	BaseURL            string
 	CertPath           string
 	CertPrivateKeyPath string
@@ -48,8 +48,8 @@ type tellerAccount struct {
 }
 
 type tellerBalance struct {
-	Available float64 `json:"available"`
-	Ledger    float64 `json:"ledger"`
+	Available float64 `json:"available,string"`
+	Ledger    float64 `json:"ledger,string"`
 }
 type tellerTransactionDetailsCounterParty struct {
 	Name *string `json:"name"`
@@ -91,7 +91,7 @@ func NewTellerProvider(config TellerConfig, logger *zerolog.Logger) (*TellerProv
 	hasCert := config.CertPath != "" && config.CertPrivateKeyPath != ""
 	var tlsConfig *tls.Config
 
-	if config.environment != "sandbox" {
+	if config.Environment != "sandbox" {
 		if !hasCert {
 			return nil, fmt.Errorf("env: Tls certs (base + private) path not set in environment variables")
 		}
@@ -202,10 +202,14 @@ func (t *TellerProvider) GetAccountBalanceInternal(ctx context.Context, accessTo
 		return nil, fmt.Errorf("failed to get account: %w", err)
 	}
 
+	t.logger.Debug().RawJSON("balanceErr", resp).Msg("balance")
+
 	var tellerBalance tellerBalance
 	if err := json.Unmarshal(resp, &tellerBalance); err != nil {
 		return nil, fmt.Errorf("failed to parse account balance response: %w", err)
 	}
+
+	t.logger.Debug().Any("balanceErrTeller", tellerBalance)
 
 	return &tellerBalance, nil
 }

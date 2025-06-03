@@ -40,7 +40,7 @@ func (s *Server) initUser() {
 }
 
 func (s *Server) initAccount() {
-	AccountDomain := accounts.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	AccountDomain := accounts.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.openfinance, s.logger)
 	s.router.Mount("/accounts", AccountDomain)
 }
 

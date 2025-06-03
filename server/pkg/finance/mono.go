@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 // "sandbox" | "production"
@@ -96,16 +98,16 @@ type monoErrorResponse struct {
 	Data    any    `json:"data"`
 }
 
-func NewMonoProvider(security_key string, httpClient *http.Client) *MonoProvider {
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 30 * time.Second}
+func NewMonoProvider(security_key string, logger *zerolog.Logger) (*MonoProvider, error) {
+	if security_key == "" {
+		return nil, fmt.Errorf("env: mono secret key not set in environment variables")
 	}
 
 	return &MonoProvider{
-		httpClient:   httpClient,
+		httpClient:   &http.Client{Timeout: 30 * time.Second},
 		baseURL:      MonoBaseURL,
 		security_key: security_key,
-	}
+	}, nil
 }
 
 // IGNORE (Handled by connect)
@@ -138,6 +140,11 @@ func (t *MonoProvider) ExchangePublicToken(ctx context.Context, req ExchangeToke
 	return &ExchangeTokenResponse{
 		AccessToken: accountID.Data.ID,
 	}, nil
+}
+
+// TODO: How to handle this
+func (m *MonoProvider) GetAccounts(ctx context.Context, accessToken string) ([]Account, error) {
+	return nil, nil
 }
 
 func (m *MonoProvider) GetAccount(ctx context.Context, accessToken, accountID string) (*Account, error) {

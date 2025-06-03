@@ -14,7 +14,7 @@ type Repository interface {
 	// GetTags retrieves all tags for a specific user
 	GetTags(ctx context.Context, userID uuid.UUID) ([]repository.GetTagsByUserIdRow, error)
 	// GetTagByID retrieves a specific tag by its ID
-	GetTagByID(ctx context.Context, id uuid.UUID) (repository.Tag, error)
+	GetTagByID(ctx context.Context, id uuid.UUID) (repository.GetTagByIdRow, error)
 	// CreateTag creates a new tag
 	CreateTag(ctx context.Context, tag repository.CreateTagParams) (repository.Tag, error)
 	// UpdateTag updates an existing tag
@@ -48,7 +48,7 @@ func (r *repo) GetTags(ctx context.Context, userID uuid.UUID) ([]repository.GetT
 }
 
 // GetTagByID retrieves a specific tag by its ID
-func (r *repo) GetTagByID(ctx context.Context, id uuid.UUID) (repository.Tag, error) {
+func (r *repo) GetTagByID(ctx context.Context, id uuid.UUID) (repository.GetTagByIdRow, error) {
 	return r.queries.GetTagById(ctx, id)
 }
 

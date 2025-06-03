@@ -11,6 +11,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/pkg/jwt"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog"
 )
 
@@ -165,7 +166,7 @@ func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		AccountID:           accountID,
 		CategoryID:          categoryID,
 		Description:         request.Description,
-		TransactionDatetime: request.TransactionDatetime,
+		TransactionDatetime: pgtype.Timestamptz{Time: request.TransactionDatetime, Valid: true},
 		Details:             request.Details,
 		CreatedBy:           &id,
 	})

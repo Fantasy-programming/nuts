@@ -26,6 +26,43 @@ type UpdateAccountRequest struct {
 	Meta     *[]byte  `json:"meta,omitempty" validate:"omitempty"`
 }
 
+type CreateLinkTokenRequest struct {
+	Provider     string   `json:"provider" validate:"required,oneof=plaid teller gocardless mono brankas"`
+	Products     []string `json:"products,omitempty"`
+	CountryCodes []string `json:"country_codes,omitempty"`
+	RedirectURI  string   `json:"redirect_uri,omitempty"`
+}
+
+// ConnectAccountRequest represents the request to connect an external account
+type ConnectAccountRequest struct {
+	Provider    string `json:"provider" validate:"required"`
+	PublicToken string `json:"public_token" validate:"required"`
+}
+
+// SyncAccountsRequest represents the request to sync accounts from a provider
+type SyncAccountsRequest struct {
+	Provider string `json:"provider" validate:"required"`
+	Force    bool   `json:"force,omitempty"` // Force sync even if recently synced
+}
+
+type TellerConnectRequest struct {
+	AccessToken string `json:"accessToken" validate:"required"`
+	Enrollment  struct {
+		ID          string `json:"id"`
+		Institution struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"institution"`
+	} `json:"enrollment"`
+	User struct {
+		ID string `json:"id"`
+	} `json:"user"`
+}
+
+type MonoConnectRequest struct {
+	Code string `json:"code" validate:"required"`
+}
+
 // Extract pathParam & parse into uuid
 func parseUUID(r *http.Request, paramName string) (uuid.UUID, error) {
 	idStr := r.PathValue(paramName)
