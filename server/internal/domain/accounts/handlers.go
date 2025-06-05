@@ -7,13 +7,14 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/internal/utility/message"
-	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
-	"github.com/Fantasy-Programming/nuts/internal/utility/types"
-	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
-	"github.com/Fantasy-Programming/nuts/pkg/finance"
-	"github.com/Fantasy-Programming/nuts/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/message"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/types"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -25,11 +26,12 @@ type Handler struct {
 	db                 *pgxpool.Pool
 	repo               Repository
 	openFinanceManager *finance.ProviderManager
+	scheduler          *jobs.Service
 	logger             *zerolog.Logger
 }
 
-func NewHandler(validator *validation.Validator, db *pgxpool.Pool, repo Repository, openFinanceManager *finance.ProviderManager, logger *zerolog.Logger) *Handler {
-	return &Handler{validator, db, repo, openFinanceManager, logger}
+func NewHandler(validator *validation.Validator, db *pgxpool.Pool, repo Repository, openFinanceManager *finance.ProviderManager, scheduler *jobs.Service, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, db, repo, openFinanceManager, scheduler, logger}
 }
 
 func (h *Handler) GetAccounts(w http.ResponseWriter, r *http.Request) {
@@ -644,11 +646,13 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status := "active"
+	providerName := provider.GetProviderName()
+	isExternal := true
 
 	connParams := repository.CreateConnectionParams{
-		UserID:               userID,
-		ProviderName:         provider.GetProviderName(),
-		AccessTokenEncrypted: encryptedAccessToken,
+		UserID:               &userID,
+		ProviderName:         &providerName,
+		AccessTokenEncrypted: &encryptedAccessToken,
 		ItemID:               nil, // Teller itemId is the accessID
 		InstitutionID:        institutionID,
 		InstitutionName:      institutionName,
@@ -676,13 +680,16 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 
 	for _, providerAccount := range accounts {
 		accountParams := repository.CreateAccountParams{
-			CreatedBy:    &userID,
-			Name:         providerAccount.Name,
-			Type:         providerAccount.Type,
-			Balance:      types.Numeric(providerAccount.Balance), // Assuming finance.ProviderAccount.Balance is float64
-			Currency:     providerAccount.Currency,
-			ConnectionID: &connection.ID,           // Link to the connection
-			Color:        repository.COLORENUMBlue, // Example: default color
+			CreatedBy:         &userID,
+			Name:              providerAccount.Name,
+			Type:              providerAccount.Type,
+			Balance:           types.Numeric(providerAccount.Balance), // Assuming finance.ProviderAccount.Balance is float64
+			ProviderAccountID: &providerAccount.ProviderAccountID,
+			ProviderName:      &providerName,
+			IsExternal:        &isExternal,
+			Currency:          providerAccount.Currency,
+			ConnectionID:      &connection.ID,           // Link to the connection
+			Color:             repository.COLORENUMBlue, // Example: default color
 		}
 
 		newAccount, err := h.repo.CreateAccount(ctx, accountParams)
@@ -699,6 +706,10 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 	if len(accountCreationErrors) > 0 {
 		// Optionally, you might want to return a partial success or a specific error message
 		h.logger.Warn().Errs("errors", accountCreationErrors).Msg("Some accounts could not be created from Teller")
+	}
+
+	if err = h.scheduler.EnqueueBankSync(ctx, userID, connection.ID, "full"); err != nil {
+		h.logger.Error().Err(err).Msg("Failed to schedule bank sync")
 	}
 
 	h.logger.Info().Str("user_id", userID.String()).Str("connection_id", connection.ID.String()).Int("accounts_fetched_from_provider", len(accounts)).Int("accounts_created_in_db", len(createdAccounts)).Msg("Teller connection and account linking process completed")
@@ -788,6 +799,7 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 
 	// Mono's exchangeResp.AccessToken is effectively the item_id (or "account_id" in Mono terms)
 	monoItemID := exchangeResp.AccessToken
+	providerName := "mono"
 
 	// TODO: Encrypt monoItemID if it's sensitive and stored as access_token_encrypted,
 	// or store it primarily as item_id. For Mono, there isn't a traditional access token post-exchange.
@@ -798,7 +810,7 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 	// Check if a connection already exists for this user, provider, and item_id
 	existingConn, err := h.repo.GetConnectionByProviderItemID(ctx, repository.GetConnectionByProviderItemIDParams{
 		UserID:       userID,
-		ProviderName: "mono",
+		ProviderName: providerName,
 		ItemID:       &encryptedMonoIdentifier,
 	})
 
@@ -813,9 +825,9 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 	var connection repository.UserFinancialConnection
 	if errors.Is(err, pgx.ErrNoRows) { // No existing connection, create new
 		connParams := repository.CreateConnectionParams{
-			UserID:               userID,
-			ProviderName:         "mono",
-			AccessTokenEncrypted: encryptedMonoIdentifier, // Or a more specific token if Mono provides one
+			UserID:               &userID,
+			ProviderName:         &providerName,
+			AccessTokenEncrypted: &encryptedMonoIdentifier, // Or a more specific token if Mono provides one
 			ItemID:               &encryptedMonoIdentifier,
 			// Institution details might be fetched later via webhook or separate API call for Mono
 			InstitutionID:   nil,
@@ -835,8 +847,8 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 		// Optionally, update status or last_sync_at if needed
 		// For example, if re-linking, you might want to set status to 'active' and update last_sync_at
 		updatedConn, updateErr := h.repo.UpdateConnection(ctx, repository.UpdateConnectionParams{
-			ID:                   connection.ID,
-			UserID:               userID,                   // For WHERE clause in SQL query
+			ID:                   &connection.ID,
+			UserID:               &userID,                  // For WHERE clause in SQL query
 			Status:               &statusActive,            // Example: mark as active on re-link
 			AccessTokenEncrypted: &encryptedMonoIdentifier, // Update token if it can change
 			LastSyncAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},

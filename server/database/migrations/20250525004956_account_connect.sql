@@ -1,6 +1,10 @@
 -- +goose Up
 
 ALTER TABLE accounts ADD COLUMN is_external BOOLEAN DEFAULT FALSE;
+ALTER TABLE accounts ADD COLUMN provider_account_id VARCHAR(255);
+ALTER TABLE accounts ADD COLUMN provider_name VARCHAR(50);
+ALTER TABLE accounts ADD COLUMN sync_status VARCHAR(50);
+ALTER TABLE accounts ADD COLUMN last_synced_at TIMESTAMPTZ;
 
 CREATE TABLE user_financial_connections (
     id UUID NOT NULL DEFAULT (uuid_generate_v4()),
@@ -20,8 +24,9 @@ CREATE TABLE user_financial_connections (
 );
 
 ALTER TABLE accounts ADD COLUMN connection_id UUID REFERENCES user_financial_connections (id);
-CREATE INDEX idx_accounts_connection_id ON accounts (connection_id);
 
+
+CREATE INDEX idx_accounts_connection_id ON accounts (connection_id);
 CREATE INDEX idx_user_financial_connections_user_id ON user_financial_connections (user_id);
 CREATE INDEX idx_user_financial_connections_provider ON user_financial_connections (provider_name);
 
@@ -56,6 +61,5 @@ DROP TABLE IF EXISTS user_financial_connections;
 ALTER TABLE accounts DROP COLUMN IF EXISTS sync_status;
 ALTER TABLE accounts DROP COLUMN IF EXISTS last_synced_at;
 ALTER TABLE accounts DROP COLUMN IF EXISTS is_external;
-ALTER TABLE accounts DROP COLUMN IF EXISTS provider_institution_id;
 ALTER TABLE accounts DROP COLUMN IF EXISTS provider_account_id;
 ALTER TABLE accounts DROP COLUMN IF EXISTS provider_name;

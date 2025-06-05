@@ -8,10 +8,30 @@ INSERT INTO transactions (
     description,
     transaction_datetime,
     details,
+    provider_transaction_id,
+    is_external,
     created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 ) RETURNING *;
+
+
+-- name: BatchCreateTransaction :copyfrom
+INSERT INTO transactions (
+    amount,
+    type,
+    account_id,
+    destination_account_id,
+    category_id,
+    description,
+    transaction_datetime,
+    details,
+    provider_transaction_id,
+    is_external,
+    created_by
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+);
 
 -- name: GetTransactionById :one
 SELECT *

@@ -7,10 +7,32 @@ INSERT INTO accounts (
     currency,
     color,
     meta,
-    connection_id
+    connection_id,
+    is_external,
+    provider_account_id,
+    provider_name
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 ) RETURNING *;
+
+
+-- name: BatchCreateAccount :copyfrom
+INSERT INTO accounts (
+    created_by,
+    name,
+    type,
+    balance,
+    currency,
+    color,
+    meta,
+    connection_id,
+    is_external,
+    provider_account_id,
+    provider_name
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+);
+
 
 -- name: GetAccountById :one
 SELECT
@@ -428,3 +450,44 @@ FROM account_trend at
 LEFT JOIN aggregated_series agg ON at.account_id = agg.account_id
 ORDER BY at.name; -- Or other desired order
 
+-- name: GetAccountByProviderAccountID :one
+SELECT
+    id,
+    name,
+    type,
+    balance,
+    currency,
+    color,
+    meta,
+    created_by,
+    updated_at,
+    connection_id,
+    provider_name,
+    provider_account_id
+FROM accounts
+WHERE
+    provider_account_id = $1
+    AND created_by = $2 -- user_id
+    AND deleted_at IS NULL
+LIMIT 1;
+
+
+-- name: GetAccountsByConnectionID :many
+SELECT
+    id,
+    name,
+    type,
+    balance,
+    currency,
+    color,
+    meta,
+    created_by,
+    updated_at,
+    connection_id,
+    provider_name,
+    provider_account_id
+FROM accounts
+WHERE
+    connection_id = $1
+    AND created_by = $2 -- user_id
+    AND deleted_at IS NULL;

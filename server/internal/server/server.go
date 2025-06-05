@@ -16,6 +16,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/utility/i18n"
 	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/server/pkg/router"
 	"github.com/Fantasy-Programming/nuts/server/pkg/storage"
@@ -36,8 +37,10 @@ type Server struct {
 
 	cors        *cors.Cors
 	router      router.Router
+	jobsManager *jobs.Service
 	validator   *validation.Validator
 	i18n        *i18n.I18n
+
 	openfinance *finance.ProviderManager
 
 	httpServer *http.Server
@@ -81,6 +84,7 @@ func (s *Server) Init() {
 	// s.SetupPaymentProcessors()
 
 	s.NewTokenService()
+	s.NewJobService()
 	s.NewValidator()
 	s.NewI18n()
 	s.NewRouter()
@@ -289,6 +293,14 @@ func (s *Server) setGlobalMiddleware() {
 	})
 }
 
+func (s *Server) NewJobService() {
+	jobService, err := jobs.NewService(s.db, s.logger, s.openfinance)
+	if err != nil {
+		s.logger.Fatal().Err(err).Msg("Failed to setup job service")
+	}
+	s.jobsManager = jobService
+}
+
 func (s *Server) Config() *config.Config {
 	return s.cfg
 }
@@ -308,6 +320,12 @@ func (s *Server) Run() {
 
 	go func() {
 		start(s)
+	}()
+
+	go func() {
+		if err := s.jobsManager.Start(context.Background()); err != nil {
+			s.logger.Error().Err(err).Msg("Failed to start job processor")
+		}
 	}()
 
 	_ = gracefulShutdown(context.Background(), s)
@@ -335,6 +353,13 @@ func gracefulShutdown(ctx context.Context, s *Server) error {
 }
 
 func (s *Server) closeResources() {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := s.jobsManager.Stop(ctx); err != nil {
+		s.logger.Error().Err(err).Msg("Error stopping job processor")
+	}
+
 	s.db.Close()
 }
 

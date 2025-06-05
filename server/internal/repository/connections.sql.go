@@ -20,21 +20,32 @@ INSERT INTO user_financial_connections (
     item_id,
     institution_id,
     institution_name,
+    provider_account_id,
     status,
     last_sync_at,
     expires_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10
 ) RETURNING id, user_id, provider_name, access_token_encrypted, item_id, institution_id, institution_name, status, last_sync_at, expires_at, created_at, updated_at
 `
 
 type CreateConnectionParams struct {
-	UserID               uuid.UUID          `json:"user_id"`
-	ProviderName         string             `json:"provider_name"`
-	AccessTokenEncrypted string             `json:"access_token_encrypted"`
+	UserID               *uuid.UUID         `json:"user_id"`
+	ProviderName         *string            `json:"provider_name"`
+	AccessTokenEncrypted *string            `json:"access_token_encrypted"`
 	ItemID               *string            `json:"item_id"`
 	InstitutionID        *string            `json:"institution_id"`
 	InstitutionName      *string            `json:"institution_name"`
+	ProviderAccountID    *string            `json:"provider_account_id"`
 	Status               *string            `json:"status"`
 	LastSyncAt           pgtype.Timestamptz `json:"last_sync_at"`
 	ExpiresAt            pgtype.Timestamptz `json:"expires_at"`
@@ -48,6 +59,7 @@ func (q *Queries) CreateConnection(ctx context.Context, arg CreateConnectionPara
 		arg.ItemID,
 		arg.InstitutionID,
 		arg.InstitutionName,
+		arg.ProviderAccountID,
 		arg.Status,
 		arg.LastSyncAt,
 		arg.ExpiresAt,
@@ -311,11 +323,12 @@ SET
     item_id = COALESCE($2, item_id),
     institution_id = COALESCE($3, institution_id),
     institution_name = COALESCE($4, institution_name),
-    status = COALESCE($5, status),
-    last_sync_at = $6, -- Use sqlc.narg for nullable timestamp
-    expires_at = $7,   -- Use sqlc.narg for nullable timestamp
+    provider_account_id = COALESCE($5, provider_account_id),
+    status = COALESCE($6, status),
+    last_sync_at = $7, -- Use sqlc.narg for nullable timestamp
+    expires_at = $8,   -- Use sqlc.narg for nullable timestamp
     updated_at = NOW()
-WHERE id = $8 AND user_id = $9
+WHERE id = $9 AND user_id = $10
 RETURNING id, user_id, provider_name, access_token_encrypted, item_id, institution_id, institution_name, status, last_sync_at, expires_at, created_at, updated_at
 `
 
@@ -324,11 +337,12 @@ type UpdateConnectionParams struct {
 	ItemID               *string            `json:"item_id"`
 	InstitutionID        *string            `json:"institution_id"`
 	InstitutionName      *string            `json:"institution_name"`
+	ProviderAccountID    *string            `json:"provider_account_id"`
 	Status               *string            `json:"status"`
 	LastSyncAt           pgtype.Timestamptz `json:"last_sync_at"`
 	ExpiresAt            pgtype.Timestamptz `json:"expires_at"`
-	ID                   uuid.UUID          `json:"id"`
-	UserID               uuid.UUID          `json:"user_id"`
+	ID                   *uuid.UUID         `json:"id"`
+	UserID               *uuid.UUID         `json:"user_id"`
 }
 
 func (q *Queries) UpdateConnection(ctx context.Context, arg UpdateConnectionParams) (UserFinancialConnection, error) {
@@ -337,6 +351,7 @@ func (q *Queries) UpdateConnection(ctx context.Context, arg UpdateConnectionPara
 		arg.ItemID,
 		arg.InstitutionID,
 		arg.InstitutionName,
+		arg.ProviderAccountID,
 		arg.Status,
 		arg.LastSyncAt,
 		arg.ExpiresAt,

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/internal/repository/dto"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -191,7 +191,7 @@ func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTi
 		var a AccountWithTrend
 		err := rows.Scan(
 			&a.ID, &a.Name, &a.Type, &a.Balance, &a.Currency,
-			&a.Color, &a.Meta, &a.UpdatedAt, &a.Trend, &rawTimeseries,
+			&a.Color, &a.Meta, &a.UpdatedAt, &a.Trend, &rawTimeseries, &a.IsExternal,
 		)
 		if err != nil {
 			return nil, err

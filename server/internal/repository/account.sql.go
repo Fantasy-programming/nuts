@@ -13,6 +13,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type BatchCreateAccountParams struct {
+	CreatedBy         *uuid.UUID     `json:"created_by"`
+	Name              string         `json:"name"`
+	Type              interface{}    `json:"type"`
+	Balance           pgtype.Numeric `json:"balance"`
+	Currency          string         `json:"currency"`
+	Color             interface{}    `json:"color"`
+	Meta              []byte         `json:"meta"`
+	ConnectionID      *uuid.UUID     `json:"connection_id"`
+	IsExternal        *bool          `json:"is_external"`
+	ProviderAccountID *string        `json:"provider_account_id"`
+	ProviderName      *string        `json:"provider_name"`
+}
+
 const createAccount = `-- name: CreateAccount :one
 INSERT INTO accounts (
     created_by,
@@ -22,21 +36,27 @@ INSERT INTO accounts (
     currency,
     color,
     meta,
-    connection_id
+    connection_id,
+    is_external,
+    provider_account_id,
+    provider_name
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, connection_id
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+) RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id
 `
 
 type CreateAccountParams struct {
-	CreatedBy    *uuid.UUID     `json:"created_by"`
-	Name         string         `json:"name"`
-	Type         interface{}    `json:"type"`
-	Balance      pgtype.Numeric `json:"balance"`
-	Currency     string         `json:"currency"`
-	Color        interface{}    `json:"color"`
-	Meta         []byte         `json:"meta"`
-	ConnectionID *uuid.UUID     `json:"connection_id"`
+	CreatedBy         *uuid.UUID     `json:"created_by"`
+	Name              string         `json:"name"`
+	Type              interface{}    `json:"type"`
+	Balance           pgtype.Numeric `json:"balance"`
+	Currency          string         `json:"currency"`
+	Color             interface{}    `json:"color"`
+	Meta              []byte         `json:"meta"`
+	ConnectionID      *uuid.UUID     `json:"connection_id"`
+	IsExternal        *bool          `json:"is_external"`
+	ProviderAccountID *string        `json:"provider_account_id"`
+	ProviderName      *string        `json:"provider_name"`
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
@@ -49,6 +69,9 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		arg.Color,
 		arg.Meta,
 		arg.ConnectionID,
+		arg.IsExternal,
+		arg.ProviderAccountID,
+		arg.ProviderName,
 	)
 	var i Account
 	err := row.Scan(
@@ -65,6 +88,10 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.IsExternal,
+		&i.ProviderAccountID,
+		&i.ProviderName,
+		&i.SyncStatus,
+		&i.LastSyncedAt,
 		&i.ConnectionID,
 	)
 	return i, err
@@ -75,7 +102,7 @@ UPDATE accounts
 SET
     deleted_at = current_timestamp
 WHERE id = $1
-RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, connection_id
+RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id
 `
 
 func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) error {
@@ -240,6 +267,70 @@ func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountB
 		&i.CreatedBy,
 		&i.UpdatedAt,
 		&i.ConnectionID,
+	)
+	return i, err
+}
+
+const getAccountByProviderAccountID = `-- name: GetAccountByProviderAccountID :one
+
+SELECT
+    id,
+    name,
+    type,
+    balance,
+    currency,
+    color,
+    meta,
+    created_by,
+    updated_at,
+    connection_id,
+    provider_name,
+    provider_account_id
+FROM accounts
+WHERE
+    provider_account_id = $1
+    AND created_by = $2 -- user_id
+    AND deleted_at IS NULL
+LIMIT 1
+`
+
+type GetAccountByProviderAccountIDParams struct {
+	ProviderAccountID *string    `json:"provider_account_id"`
+	CreatedBy         *uuid.UUID `json:"created_by"`
+}
+
+type GetAccountByProviderAccountIDRow struct {
+	ID                uuid.UUID      `json:"id"`
+	Name              string         `json:"name"`
+	Type              ACCOUNTTYPE    `json:"type"`
+	Balance           pgtype.Numeric `json:"balance"`
+	Currency          string         `json:"currency"`
+	Color             COLORENUM      `json:"color"`
+	Meta              []byte         `json:"meta"`
+	CreatedBy         *uuid.UUID     `json:"created_by"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	ConnectionID      *uuid.UUID     `json:"connection_id"`
+	ProviderName      *string        `json:"provider_name"`
+	ProviderAccountID *string        `json:"provider_account_id"`
+}
+
+// Or other desired order
+func (q *Queries) GetAccountByProviderAccountID(ctx context.Context, arg GetAccountByProviderAccountIDParams) (GetAccountByProviderAccountIDRow, error) {
+	row := q.db.QueryRow(ctx, getAccountByProviderAccountID, arg.ProviderAccountID, arg.CreatedBy)
+	var i GetAccountByProviderAccountIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Type,
+		&i.Balance,
+		&i.Currency,
+		&i.Color,
+		&i.Meta,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.ConnectionID,
+		&i.ProviderName,
+		&i.ProviderAccountID,
 	)
 	return i, err
 }
@@ -427,6 +518,80 @@ func (q *Queries) GetAccountsBalanceTimeline(ctx context.Context, userID *uuid.U
 	for rows.Next() {
 		var i GetAccountsBalanceTimelineRow
 		if err := rows.Scan(&i.Month, &i.Balance); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAccountsByConnectionID = `-- name: GetAccountsByConnectionID :many
+SELECT
+    id,
+    name,
+    type,
+    balance,
+    currency,
+    color,
+    meta,
+    created_by,
+    updated_at,
+    connection_id,
+    provider_name,
+    provider_account_id
+FROM accounts
+WHERE
+    connection_id = $1
+    AND created_by = $2 -- user_id
+    AND deleted_at IS NULL
+`
+
+type GetAccountsByConnectionIDParams struct {
+	ConnectionID *uuid.UUID `json:"connection_id"`
+	CreatedBy    *uuid.UUID `json:"created_by"`
+}
+
+type GetAccountsByConnectionIDRow struct {
+	ID                uuid.UUID      `json:"id"`
+	Name              string         `json:"name"`
+	Type              ACCOUNTTYPE    `json:"type"`
+	Balance           pgtype.Numeric `json:"balance"`
+	Currency          string         `json:"currency"`
+	Color             COLORENUM      `json:"color"`
+	Meta              []byte         `json:"meta"`
+	CreatedBy         *uuid.UUID     `json:"created_by"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	ConnectionID      *uuid.UUID     `json:"connection_id"`
+	ProviderName      *string        `json:"provider_name"`
+	ProviderAccountID *string        `json:"provider_account_id"`
+}
+
+func (q *Queries) GetAccountsByConnectionID(ctx context.Context, arg GetAccountsByConnectionIDParams) ([]GetAccountsByConnectionIDRow, error) {
+	rows, err := q.db.Query(ctx, getAccountsByConnectionID, arg.ConnectionID, arg.CreatedBy)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAccountsByConnectionIDRow{}
+	for rows.Next() {
+		var i GetAccountsByConnectionIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Type,
+			&i.Balance,
+			&i.Currency,
+			&i.Color,
+			&i.Meta,
+			&i.CreatedBy,
+			&i.UpdatedAt,
+			&i.ConnectionID,
+			&i.ProviderName,
+			&i.ProviderAccountID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -659,7 +824,7 @@ SET
     meta = coalesce($6, meta),
     updated_by = $7
 WHERE id = $8
-RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, connection_id
+RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id
 `
 
 type UpdateAccountParams struct {
@@ -699,6 +864,10 @@ func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (A
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.IsExternal,
+		&i.ProviderAccountID,
+		&i.ProviderName,
+		&i.SyncStatus,
+		&i.LastSyncedAt,
 		&i.ConnectionID,
 	)
 	return i, err

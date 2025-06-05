@@ -3,19 +3,20 @@ package accounts
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
-	"github.com/Fantasy-Programming/nuts/pkg/finance"
-	"github.com/Fantasy-Programming/nuts/pkg/jwt"
-	"github.com/Fantasy-Programming/nuts/pkg/router"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 )
 
-func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, openFinanceManager *finance.ProviderManager, logger *zerolog.Logger) http.Handler {
+func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, openFinanceManager *finance.ProviderManager, scheduler *jobs.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
 	repo := NewRepository(queries, db)
-	h := NewHandler(validate, db, repo, openFinanceManager, logger)
+	h := NewHandler(validate, db, repo, openFinanceManager, scheduler, logger)
 
 	// Create the auth verify middleware
 	middleware := jwt.NewMiddleware(tkn)

@@ -130,21 +130,88 @@ func (e COLORENUM) Valid() bool {
 	return false
 }
 
+type RiverJobState string
+
+const (
+	RiverJobStateAvailable RiverJobState = "available"
+	RiverJobStateCancelled RiverJobState = "cancelled"
+	RiverJobStateCompleted RiverJobState = "completed"
+	RiverJobStateDiscarded RiverJobState = "discarded"
+	RiverJobStatePending   RiverJobState = "pending"
+	RiverJobStateRetryable RiverJobState = "retryable"
+	RiverJobStateRunning   RiverJobState = "running"
+	RiverJobStateScheduled RiverJobState = "scheduled"
+)
+
+func (e *RiverJobState) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = RiverJobState(s)
+	case string:
+		*e = RiverJobState(s)
+	default:
+		return fmt.Errorf("unsupported scan type for RiverJobState: %T", src)
+	}
+	return nil
+}
+
+type NullRiverJobState struct {
+	RiverJobState RiverJobState `json:"river_job_state"`
+	Valid         bool          `json:"valid"` // Valid is true if RiverJobState is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullRiverJobState) Scan(value interface{}) error {
+	if value == nil {
+		ns.RiverJobState, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.RiverJobState.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullRiverJobState) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.RiverJobState), nil
+}
+
+func (e RiverJobState) Valid() bool {
+	switch e {
+	case RiverJobStateAvailable,
+		RiverJobStateCancelled,
+		RiverJobStateCompleted,
+		RiverJobStateDiscarded,
+		RiverJobStatePending,
+		RiverJobStateRetryable,
+		RiverJobStateRunning,
+		RiverJobStateScheduled:
+		return true
+	}
+	return false
+}
+
 type Account struct {
-	ID           uuid.UUID          `json:"id"`
-	Name         string             `json:"name"`
-	Type         ACCOUNTTYPE        `json:"type"`
-	Balance      pgtype.Numeric     `json:"balance"`
-	Currency     string             `json:"currency"`
-	Color        COLORENUM          `json:"color"`
-	Meta         []byte             `json:"meta"`
-	CreatedBy    *uuid.UUID         `json:"created_by"`
-	UpdatedBy    *uuid.UUID         `json:"updated_by"`
-	CreatedAt    time.Time          `json:"created_at"`
-	UpdatedAt    time.Time          `json:"updated_at"`
-	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
-	IsExternal   *bool              `json:"is_external"`
-	ConnectionID *uuid.UUID         `json:"connection_id"`
+	ID                uuid.UUID          `json:"id"`
+	Name              string             `json:"name"`
+	Type              ACCOUNTTYPE        `json:"type"`
+	Balance           pgtype.Numeric     `json:"balance"`
+	Currency          string             `json:"currency"`
+	Color             COLORENUM          `json:"color"`
+	Meta              []byte             `json:"meta"`
+	CreatedBy         *uuid.UUID         `json:"created_by"`
+	UpdatedBy         *uuid.UUID         `json:"updated_by"`
+	CreatedAt         time.Time          `json:"created_at"`
+	UpdatedAt         time.Time          `json:"updated_at"`
+	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
+	IsExternal        *bool              `json:"is_external"`
+	ProviderAccountID *string            `json:"provider_account_id"`
+	ProviderName      *string            `json:"provider_name"`
+	SyncStatus        *string            `json:"sync_status"`
+	LastSyncedAt      pgtype.Timestamptz `json:"last_synced_at"`
+	ConnectionID      *uuid.UUID         `json:"connection_id"`
 }
 
 type Category struct {
@@ -204,6 +271,61 @@ type Preference struct {
 	DarkSidebar       bool               `json:"dark_sidebar"`
 }
 
+type RiverClient struct {
+	ID        string             `json:"id"`
+	CreatedAt time.Time          `json:"created_at"`
+	Metadata  []byte             `json:"metadata"`
+	PausedAt  pgtype.Timestamptz `json:"paused_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+}
+
+type RiverClientQueue struct {
+	RiverClientID    string    `json:"river_client_id"`
+	Name             string    `json:"name"`
+	CreatedAt        time.Time `json:"created_at"`
+	MaxWorkers       int64     `json:"max_workers"`
+	Metadata         []byte    `json:"metadata"`
+	NumJobsCompleted int64     `json:"num_jobs_completed"`
+	NumJobsRunning   int64     `json:"num_jobs_running"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+type RiverJob struct {
+	ID           int64              `json:"id"`
+	State        RiverJobState      `json:"state"`
+	Attempt      int16              `json:"attempt"`
+	MaxAttempts  int16              `json:"max_attempts"`
+	AttemptedAt  pgtype.Timestamptz `json:"attempted_at"`
+	CreatedAt    time.Time          `json:"created_at"`
+	FinalizedAt  pgtype.Timestamptz `json:"finalized_at"`
+	ScheduledAt  time.Time          `json:"scheduled_at"`
+	Priority     int16              `json:"priority"`
+	Args         []byte             `json:"args"`
+	AttemptedBy  []string           `json:"attempted_by"`
+	Errors       [][]byte           `json:"errors"`
+	Kind         string             `json:"kind"`
+	Metadata     []byte             `json:"metadata"`
+	Queue        string             `json:"queue"`
+	Tags         []string           `json:"tags"`
+	UniqueKey    []byte             `json:"unique_key"`
+	UniqueStates pgtype.Bits        `json:"unique_states"`
+}
+
+type RiverLeader struct {
+	ElectedAt time.Time `json:"elected_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+	LeaderID  string    `json:"leader_id"`
+	Name      string    `json:"name"`
+}
+
+type RiverQueue struct {
+	Name      string             `json:"name"`
+	CreatedAt time.Time          `json:"created_at"`
+	Metadata  []byte             `json:"metadata"`
+	PausedAt  pgtype.Timestamptz `json:"paused_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+}
+
 type Tag struct {
 	ID        uuid.UUID `json:"id"`
 	UserID    uuid.UUID `json:"user_id"`
@@ -213,20 +335,22 @@ type Tag struct {
 }
 
 type Transaction struct {
-	ID                   uuid.UUID          `json:"id"`
-	Amount               pgtype.Numeric     `json:"amount"`
-	Type                 string             `json:"type"`
-	AccountID            uuid.UUID          `json:"account_id"`
-	CategoryID           uuid.UUID          `json:"category_id"`
-	DestinationAccountID *uuid.UUID         `json:"destination_account_id"`
-	TransactionDatetime  time.Time          `json:"transaction_datetime"`
-	Description          *string            `json:"description"`
-	Details              dto.Details        `json:"details"`
-	CreatedBy            *uuid.UUID         `json:"created_by"`
-	UpdatedBy            *uuid.UUID         `json:"updated_by"`
-	CreatedAt            time.Time          `json:"created_at"`
-	UpdatedAt            time.Time          `json:"updated_at"`
-	DeletedAt            pgtype.Timestamptz `json:"deleted_at"`
+	ID                    uuid.UUID          `json:"id"`
+	Amount                pgtype.Numeric     `json:"amount"`
+	Type                  string             `json:"type"`
+	AccountID             uuid.UUID          `json:"account_id"`
+	CategoryID            uuid.UUID          `json:"category_id"`
+	DestinationAccountID  *uuid.UUID         `json:"destination_account_id"`
+	TransactionDatetime   time.Time          `json:"transaction_datetime"`
+	Description           *string            `json:"description"`
+	Details               dto.Details        `json:"details"`
+	CreatedBy             *uuid.UUID         `json:"created_by"`
+	UpdatedBy             *uuid.UUID         `json:"updated_by"`
+	CreatedAt             time.Time          `json:"created_at"`
+	UpdatedAt             time.Time          `json:"updated_at"`
+	DeletedAt             pgtype.Timestamptz `json:"deleted_at"`
+	IsExternal            *bool              `json:"is_external"`
+	ProviderTransactionID *string            `json:"provider_transaction_id"`
 }
 
 type User struct {
