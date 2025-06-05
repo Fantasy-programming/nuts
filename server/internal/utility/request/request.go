@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Fantasy-Programming/nuts/internal/utility/message"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/message"
 	"github.com/google/uuid"
 )
 

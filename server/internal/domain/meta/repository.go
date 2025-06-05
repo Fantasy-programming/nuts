@@ -3,7 +3,7 @@ package meta
 import (
 	"context"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 )
 
 // Repository defines the interface for metadata operations

@@ -3,7 +3,7 @@ package transactions
 import (
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository/dto"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 )
 
 type CreateTransactionRequest struct {

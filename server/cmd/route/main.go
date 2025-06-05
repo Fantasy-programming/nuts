@@ -1,6 +1,6 @@
 package main
 
-import "github.com/Fantasy-Programming/nuts/internal/server"
+import "github.com/Fantasy-Programming/nuts/server/internal/server"
 
 func main() {
 	server := server.New()

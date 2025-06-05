@@ -6,6 +6,7 @@ type Config struct {
 	Api
 	DB
 	Storage
+	Cache
 	Integrations
 }
 
@@ -15,6 +16,7 @@ func New() *Config {
 		Cors:         NewCors(),
 		Api:          API(),
 		Storage:      NewStorage(),
+		Cache:        NewCache(),
 		DB:           DataStore(),
 		Integrations: INTEGRATIONS(),
 	}

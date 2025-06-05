@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/internal/utility/message"
-	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
-	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
-	"github.com/Fantasy-Programming/nuts/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/message"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
 )

@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/config"
+	"github.com/Fantasy-Programming/nuts/server/config"
 	"github.com/rs/zerolog"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )

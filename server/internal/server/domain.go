@@ -3,16 +3,16 @@ package server
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/domain/accounts"
-	"github.com/Fantasy-Programming/nuts/internal/domain/auth"
-	"github.com/Fantasy-Programming/nuts/internal/domain/categories"
-	"github.com/Fantasy-Programming/nuts/internal/domain/meta"
-	"github.com/Fantasy-Programming/nuts/internal/domain/preferences"
-	"github.com/Fantasy-Programming/nuts/internal/domain/tags"
-	"github.com/Fantasy-Programming/nuts/internal/domain/transactions"
-	"github.com/Fantasy-Programming/nuts/internal/domain/user"
-	"github.com/Fantasy-Programming/nuts/internal/domain/webhooks"
-	"github.com/Fantasy-Programming/nuts/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/accounts"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/auth"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/categories"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/meta"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/preferences"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/tags"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/user"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/webhooks"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/respond"
 )
 
 func (s *Server) RegisterDomain() {

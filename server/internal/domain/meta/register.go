@@ -3,8 +3,8 @@ package meta
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/pkg/router"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 )

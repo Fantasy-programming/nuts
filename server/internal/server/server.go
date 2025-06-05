@@ -11,14 +11,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/config"
-	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
-	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
-	"github.com/Fantasy-Programming/nuts/pkg/finance"
-	"github.com/Fantasy-Programming/nuts/pkg/jwt"
-	"github.com/Fantasy-Programming/nuts/pkg/router"
-	"github.com/Fantasy-Programming/nuts/pkg/storage"
+	"github.com/Fantasy-Programming/nuts/server/config"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/i18n"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/router"
+	"github.com/Fantasy-Programming/nuts/server/pkg/storage"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/cors"
@@ -31,13 +31,13 @@ type Server struct {
 	logger  *zerolog.Logger
 	jwt     *jwt.Service
 
-	db        *pgxpool.Pool
-	storage   storage.Storage
-	cors      *cors.Cors
-	router    router.Router
-	validator *validation.Validator
-	i18n      *i18n.I18n
+	db      *pgxpool.Pool
+	storage storage.Storage
 
+	cors        *cors.Cors
+	router      router.Router
+	validator   *validation.Validator
+	i18n        *i18n.I18n
 	openfinance *finance.ProviderManager
 
 	httpServer *http.Server
@@ -209,8 +209,8 @@ func (s *Server) NewDatabase() {
 		s.cfg.DB.Port,
 		s.cfg.DB.Name,
 		s.cfg.SslMode,
-		s.cfg.User,
-		s.cfg.Pass,
+		s.cfg.DB.User,
+		s.cfg.DB.Pass,
 	)
 
 	conn, err := pgxpool.New(context.Background(), dsn)

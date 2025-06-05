@@ -1,6 +1,6 @@
 package main
 
-import "github.com/Fantasy-Programming/nuts/internal/server"
+import "github.com/Fantasy-Programming/nuts/server/internal/server"
 
 var version = "0.0.1"
 

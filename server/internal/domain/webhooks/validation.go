@@ -3,7 +3,7 @@ package webhooks
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/utility/message"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/message"
 	"github.com/google/uuid"
 )
 

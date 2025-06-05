@@ -3,7 +3,7 @@ package preferences
 import (
 	"context"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/google/uuid"
 )
 

@@ -7,9 +7,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/internal/repository/dto"
-	"github.com/Fantasy-Programming/nuts/internal/utility/types"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/types"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"

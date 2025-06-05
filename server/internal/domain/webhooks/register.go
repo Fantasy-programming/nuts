@@ -3,10 +3,10 @@ package webhooks
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
-	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
-	"github.com/Fantasy-Programming/nuts/pkg/jwt"
-	"github.com/Fantasy-Programming/nuts/pkg/router"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 )

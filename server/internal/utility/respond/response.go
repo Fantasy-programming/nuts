@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
-	"github.com/Fantasy-Programming/nuts/internal/utility/log"
-	"github.com/Fantasy-Programming/nuts/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/i18n"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/log"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
 	"github.com/rs/zerolog"
 )
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
 	ogJwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"

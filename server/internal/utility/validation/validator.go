@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Fantasy-Programming/nuts/internal/utility/i18n"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/i18n"
 	"github.com/go-playground/validator/v10"
 )
 

@@ -37,4 +37,8 @@
   services.minio = {
     enable = true;
   };
+
+  services.redis = {
+    enable = true;
+  };
 }

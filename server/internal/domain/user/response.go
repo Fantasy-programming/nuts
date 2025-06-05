@@ -3,7 +3,7 @@ package user
 import (
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 )
 
 type GetUserResponse struct {
