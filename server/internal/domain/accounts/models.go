@@ -24,12 +24,11 @@ date_series AS (
 ),
 
 account_info AS (
-    -- Get account info, including creation date and external account flags
     SELECT
         id AS account_id,
         name,
         type,
-        balance AS db_balance, -- Store the database balance for external accounts
+        balance AS db_balance,
         currency,
         color,
         meta,
@@ -42,37 +41,83 @@ account_info AS (
         provider_name
     FROM accounts
     WHERE accounts.created_by = $3
-    -- Include accounts active at any point during the period
     AND created_at <= (SELECT end_date FROM period)
     AND deleted_at IS NULL
 ),
 
-balance_calc AS (
-    -- Calculate balance at the start and end of the period for each account
-    -- Only for non-external accounts or external accounts with transactions
+-- Get all transactions for each account to understand what data we have
+account_transaction_summary AS (
+    SELECT
+        ai.account_id,
+        COUNT(t.id) AS total_transaction_count,
+        MIN(t.transaction_datetime) AS earliest_transaction_date,
+        MAX(t.transaction_datetime) AS latest_transaction_date,
+        -- Sum of all transactions we have for this account
+        SUM(
+            CASE
+                WHEN t.type = 'income' THEN t.amount
+                WHEN t.type = 'expense' THEN -t.amount
+                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
+                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
+                ELSE 0
+            END
+        ) AS total_transaction_impact
+    FROM account_info ai
+    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
+        AND t.created_by = $3
+    GROUP BY ai.account_id
+),
+
+-- Calculate the correct initial balance for the start of the period
+initial_balances AS (
     SELECT
         ai.account_id,
         ai.is_external,
         ai.db_balance,
-        -- Balance just BEFORE start_date
-        coalesce(sum(
-            CASE
-                WHEN t.transaction_datetime < (SELECT start_date FROM period) THEN
+        ats.total_transaction_count,
+        -- Calculate balance at start of period
+        CASE
+            -- Internal accounts: Calculate from transactions before start_date
+            WHEN NOT ai.is_external THEN 
+                COALESCE(SUM(
                     CASE
-                        WHEN t.type = 'income' THEN t.amount
-                        WHEN t.type = 'expense' THEN -t.amount
-                        WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                        WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
+                        WHEN t.transaction_datetime < (SELECT start_date FROM period) THEN
+                            CASE
+                                WHEN t.type = 'income' THEN t.amount
+                                WHEN t.type = 'expense' THEN -t.amount
+                                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
+                                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
+                                ELSE 0
+                            END
                         ELSE 0
                     END
-                ELSE 0
-            END
-        ), 0)::DECIMAL AS calculated_start_balance,
-        -- Balance AT end_date (inclusive)
-        coalesce(sum(
-            CASE
-                WHEN t.transaction_datetime <= (SELECT end_date FROM period)
-                    THEN
+                ), 0)
+            
+            -- External accounts with NO transactions: Use DB balance
+            WHEN ai.is_external AND (ats.total_transaction_count = 0 OR ats.total_transaction_count IS NULL) THEN 
+                ai.db_balance
+            
+            -- External accounts WITH transactions: Work backwards from current balance
+            WHEN ai.is_external AND ats.total_transaction_count > 0 THEN 
+                ai.db_balance - COALESCE(ats.total_transaction_impact, 0)
+            
+            ELSE 0
+        END AS calculated_start_balance,
+        
+        -- Calculate balance at end of period
+        CASE
+            -- External accounts with NO transactions: Use DB balance
+            WHEN ai.is_external AND (ats.total_transaction_count = 0 OR ats.total_transaction_count IS NULL) THEN 
+                ai.db_balance
+            
+            -- External accounts WITH transactions: Use DB balance (current balance)
+            WHEN ai.is_external AND ats.total_transaction_count > 0 THEN 
+                ai.db_balance
+            
+            -- Internal accounts: Calculate from all transactions up to end_date
+            ELSE COALESCE(SUM(
+                CASE
+                    WHEN t.transaction_datetime <= (SELECT end_date FROM period) THEN
                         CASE
                             WHEN t.type = 'income' THEN t.amount
                             WHEN t.type = 'expense' THEN -t.amount
@@ -80,62 +125,41 @@ balance_calc AS (
                             WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
                             ELSE 0
                         END
-                ELSE 0
-            END
-        ), 0)::DECIMAL AS calculated_end_balance,
-        -- Count transactions to determine if we have transaction data
-        COUNT(t.id) AS transaction_count
+                    ELSE 0
+                END
+            ), 0)
+        END AS calculated_end_balance
     FROM account_info ai
+    LEFT JOIN account_transaction_summary ats ON ai.account_id = ats.account_id
     LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
         AND t.created_by = $3
-        AND t.transaction_datetime <= (SELECT end_date FROM period)
-    GROUP BY ai.account_id, ai.is_external, ai.db_balance
+    GROUP BY ai.account_id, ai.is_external, ai.db_balance, ats.total_transaction_count, ats.total_transaction_impact
 ),
 
 account_trend AS (
-    -- Calculate trend percentage, using DB balance for external accounts without transactions
     SELECT
         ai.account_id,
         ai.name,
         ai.type,
-        -- Use DB balance for ALL external accounts, calculated balance for internal accounts
-        CASE
-            WHEN ai.is_external THEN ai.db_balance
-            ELSE coalesce(bc.calculated_end_balance, 0)
-        END AS balance,
+        ib.calculated_end_balance AS balance,
         ai.currency,
         ai.color,
         ai.meta,
         ai.updated_at,
         ai.is_external,
-        -- Calculate trend: use DB balance for externals, but still calculate trend if transactions exist
+        -- Calculate trend percentage
         CASE
-            -- For external accounts without any transactions, no trend available
-            WHEN ai.is_external AND (bc.transaction_count = 0 OR bc.transaction_count IS NULL) THEN 0.0
-            -- For external accounts WITH transactions, calculate trend but use DB balance as end balance
-            WHEN ai.is_external AND bc.transaction_count > 0 THEN
+            WHEN COALESCE(ib.calculated_start_balance, 0) = 0 THEN
                 CASE
-                    WHEN coalesce(bc.calculated_start_balance, 0) = 0 THEN
-                        CASE
-                            WHEN ai.db_balance = 0 THEN 0
-                            WHEN ai.db_balance > 0 THEN 100.0
-                            ELSE -100.0
-                        END
-                    ELSE
-                        ( (ai.db_balance - bc.calculated_start_balance) / ABS(bc.calculated_start_balance) * 100.0 )
-                END
-            -- For internal accounts, calculate trend normally
-            WHEN coalesce(bc.calculated_start_balance, 0) = 0 THEN
-                CASE
-                    WHEN coalesce(bc.calculated_end_balance, 0) = 0 THEN 0
-                    WHEN coalesce(bc.calculated_end_balance, 0) > 0 THEN 100.0
+                    WHEN COALESCE(ib.calculated_end_balance, 0) = 0 THEN 0
+                    WHEN COALESCE(ib.calculated_end_balance, 0) > 0 THEN 100.0
                     ELSE -100.0
                 END
             ELSE
-                ( (coalesce(bc.calculated_end_balance, 0) - bc.calculated_start_balance) / ABS(bc.calculated_start_balance) * 100.0 )
+                ((ib.calculated_end_balance - ib.calculated_start_balance) / ABS(ib.calculated_start_balance) * 100.0)
         END::DECIMAL AS trend
     FROM account_info ai
-    LEFT JOIN balance_calc bc ON ai.account_id = bc.account_id
+    LEFT JOIN initial_balances ib ON ai.account_id = ib.account_id
     WHERE ai.created_at <= (SELECT end_date FROM period)
       AND ai.deleted_at IS NULL
 ),
@@ -145,26 +169,42 @@ balance_timeseries AS (
         ai.account_id,
         ds.date,
         CASE
-            -- For ALL external accounts, use the DB balance for all dates since transactions are incomplete
-            WHEN ai.is_external THEN ai.db_balance
-            -- For internal accounts, calculate cumulative balance from transactions
-            ELSE coalesce(sum(
+            -- External accounts with NO transactions: Use DB balance (flat line)
+            WHEN ai.is_external AND (ib.total_transaction_count = 0 OR ib.total_transaction_count IS NULL) THEN 
+                ai.db_balance
+            
+            -- All other accounts: Calculate running balance
+            ELSE ib.calculated_start_balance + COALESCE(SUM(
                 CASE
-                    WHEN t.type = 'income' THEN t.amount
-                    WHEN t.type = 'expense' THEN -t.amount
-                    WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                    WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
+                    WHEN t.transaction_datetime >= (SELECT start_date FROM period) 
+                         AND t.transaction_datetime <= ds.date + interval '1 day' - interval '1 second' THEN
+                        CASE
+                            WHEN t.type = 'income' THEN t.amount
+                            WHEN t.type = 'expense' THEN -t.amount
+                            WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
+                            WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
+                            ELSE 0
+                        END
                     ELSE 0
                 END
             ), 0)
-        END::DECIMAL AS cumulative_balance
+        END::DECIMAL AS daily_balance
     FROM account_info ai
     CROSS JOIN date_series ds
-    LEFT JOIN transactions t
-        ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-       AND t.transaction_datetime <= ds.date + interval '1 day' - interval '1 second'
-       AND t.created_by = $3
-    GROUP BY ai.account_id, ds.date, ai.is_external, ai.db_balance
+    LEFT JOIN initial_balances ib ON ai.account_id = ib.account_id
+    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
+        AND t.created_by = $3
+    -- Only show accounts from when they should appear in timeline
+    WHERE CASE
+        -- Internal accounts: from creation date or period start, whichever is later
+        WHEN NOT ai.is_external THEN ds.date >= GREATEST(
+            ai.created_at::DATE,
+            (SELECT start_date FROM period)::DATE
+        )
+        -- External accounts: from period start
+        ELSE ds.date >= (SELECT start_date FROM period)::DATE
+    END
+    GROUP BY ai.account_id, ds.date, ai.is_external, ai.db_balance, ib.calculated_start_balance, ib.total_transaction_count
 ),
 
 aggregated_series AS (
@@ -173,12 +213,13 @@ aggregated_series AS (
         jsonb_agg(
             jsonb_build_object(
                 'date', date::timestamptz,
-                'balance', coalesce(cumulative_balance, 0)
+                'balance', COALESCE(daily_balance, 0)
             ) ORDER BY date
         ) AS timeseries
     FROM balance_timeseries
     GROUP BY account_id
 )
+
 SELECT
     at.account_id as id,
     at.name,
@@ -189,7 +230,7 @@ SELECT
     at.meta,
     at.updated_at,
     at.trend::DECIMAL as trend,
-    coalesce(agg.timeseries, '[]'::JSONB)::JSONB AS balance_timeseries,
+    COALESCE(agg.timeseries, '[]'::JSONB)::JSONB AS balance_timeseries,
     at.is_external
 FROM account_trend at
 LEFT JOIN aggregated_series agg ON at.account_id = agg.account_id

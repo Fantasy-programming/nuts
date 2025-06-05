@@ -103,8 +103,7 @@ RETURNING *;
 WITH relevant_period AS (
     SELECT
         date_trunc('month', now()) - INTERVAL '11 months' AS start_month,
-        date_trunc('month', now()) AS end_month,
-        now() - INTERVAL '1 year' AS start_boundary
+        date_trunc('month', now()) AS end_month
 ),
 months AS (
     SELECT generate_series(
@@ -124,10 +123,15 @@ account_info AS (
         deleted_at IS NULL
         AND accounts.created_by = sqlc.arg('user_id')
 ),
-timeline_transactions AS (
+-- Get all transactions for each account to understand what data we have
+account_transaction_summary AS (
     SELECT
         ai.account_id,
-        sum(
+        COUNT(t.id) AS total_transaction_count,
+        MIN(t.transaction_datetime) AS earliest_transaction_date,
+        MAX(t.transaction_datetime) AS latest_transaction_date,
+        -- Sum of all transactions we have for this account
+        SUM(
             CASE
                 WHEN t.type = 'income' THEN t.amount
                 WHEN t.type = 'expense' THEN -t.amount
@@ -135,7 +139,44 @@ timeline_transactions AS (
                 WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
                 ELSE 0
             END
-        ) AS total_timeline_impact
+        ) AS total_transaction_impact
+    FROM account_info ai
+    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
+        AND t.created_by = sqlc.arg('user_id')
+    GROUP BY ai.account_id
+),
+-- Calculate transactions that happened before our timeline period
+pre_timeline_transactions AS (
+    SELECT
+        ai.account_id,
+        SUM(
+            CASE
+                WHEN t.type = 'income' THEN t.amount
+                WHEN t.type = 'expense' THEN -t.amount
+                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
+                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
+                ELSE 0
+            END
+        ) AS pre_timeline_impact
+    FROM account_info ai
+    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
+        AND t.transaction_datetime < (SELECT start_month FROM relevant_period)
+        AND t.created_by = sqlc.arg('user_id')
+    GROUP BY ai.account_id
+),
+-- Calculate transactions within our timeline period
+timeline_transactions AS (
+    SELECT
+        ai.account_id,
+        SUM(
+            CASE
+                WHEN t.type = 'income' THEN t.amount
+                WHEN t.type = 'expense' THEN -t.amount
+                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
+                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
+                ELSE 0
+            END
+        ) AS timeline_impact
     FROM account_info ai
     LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
         AND t.transaction_datetime >= (SELECT start_month FROM relevant_period)
@@ -143,61 +184,43 @@ timeline_transactions AS (
         AND t.created_by = sqlc.arg('user_id')
     GROUP BY ai.account_id
 ),
--- Calculate what transactions we have BEFORE our timeline period
-pre_timeline_transactions AS (
-    SELECT
-        ai.account_id,
-        sum(
-            CASE
-                WHEN t.type = 'income' THEN t.amount
-                WHEN t.type = 'expense' THEN -t.amount
-                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
-                ELSE 0
-            END
-        ) AS total_pre_timeline_impact,
-        COUNT(t.id) AS pre_timeline_transaction_count,
-        MIN(t.transaction_datetime) AS earliest_transaction_date
-    FROM account_info ai
-    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-        AND t.transaction_datetime < (SELECT start_month FROM relevant_period)
-        AND t.created_by = sqlc.arg('user_id')
-    GROUP BY ai.account_id
-),
+-- Determine the correct initial balance for the start of our timeline
 initial_balances AS (
     SELECT
         ai.account_id,
         ai.is_external,
         ai.db_balance,
-        ptt.earliest_transaction_date,
+        ai.created_at,
+        ats.total_transaction_count,
+        ats.earliest_transaction_date,
         CASE
-            -- For internal accounts: use calculated balance from all previous transactions
+            -- Internal accounts: Calculate from all pre-timeline transactions
             WHEN NOT ai.is_external THEN 
-                COALESCE(ptt.total_pre_timeline_impact, 0)
+                COALESCE(ptt.pre_timeline_impact, 0)
             
-            -- For external accounts WITHOUT any transactions: use DB balance (flat line)
-            WHEN ai.is_external AND (ptt.pre_timeline_transaction_count = 0 OR ptt.pre_timeline_transaction_count IS NULL) 
-                 AND (tt.total_timeline_impact = 0 OR tt.total_timeline_impact IS NULL) THEN 
+            -- External accounts with NO transactions at all: Use DB balance
+            WHEN ai.is_external AND (ats.total_transaction_count = 0 OR ats.total_transaction_count IS NULL) THEN 
                 ai.db_balance
             
-            -- For external accounts WITH transactions: work backwards from current DB balance
-            -- Initial balance = current_balance - all_known_transaction_impacts
-            WHEN ai.is_external THEN 
-                ai.db_balance - COALESCE(tt.total_timeline_impact, 0) - COALESCE(ptt.total_pre_timeline_impact, 0)
+            -- External accounts WITH transactions: Work backwards from current balance
+            -- Current balance = initial_balance + all_transaction_impacts
+            -- Therefore: initial_balance = current_balance - all_transaction_impacts
+            WHEN ai.is_external AND ats.total_transaction_count > 0 THEN 
+                ai.db_balance - COALESCE(ats.total_transaction_impact, 0)
             
             ELSE 0
-        END AS calculated_initial_balance,
-        ptt.pre_timeline_transaction_count,
-        tt.total_timeline_impact
+        END AS calculated_initial_balance
     FROM account_info ai
+    LEFT JOIN account_transaction_summary ats ON ai.account_id = ats.account_id
     LEFT JOIN pre_timeline_transactions ptt ON ai.account_id = ptt.account_id
     LEFT JOIN timeline_transactions tt ON ai.account_id = tt.account_id
 ),
+-- Monthly transaction aggregation within our timeline
 monthly_transactions AS (
     SELECT
         ai.account_id,
         date_trunc('month', t.transaction_datetime) AS month,
-        sum(
+        SUM(
             CASE
                  WHEN t.type = 'income' THEN t.amount
                  WHEN t.type = 'expense' THEN -t.amount
@@ -210,10 +233,10 @@ monthly_transactions AS (
     JOIN account_info ai ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
     WHERE t.transaction_datetime >= (SELECT start_month FROM relevant_period)
       AND t.transaction_datetime < ((SELECT end_month FROM relevant_period) + INTERVAL '1 month')
-      AND t.created_by = sqlc.arg('user_id')
+      AND t.created_by = '323e5fb0-5175-4292-be64-60f48c8cff49'
     GROUP BY ai.account_id, month
 ),
-
+-- Combine everything: accounts, months, and their balances
 combined AS (
     SELECT
         m.month,
@@ -222,37 +245,45 @@ combined AS (
         ai.db_balance,
         ib.calculated_initial_balance AS initial_balance,
         COALESCE(mt.monthly_net, 0) AS monthly_net,
-        ib.earliest_transaction_date
+        ib.total_transaction_count,
+        -- Determine when this account should start appearing in timeline
+        CASE 
+            WHEN ai.is_external THEN (SELECT start_month FROM relevant_period)
+            ELSE GREATEST(
+                date_trunc('month', ai.created_at),
+                (SELECT start_month FROM relevant_period)
+            )
+        END AS account_start_month
     FROM months m
     CROSS JOIN account_info ai
     LEFT JOIN initial_balances ib ON ai.account_id = ib.account_id
     LEFT JOIN monthly_transactions mt ON ai.account_id = mt.account_id AND m.month = mt.month
+    -- Determine when accounts should start appearing in timeline
     WHERE 
-        -- For internal accounts: include from account creation date
-        (NOT ai.is_external AND m.month >= date_trunc('month', ai.created_at))
+        -- Internal accounts: from creation date or timeline start, whichever is later
+        (NOT ai.is_external AND m.month >= GREATEST(
+            date_trunc('month', ai.created_at),
+            (SELECT start_month FROM relevant_period)
+        ))
         OR
-        -- For external accounts WITH transactions: include from earliest transaction date
-        (ai.is_external AND ib.earliest_transaction_date IS NOT NULL 
-         AND m.month >= date_trunc('month', ib.earliest_transaction_date))
-        OR
-        -- For external accounts WITHOUT transactions: include from timeline start (they have balance but no transaction history)
-        (ai.is_external AND ib.earliest_transaction_date IS NULL 
-         AND m.month >= (SELECT start_month FROM relevant_period))
+        -- External accounts: from timeline start (they represent pre-existing accounts)
+        (ai.is_external AND m.month >= (SELECT start_month FROM relevant_period))
 ),
+-- Calculate running balances
 running_balance AS (
     SELECT
         c.month,
         c.account_id,
         c.is_external,
         c.db_balance,
+        c.total_transaction_count,
         CASE
-            -- For external accounts without any transactions: use DB balance (flat line)
-            WHEN c.is_external AND c.earliest_transaction_date IS NULL THEN 
+            -- External accounts with NO transactions: Use DB balance (flat line)
+            WHEN c.is_external AND (c.total_transaction_count = 0 OR c.total_transaction_count IS NULL) THEN 
                 c.db_balance
             
-            -- For all other accounts (internal + external with transactions): 
-            -- calculate running balance from our computed initial balance
-            ELSE c.initial_balance + sum(c.monthly_net) OVER (
+            -- All other accounts: Calculate running balance from initial + cumulative monthly changes
+            ELSE c.initial_balance + SUM(c.monthly_net) OVER (
                 PARTITION BY c.account_id
                 ORDER BY c.month
                 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
@@ -260,10 +291,10 @@ running_balance AS (
         END AS balance
     FROM combined c
 )
--- Final sum of balances across all accounts per month
+-- Final aggregation: Sum all account balances per month
 SELECT
     rb.month::TIMESTAMPTZ as month,
-    sum(rb.balance)::DECIMAL AS balance
+    SUM(rb.balance)::DECIMAL AS balance
 FROM running_balance rb
 GROUP BY rb.month
 ORDER BY rb.month;
