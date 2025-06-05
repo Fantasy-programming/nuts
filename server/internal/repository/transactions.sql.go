@@ -239,7 +239,7 @@ SELECT
     transactions.details,
     transactions.updated_at,
     categories.id, categories.name, categories.parent_id, categories.is_default, categories.created_by, categories.updated_by, categories.created_at, categories.updated_at, categories.deleted_at,
-    accounts.id, accounts.name, accounts.type, accounts.balance, accounts.currency, accounts.color, accounts.meta, accounts.created_by, accounts.updated_by, accounts.created_at, accounts.updated_at, accounts.deleted_at, accounts.is_external, accounts.provider_account_id, accounts.provider_name, accounts.sync_status, accounts.last_synced_at, accounts.connection_id
+    accounts.id, accounts.name, accounts.type, accounts.balance, accounts.currency, accounts.color, accounts.meta, accounts.created_by, accounts.updated_by, accounts.created_at, accounts.updated_at, accounts.deleted_at, accounts.is_external, accounts.provider_account_id, accounts.provider_name, accounts.sync_status, accounts.last_synced_at, accounts.connection_id, accounts.subtype
 FROM transactions
 JOIN categories ON transactions.category_id = categories.id
 JOIN accounts ON transactions.account_id = accounts.id
@@ -334,6 +334,7 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Account.SyncStatus,
 			&i.Account.LastSyncedAt,
 			&i.Account.ConnectionID,
+			&i.Account.Subtype,
 		); err != nil {
 			return nil, err
 		}

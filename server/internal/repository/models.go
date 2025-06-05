@@ -212,6 +212,7 @@ type Account struct {
 	SyncStatus        *string            `json:"sync_status"`
 	LastSyncedAt      pgtype.Timestamptz `json:"last_synced_at"`
 	ConnectionID      *uuid.UUID         `json:"connection_id"`
+	Subtype           *string            `json:"subtype"`
 }
 
 type Category struct {

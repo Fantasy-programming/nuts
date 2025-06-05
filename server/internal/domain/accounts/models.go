@@ -98,9 +98,9 @@ account_trend AS (
         ai.account_id,
         ai.name,
         ai.type,
-        -- Use DB balance for external accounts, calculated balance for internal accounts
+        -- Use DB balance for ALL external accounts, calculated balance for internal accounts
         CASE
-            WHEN ai.is_external AND (bc.transaction_count = 0 OR bc.transaction_count IS NULL) THEN ai.db_balance
+            WHEN ai.is_external THEN ai.db_balance
             ELSE coalesce(bc.calculated_end_balance, 0)
         END AS balance,
         ai.currency,
@@ -108,11 +108,23 @@ account_trend AS (
         ai.meta,
         ai.updated_at,
         ai.is_external,
-        -- Calculate trend based on whether account is external with/without transactions
+        -- Calculate trend: use DB balance for externals, but still calculate trend if transactions exist
         CASE
-            -- For external accounts without transactions, we can't calculate trend reliably
+            -- For external accounts without any transactions, no trend available
             WHEN ai.is_external AND (bc.transaction_count = 0 OR bc.transaction_count IS NULL) THEN 0.0
-            -- For accounts with transactions, calculate trend normally
+            -- For external accounts WITH transactions, calculate trend but use DB balance as end balance
+            WHEN ai.is_external AND bc.transaction_count > 0 THEN
+                CASE
+                    WHEN coalesce(bc.calculated_start_balance, 0) = 0 THEN
+                        CASE
+                            WHEN ai.db_balance = 0 THEN 0
+                            WHEN ai.db_balance > 0 THEN 100.0
+                            ELSE -100.0
+                        END
+                    ELSE
+                        ( (ai.db_balance - bc.calculated_start_balance) / ABS(bc.calculated_start_balance) * 100.0 )
+                END
+            -- For internal accounts, calculate trend normally
             WHEN coalesce(bc.calculated_start_balance, 0) = 0 THEN
                 CASE
                     WHEN coalesce(bc.calculated_end_balance, 0) = 0 THEN 0
@@ -133,14 +145,10 @@ balance_timeseries AS (
         ai.account_id,
         ds.date,
         CASE
-            -- For external accounts without transactions, use the DB balance for all dates
-            WHEN ai.is_external AND NOT EXISTS (
-                SELECT 1 FROM transactions t 
-                WHERE (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-                AND t.created_by = $3
-            ) THEN ai.db_balance
-            -- For accounts with transactions, calculate cumulative balance
-            ELSE sum(
+            -- For ALL external accounts, use the DB balance for all dates since transactions are incomplete
+            WHEN ai.is_external THEN ai.db_balance
+            -- For internal accounts, calculate cumulative balance from transactions
+            ELSE coalesce(sum(
                 CASE
                     WHEN t.type = 'income' THEN t.amount
                     WHEN t.type = 'expense' THEN -t.amount
@@ -148,7 +156,7 @@ balance_timeseries AS (
                     WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
                     ELSE 0
                 END
-            )
+            ), 0)
         END::DECIMAL AS cumulative_balance
     FROM account_info ai
     CROSS JOIN date_series ds

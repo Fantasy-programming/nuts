@@ -17,6 +17,7 @@ type BatchCreateAccountParams struct {
 	CreatedBy         *uuid.UUID     `json:"created_by"`
 	Name              string         `json:"name"`
 	Type              interface{}    `json:"type"`
+	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
 	Color             interface{}    `json:"color"`
@@ -32,6 +33,7 @@ INSERT INTO accounts (
     created_by,
     name,
     type,
+    subtype,
     balance,
     currency,
     color,
@@ -41,14 +43,15 @@ INSERT INTO accounts (
     provider_account_id,
     provider_name
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+) RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id, subtype
 `
 
 type CreateAccountParams struct {
 	CreatedBy         *uuid.UUID     `json:"created_by"`
 	Name              string         `json:"name"`
 	Type              interface{}    `json:"type"`
+	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
 	Color             interface{}    `json:"color"`
@@ -64,6 +67,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		arg.CreatedBy,
 		arg.Name,
 		arg.Type,
+		arg.Subtype,
 		arg.Balance,
 		arg.Currency,
 		arg.Color,
@@ -93,6 +97,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		&i.SyncStatus,
 		&i.LastSyncedAt,
 		&i.ConnectionID,
+		&i.Subtype,
 	)
 	return i, err
 }
@@ -102,7 +107,7 @@ UPDATE accounts
 SET
     deleted_at = current_timestamp
 WHERE id = $1
-RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id
+RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id, subtype
 `
 
 func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) error {
@@ -226,6 +231,7 @@ SELECT
     id,
     name,
     type,
+    subtype,
     balance,
     currency,
     meta,
@@ -244,6 +250,7 @@ type GetAccountByIdRow struct {
 	ID           uuid.UUID      `json:"id"`
 	Name         string         `json:"name"`
 	Type         ACCOUNTTYPE    `json:"type"`
+	Subtype      *string        `json:"subtype"`
 	Balance      pgtype.Numeric `json:"balance"`
 	Currency     string         `json:"currency"`
 	Meta         []byte         `json:"meta"`
@@ -260,6 +267,7 @@ func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountB
 		&i.ID,
 		&i.Name,
 		&i.Type,
+		&i.Subtype,
 		&i.Balance,
 		&i.Currency,
 		&i.Meta,
@@ -277,6 +285,7 @@ SELECT
     id,
     name,
     type,
+    subtype,
     balance,
     currency,
     color,
@@ -303,6 +312,7 @@ type GetAccountByProviderAccountIDRow struct {
 	ID                uuid.UUID      `json:"id"`
 	Name              string         `json:"name"`
 	Type              ACCOUNTTYPE    `json:"type"`
+	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
 	Color             COLORENUM      `json:"color"`
@@ -322,6 +332,7 @@ func (q *Queries) GetAccountByProviderAccountID(ctx context.Context, arg GetAcco
 		&i.ID,
 		&i.Name,
 		&i.Type,
+		&i.Subtype,
 		&i.Balance,
 		&i.Currency,
 		&i.Color,
@@ -340,6 +351,7 @@ SELECT
     id,
     name,
     type,
+    subtype,
     balance,
     currency,
     color,
@@ -356,6 +368,7 @@ type GetAccountsRow struct {
 	ID           uuid.UUID      `json:"id"`
 	Name         string         `json:"name"`
 	Type         ACCOUNTTYPE    `json:"type"`
+	Subtype      *string        `json:"subtype"`
 	Balance      pgtype.Numeric `json:"balance"`
 	Currency     string         `json:"currency"`
 	Color        COLORENUM      `json:"color"`
@@ -377,6 +390,7 @@ func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAcco
 			&i.ID,
 			&i.Name,
 			&i.Type,
+			&i.Subtype,
 			&i.Balance,
 			&i.Currency,
 			&i.Color,
@@ -399,99 +413,159 @@ WITH relevant_period AS (
     SELECT
         date_trunc('month', now()) - INTERVAL '11 months' AS start_month,
         date_trunc('month', now()) AS end_month,
-        now() - INTERVAL '1 year' AS start_boundary -- For transaction filtering
+        now() - INTERVAL '1 year' AS start_boundary
 ),
-
 months AS (
-    -- Generate months for the relevant period
     SELECT generate_series(
         (SELECT start_month FROM relevant_period),
         (SELECT end_month FROM relevant_period),
         INTERVAL '1 month'
     ) AS month
 ),
-
-account_ids AS (
-    -- Get active account IDs for the user
+account_info AS (
     SELECT
         id AS account_id,
-        created_at -- Needed to ensure we don't calculate balance before creation
+        created_at,
+        is_external,
+        balance AS db_balance
     FROM accounts
     WHERE
         deleted_at IS NULL
         AND accounts.created_by = $1
 ),
-
-initial_balances AS (
-    -- Calculate balance for each account just BEFORE the start_month
+timeline_transactions AS (
     SELECT
-        t.account_id,
-        coalesce(sum(
+        ai.account_id,
+        sum(
             CASE
                 WHEN t.type = 'income' THEN t.amount
                 WHEN t.type = 'expense' THEN -t.amount
-                -- Transfers need careful handling: outflow from source, inflow to destination
-                WHEN t.type = 'transfer' AND t.account_id = t.account_id THEN -t.amount -- Assuming t.account_id is the source
-                WHEN t.type = 'transfer' AND t.account_id = t.destination_account_id THEN t.amount -- Assuming t.account_id is the destination
+                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
+                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
                 ELSE 0
             END
-        ), 0)::DECIMAL AS balance_before_period
-    FROM transactions t
-    JOIN account_ids aids ON t.account_id = aids.account_id
-    WHERE
-         t.transaction_datetime < (SELECT start_month FROM relevant_period)
-         AND t.created_by = $1
-    GROUP BY t.account_id
+        ) AS total_timeline_impact
+    FROM account_info ai
+    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
+        AND t.transaction_datetime >= (SELECT start_month FROM relevant_period)
+        AND t.transaction_datetime < ((SELECT end_month FROM relevant_period) + INTERVAL '1 month')
+        AND t.created_by = $1
+    GROUP BY ai.account_id
 ),
-
-monthly_transactions AS (
-    -- Aggregate transactions per month per account WITHIN the relevant period
+pre_timeline_transactions AS (
     SELECT
-        t.account_id,
+        ai.account_id,
+        sum(
+            CASE
+                WHEN t.type = 'income' THEN t.amount
+                WHEN t.type = 'expense' THEN -t.amount
+                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
+                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
+                ELSE 0
+            END
+        ) AS total_pre_timeline_impact,
+        COUNT(t.id) AS pre_timeline_transaction_count,
+        MIN(t.transaction_datetime) AS earliest_transaction_date
+    FROM account_info ai
+    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
+        AND t.transaction_datetime < (SELECT start_month FROM relevant_period)
+        AND t.created_by = $1
+    GROUP BY ai.account_id
+),
+initial_balances AS (
+    SELECT
+        ai.account_id,
+        ai.is_external,
+        ai.db_balance,
+        ptt.earliest_transaction_date,
+        CASE
+            -- For internal accounts: use calculated balance from all previous transactions
+            WHEN NOT ai.is_external THEN 
+                COALESCE(ptt.total_pre_timeline_impact, 0)
+            
+            -- For external accounts WITHOUT any transactions: use DB balance (flat line)
+            WHEN ai.is_external AND (ptt.pre_timeline_transaction_count = 0 OR ptt.pre_timeline_transaction_count IS NULL) 
+                 AND (tt.total_timeline_impact = 0 OR tt.total_timeline_impact IS NULL) THEN 
+                ai.db_balance
+            
+            -- For external accounts WITH transactions: work backwards from current DB balance
+            -- Initial balance = current_balance - all_known_transaction_impacts
+            WHEN ai.is_external THEN 
+                ai.db_balance - COALESCE(tt.total_timeline_impact, 0) - COALESCE(ptt.total_pre_timeline_impact, 0)
+            
+            ELSE 0
+        END AS calculated_initial_balance,
+        ptt.pre_timeline_transaction_count,
+        tt.total_timeline_impact
+    FROM account_info ai
+    LEFT JOIN pre_timeline_transactions ptt ON ai.account_id = ptt.account_id
+    LEFT JOIN timeline_transactions tt ON ai.account_id = tt.account_id
+),
+monthly_transactions AS (
+    SELECT
+        ai.account_id,
         date_trunc('month', t.transaction_datetime) AS month,
         sum(
             CASE
                  WHEN t.type = 'income' THEN t.amount
                  WHEN t.type = 'expense' THEN -t.amount
-                 WHEN t.type = 'transfer' AND t.account_id = t.account_id THEN -t.amount -- Source
-                 WHEN t.type = 'transfer' AND t.account_id = t.destination_account_id THEN t.amount -- Destination
+                 WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
+                 WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
                  ELSE 0
             END
         ) AS monthly_net
     FROM transactions t
-    JOIN account_ids aids ON t.account_id = aids.account_id
+    JOIN account_info ai ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
     WHERE t.transaction_datetime >= (SELECT start_month FROM relevant_period)
-      AND t.transaction_datetime < ( (SELECT end_month FROM relevant_period) + INTERVAL '1 month') -- Cover full end month
+      AND t.transaction_datetime < ((SELECT end_month FROM relevant_period) + INTERVAL '1 month')
       AND t.created_by = $1
-    GROUP BY t.account_id, month
+    GROUP BY ai.account_id, month
 ),
 
 combined AS (
-    -- Create a row for each account and each month in the period
-    -- Start with the initial balance and add monthly nets
     SELECT
         m.month,
-        aids.account_id,
-        coalesce(ib.balance_before_period, 0) AS initial_balance,
-        coalesce(mt.monthly_net, 0) AS monthly_net
+        ai.account_id,
+        ai.is_external,
+        ai.db_balance,
+        ib.calculated_initial_balance AS initial_balance,
+        COALESCE(mt.monthly_net, 0) AS monthly_net,
+        ib.earliest_transaction_date
     FROM months m
-    CROSS JOIN account_ids aids
-    LEFT JOIN initial_balances ib ON aids.account_id = ib.account_id
-    LEFT JOIN monthly_transactions mt ON aids.account_id = mt.account_id AND m.month = mt.month
-    -- Only include months after or including account creation month
-    WHERE m.month >= date_trunc('month', aids.created_at)
+    CROSS JOIN account_info ai
+    LEFT JOIN initial_balances ib ON ai.account_id = ib.account_id
+    LEFT JOIN monthly_transactions mt ON ai.account_id = mt.account_id AND m.month = mt.month
+    WHERE 
+        -- For internal accounts: include from account creation date
+        (NOT ai.is_external AND m.month >= date_trunc('month', ai.created_at))
+        OR
+        -- For external accounts WITH transactions: include from earliest transaction date
+        (ai.is_external AND ib.earliest_transaction_date IS NOT NULL 
+         AND m.month >= date_trunc('month', ib.earliest_transaction_date))
+        OR
+        -- For external accounts WITHOUT transactions: include from timeline start (they have balance but no transaction history)
+        (ai.is_external AND ib.earliest_transaction_date IS NULL 
+         AND m.month >= (SELECT start_month FROM relevant_period))
 ),
-
 running_balance AS (
-    -- Compute cumulative balance for each account
     SELECT
         c.month,
         c.account_id,
-        c.initial_balance + sum(c.monthly_net) OVER (
-            PARTITION BY c.account_id
-            ORDER BY c.month
-            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        ) AS balance
+        c.is_external,
+        c.db_balance,
+        CASE
+            -- For external accounts without any transactions: use DB balance (flat line)
+            WHEN c.is_external AND c.earliest_transaction_date IS NULL THEN 
+                c.db_balance
+            
+            -- For all other accounts (internal + external with transactions): 
+            -- calculate running balance from our computed initial balance
+            ELSE c.initial_balance + sum(c.monthly_net) OVER (
+                PARTITION BY c.account_id
+                ORDER BY c.month
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            )
+        END AS balance
     FROM combined c
 )
 SELECT
@@ -507,7 +581,8 @@ type GetAccountsBalanceTimelineRow struct {
 	Balance pgtype.Numeric `json:"balance"`
 }
 
-// Final SUM of balances across all accounts per month
+// Calculate what transactions we have BEFORE our timeline period
+// Final sum of balances across all accounts per month
 func (q *Queries) GetAccountsBalanceTimeline(ctx context.Context, userID *uuid.UUID) ([]GetAccountsBalanceTimelineRow, error) {
 	rows, err := q.db.Query(ctx, getAccountsBalanceTimeline, userID)
 	if err != nil {
@@ -533,6 +608,7 @@ SELECT
     id,
     name,
     type,
+    subtype,
     balance,
     currency,
     color,
@@ -558,6 +634,7 @@ type GetAccountsByConnectionIDRow struct {
 	ID                uuid.UUID      `json:"id"`
 	Name              string         `json:"name"`
 	Type              ACCOUNTTYPE    `json:"type"`
+	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
 	Color             COLORENUM      `json:"color"`
@@ -582,6 +659,7 @@ func (q *Queries) GetAccountsByConnectionID(ctx context.Context, arg GetAccounts
 			&i.ID,
 			&i.Name,
 			&i.Type,
+			&i.Subtype,
 			&i.Balance,
 			&i.Currency,
 			&i.Color,
@@ -623,6 +701,7 @@ account_info AS (
         id AS account_id,
         name,
         type,
+        subtype,
         currency,
         color,
         meta,
@@ -684,6 +763,7 @@ account_trend AS (
         ai.account_id,
         ai.name,
         ai.type,
+        ai.subtype,
         coalesce(bc.end_balance, 0) AS balance, -- Current balance is the end_balance
         ai.currency,
         ai.color,
@@ -750,6 +830,7 @@ SELECT
     at.account_id as id,
     at.name,
     at.type,
+    at.subtype,
     at.balance::DECIMAL as balance, -- Balance at the end_date
     at.currency,
     at.color,
@@ -772,6 +853,7 @@ type GetAccountsWithTrendRow struct {
 	ID                uuid.UUID      `json:"id"`
 	Name              string         `json:"name"`
 	Type              ACCOUNTTYPE    `json:"type"`
+	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
 	Color             COLORENUM      `json:"color"`
@@ -795,6 +877,7 @@ func (q *Queries) GetAccountsWithTrend(ctx context.Context, arg GetAccountsWithT
 			&i.ID,
 			&i.Name,
 			&i.Type,
+			&i.Subtype,
 			&i.Balance,
 			&i.Currency,
 			&i.Color,
@@ -818,18 +901,20 @@ UPDATE accounts
 SET
     name = coalesce($1, name),
     type = coalesce($2, type),
-    balance = coalesce($3, balance),
-    currency = coalesce($4, currency),
-    color = coalesce($5, color),
-    meta = coalesce($6, meta),
-    updated_by = $7
-WHERE id = $8
-RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id
+    subtype = coalesce($3, subtype),
+    balance = coalesce($4, balance),
+    currency = coalesce($5, currency),
+    color = coalesce($6, color),
+    meta = coalesce($7, meta),
+    updated_by = $8
+WHERE id = $9
+RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id, subtype
 `
 
 type UpdateAccountParams struct {
 	Name      *string        `json:"name"`
 	Type      interface{}    `json:"type"`
+	Subtype   *string        `json:"subtype"`
 	Balance   pgtype.Numeric `json:"balance"`
 	Currency  *string        `json:"currency"`
 	Color     interface{}    `json:"color"`
@@ -842,6 +927,7 @@ func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (A
 	row := q.db.QueryRow(ctx, updateAccount,
 		arg.Name,
 		arg.Type,
+		arg.Subtype,
 		arg.Balance,
 		arg.Currency,
 		arg.Color,
@@ -869,6 +955,7 @@ func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (A
 		&i.SyncStatus,
 		&i.LastSyncedAt,
 		&i.ConnectionID,
+		&i.Subtype,
 	)
 	return i, err
 }
