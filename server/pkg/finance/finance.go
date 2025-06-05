@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Fantasy-Programming/nuts/config"
+	"github.com/Fantasy-Programming/nuts/server/config"
 	"github.com/rs/zerolog"
 )
 
@@ -109,10 +109,10 @@ type ExchangeTokenResponse struct {
 }
 
 type GetTransactionsArgs struct {
-	Count     int
-	FromID    string
-	startDate time.Time
-	endDate   time.Time
+	Count     *int
+	FromID    *string
+	startDate *time.Time
+	endDate   *time.Time
 }
 
 // Provider defines the interface for financial data providers
@@ -158,8 +158,6 @@ func NewProviderManager(cfg config.Integrations, logger *zerolog.Logger) (*Provi
 		providers: make(map[string]Provider),
 		logger:    logger,
 	}
-
-	logger.Debug().Any("config", cfg.EnabledFinancialProviders).Msg("see oo")
 
 	// Initialize enabled providers
 	for _, providerName := range cfg.EnabledFinancialProviders {

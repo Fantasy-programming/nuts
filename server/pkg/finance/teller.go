@@ -217,10 +217,20 @@ func (t *TellerProvider) GetAccountBalanceInternal(ctx context.Context, accessTo
 // GetTransactions retrieves transactions for an account within a date range
 func (t *TellerProvider) GetTransactions(ctx context.Context, accessToken, accountID string, args GetTransactionsArgs) ([]Transaction, error) {
 	params := url.Values{}
-	params.Set("count", strconv.Itoa(args.Count))
-	params.Set("from_id", args.FromID)
 
-	endpoint := fmt.Sprintf("/accounts/%s/transactions?%s", accountID, params.Encode())
+	if args.Count != nil {
+		params.Set("count", strconv.Itoa(*args.Count))
+	}
+	if args.FromID != nil {
+		params.Set("from_id", *args.FromID)
+	}
+	// You could add logic here for startDate and endDate if the API supports them
+
+	endpoint := fmt.Sprintf("/accounts/%s/transactions", accountID)
+	if encoded := params.Encode(); encoded != "" {
+		endpoint += "?" + encoded
+	}
+
 	resp, err := t.makeRequest(ctx, "GET", endpoint, nil, accessToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions: %w", err)
@@ -462,6 +472,7 @@ func (t *TellerProvider) convertTellerTransaction(tt tellerTransaction, accountI
 		Amount:                amount,
 		Currency:              "USD", // Teller typically uses USD
 		Description:           tt.Description,
+		Category:              tt.Details.Category,
 		Date:                  date,
 		MerchantName:          tt.Details.CounterParty.Name,
 		Type:                  strings.ToLower(tt.Type),

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -198,21 +199,27 @@ func (m *MonoProvider) GetAccountBalance(ctx context.Context, accessToken, accou
 func (m *MonoProvider) GetTransactions(ctx context.Context, accessToken, accountID string, args GetTransactionsArgs) ([]Transaction, error) {
 	endpoint := fmt.Sprintf("/accounts/%s/transactions", accessToken)
 
-	// Add query parameters if provided
 	params := url.Values{}
-	if args.Count > 0 {
-		params.Add("limit", fmt.Sprintf("%d", args.Count))
+
+	if args.Count != nil {
+		params.Set("count", strconv.Itoa(*args.Count))
 	}
-	if !args.startDate.IsZero() {
+	if args.FromID != nil {
+		params.Set("from_id", *args.FromID)
+	}
+
+	if args.startDate != nil {
 		params.Add("start", args.startDate.Format("2006-01-02"))
 	}
-	if !args.endDate.IsZero() {
+	if args.endDate != nil {
 		params.Add("end", args.endDate.Format("2006-01-02"))
 	}
 
 	params.Add("paginate", "false")
 
-	endpoint += "?" + params.Encode()
+	if encoded := params.Encode(); encoded != "" {
+		endpoint += "?" + encoded
+	}
 
 	resp, err := m.makeRequest(ctx, "GET", endpoint, nil)
 	if err != nil {
@@ -249,7 +256,7 @@ func (m *MonoProvider) GetTransactions(ctx context.Context, accessToken, account
 }
 
 func (m *MonoProvider) GetRecentTransactions(ctx context.Context, accessToken, accountID string, count int) ([]Transaction, error) {
-	return m.GetTransactions(ctx, accessToken, accountID, GetTransactionsArgs{Count: count})
+	return m.GetTransactions(ctx, accessToken, accountID, GetTransactionsArgs{Count: &count})
 }
 
 // IGNORE (Mono doesn't provide a general institutions endpoint) (might need static list)
