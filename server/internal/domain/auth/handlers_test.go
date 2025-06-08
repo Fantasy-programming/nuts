@@ -86,7 +86,7 @@ func (s *HandlerTestSuite) SetupSuite() {
 	// setup mockStorage
 
 	storage, err := storage.NewStorageProvider(config.Storage{
-		Host:   "fs",
+		Host:   "Fs",
 		FSPath: "/.tests",
 	}, &logger)
 	require.NoError(t, err)
@@ -631,7 +631,7 @@ func setupPostgres(ctx context.Context) (*TestPostgresContainer, error) {
 	var conn *pgxpool.Pool
 	const maxRetries = 5
 
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		conn, err = pgxpool.New(ctx, uri)
 		if err == nil {
 			err = conn.Ping(ctx)

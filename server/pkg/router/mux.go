@@ -317,7 +317,7 @@ func (mx *Mux) ListRoutes() {
 	}
 
 	// Iterate through the patterns slice
-	for i := 0; i < patternsValue.Len(); i++ {
+	for i := range patternsValue.Len() {
 		pattern := patternsValue.Index(i).Elem()
 
 		// Get the original pattern string
