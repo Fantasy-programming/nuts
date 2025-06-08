@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { accountFormSchema, AccountSubmit, AccountFormSchema } from "../services/account.types"
 import { zodResolver } from "@hookform/resolvers/zod";
 import { metaService } from "@/features/preferences/services/meta"
+import { accountService } from "@/features/accounts/services/account";
 import { accountTypeOptions } from "./account.constants";
 import getSymbolFromCurrency from "currency-symbol-map"
 
@@ -15,6 +16,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/t
 import { Button } from "@/core/components/ui/button"
 import { Input } from "@/core/components/ui/input"
 
+import { useTellerConnect } from 'teller-connect-react';
+// import { usePlaidLink } from 'react-plaid-link';
+import { useMono } from "../hooks/useMono"
+import { config } from "@/lib/env"
 
 export function AddAccountModal({
   children,
@@ -28,6 +33,30 @@ export function AddAccountModal({
   const [activeTab, setActiveTab] = useState("manual")
   const [balanceInputPaddingLeft, setBalanceInputPaddingLeft] = useState<string | number>("2.5rem"); // Default to pl-10 (2.5rem)
   const currencyPrefixRef = useRef<HTMLSpanElement>(null);
+
+  const { open, ready } = useTellerConnect({
+    applicationId: config.VITE_TELLER_APP_ID,
+    environment: "sandbox",
+    onSuccess: (authorization) => {
+      console.log(authorization)
+      accountService.linkTellerAccount(authorization)
+    },
+  });
+
+  // const { open: openPlaid, ready: plaidReady } = usePlaidLink({
+  //   token: config.VITE_PLAID_TOKEN,
+  //   onSuccess: (public_token, metadata) => {
+  //     console.log(public_token, metadata)
+  //   },
+  // });
+
+  //todo: Mono takes fields like name and email in the data: customer object field
+  const { openMono, isMonoReady } = useMono({
+    key: config.VITE_MONO_PUBLIC_KEY,
+    onSuccess: (payload) => {
+      accountService.linkMonoAccount(payload)
+    },
+  });
 
   const formId = useId();
   const typeFieldId = useId();
@@ -121,8 +150,10 @@ export function AddAccountModal({
           </TabsList>
 
           <TabsContent value="linked" className="space-y-4 mt-4">
-            <div className="flex">
-              Coming soon.....
+            <div className="flex flex-col gap-3">
+              {/* <Button onClick={openPlaid} disabled={!plaidReady}>Open Plaid</Button> */}
+              <Button onClick={open} disabled={!ready}>Open teller</Button>
+              <Button onClick={openMono} disabled={!isMonoReady}>Open Mono</Button>
             </div>
           </TabsContent>
           <TabsContent value="manual" className="space-y-4 mt-4">

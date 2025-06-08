@@ -1,5 +1,6 @@
 import { api as axios } from "@/lib/axios";
 import type { Account, AccountCreate, AccountWTrend, AccountBalanceTimeline } from "./account.types";
+import { TellerConnectEnrollment } from 'teller-connect-react';
 
 const BASEURI = "/accounts";
 
@@ -26,6 +27,14 @@ const createAccount = async (account: AccountCreate): Promise<Account> => {
 };
 
 
+const linkTellerAccount = async (payload: TellerConnectEnrollment) => {
+  await axios.post(`${BASEURI}/teller/connect`, payload);
+};
+
+const linkMonoAccount = async (payload: { code: string }) => {
+  await axios.post(`${BASEURI}/mono/connect`, payload);
+};
+
 const updateAccount = async ({ id, account }: { id: string, account: AccountCreate }): Promise<Account> => {
   const data = await axios.put<Account>(`${BASEURI}/${id}`, account);
   return data.data;
@@ -36,4 +45,4 @@ const deleteAccount = async (id: string) => {
   await axios.delete(`${BASEURI}/${id}`);
 };
 
-export const accountService = { getAccounts, getAccountsBalanceTimeline, getAccountsWTrends, createAccount, updateAccount, deleteAccount };
+export const accountService = { getAccounts, getAccountsBalanceTimeline, getAccountsWTrends, createAccount, updateAccount, deleteAccount, linkMonoAccount, linkTellerAccount };

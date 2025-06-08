@@ -3,7 +3,7 @@ import z from "zod";
 export const accountSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Name is required"),
-  type: z.enum(["cash", "savings", "investment", "credit"], { message: "Invalid account type" }),
+  type: z.enum(["cash", "savings", "investment", "credit", "checking"], { message: "Invalid account type" }),
   color: z.enum(["red", "green", "blue"], {
     required_error: "Please select a color",
     message: "Invalid color selected"
