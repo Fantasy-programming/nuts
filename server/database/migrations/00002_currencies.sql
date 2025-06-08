@@ -2,7 +2,7 @@
 
 CREATE TABLE currencies (
     code CHAR(3) PRIMARY KEY,
-    name TEXT
+    name TEXT NOT NULL
 );
 
 -- +goose StatementBegin

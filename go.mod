@@ -111,6 +111,7 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.22.0 // indirect
 	github.com/riverqueue/river/rivershared v0.22.0 // indirect
 	github.com/riverqueue/river/rivertype v0.22.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.25.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect

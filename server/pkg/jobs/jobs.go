@@ -2,7 +2,10 @@ package jobs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
@@ -74,7 +77,6 @@ type BankSyncWorker struct {
 }
 
 // After adding an account, start a sync job that sync accounts & transactions for that connection then schedule a sync every day
-
 func (w *BankSyncWorker) Work(ctx context.Context, job *river.Job[BankSyncJob]) error {
 	w.deps.Logger.Info().
 		Any("user_id", job.Args.UserID).
@@ -165,18 +167,6 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 		}
 	}
 
-	for _, account := range accounts {
-		exists := false
-		if _, found := existingAccountMap[account.ProviderAccountID]; found {
-			exists = true
-		}
-		w.deps.Logger.Info().
-			Str("provider_account_id", account.ProviderAccountID).
-			Str("name", account.Name).
-			Bool("exists", exists).
-			Msg("Processing account")
-	}
-
 	var accountsToCreate []repository.BatchCreateAccountParams
 	var accountsToUpdate []repository.UpdateAccountParams
 
@@ -200,7 +190,8 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 				Balance:           newBalance,
 				Type:              account.Type,
 				Color:             "red",
-				Currency:          "USD",
+				Currency:          account.Currency,
+				ProviderName:      &connection.ProviderName,
 				ProviderAccountID: &account.ProviderAccountID,
 				ConnectionID:      &connection.ID,
 				CreatedBy:         &userID,
@@ -405,4 +396,250 @@ func (w *ExportWorker) Work(ctx context.Context, job *river.Job[ExportJob]) erro
 	// Your export generation logic here
 
 	return nil
+}
+
+type ExchangeRatesWorkerDeps struct {
+	DB      *pgxpool.Pool
+	Queries *repository.Queries
+	Logger  *zerolog.Logger
+}
+
+// Historical Exchange Rate Job for backfilling data
+type HistoricalExchangeRateJob struct {
+	BaseCurrency string    `json:"base_currency"`
+	StartDate    time.Time `json:"start_date"`
+	EndDate      time.Time `json:"end_date"`
+}
+
+func (HistoricalExchangeRateJob) Kind() string {
+	return "historical_exchange_rate_update"
+}
+
+type HistoricalExchangeRateWorker struct {
+	river.WorkerDefaults[HistoricalExchangeRateJob]
+	deps *ExchangeRatesWorkerDeps
+}
+
+func (w *HistoricalExchangeRateWorker) Work(ctx context.Context, job *river.Job[HistoricalExchangeRateJob]) error {
+	logger := w.deps.Logger.With().
+		Str("job_kind", job.Kind).
+		Str("job_id", fmt.Sprintf("%d", job.ID)).
+		Logger()
+
+	logger.Info().
+		Time("start_date", job.Args.StartDate).
+		Time("end_date", job.Args.EndDate).
+		Msg("Starting historical exchange rate update job")
+
+	// Process each day in the range
+	currentDate := job.Args.StartDate
+
+	for currentDate.Before(job.Args.EndDate) || currentDate.Equal(job.Args.EndDate) {
+		// Check if we already have rates for this date
+		exists, err := w.deps.Queries.ExchangeRateExistsForDate(ctx, repository.ExchangeRateExistsForDateParams{
+			FromCurrency:  job.Args.BaseCurrency,
+			EffectiveDate: pgtype.Date{Valid: true, Time: currentDate},
+		})
+		if err != nil {
+			logger.Error().Err(err).Time("date", currentDate).Msg("Failed to check existing rates")
+			currentDate = currentDate.AddDate(0, 0, 1)
+			continue
+		}
+
+		if exists {
+			logger.Debug().Time("date", currentDate).Msg("Exchange rates already exist for date")
+			currentDate = currentDate.AddDate(0, 0, 1)
+			continue
+		}
+
+		// Fetch historical rates for this date
+		rates, err := w.fetchHistoricalExchangeRates(ctx, job.Args.BaseCurrency, currentDate)
+		if err != nil {
+			logger.Error().Err(err).Time("date", currentDate).Msg("Failed to fetch historical rates")
+			currentDate = currentDate.AddDate(0, 0, 1)
+			continue
+		}
+
+		// Store rates
+		for toCurrency, rate := range rates {
+			err := w.deps.Queries.UpsertExchangeRate(ctx, repository.UpsertExchangeRateParams{
+				FromCurrency:  job.Args.BaseCurrency,
+				ToCurrency:    toCurrency,
+				Rate:          types.Numeric(rate),
+				EffectiveDate: pgtype.Date{Time: currentDate, Valid: true},
+			})
+			if err != nil {
+				logger.Error().Err(err).
+					Str("from_currency", job.Args.BaseCurrency).
+					Str("to_currency", toCurrency).
+					Time("date", currentDate).
+					Msg("Failed to store historical exchange rate")
+			}
+		}
+
+		currentDate = currentDate.AddDate(0, 0, 1)
+
+		// Reduced delay since there are no rate limits
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	logger.Info().Msg("Historical exchange rate update job completed")
+	return nil
+}
+
+func (w *HistoricalExchangeRateWorker) fetchHistoricalExchangeRates(ctx context.Context, baseCurrency string, date time.Time) (map[string]float64, error) {
+	// Using the free GitHub currency API for historical data
+	dateStr := date.Format("2006-01-02")
+	url := fmt.Sprintf("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@%s/v1/currencies/%s.json",
+		dateStr, strings.ToLower(baseCurrency))
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
+	}
+
+	// Parse the response as a generic map first to handle the dynamic structure
+	var rawResult map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&rawResult); err != nil {
+		return nil, err
+	}
+
+	// Extract the rates from the nested structure
+	baseCurrencyLower := strings.ToLower(baseCurrency)
+	ratesInterface, ok := rawResult[baseCurrencyLower]
+	if !ok {
+		return nil, fmt.Errorf("no rates found for base currency: %s", baseCurrency)
+	}
+
+	ratesMap, ok := ratesInterface.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("unexpected rates format")
+	}
+
+	// Convert to map[string]float64
+	rates := make(map[string]float64)
+	for currency, rateInterface := range ratesMap {
+		if rate, ok := rateInterface.(float64); ok {
+			rates[strings.ToUpper(currency)] = rate
+		}
+	}
+
+	return rates, nil
+}
+
+type ExchangeRatesSyncJob struct {
+	JobDate time.Time `json:"job_date"`
+}
+
+func (ExchangeRatesSyncJob) Kind() string {
+	return "exchange_rates_sync"
+}
+
+type ExchangeRatesSyncWorker struct {
+	river.WorkerDefaults[ExchangeRatesSyncJob]
+	deps *ExchangeRatesWorkerDeps
+}
+
+func (w *ExchangeRatesSyncWorker) Work(ctx context.Context, job *river.Job[ExchangeRatesSyncJob]) error {
+	logger := w.deps.Logger.With().
+		Str("job_kind", job.Kind).
+		Int64("job_id", job.ID).
+		Time("job_date", job.Args.JobDate).
+		Logger()
+
+	logger.Info().Msg("Starting exchange rates sync")
+
+	currencies, err := w.deps.Queries.GetCurrencies(ctx)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to fetch currencies")
+		return fmt.Errorf("failed to fetch currencies: %w", err)
+	}
+
+	if len(currencies) == 0 {
+		logger.Warn().Msg("No currencies found in database")
+		return nil
+	}
+
+	logger.Info().Int("currency_count", len(currencies)).Msg("Found currencies to sync")
+
+	var successCount, failureCount int
+
+	// Process each currency
+	for _, currency := range currencies {
+		currencyLogger := logger.With().Str("currency", currency.Code).Logger()
+
+		if err := w.syncCurrencyRates(ctx, currency.Code, job.Args.JobDate, &currencyLogger); err != nil {
+			currencyLogger.Error().Err(err).Msg("Failed to sync exchange rates for currency")
+			failureCount++
+			continue
+		}
+
+		currencyLogger.Info().Msg("Successfully synced exchange rates for currency")
+		successCount++
+	}
+
+	logger.Info().
+		Int("success_count", successCount).
+		Int("failure_count", failureCount).
+		Int("total_currencies", len(currencies)).
+		Msg("Completed bulk exchange rate sync")
+
+	// TODO: Decide when to fail the job
+	if failureCount > 0 && successCount == 0 {
+		return fmt.Errorf("failed to sync exchange rates for all %d currencies", len(currencies))
+	}
+
+	return nil
+}
+
+// TODO: Filter out errors (crypto stuffs)
+func (w *ExchangeRatesSyncWorker) syncCurrencyRates(ctx context.Context, baseCurrency string, jobDate time.Time, logger *zerolog.Logger) error {
+	logger.Info().Msg("Fetching exchange rates from provider")
+
+	// Fetch exchange rates
+	rates, err := fetchExchangeRates(ctx, baseCurrency)
+	if err != nil {
+		return fmt.Errorf("failed to fetch exchange rates: %w", err)
+	}
+
+	for targetCurrency, rate := range rates {
+		err := w.deps.Queries.UpsertExchangeRate(ctx, repository.UpsertExchangeRateParams{
+			FromCurrency:  baseCurrency,
+			ToCurrency:    targetCurrency,
+			Rate:          types.Numeric(rate),
+			EffectiveDate: pgtype.Date{Valid: true, Time: jobDate},
+		})
+		if err != nil {
+			logger.Error().Err(err).
+				Str("from_currency", baseCurrency).
+				Str("to_currency", targetCurrency).
+				Msg("Failed to store exchange rate")
+			continue
+		}
+
+	}
+
+	logger.Info().Msg("Exchange rates synced successfully")
+	return nil
+}
+
+// Timeout returns how long the job can run before timing out (10 min here)
+func (w *ExchangeRatesSyncWorker) Timeout(job *river.Job[ExchangeRatesSyncJob]) time.Duration {
+	return 10 * time.Minute
+}
+
+// NextRetry determines when to retry a failed job (1h here)
+func (w *ExchangeRatesSyncWorker) NextRetry(job *river.Job[ExchangeRatesSyncJob]) time.Time {
+	return time.Now().Add(1 * time.Hour)
 }

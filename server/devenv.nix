@@ -14,6 +14,7 @@
     pkgs.httpie
     pkgs.k6
     pkgs.awscli2
+    pkgs.golangci-lint
   ];
 
   languages.go.enable = true;

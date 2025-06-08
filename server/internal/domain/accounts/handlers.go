@@ -865,6 +865,10 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 	// The account creation in your system will happen via webhook or polling using this monoItemID.
 	// The `connection.ID` links your internal system to this Mono connection.
 
+	if err = h.scheduler.EnqueueBankSync(ctx, userID, connection.ID, "full"); err != nil {
+		h.logger.Error().Err(err).Msg("Failed to schedule bank sync")
+	}
+
 	response := map[string]any{
 		"connection_id":    connection.ID.String(),
 		"provider_item_id": monoItemID, // This is Mono's "account_id"
@@ -941,7 +945,7 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 // 	// Acknowledge webhook
 // 	w.WriteHeader(http.StatusOK)
 // }
-
+//
 // func (h *Handler) createMonoAccount(ctx context.Context, monoAccountID string, monoAccount struct {
 // 	ID            string  `json:"_id"`
 // 	Name          string  `json:"name"`
@@ -955,7 +959,8 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 // 		Type     string `json:"type"`
 // 	} `json:"institution"`
 // 	BVN string `json:"bvn"`
-// }) error {
+// },
+// ) error {
 // 	// Find the user associated with this Mono account
 // 	connection, err := h.repo.GetConnectionByProviderAccountID(ctx, "mono", monoAccountID)
 // 	if err != nil {
@@ -981,10 +986,10 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 // 		InstitutionName:   &monoAccount.Institution.Name,
 // 		Color:             "blue", // Default color, you might want to make this configurable
 // 		Meta: map[string]interface{}{
-// 			"mono_account_id": monoAccount.ID,
-// 			"bank_code":       monoAccount.Institution.BankCode,
+// 			"mono_account_id":  monoAccount.ID,
+// 			"bank_code":        monoAccount.Institution.BankCode,
 // 			"institution_type": monoAccount.Institution.Type,
-// 			"bvn":             monoAccount.BVN,
+// 			"bvn":              monoAccount.BVN,
 // 		},
 // 	}
 //

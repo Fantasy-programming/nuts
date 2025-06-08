@@ -7,7 +7,68 @@ package repository
 
 import (
 	"context"
+	"time"
+
+	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const convertAmount = `-- name: ConvertAmount :one
+SELECT 
+    CASE 
+        WHEN $1 = $2 THEN $3  -- Same currency, no conversion needed
+        ELSE $3 * (
+            SELECT rate FROM exchange_rates
+            WHERE from_currency = $1 AND to_currency = $2 
+            ORDER BY effective_date DESC 
+            LIMIT 1
+        )
+    END as converted_amount
+`
+
+type ConvertAmountParams struct {
+	Column1 *string        `json:"column_1"`
+	Column2 *string        `json:"column_2"`
+	Column3 pgtype.Numeric `json:"column_3"`
+}
+
+func (q *Queries) ConvertAmount(ctx context.Context, arg ConvertAmountParams) (pgtype.Numeric, error) {
+	row := q.db.QueryRow(ctx, convertAmount, arg.Column1, arg.Column2, arg.Column3)
+	var converted_amount pgtype.Numeric
+	err := row.Scan(&converted_amount)
+	return converted_amount, err
+}
+
+const exchangeRateExistsForDate = `-- name: ExchangeRateExistsForDate :one
+SELECT EXISTS(
+    SELECT 1 FROM exchange_rates 
+    WHERE from_currency = $1 AND effective_date = $2
+)
+`
+
+type ExchangeRateExistsForDateParams struct {
+	FromCurrency  string      `json:"from_currency"`
+	EffectiveDate pgtype.Date `json:"effective_date"`
+}
+
+func (q *Queries) ExchangeRateExistsForDate(ctx context.Context, arg ExchangeRateExistsForDateParams) (bool, error) {
+	row := q.db.QueryRow(ctx, exchangeRateExistsForDate, arg.FromCurrency, arg.EffectiveDate)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const getAccountCurrency = `-- name: GetAccountCurrency :one
+SELECT currency FROM accounts WHERE id = $1
+`
+
+func (q *Queries) GetAccountCurrency(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, getAccountCurrency, id)
+	var currency string
+	err := row.Scan(&currency)
+	return currency, err
+}
 
 const getCurrencies = `-- name: GetCurrencies :many
 SELECT
@@ -34,4 +95,224 @@ func (q *Queries) GetCurrencies(ctx context.Context) ([]Currency, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getExchangeRate = `-- name: GetExchangeRate :one
+SELECT rate FROM exchange_rates
+WHERE from_currency = $1 AND to_currency = $2 AND effective_date = $3
+`
+
+type GetExchangeRateParams struct {
+	FromCurrency  string      `json:"from_currency"`
+	ToCurrency    string      `json:"to_currency"`
+	EffectiveDate pgtype.Date `json:"effective_date"`
+}
+
+func (q *Queries) GetExchangeRate(ctx context.Context, arg GetExchangeRateParams) (pgtype.Numeric, error) {
+	row := q.db.QueryRow(ctx, getExchangeRate, arg.FromCurrency, arg.ToCurrency, arg.EffectiveDate)
+	var rate pgtype.Numeric
+	err := row.Scan(&rate)
+	return rate, err
+}
+
+const getExchangeRatesForDate = `-- name: GetExchangeRatesForDate :many
+SELECT from_currency, to_currency, rate FROM exchange_rates
+WHERE effective_date = $1
+`
+
+type GetExchangeRatesForDateRow struct {
+	FromCurrency string         `json:"from_currency"`
+	ToCurrency   string         `json:"to_currency"`
+	Rate         pgtype.Numeric `json:"rate"`
+}
+
+func (q *Queries) GetExchangeRatesForDate(ctx context.Context, effectiveDate pgtype.Date) ([]GetExchangeRatesForDateRow, error) {
+	rows, err := q.db.Query(ctx, getExchangeRatesForDate, effectiveDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetExchangeRatesForDateRow{}
+	for rows.Next() {
+		var i GetExchangeRatesForDateRow
+		if err := rows.Scan(&i.FromCurrency, &i.ToCurrency, &i.Rate); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLatestExchangeRate = `-- name: GetLatestExchangeRate :one
+SELECT rate, effective_date FROM exchange_rates
+WHERE from_currency = $1 AND to_currency = $2
+ORDER BY effective_date DESC
+LIMIT 1
+`
+
+type GetLatestExchangeRateParams struct {
+	FromCurrency string `json:"from_currency"`
+	ToCurrency   string `json:"to_currency"`
+}
+
+type GetLatestExchangeRateRow struct {
+	Rate          pgtype.Numeric `json:"rate"`
+	EffectiveDate pgtype.Date    `json:"effective_date"`
+}
+
+func (q *Queries) GetLatestExchangeRate(ctx context.Context, arg GetLatestExchangeRateParams) (GetLatestExchangeRateRow, error) {
+	row := q.db.QueryRow(ctx, getLatestExchangeRate, arg.FromCurrency, arg.ToCurrency)
+	var i GetLatestExchangeRateRow
+	err := row.Scan(&i.Rate, &i.EffectiveDate)
+	return i, err
+}
+
+const getTransactionWithCurrency = `-- name: GetTransactionWithCurrency :one
+SELECT 
+    t.id, t.amount, t.type, t.account_id, t.category_id, t.destination_account_id, t.transaction_datetime, t.description, t.details, t.created_by, t.updated_by, t.created_at, t.updated_at, t.deleted_at, t.is_external, t.provider_transaction_id, t.transaction_currency, t.original_amount, t.exchange_rate, t.exchange_rate_date,
+    a.currency as account_currency,
+    CASE 
+        WHEN t.transaction_currency = a.currency THEN t.amount
+        ELSE t.original_amount * t.exchange_rate
+    END as display_amount
+FROM transactions t
+JOIN accounts a ON t.account_id = a.id
+WHERE t.id = $1
+`
+
+type GetTransactionWithCurrencyRow struct {
+	ID                    uuid.UUID          `json:"id"`
+	Amount                pgtype.Numeric     `json:"amount"`
+	Type                  string             `json:"type"`
+	AccountID             uuid.UUID          `json:"account_id"`
+	CategoryID            uuid.UUID          `json:"category_id"`
+	DestinationAccountID  *uuid.UUID         `json:"destination_account_id"`
+	TransactionDatetime   time.Time          `json:"transaction_datetime"`
+	Description           *string            `json:"description"`
+	Details               dto.Details        `json:"details"`
+	CreatedBy             *uuid.UUID         `json:"created_by"`
+	UpdatedBy             *uuid.UUID         `json:"updated_by"`
+	CreatedAt             time.Time          `json:"created_at"`
+	UpdatedAt             time.Time          `json:"updated_at"`
+	DeletedAt             pgtype.Timestamptz `json:"deleted_at"`
+	IsExternal            *bool              `json:"is_external"`
+	ProviderTransactionID *string            `json:"provider_transaction_id"`
+	TransactionCurrency   string             `json:"transaction_currency"`
+	OriginalAmount        pgtype.Numeric     `json:"original_amount"`
+	ExchangeRate          pgtype.Numeric     `json:"exchange_rate"`
+	ExchangeRateDate      pgtype.Date        `json:"exchange_rate_date"`
+	AccountCurrency       string             `json:"account_currency"`
+	DisplayAmount         pgtype.Numeric     `json:"display_amount"`
+}
+
+func (q *Queries) GetTransactionWithCurrency(ctx context.Context, id uuid.UUID) (GetTransactionWithCurrencyRow, error) {
+	row := q.db.QueryRow(ctx, getTransactionWithCurrency, id)
+	var i GetTransactionWithCurrencyRow
+	err := row.Scan(
+		&i.ID,
+		&i.Amount,
+		&i.Type,
+		&i.AccountID,
+		&i.CategoryID,
+		&i.DestinationAccountID,
+		&i.TransactionDatetime,
+		&i.Description,
+		&i.Details,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IsExternal,
+		&i.ProviderTransactionID,
+		&i.TransactionCurrency,
+		&i.OriginalAmount,
+		&i.ExchangeRate,
+		&i.ExchangeRateDate,
+		&i.AccountCurrency,
+		&i.DisplayAmount,
+	)
+	return i, err
+}
+
+const getUserNetWorthInBaseCurrency = `-- name: GetUserNetWorthInBaseCurrency :one
+WITH account_balances AS (
+    SELECT 
+        a.id,
+        a.currency,
+        COALESCE(SUM(
+            CASE 
+                WHEN t.type = 'income' THEN t.amount
+                WHEN t.type = 'expense' THEN -t.amount
+                WHEN t.type = 'transfer' AND t.account_id = a.id THEN -t.amount
+                WHEN t.type = 'transfer' AND t.destination_account_id = a.id THEN t.amount
+                ELSE 0
+            END
+        ), 0) as balance
+    FROM accounts a
+    LEFT JOIN transactions t ON (t.account_id = a.id OR t.destination_account_id = a.id)
+        AND t.deleted_at IS NULL
+    WHERE a.created_by = $1 AND a.deleted_at IS NULL
+    GROUP BY a.id, a.currency
+),
+converted_balances AS (
+    SELECT 
+        ab.balance * COALESCE(er.rate, 1.0) as converted_balance
+    FROM account_balances ab
+    LEFT JOIN exchange_rates er ON (
+        er.from_currency = ab.currency 
+        AND er.to_currency = $2
+        AND er.effective_date = (
+            SELECT MAX(effective_date) 
+            FROM exchange_rates er2 
+            WHERE er2.from_currency = ab.currency 
+                AND er2.to_currency = $2
+                AND er2.effective_date <= CURRENT_DATE
+        )
+    )
+    WHERE ab.balance != 0
+)
+SELECT COALESCE(SUM(converted_balance), 0) as net_worth
+FROM converted_balances
+`
+
+type GetUserNetWorthInBaseCurrencyParams struct {
+	CreatedBy  *uuid.UUID `json:"created_by"`
+	ToCurrency string     `json:"to_currency"`
+}
+
+func (q *Queries) GetUserNetWorthInBaseCurrency(ctx context.Context, arg GetUserNetWorthInBaseCurrencyParams) (pgtype.Numeric, error) {
+	row := q.db.QueryRow(ctx, getUserNetWorthInBaseCurrency, arg.CreatedBy, arg.ToCurrency)
+	var net_worth pgtype.Numeric
+	err := row.Scan(&net_worth)
+	return net_worth, err
+}
+
+const upsertExchangeRate = `-- name: UpsertExchangeRate :exec
+INSERT INTO exchange_rates (from_currency, to_currency, rate, effective_date)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (from_currency, to_currency, effective_date)
+DO UPDATE SET 
+    rate = EXCLUDED.rate,
+    updated_at = NOW()
+`
+
+type UpsertExchangeRateParams struct {
+	FromCurrency  string         `json:"from_currency"`
+	ToCurrency    string         `json:"to_currency"`
+	Rate          pgtype.Numeric `json:"rate"`
+	EffectiveDate pgtype.Date    `json:"effective_date"`
+}
+
+func (q *Queries) UpsertExchangeRate(ctx context.Context, arg UpsertExchangeRateParams) error {
+	_, err := q.db.Exec(ctx, upsertExchangeRate,
+		arg.FromCurrency,
+		arg.ToCurrency,
+		arg.Rate,
+		arg.EffectiveDate,
+	)
+	return err
 }

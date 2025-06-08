@@ -228,8 +228,18 @@ type Category struct {
 }
 
 type Currency struct {
-	Code string  `json:"code"`
-	Name *string `json:"name"`
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+type ExchangeRate struct {
+	ID            uuid.UUID      `json:"id"`
+	FromCurrency  string         `json:"from_currency"`
+	ToCurrency    string         `json:"to_currency"`
+	Rate          pgtype.Numeric `json:"rate"`
+	EffectiveDate pgtype.Date    `json:"effective_date"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
 type FinancialSyncJob struct {
@@ -352,6 +362,10 @@ type Transaction struct {
 	DeletedAt             pgtype.Timestamptz `json:"deleted_at"`
 	IsExternal            *bool              `json:"is_external"`
 	ProviderTransactionID *string            `json:"provider_transaction_id"`
+	TransactionCurrency   string             `json:"transaction_currency"`
+	OriginalAmount        pgtype.Numeric     `json:"original_amount"`
+	ExchangeRate          pgtype.Numeric     `json:"exchange_rate"`
+	ExchangeRateDate      pgtype.Date        `json:"exchange_rate_date"`
 }
 
 type User struct {
