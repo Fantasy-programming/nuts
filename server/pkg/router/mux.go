@@ -208,11 +208,25 @@ func (mx *Mux) Mount(pattern string, handler http.Handler) {
 		panic(fmt.Sprintf("router: attempting to Mount() a nil handler on '%s'", pattern))
 	}
 
-	if pattern == "" || (pattern[len(pattern)-1] != '/' && !strings.HasSuffix(pattern, "...}")) {
-		pattern += "/"
+	// For http.ServeMux, patterns ending in '/' match subpaths.
+	// This router's Mount implies matching the prefix and all subpaths.
+	mountPattern := pattern
+	if mountPattern == "" || (mountPattern[len(mountPattern)-1] != '/' && !strings.HasSuffix(mountPattern, "...}")) {
+		mountPattern += "/"
 	}
 
-	mx.handle(mALL, pattern, StripSegments(mx.prefix, pattern, handler))
+	// Calculate the full prefix that needs to be stripped from the request path
+	// before it's passed to the mounted handler.
+	// This accounts for the current Mux's own prefix as well.
+	fullStripPrefix := mx.prefix + strings.TrimSuffix(mountPattern, "/")
+
+	// Create a handler that strips the `fullStripPrefix` from the request URL's Path and RawPath
+	// before serving the original handler. This is essential for sub-routers.
+	strippedHandler := http.StripPrefix(fullStripPrefix, handler)
+
+	// Register this stripped handler with the Mux's internal router.
+	// The `handle` method will ensure it's registered for all necessary HTTP methods.
+	mx.handle(mALL, mountPattern, strippedHandler)
 }
 
 func (mx *Mux) Prefix(prefix string) *Mux {
@@ -317,7 +331,6 @@ func (mx *Mux) ListRoutes() {
 // handle registers a http.Handler in the routing tree for a particular http method
 // and routing pattern.
 func (mx *Mux) handle(method methodTyp, pattern string, handler http.Handler) {
-	// Prepend the prefix to the pattern if it exists
 	fullPattern := pattern
 	if mx.prefix != "" {
 		fullPattern = mx.prefix + pattern
@@ -327,13 +340,13 @@ func (mx *Mux) handle(method methodTyp, pattern string, handler http.Handler) {
 		panic(fmt.Sprintf("router: routing pattern must begin with '/' in '%s'", fullPattern))
 	}
 
-	if method&mALL == mALL {
-		mx.mux.Handle(fullPattern, mx.mwsHandler(fullPattern, handler))
-	} else {
-		for k, v := range methodMap {
-			if method&v == v {
-				mx.mux.Handle(fmt.Sprintf("%s %s", k, fullPattern), mx.mwsHandler(fullPattern, handler))
-			}
+	// Always iterate through all supported methods and register the handler for each.
+	// This ensures http.ServeMux correctly handles patterns with wildcards
+	// and populates r.PathValue for all registered routes.
+	for k, v := range methodMap {
+		if method&v == v { // Check if the current method `v` is included in the `method` bitmask
+			p := fmt.Sprintf("%s %s", k, fullPattern)
+			mx.mux.Handle(p, mx.mwsHandler(fullPattern, handler))
 		}
 	}
 }

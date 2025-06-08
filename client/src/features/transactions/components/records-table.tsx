@@ -28,7 +28,7 @@ import { Avatar, AvatarFallback } from "@/core/components/ui/avatar"
 import { Card, CardContent } from "@/core/components/ui/card"
 import { Badge } from "@/core/components/ui/badge"
 import { GrouppedRecordsArraySchema, RecordSchema } from "../services/transaction.types"
-import EditTransactionSheet from "./edt-records-sheet"
+// import EditTransactionSheet from "./edt-records-sheet"
 import { DeleteTransactionDialog } from "./del-records-dialog"
 import type { Account } from "@/features/accounts/services/account.types"
 import type { Category } from "@/features/categories/services/category.types";
@@ -48,9 +48,9 @@ interface RecordsTableProps {
 
 export const RecordsTable = ({
   transactions,
-  accounts,
-  categories,
-  onUpdateTransaction,
+  // accounts,
+  // categories,
+  // onUpdateTransaction,
   onDeleteTransaction,
   isUpdating,
   isDeleting,
@@ -62,16 +62,14 @@ export const RecordsTable = ({
   // Filters
   const [showFilters, setShowFilters] = useState(false)
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [categoryFilters, setCategoryFilters] = useState<string[]>([])
-  const [accountFilters, setAccountFilters] = useState<string[]>([])
-  // Assuming dateRangeFilter is a string for now, e.g., "last7days" or "custom_start_end"
-  // If it's an object { from: Date, to: Date }, adjust RecordsFilters and filtering logic
-  const [dateRangeFilterValue, setDateRangeFilterValue] = useState<string>("")
+  const [categoryFilters,] = useState<string[]>([])
+  const [accountFilters,] = useState<string[]>([])
+  const [dateRangeFilterValue,] = useState<string>("")
   const [searchFilter, setSearchFilter] = useState("")
 
-  const [editingTransaction, setEditingTransaction] = useState<RecordSchema | null>(null)
+  const [, setEditingTransaction] = useState<RecordSchema | null>(null)
   const [deletingTransaction, setDeletingTransaction] = useState<RecordSchema | null>(null)
-  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
+  const [, setIsEditSheetOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const isMobile = useIsMobile()
@@ -180,17 +178,17 @@ export const RecordsTable = ({
 
 
   // Called by EditTransactionSheet on submit
-  const handleConfirmUpdateTransaction = async (id: string, data: RecordSchema) => {
-    try {
-      await onUpdateTransaction({ id, data });
-      setIsEditSheetOpen(false)
-      setEditingTransaction(null)
-      // Optionally: show success toast
-    } catch (error) {
-      // Optionally: show error toast from EditTransactionSheet or here
-      console.error("Failed to update transaction:", error);
-    }
-  }
+  // const handleConfirmUpdateTransaction = async (id: string, data: RecordSchema) => {
+  //   try {
+  //     await onUpdateTransaction({ id, data });
+  //     setIsEditSheetOpen(false)
+  //     setEditingTransaction(null)
+  //     // Optionally: show success toast
+  //   } catch (error) {
+  //     // Optionally: show error toast from EditTransactionSheet or here
+  //     console.error("Failed to update transaction:", error);
+  //   }
+  // }
 
   // Called by DeleteTransactionDialog on confirm
   const handleConfirmDeleteTransaction = async (id: string) => {
@@ -489,16 +487,16 @@ export const RecordsTable = ({
           </Table>
 
 
-          <EditTransactionSheet
-            isOpen={isEditSheetOpen}
-            onClose={() => { setIsEditSheetOpen(false); setEditingTransaction(null); }}
-            transaction={editingTransaction}
-            onUpdateTransaction={handleConfirmUpdateTransaction} // This now calls the prop
-            // Pass accounts and categories if EditTransactionSheet needs them for dropdowns
-            accounts={accounts}
-            categories={categories}
-            isSubmitting={isUpdating}
-          />
+          {/* <EditTransactionSheet */}
+          {/*   isOpen={isEditSheetOpen} */}
+          {/*   onClose={() => { setIsEditSheetOpen(false); setEditingTransaction(null); }} */}
+          {/*   transaction={editingTransaction} */}
+          {/*   onUpdateTransaction={handleConfirmUpdateTransaction} // This now calls the prop */}
+          {/*   // Pass accounts and categories if EditTransactionSheet needs them for dropdowns */}
+          {/*   accounts={accounts} */}
+          {/*   categories={categories} */}
+          {/*   isSubmitting={isUpdating} */}
+          {/* /> */}
 
           <DeleteTransactionDialog
             isOpen={isDeleteDialogOpen}

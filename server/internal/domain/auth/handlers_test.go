@@ -20,7 +20,6 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/pkg/pass"
 	"github.com/Fantasy-Programming/nuts/server/pkg/router"
 	"github.com/Fantasy-Programming/nuts/server/pkg/storage"
-	"github.com/docker/go-connections/nat"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
@@ -597,8 +596,9 @@ func setupPostgres(ctx context.Context) (*TestPostgresContainer, error) {
 			"POSTGRES_PASSWORD": "postgres",
 			"POSTGRES_DB":       "testdb",
 		},
-		WaitingFor: wait.ForAll(
-			wait.ForListeningPort("5432/tcp"),
+		WaitingFor: wait.ForAll( // Wait for multiple conditions
+			wait.ForListeningPort("5432/tcp"), // Ensure the port is open
+			wait.ForLog("database system is ready to accept connections").WithStartupTimeout(60*time.Second),
 		),
 	}
 
@@ -611,17 +611,12 @@ func setupPostgres(ctx context.Context) (*TestPostgresContainer, error) {
 		return nil, fmt.Errorf("failed to start container: %w", err)
 	}
 
-	// Get mapped port with retry logic
-	var mappedPort nat.Port
-	for attempt := 0; attempt < 3; attempt++ {
-		mappedPort, err = container.MappedPort(ctx, "5432")
-		if err == nil {
-			break
-		}
-		time.Sleep(2 * time.Second)
-	}
+	// Get mapped port
+	// The retry loop for MappedPort is generally not needed if Started: true
+	// and a robust wait strategy is used, as the container should be fully up.
+	mappedPort, err := container.MappedPort(ctx, "5432")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get mapped port after multiple attempts: %w", err)
+		return nil, fmt.Errorf("failed to get mapped port: %w", err)
 	}
 
 	// Get host
@@ -633,17 +628,28 @@ func setupPostgres(ctx context.Context) (*TestPostgresContainer, error) {
 	// Construct connection URI
 	uri := fmt.Sprintf("postgres://postgres:postgres@%s:%s/testdb?sslmode=disable", host, mappedPort.Port())
 
-	// Verify database connection
-	conn, err := pgxpool.New(ctx, uri)
+	var conn *pgxpool.Pool
+	const maxRetries = 5
+
+	for i := 0; i < maxRetries; i++ {
+		conn, err = pgxpool.New(ctx, uri)
+		if err == nil {
+			err = conn.Ping(ctx)
+			if err == nil {
+				break
+			}
+			// If ping fails, close the pool and try again
+			conn.Close()
+		}
+		// Log the attempt or error if needed for debugging
+		fmt.Printf("Attempt %d to connect to DB failed: %v. Retrying...\n", i+1, err)
+		time.Sleep(1 * time.Second)
+	}
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to create connection pool: %w", err)
+		return nil, fmt.Errorf("failed to connect or ping database after multiple attempts: %w", err)
 	}
 	defer conn.Close()
-
-	// Ping the database
-	if err := conn.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
 
 	return &TestPostgresContainer{
 		Container: container,

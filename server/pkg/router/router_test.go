@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -67,7 +66,7 @@ func TestRouter(t *testing.T) {
 
 		r.Mount("/api", sub)
 
-		req := httptest.NewRequest("GET", "/api/test/", nil)
+		req := httptest.NewRequest("GET", "/api/test", nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 
@@ -90,6 +89,8 @@ func TestRouter(t *testing.T) {
 	})
 
 	t.Run("HTTP methods", func(t *testing.T) {
+		r := NewRouter()
+
 		methods := []struct {
 			method      string
 			routerFunc  func(r Router, path string, h http.HandlerFunc)
@@ -153,14 +154,12 @@ func TestRouter(t *testing.T) {
 
 		for _, m := range methods {
 			t.Run(m.method, func(t *testing.T) {
-				r := NewRouter()
 				called := false
-
-				m.routerFunc(r, "/test", func(w http.ResponseWriter, r *http.Request) {
+				m.routerFunc(r, "/method/"+m.method, func(w http.ResponseWriter, r *http.Request) {
 					called = true
 				})
 
-				req := m.requestFunc("/test")
+				req := m.requestFunc("/method/" + m.method)
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, req)
 
@@ -218,7 +217,6 @@ func TestRouter(t *testing.T) {
 		r.Route("/api", func(api Router) {
 			api.Route("/v1", func(v1 Router) {
 				v1.Get("/users", func(w http.ResponseWriter, r *http.Request) {
-					fmt.Println("yes ?")
 					called = true
 				})
 			})
@@ -234,7 +232,6 @@ func TestRouter(t *testing.T) {
 	t.Run("middleware scoping", func(t *testing.T) {
 		r := NewRouter()
 
-		// Create middlewares that track execution
 		log := []string{}
 
 		authMiddleware := func(next http.Handler) http.Handler {
@@ -258,15 +255,12 @@ func TestRouter(t *testing.T) {
 			})
 		}
 
-		// Apply global middleware
 		r.Use(loggingMiddleware)
 
-		// Public endpoint
 		r.Get("/public", func(w http.ResponseWriter, r *http.Request) {
 			log = append(log, "public-handler")
 		})
 
-		// API endpoints with additional middleware
 		r.Route("/api", func(api Router) {
 			api.Use(authMiddleware)
 			api.Use(apiMiddleware)
@@ -276,7 +270,6 @@ func TestRouter(t *testing.T) {
 			})
 		})
 
-		// First test public endpoint
 		log = []string{}
 		req := httptest.NewRequest("GET", "/public", nil)
 		w := httptest.NewRecorder()
@@ -294,9 +287,8 @@ func TestRouter(t *testing.T) {
 	})
 
 	t.Run("mount with path manipulations", func(t *testing.T) {
-		r := NewRouter()
+		r := NewRouter() // Fresh router
 		subHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// The path should be relative to the mount point
 			assert.Equal(t, "/users", r.URL.Path)
 			w.WriteHeader(http.StatusOK)
 		})
@@ -313,49 +305,18 @@ func TestRouter(t *testing.T) {
 	t.Run("error handling", func(t *testing.T) {
 		r := NewRouter()
 
-		// Test empty path
 		assert.Panics(t, func() {
 			r.Mount("/test", nil)
 		})
+
+		assert.Panics(t, func() {
+			r.Route("/test", nil)
+		})
 	})
 
-	// t.Run("router options", func(t *testing.T) {
-	// 	middlewareCalled := false
-	// 	middleware := func(next http.Handler) http.Handler {
-	// 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 			middlewareCalled = true
-	// 			next.ServeHTTP(w, r)
-	// 		})
-	// 	}
-	//
-	// 	notFoundCalled := false
-	// 	notFound := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 		notFoundCalled = true
-	// 	})
-	//
-	// 	r := NewRouter(
-	// 		WithMiddleware(middleware),
-	// 		WithNotFound(notFound),
-	// 	)
-	//
-	// 	// Test middleware option
-	// 	req := httptest.NewRequest("GET", "/test", nil)
-	// 	w := httptest.NewRecorder()
-	// 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {})
-	// 	r.ServeHTTP(w, req)
-	// 	assert.True(t, middlewareCalled)
-	//
-	// 	// Test not found option
-	// 	req = httptest.NewRequest("GET", "/notexist", nil)
-	// 	w = httptest.NewRecorder()
-	// 	r.ServeHTTP(w, req)
-	// 	assert.True(t, notFoundCalled)
-	// })
-
 	t.Run("path parameters", func(t *testing.T) {
-		r := NewRouter()
-
 		t.Run("basic path parameter", func(t *testing.T) {
+			r := NewRouter()
 			var capturedID string
 
 			r.Get("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -372,6 +333,7 @@ func TestRouter(t *testing.T) {
 		})
 
 		t.Run("multiple path parameters", func(t *testing.T) {
+			r := NewRouter()
 			var userID, postID string
 
 			r.Get("/users/{userId}/posts/{postId}", func(w http.ResponseWriter, r *http.Request) {
@@ -390,6 +352,7 @@ func TestRouter(t *testing.T) {
 		})
 
 		t.Run("path parameters with different HTTP methods", func(t *testing.T) {
+			r := NewRouter() // Fresh router
 			var userIDFromGet, userIDFromPost string
 
 			r.Get("/api/users/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -420,6 +383,7 @@ func TestRouter(t *testing.T) {
 		})
 
 		t.Run("path parameters with prefix", func(t *testing.T) {
+			r := NewRouter()
 			subRouter := NewRouter()
 			subRouter.Prefix("/v1")
 
@@ -440,6 +404,7 @@ func TestRouter(t *testing.T) {
 		})
 
 		t.Run("path parameters with route groups", func(t *testing.T) {
+			r := NewRouter()
 			var productID string
 
 			r.Route("/products", func(products Router) {
