@@ -41,7 +41,7 @@ func (p *PlaidProvider) GetSupportedCountries() []string {
 }
 
 func (p *PlaidProvider) GetSupportedAccountTypes() []AccountType {
-	return []AccountType{AccountTypeChecking, AccountTypeSavings, AccountTypeCredit, AccountTypeInvestment}
+	return []AccountType{AccountTypeCredit, AccountTypeInvestment}
 }
 
 // Implement other Provider interface methods for PlaidProvider...

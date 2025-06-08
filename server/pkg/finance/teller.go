@@ -336,8 +336,6 @@ func (t *TellerProvider) GetSupportedCountries() []string {
 // GetSupportedAccountTypes returns supported account types
 func (t *TellerProvider) GetSupportedAccountTypes() []AccountType {
 	return []AccountType{
-		AccountTypeChecking,
-		AccountTypeSavings,
 		AccountTypeCredit,
 		AccountTypeInvestment,
 		AccountTypeLoan,
@@ -422,7 +420,7 @@ func (t *TellerProvider) makeRequest(ctx context.Context, method, endpoint strin
 
 // convertTellerAccount converts a Teller account to the standard Account struct
 func (t *TellerProvider) convertTellerAccount(ta tellerAccount) Account {
-	accountType := t.mapTellerAccountType(ta.Type, ta.Subtype)
+	accountType, accountSubType := t.mapTellerAccountType(ta.Type, ta.Subtype)
 
 	var availableBalance *float64
 	if ta.Balance.Available != 0 {
@@ -449,7 +447,7 @@ func (t *TellerProvider) convertTellerAccount(ta tellerAccount) Account {
 		IsActive:          ta.Status == "open",
 		ProviderAccountID: ta.ID,
 		EnrollmentID:      &ta.EnrollmentID,
-		Subtype:           &ta.Subtype,
+		Subtype:           &accountSubType,
 		Status:            &ta.Status,
 	}
 }
@@ -485,24 +483,34 @@ func (t *TellerProvider) convertTellerTransaction(tt tellerTransaction, accountI
 }
 
 // mapTellerAccountType maps Teller account types to standard account types
-func (t *TellerProvider) mapTellerAccountType(accountType, subtype string) AccountType {
+func (t *TellerProvider) mapTellerAccountType(accountType, subtype string) (AccountType, AccountSubType) {
 	switch strings.ToLower(accountType) {
 	case "depository":
 		switch strings.ToLower(subtype) { // also money_market, certificate_of_deposit, treasury, sweep
 		case "checking":
-			return AccountTypeChecking
+			return AccountTypeCash, AccountTypeChecking
 		case "savings":
-			return AccountTypeSavings
+			return AccountTypeCash, AccountTypeSavings
 		default:
-			return AccountTypeChecking
+			t.logger.Debug().Str("account_sub_type", subtype).Msg("could not find subtype")
+			return AccountTypeCash, AccountTypeChecking
 		}
 	case "credit":
-		return AccountTypeCredit
+		return AccountTypeCredit, AccountTypeCards
 	case "loan":
-		return AccountTypeLoan
+		return AccountTypeLoan, AccountSTypeLoan
 	case "investment":
-		return AccountTypeInvestment
+		switch strings.ToLower(subtype) {
+		case "checking":
+			return AccountTypeCash, AccountTypeChecking
+		case "savings":
+			return AccountTypeCash, AccountTypeSavings
+		default:
+			t.logger.Debug().Str("account_sub_type", subtype).Msg("could not find subtype")
+			return AccountTypeInvestment, AccountSTypeInvestment
+		}
 	default:
-		return AccountTypeOther
+		t.logger.Debug().Str("account_type", subtype).Msg("could not find type")
+		return AccountTypeOther, AccountSubType(subtype)
 	}
 }

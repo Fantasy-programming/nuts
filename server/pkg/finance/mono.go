@@ -143,9 +143,52 @@ func (t *MonoProvider) ExchangePublicToken(ctx context.Context, req ExchangeToke
 	}, nil
 }
 
-// TODO: How to handle this
+// We don't have the multiple thing with mono
 func (m *MonoProvider) GetAccounts(ctx context.Context, accessToken string) ([]Account, error) {
-	return nil, nil
+	resp, err := m.makeRequest(ctx, "GET", fmt.Sprintf("/accounts/%s", accessToken), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get account details: %w", err)
+	}
+
+	var accountResp monoAccountResponse
+
+	if err := json.Unmarshal(resp, &accountResp); err != nil {
+		return nil, fmt.Errorf("failed to parse account response: %w", err)
+	}
+
+	// Check if the request was successful
+	if accountResp.Status != "successful" {
+		return nil, fmt.Errorf("get account failed: %s", accountResp.Message)
+	}
+
+	// Check if data is available
+	if accountResp.Data.Meta.DataStatus != "AVAILABLE" {
+		return nil, fmt.Errorf("account data not yet available, status: %s", accountResp.Data.Meta.DataStatus)
+	}
+
+	// Map Mono account type to standardized type
+	accountType, accountSubType := mapMonoAccountTypeToStandard(accountResp.Data.Account.Type)
+
+	var accounts []Account
+
+	account := Account{
+		ID:                accountResp.Data.Account.ID,
+		Name:              accountResp.Data.Account.Name,
+		Type:              accountType,
+		Subtype:           &accountSubType,
+		Balance:           accountResp.Data.Account.Balance / 100, // Convert from kobo to naira
+		Currency:          accountResp.Data.Account.Currency,
+		AccountNumber:     &accountResp.Data.Account.AccountNumber,
+		InstitutionName:   accountResp.Data.Account.Institution.Name,
+		InstitutionID:     accountResp.Data.Account.Institution.BankCode,
+		LastUpdated:       time.Now(),
+		IsActive:          true,
+		ProviderAccountID: accessToken,
+	}
+
+	accounts = append(accounts, account)
+
+	return accounts, nil
 }
 
 func (m *MonoProvider) GetAccount(ctx context.Context, accessToken, accountID string) (*Account, error) {
@@ -172,12 +215,13 @@ func (m *MonoProvider) GetAccount(ctx context.Context, accessToken, accountID st
 	}
 
 	// Map Mono account type to standardized type
-	accountType := mapMonoAccountTypeToStandard(accountResp.Data.Account.Type)
+	accountType, accountSubType := mapMonoAccountTypeToStandard(accountResp.Data.Account.Type)
 
 	account := &Account{
 		ID:                accountResp.Data.Account.ID,
 		Name:              accountResp.Data.Account.Name,
 		Type:              accountType,
+		Subtype:           &accountSubType,
 		Balance:           accountResp.Data.Account.Balance / 100, // Convert from kobo to naira
 		Currency:          accountResp.Data.Account.Currency,
 		AccountNumber:     &accountResp.Data.Account.AccountNumber,
@@ -202,7 +246,7 @@ func (m *MonoProvider) GetTransactions(ctx context.Context, accessToken, account
 	params := url.Values{}
 
 	if args.Count != nil {
-		params.Set("count", strconv.Itoa(*args.Count))
+		params.Set("limit", strconv.Itoa(*args.Count))
 	}
 	if args.FromID != nil {
 		params.Set("from_id", *args.FromID)
@@ -247,7 +291,7 @@ func (m *MonoProvider) GetTransactions(ctx context.Context, accessToken, account
 			Category:              &t.Category,
 			Date:                  t.Date,
 			Type:                  t.Type,
-			Status:                "posted", // Mono doesn't provide pending status in this format
+			Status:                "processed", // Mono doesn't provide pending status in this format
 			ProviderTransactionID: t.ID,
 		}
 	}
@@ -320,23 +364,21 @@ func (m *MonoProvider) GetSupportedCountries() []string {
 
 func (m *MonoProvider) GetSupportedAccountTypes() []AccountType {
 	return []AccountType{
-		AccountTypeChecking,
-		AccountTypeSavings,
 		AccountTypeOther,
 	}
 }
 
 // Helper function to map Mono account types to standardized types
-func mapMonoAccountTypeToStandard(monoType string) AccountType {
+func mapMonoAccountTypeToStandard(monoType string) (AccountType, AccountSubType) {
 	switch strings.ToUpper(monoType) {
 	case "SAVINGS_ACCOUNT", "DIGITAL SAVINGS ACCOUNT":
-		return AccountTypeSavings
+		return AccountTypeCash, AccountTypeSavings
 	case "CURRENT_ACCOUNT", "CHECKING_ACCOUNT":
-		return AccountTypeChecking
+		return AccountTypeCash, AccountTypeChecking
 	case "BUSINESS_BANKING", "BUSINESS_ACCOUNT":
-		return AccountTypeSavings // Or create AccountTypeBusiness if you have it
+		return AccountTypeInvestment, AccountSTypeInvestment
 	default:
-		return AccountTypeOther
+		return AccountTypeOther, AccountSubType(AccountTypeOther)
 	}
 }
 
