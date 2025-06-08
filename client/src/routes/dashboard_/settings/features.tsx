@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { loadPluginModule } from '@/features/plugins/loader';
-import { renderIcon } from '@/core/components/icon-picker';
+import { renderIcon } from "@/core/components/icon-picker/index.helper";
 import { usePluginStore } from '@/features/plugins/store';
 
 import { Search, Download, X, Settings } from 'lucide-react';

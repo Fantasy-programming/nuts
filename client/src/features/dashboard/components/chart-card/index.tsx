@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils";
 import { useDashboardStore } from "@/features/dashboard/stores/dashboard.store";
 import { DraggableAttributes } from "@dnd-kit/core";
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
-import { ChartConfig, ChartDataPoint, Chart } from "./chart-renderer";
 
 
 export type ChartSize = 1 | 2 | 3;
@@ -27,13 +26,11 @@ export type ChartSize = 1 | 2 | 3;
 export interface ChartItem {
   id: string;
   title: string;
-  type: ChartConfig["type"];
   size: ChartSize;
   isLocked: boolean;
   dataKeys: string[];
   colors?: string[];
   stacked?: boolean;
-  data: ChartDataPoint[];
 }
 
 type ChartCardContextValue = {
@@ -78,14 +75,14 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
 
   // Select actions
   const removeChart = useDashboardStore(state => state.removeChart);
-  const updateChartTitle = useDashboardStore(state => state.updateChartTitle);
+  // const updateChartTitle = useDashboardStore(state => state.updateChartTitle);
   const updateChartSize = useDashboardStore(state => state.updateChartSize);
   const toggleChartLock = useDashboardStore(state => state.toggleChartLock);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: isLocked });
 
   // Handler functions
-  const handleRename = useCallback((newTitle: string) => updateChartTitle(id, newTitle), [id, updateChartTitle]);
+  const handleRename = useCallback((newTitle: string) => console.log(newTitle), []);
   const handleRemove = useCallback(() => removeChart(id), [id, removeChart]);
   const handleResize = useCallback((newSize: ChartSize) => updateChartSize(id, newSize), [id, updateChartSize]);
   const handleToggleLock = useCallback(() => toggleChartLock(id), [id, toggleChartLock]);
@@ -312,34 +309,3 @@ export const ChartCardMenu = memo(({ children, ref, hasContext = true }: ChartCa
 })
 
 ChartCardMenu.displayName = "ChartCardMenu";
-
-// A simple wrapper that combines ChartCard with the Chart renderer
-export const DataChart = memo(({ chart }: { chart: ChartItem }) => {
-  console.log(`Rendering DataChart: ${chart.id}`, chart); // Debug log
-
-  return (
-    <ChartCard key={chart.id} size={chart.size} isLocked={chart.isLocked} id={chart.id}>
-      <ChartCardMenu>
-        <section>
-          <ChartCardHeader>
-            <ChartCardTitle>{chart.title}</ChartCardTitle>
-            <ChartCardHandle />
-          </ChartCardHeader>
-          <ChartCardContent>
-            <Chart
-              data={chart.data}
-              config={{
-                type: chart.type,
-                title: chart.title,
-                dataKeys: chart.dataKeys,
-                colors: chart.colors,
-                stacked: chart.stacked
-              }}
-              size={chart.size}
-            />
-          </ChartCardContent>
-        </section>
-      </ChartCardMenu>
-    </ChartCard>
-  );
-})

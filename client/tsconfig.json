@@ -30,6 +30,7 @@
   "include": [
     "vite.env.d.ts",
     "**/*.ts",
+    "src/**/*.d.ts",
     "**/*.tsx",
     ".prettierrc.js"
   ],

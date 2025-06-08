@@ -4,14 +4,12 @@ import { useCallback, Suspense, memo } from "react";
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { usePluginStore } from "@/features/plugins/store";
-import { renderIcon } from "@/core/components/icon-picker";
+import { renderIcon } from "@/core/components/icon-picker/index.helper";
 import { cn } from "@/lib/utils"
 import { userService } from "@/features/preferences/services/user";
 import { useTheme } from "@/features/preferences/hooks/use-theme";
 import { useShallow } from 'zustand/react/shallow'
 import { useTranslation } from "react-i18next";
-
-
 import {
   RiBarChartBoxLine,
   RiBarChartBoxFill,

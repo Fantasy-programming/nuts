@@ -1,9 +1,11 @@
 import z from "zod";
 
+const accountType = z.enum(["cash", "savings", "investment", "credit", "checking"], { message: "Invalid account type" })
+
 export const accountSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Name is required"),
-  type: z.enum(["cash", "savings", "investment", "credit", "checking"], { message: "Invalid account type" }),
+  type: accountType,
   color: z.enum(["red", "green", "blue"], {
     required_error: "Please select a color",
     message: "Invalid color selected"
@@ -44,7 +46,7 @@ export const accountFormSchema = accountSchema.omit({
 
 
 export const groupedAccountSchema = z.object({
-  type: z.enum(["cash", "savings", "investment", "credit"], { message: "Invalid account type" }),
+  type: accountType,
   total: z.number(),
   trend: z.number(),
   accounts: z.array(accountWTrendSchema)

@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/utility/types"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -103,7 +105,11 @@ func (w *BankSyncWorker) Work(ctx context.Context, job *river.Job[BankSyncJob]) 
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if rbErr := tx.Rollback(ctx); rbErr != nil && !errors.Is(rbErr, pgx.ErrTxClosed) {
+			w.deps.Logger.Error().Err(rbErr).Msg("Failed to roll the transaction")
+		}
+	}()
 
 	qtx := w.deps.Queries.WithTx(tx)
 

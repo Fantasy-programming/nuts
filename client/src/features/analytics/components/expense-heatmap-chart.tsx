@@ -59,7 +59,7 @@ export default function ExpenseHeatmapChart() {
         />
         <Tooltip
           cursor={{ strokeDasharray: "3 3" }}
-          formatter={(value, name, props) => [
+          formatter={(_value, _name, props) => [
             `$${props.payload.z}`,
             `${props.payload.category} (${props.payload.day})`,
           ]}

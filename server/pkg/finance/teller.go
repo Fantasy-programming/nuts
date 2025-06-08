@@ -82,11 +82,6 @@ type tellerInstitution struct {
 	Logo         string `json:"logo"`
 }
 
-type tellerConnectResponse struct {
-	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expires_at"`
-}
-
 func NewTellerProvider(config TellerConfig, logger *zerolog.Logger) (*TellerProvider, error) {
 	hasCert := config.CertPath != "" && config.CertPrivateKeyPath != ""
 	var tlsConfig *tls.Config

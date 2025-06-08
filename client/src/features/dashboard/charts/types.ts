@@ -1,7 +1,6 @@
 // features/dashboard/charts/types.ts
 
 import type { ComponentType } from 'react';
-import type { ChartConfig as ChartRendererConfig } from '@/features/dashboard/components/chart-card/chart-renderer'; // Assuming this is the renderer config
 import type { ChartSize } from '@/features/dashboard/components/chart-card'; // Assuming ChartSize is defined here
 
 // Static configuration exported by each chart module's index.ts
@@ -11,7 +10,6 @@ export interface DashboardChartModuleConfig {
   description?: string; // Optional description for selection dialog
   defaultSize: ChartSize;
   // Include essential rendering config defaults if needed
-  rendererConfig: Pick<ChartRendererConfig, 'type' | 'dataKeys' | 'colors' | 'stacked'>;
 }
 
 // Interface for the dynamically loaded module

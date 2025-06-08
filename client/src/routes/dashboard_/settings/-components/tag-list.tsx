@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/core/compone
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
-import IconPicker, { renderIcon } from "@/core/components/icon-picker";
+import IconPicker from "@/core/components/icon-picker";
+import { renderIcon } from "@/core/components/icon-picker/index.helper";
 import { MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { useSettingsStore } from "@/features/preferences/stores/settings.store";
 
