@@ -134,7 +134,7 @@ function RouteComponent() {
                     placeholder="Confirm your password"
                     disabled={isSubmitting}
                     className="bg-white/50 backdrop-blur-sm transition-colors duration-300 focus:bg-white/80  peer ps-9"
-                    {...form.register("password")}
+                    {...form.register("confirmPassword")}
                   />
                   <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
                     <Lock size={16} aria-hidden="true" />
