@@ -284,11 +284,11 @@ const SideBarHeader = memo(() => {
 
   return (
     <SidebarHeader className="h-16 max-md:mt-2 mb-2 justify-center">
-      <div className="flex w-full items-center justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
+      <div className="flex w-full items-center px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
         {state === "collapsed" ? (
-          <Nuts className="size-4" fill="#000" />
+          <Nuts className="size-4 fill-sidebar-primary-foreground" />
         ) : (
-          <LogoWTXT className="size-16" fill="#000" />
+          <LogoWTXT className="size-16 fill-sidebar-primary-foreground" />
         )}
       </div>
     </SidebarHeader>
@@ -309,19 +309,19 @@ const SideBarMainLinks = memo(() => {
               <SidebarMenuButton
                 asChild
                 tooltip={item.title}
-                className="group/menu-button text-gray-950/60 font-medium gap-3 h-9 rounded-md   [&>svg]:size-auto"
+                className="group/menu-button  font-medium gap-3 h-9 rounded-md text-muted-foreground/95   [&>svg]:size-auto"
               >
                 <Link to={item.url} activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
                 >{({ isActive }) => (
                   <>
                     {isActive ? (
-                      <item.activeIcon size={16} aria-hidden="true" className="text-muted-foreground/60 group-data-[active=true]/menu-button:text-primary" />
+                      <item.activeIcon size={16} aria-hidden="true" className="text-sidebar-primary-foreground/80" />
                     ) : (
-                      <item.icon size={16} aria-hidden="true" className="text-muted-foreground/60 group-data-[active=true]/menu-button:text-primary" />
+                      <item.icon size={16} aria-hidden="true" className="text-muted-foreground/60" />
                     )
                     }
 
-                    <span>{t(item.title)}</span>
+                    <span className={isActive ? `text-sidebar-accent-foreground` : ""}>{t(item.title)}</span>
                   </>
                 )
                   }

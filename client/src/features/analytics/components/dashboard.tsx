@@ -45,8 +45,7 @@ import InsightCard from "./insight-card"
 
 export default function AnalyticsDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
-  const [timeframe, setTimeframe] = useState("month")
-  const [date, setDate] = useState<Date>(new Date())
+  const [timeframe,] = useState("month")
   const [favoriteInsights, setFavoriteInsights] = useState<string[]>([])
 
 

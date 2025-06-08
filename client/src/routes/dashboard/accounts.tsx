@@ -76,6 +76,8 @@ function RouteComponent() {
     deleteAccount.mutate(id);
   };
 
+  console.log(data)
+
   return (
     <>
       <header className="flex h-22 shrink-0 items-center gap-2 transition-[width,height] ease-linear ">
@@ -95,8 +97,8 @@ function RouteComponent() {
           </AddAccountModal>
         </div>
       </header>
-      <main className="flex flex-1 overflow-hidden">
-        <div className="h-full w-full space-y-8 overflow-y-auto  py-2">
+      <main className="flex flex-1">
+        <div className="h-full w-full space-y-8  py-2">
           <NetWorthCard cashTotal={cashTotal} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

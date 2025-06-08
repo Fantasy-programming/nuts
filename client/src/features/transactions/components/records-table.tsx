@@ -264,7 +264,7 @@ export const RecordsTable = ({
             placeholder="Search transactions..."
             value={searchFilter}
             onChange={(event) => setSearchFilter(event.target.value)}
-            className="max-w-full md:max-w-sm bg-card"
+            className="max-w-full md:max-w-sm "
           />
           <Button
             variant="outline"

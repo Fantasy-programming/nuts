@@ -14,7 +14,6 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as SignupImport } from './routes/signup'
 import { Route as LoginImport } from './routes/login'
 import { Route as ForgotPasswordImport } from './routes/forgot-password'
-import { Route as ComponentsImport } from './routes/components'
 import { Route as DashboardRouteImport } from './routes/dashboard/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as DashboardIndexImport } from './routes/dashboard/index'
@@ -56,12 +55,6 @@ const LoginRoute = LoginImport.update({
 const ForgotPasswordRoute = ForgotPasswordImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const ComponentsRoute = ComponentsImport.update({
-  id: '/components',
-  path: '/components',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -225,13 +218,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/components': {
-      id: '/components'
-      path: '/components'
-      fullPath: '/components'
-      preLoaderRoute: typeof ComponentsImport
       parentRoute: typeof rootRoute
     }
     '/forgot-password': {
@@ -472,7 +458,6 @@ const DashboardSettingsRouteRouteWithChildren =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/components': typeof ComponentsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
@@ -501,7 +486,6 @@ export interface FileRoutesByFullPath {
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/components': typeof ComponentsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
@@ -531,7 +515,6 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/components': typeof ComponentsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
@@ -563,7 +546,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
-    | '/components'
     | '/forgot-password'
     | '/login'
     | '/signup'
@@ -591,7 +573,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/components'
     | '/forgot-password'
     | '/login'
     | '/signup'
@@ -619,7 +600,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
-    | '/components'
     | '/forgot-password'
     | '/login'
     | '/signup'
@@ -650,7 +630,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
-  ComponentsRoute: typeof ComponentsRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
@@ -660,7 +639,6 @@ export interface RootRouteChildren {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
-  ComponentsRoute: ComponentsRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
@@ -679,7 +657,6 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/dashboard",
-        "/components",
         "/forgot-password",
         "/login",
         "/signup",
@@ -699,9 +676,6 @@ export const routeTree = rootRoute
         "/dashboard/records",
         "/dashboard/"
       ]
-    },
-    "/components": {
-      "filePath": "components.tsx"
     },
     "/forgot-password": {
       "filePath": "forgot-password.tsx"

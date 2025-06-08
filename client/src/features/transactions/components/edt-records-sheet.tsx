@@ -37,15 +37,15 @@ const recordUpdateFormSchema = z.object({
 
 type RecordUpdateFormValues = z.infer<typeof recordUpdateFormSchema>;
 
-// This DTO is what the sheet will pass to the onUpdateTransaction callback
-type RecordUpdateDTO = Omit<RecordUpdateFormValues, 'attachments'> & {
-  // No, amount should be part of RecordUpdateFormValues, parent handles sign.
-  // Omit amount from here as well if parent applies sign
-  // type RecordUpdateDTO = Omit<RecordUpdateFormValues, 'attachments' | 'amount'> & {
-  //   amount: number; // Absolute amount from form
-  type: "income" | "expense"; // The type selected in the form
-  original_transaction_type: RecordSchema['type'];
-};
+// // This DTO is what the sheet will pass to the onUpdateTransaction callback
+// type RecordUpdateDTO = Omit<RecordUpdateFormValues, 'attachments'> & {
+//   // No, amount should be part of RecordUpdateFormValues, parent handles sign.
+//   // Omit amount from here as well if parent applies sign
+//   // type RecordUpdateDTO = Omit<RecordUpdateFormValues, 'attachments' | 'amount'> & {
+//   //   amount: number; // Absolute amount from form
+//   type: "income" | "expense"; // The type selected in the form
+//   original_transaction_type: RecordSchema['type'];
+// };
 
 
 interface EditTransactionSheetProps {
@@ -125,7 +125,7 @@ export default function EditTransactionSheet({
         },
         // Your RecordSchema does not have top-level tags.
         // If tags are stored elsewhere or as (transaction as any).tags:
-        tags: (transaction as any).tags || [],
+        tags: [],
         // If tags are within transaction.details (e.g. transaction.details.tags):
         // tags: transaction.details?.tags || [], // Adjust if tags are in details
         attachments: [], // New attachments are always reset
@@ -136,8 +136,8 @@ export default function EditTransactionSheet({
     }
   }, [transaction, form, categories, accounts]); // Added categories and accounts as dependencies for safety if IDs might not exist
 
-  const handleAddTag = useCallback(() => { /* ... same as before ... */ }, [newTag, form]);
-  const handleRemoveTag = useCallback((tagToRemove: string) => { /* ... same as before ... */ }, [form]);
+  const handleAddTag = useCallback(() => { /* ... same as before ... */ }, []);
+  // const handleRemoveTag = useCallback((tagToRemove: string) => { /* ... same as before ... */ }, [form]);
 
   const onSubmit = (values: RecordUpdateFormValues) => {
     if (!transaction) return;
@@ -343,13 +343,13 @@ export default function EditTransactionSheet({
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id.toString()}>
                             <div className="flex items-center gap-2">
-                              {account.meta?.institution || account.institution /* backward compatibility */ ? ( // Check both meta.institution and root institution
-                                <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold ring-1 ring-primary/20">
-                                  {((account.meta?.institution || account.institution) ?? "NA").substring(0, 1).toUpperCase()}
-                                </div>
-                              ) : (
-                                <div className="h-5 w-5 rounded-full bg-muted"></div>
-                              )}
+                              {/* {account.meta?.institution || account.institution  ? ( */}
+                              {/*   <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold ring-1 ring-primary/20"> */}
+                              {/*     {((account.meta?.institution || account.institution) ?? "NA").substring(0, 1).toUpperCase()} */}
+                              {/*   </div> */}
+                              {/* ) : ( */}
+                              <div className="h-5 w-5 rounded-full bg-muted"></div>
+                              {/* )} */}
                               <span>{account.name}</span>
                             </div>
                           </SelectItem>
@@ -406,7 +406,7 @@ export default function EditTransactionSheet({
                     {(field.value || []).map((tag) => (
                       <Badge key={tag} variant="secondary" className="gap-1.5 py-1 px-2.5">
                         {tag}
-                        <X className="h-3.5 w-3.5 cursor-pointer hover:text-destructive" onClick={() => handleRemoveTag(tag)} />
+                        {/* <X className="h-3.5 w-3.5 cursor-pointer hover:text-destructive" onClick={() => handleRemoveTag(tag)} /> */}
                       </Badge>
                     ))}
                   </div>

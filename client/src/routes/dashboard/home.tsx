@@ -43,12 +43,13 @@ function RouteComponent() {
           <AddChartDialog onAddChart={handleAddChart} />
         </div>
       </header>
-      <main className="flex flex-1 overflow-hidden">
-        <div className="h-full w-full space-y-8 overflow-y-auto  py-2">
+      <main className="flex flex-1">
+        <div className="h-full w-full space-y-8   py-2">
           <div className="space-y-8">
             <DashboardGrid>
               {chartOrder.length === 0 ? (
-                <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-muted-foreground">
+                <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 flex flex-col justify-center items-center text-muted-foreground">
+                  <img src="/nuts_empty.png" className="w-60 grayscale" />
                   Your dashboard is empty. Add some charts using the button above!
                 </div>
               ) : (

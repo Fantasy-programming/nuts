@@ -21,6 +21,7 @@ import { DraggableAttributes } from "@dnd-kit/core";
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { ChartConfig, ChartDataPoint, Chart } from "./chart-renderer";
 
+
 export type ChartSize = 1 | 2 | 3;
 
 export interface ChartItem {
@@ -124,7 +125,7 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
         style={style}
         className={cn("group relative w-full h-full",
           "transition-shadow duration-200",
-          isDragging ? "opacity-50 z-10 shadow-2xl" : "shadow-sm",
+          isDragging && "opacity-50 z-10 shadow-2xl",
           sizeClasses[size],
           className
         )}

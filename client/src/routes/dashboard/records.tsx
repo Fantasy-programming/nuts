@@ -144,8 +144,8 @@ function RouteComponent() {
           </div>
         </div>
       </header>
-      <main className="flex flex-1 ">
-        <div className="h-full w-full space-y-8 overflow-y-auto py-2">
+      <main className="flex flex-1">
+        <div className="h-full w-full space-y-8  py-2">
           <div className="space-y-8">
             <RecordsTable
               transactions={transactions}

@@ -13,8 +13,11 @@ import {
 } from '@/features/dashboard/components/chart-card';
 
 import { Chart } from '@/features/dashboard/components/chart-card/chart-renderer';
-import { ArrowUp } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  ChartConfig,
+  ChartTooltip, ChartTooltipContent
+} from "@/core/components/ui/chart";
+import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis } from 'recharts';
 
 const fetchExpenseIncomeData = async () => {
 
@@ -38,37 +41,46 @@ const useExpenseIncomeData = () => {
   });
 };
 
+const chartConfig = {
+  desktop: {
+    label: "income",
+    color: "var(--chart-1)",
+  },
+  mobile: {
+    label: "expense",
+    color: "var(--chart-2)",
+  },
+} satisfies ChartConfig
+
 
 // The actual component rendered dynamically on the dashboard
 function ExpenseIncomeChartComponent({ id, size, isLocked }: DashboardChartComponentProps) {
   const { data: chartData } = useExpenseIncomeData();
 
+  {/* <div className="flex items-center mt-1 text-sm"> */ }
+  {/*   <ArrowUp className="h-4 w-4 mr-1 text-emerald-500" /> */ }
+  {/*   <span className="text-emerald-500 font-medium">2.1%</span> */ }
+  {/*   <span className="text-muted-foreground ml-1">vs last week</span> */ }
+  {/* </div> */ }
   return (
     <ChartCard id={id} size={size} isLocked={isLocked}>
       <ChartCardMenu>
         <div>
           <ChartCardHeader>
             <div className='flex-1'>
-              <ChartCardTitle>{config.title}</ChartCardTitle>
-              <p className="text-muted-foreground text-sm mt-1">Sales from 1-12 Apr, 2024</p>
+              <ChartCardTitle className='text-muted-foreground'>{config.title}</ChartCardTitle>
+              <h2 className="text-3xl font-bold mt-2">$1,278.45</h2>
             </div>
             <ChartCardHandle />
           </ChartCardHeader>
-          <ChartCardContent className="space-y-8">
-            <div>
-              <h2 className="text-4xl font-bold">$1,278.45</h2>
-              <div className="flex items-center mt-1 text-sm">
-                <ArrowUp className="h-4 w-4 mr-1 text-emerald-500" />
-                <span className="text-emerald-500 font-medium">2.1%</span>
-                <span className="text-muted-foreground ml-1">vs last week</span>
-              </div>
-            </div>
+          <ChartCardContent className=" mt-1">
             {chartData ? (
               <Chart
                 size={size}
+                config={chartConfig}
               >
                 <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} barGap={8}>
-                  <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e5e7eb" />
+                  <CartesianGrid strokeDasharray="4 4" vertical={false} stroke=" color-mix(in oklab, var(--muted-foreground) 50%, transparent)" />
                   <XAxis
                     dataKey="day"
                     axisLine={false}
@@ -77,23 +89,25 @@ function ExpenseIncomeChartComponent({ id, size, isLocked }: DashboardChartCompo
                     dy={10}
                   />
                   <YAxis hide />
-                  <Tooltip
-                    // formatter={formatCurrency}
+                  <ChartTooltip cursor={{ fill: "rgba(0, 0, 0, 0.05)" }}
+
                     labelFormatter={(label) => `Day ${label}`}
-                    contentStyle={{
-                      backgroundColor: "white",
-                      border: "1px solid #f3f4f6",
-                      borderRadius: "0.5rem",
-                      padding: "0.75rem",
-                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                    }}
+
                     itemStyle={{ padding: "2px 0" }}
-                    cursor={{ fill: "rgba(0, 0, 0, 0.05)" }}
+                    content={<ChartTooltipContent />
+                    }
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: "14px", paddingTop: "8px" }}
                   />
                   <Bar
                     dataKey="income"
                     name="Income"
-                    fill="#10b981"
+                    fill="var(--chart-1)"
                     radius={[4, 4, 0, 0]}
                     barSize={16}
                     animationDuration={300}
@@ -101,17 +115,10 @@ function ExpenseIncomeChartComponent({ id, size, isLocked }: DashboardChartCompo
                   <Bar
                     dataKey="expense"
                     name="Expense"
-                    fill="#a78bfa"
+                    fill="var(--chart-2)"
                     radius={[4, 4, 0, 0]}
                     barSize={16}
                     animationDuration={300}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={36}
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: "14px", paddingTop: "16px" }}
                   />
                 </BarChart>
               </Chart>
