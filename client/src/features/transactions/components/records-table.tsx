@@ -21,7 +21,6 @@ import {
 } from "@/core/components/ui/context-menu";
 import { Input } from "@/core/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/core/components/ui/table"
-import { RecordsFilters } from "./records-table.filters"
 import { formatDate } from "@/lib/utils"
 import { getRecordsTableColumns } from "./records-table.column"
 import { useIsMobile } from "@/core/hooks/use-mobile"
@@ -179,25 +178,6 @@ export const RecordsTable = ({
     }
   }, [filteredGroups, openGroups.size])
 
-  const handleCategoryChange = useCallback((values: string[]) => {
-    setCategoryFilters(values)
-  }, [])
-
-  const handleAccountChange = (values: string[]) => {
-    setAccountFilters(values)
-  }
-
-  const handleDateRangeChange = (value: string) => {
-    setDateRangeFilterValue(value) // Corrected: was setDateRangeFilter
-  }
-
-  const handleResetFilters = () => {
-    setCategoryFilters([])
-    setAccountFilters([])
-    setDateRangeFilterValue("") // Corrected
-    setSearchFilter("")
-    table.resetColumnFilters() // Resets table's internal column filters
-  }
 
   // Called by EditTransactionSheet on submit
   const handleConfirmUpdateTransaction = async (id: string, data: RecordSchema) => {
@@ -294,16 +274,6 @@ export const RecordsTable = ({
 
 
 
-      {showFilters && (
-        <RecordsFilters
-          onCategoryChange={handleCategoryChange}
-          onAccountChange={handleAccountChange}
-          onDateRangeChange={handleDateRangeChange}
-          onReset={handleResetFilters}
-          categories={categories}
-          accounts={accounts}
-        />
-      )}
 
       {/* Mobile View */}
       {isMobile ? (
