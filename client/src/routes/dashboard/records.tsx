@@ -144,7 +144,7 @@ function RouteComponent() {
           </div>
         </div>
       </header>
-      <main className="flex flex-1">
+      <div className="flex flex-1">
         <div className="h-full w-full space-y-8  py-2">
           <div className="space-y-8">
             <RecordsTable
@@ -158,7 +158,7 @@ function RouteComponent() {
             />
           </div>
         </div>
-      </main>
+      </div>
 
     </>
   );

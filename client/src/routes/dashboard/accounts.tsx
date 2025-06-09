@@ -11,8 +11,6 @@ import { Button } from "@/core/components/ui/button";
 import { Plus } from "lucide-react";
 import { groupAccountsByType } from "@/features/accounts/components/account.utils";
 
-
-
 export const Route = createFileRoute("/dashboard/accounts")({
   component: RouteComponent,
   pendingComponent: AccountsLoading,
@@ -76,8 +74,6 @@ function RouteComponent() {
     deleteAccount.mutate(id);
   };
 
-  console.log(data)
-
   return (
     <>
       <header className="flex h-22 shrink-0 items-center gap-2 transition-[width,height] ease-linear ">
@@ -97,7 +93,7 @@ function RouteComponent() {
           </AddAccountModal>
         </div>
       </header>
-      <main className="flex flex-1">
+      <div className="flex flex-1">
         <div className="h-full w-full space-y-8  py-2">
           <NetWorthCard cashTotal={cashTotal} />
 
@@ -117,7 +113,7 @@ function RouteComponent() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

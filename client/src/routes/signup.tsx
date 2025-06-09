@@ -6,6 +6,8 @@ import { motion } from "motion/react";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { config } from "@/lib/env"
+import { logger } from "@/lib/logger"
 import { authService } from "@/features/auth/services/auth";
 import { type SignupFormValues, signupSchema } from "@/features/auth/services/auth.types";
 
@@ -17,6 +19,7 @@ import { Nuts } from "@/core/assets/icons/Logo"
 import { Google } from "@/core/assets/icons/google";
 import { Github } from "@/core/assets/icons/github";
 import { AtSignIcon, Lock } from "lucide-react";
+import { parseApiError } from "@/lib/error";
 
 export const Route = createFileRoute("/signup")({
   validateSearch: z.object({
@@ -50,19 +53,44 @@ function RouteComponent() {
   });
 
   async function onSubmit(values: SignupFormValues) {
-
     try {
       setIsSubmitting(true);
       await authService.signup(values);
+
       toast.success("Account created successfully", {
         description: "You can now login into the system",
       });
+
       await navigate({ to: "/login" });
+
     } catch (error) {
-      toast.error("Error", {
-        description: "There was a problem creating your account.",
+      const parsedErr = parseApiError(error)
+
+      toast.error("Signup Failed", {
+        description: parsedErr.userMessage,
       });
-      console.error(error);
+
+      logger.error(parsedErr.originalError, {
+        component: "SignupForm",
+        action: "onSubmit",
+        parsedErrorType: parsedErr.type,
+        parsedUserMessage: parsedErr.userMessage,
+        validationErrors: parsedErr.validationErrors,
+        statusCode: parsedErr.statusCode,
+        axiosErrorCode: parsedErr.axiosErrorCode,
+        attemptedEmail: values.email,
+      });
+
+      if (parsedErr.type === 'validation' && parsedErr.validationErrors) {
+        parsedErr.validationErrors.forEach(err => {
+          if (form.formState.defaultValues) {
+            if (err.field in form.formState.defaultValues) {
+              form.setError(err.field as keyof SignupFormValues, { message: err.message });
+            }
+          }
+        });
+      }
+
     } finally {
       setIsSubmitting(false);
     }
@@ -70,9 +98,6 @@ function RouteComponent() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center overflow-hidden p-4">
-      <div
-        className="bg-[#F6F6F4]"
-      />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -80,10 +105,10 @@ function RouteComponent() {
         transition={{ duration: 0.5 }}
         className="relative z-10 w-full max-w-sm space-y-8"
       >
-        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} >
-          <Nuts className="w-10 h-10" fill="#000" />
-        </motion.div>
-        <div className="w-full mt-4">
+        <motion.header initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} >
+          <Nuts className="w-10 h-10" fill="var(--foreground)" />
+        </motion.header>
+        <main className="w-full mt-4">
           <div className="space-y-1">
             <h1 className="text-lg font-medium">Create an account</h1>
             <p className="text-muted-foreground">Enter your details to create your account</p>
@@ -165,7 +190,7 @@ function RouteComponent() {
                   disabled={isSubmitting}
                   asChild
                 >
-                  <a href="http://localhost:3080/api/auth/oauth/google">
+                  <a href={`${config.VITE_API_BASE_URL}/auth/oauth/google`}>
                     <Google className="mr-2 h-4 w-4" />
                     Google
                   </a>
@@ -176,7 +201,7 @@ function RouteComponent() {
                   disabled={isSubmitting}
                   asChild
                 >
-                  <a href="http://localhost:3080/api/auth/oauth/github">
+                  <a href={`${config.VITE_API_BASE_URL}/auth/oauth/github`}>
                     <Github className="mr-2 h-4 w-4" fill="#000" />
                     Github
                   </a>
@@ -192,9 +217,8 @@ function RouteComponent() {
               </motion.div>
             </form>
           </div>
-        </div>
+        </main>
       </motion.div>
-      <footer className="mt-8 text-center text-sm text-gray-100">© {new Date().getFullYear()} Finance App. All rights reserved.</footer>
     </div>
   );
 }

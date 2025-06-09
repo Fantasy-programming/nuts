@@ -1,6 +1,9 @@
 import { FC, useEffect } from 'react';
 import { useAuthStore } from '../stores/auth.store';
 import { Spinner } from '@/core/components/ui/spinner';
+import { logger } from '@/lib/logger';
+import { Button } from '@/core/components/ui/button';
+import { parseApiError } from '@/lib/error';
 
 interface AuthInterceptorProps {
   children: React.ReactNode;
@@ -29,8 +32,18 @@ export const AuthInterceptor: FC<AuthInterceptorProps> = ({ children }) => {
           setLoading(true);
           await refreshAuth();
         } catch (error) {
-          // Auth check failed
-          console.error('Auth check failed:', error);
+          const parsedErr = parseApiError(error)
+
+          logger.error(error, {
+            component: "AuthInterceptor",
+            action: "checkAuth",
+            parsedErrorType: parsedErr.type,
+            parsedUserMessage: parsedErr.userMessage,
+            validationErrors: parsedErr.validationErrors,
+            statusCode: parsedErr.statusCode,
+            axiosErrorCode: parsedErr.axiosErrorCode,
+          });
+
         } finally {
           setLoading(false)
         }
@@ -40,7 +53,7 @@ export const AuthInterceptor: FC<AuthInterceptorProps> = ({ children }) => {
     checkAuth();
   }, [isAuthenticated, refreshAuth, setLoading, user]);
 
-  // Only show loading state for dashboard routes
+  // TODO: Only show loading state for dashboard routes (modify with animated stuff)
   if (isLoading && isDashboardRoute()) {
     return <Spinner />;
   }
@@ -51,14 +64,13 @@ export const AuthInterceptor: FC<AuthInterceptorProps> = ({ children }) => {
       <div className="flex justify-center items-center h-screen flex-col">
         <h2 className="text-xl font-semibold mb-2">Session expired</h2>
         <p className="mb-4">Please log in again.</p>
-        <button
+        <Button
           onClick={() => {
             window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
           }}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Go to Login
-        </button>
+        </Button>
       </div>
     );
   }

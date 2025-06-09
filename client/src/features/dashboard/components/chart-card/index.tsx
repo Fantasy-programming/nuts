@@ -142,7 +142,6 @@ interface ChartCardHeadProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const ChartCardHeader = memo(({ children, className, ref }: ChartCardHeadProps) => {
-  console.log("Rendering ChartCardHeader"); // Debug log
   const { isDragging } = useChartCard();
 
   return (
@@ -159,7 +158,6 @@ export const ChartCardHeader = memo(({ children, className, ref }: ChartCardHead
 ChartCardHeader.displayName = "ChartCardHeader";
 
 export const ChartCardTitle = memo(({ children, className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
-  console.log("Rendering ChartCardTitle"); // Debug log
   return <h3 className={cn("flex-1 font-semibold text-sm", className)} {...props}>{children}</h3>;
 });
 
@@ -201,7 +199,6 @@ export const ChartCardContent = memo(({ className, children, ...props }: React.H
 ChartCardContent.displayName = "ChartCardContent";
 
 export const ChartCardHandle = memo(() => {
-  console.log("Rendering ChartCardHandle"); // Debug log
   const { isLocked, attributes, listeners } = useChartCard();
 
   if (isLocked)
@@ -229,7 +226,6 @@ interface ChartCardMenuProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const ChartCardMenu = memo(({ children, ref, hasContext = true }: ChartCardMenuProps) => {
-  console.log("Rendering ChartCardMenu"); // Debug log
   const { isLocked, handleRename, handleRemove, handleResize, handleToggleLock } = useChartCard();
 
   const [newTitle, setNewTitle] = useState("");

@@ -1,18 +1,17 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { authService } from "@/features/auth/services/auth";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
-
-const BASEURL = import.meta.env.VITE_API_URL;
+import { config } from "./env"
 
 export const api = axios.create({
-  baseURL: BASEURL,
+  baseURL: config.VITE_API_BASE_URL,
   withCredentials: true,
 });
 
 api.defaults.headers.common["Content-Type"] = "application/json";
 
 
-// Managing auth token
+// Managing auth token refresh state
 const createTokenRefreshManager = () => {
   let isRefreshing = false;
   let refreshPromise: Promise<void> | null = null;
@@ -28,7 +27,6 @@ const createTokenRefreshManager = () => {
 const tokenRefreshManager = createTokenRefreshManager();
 
 
-// Set up response interceptor for automatic token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -40,7 +38,8 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !requestUrl.includes('/auth/refresh')
+      !requestUrl.includes('/auth/refresh') &&
+      !requestUrl.includes('/auth/login')
     ) {
       originalRequest._retry = true;
 

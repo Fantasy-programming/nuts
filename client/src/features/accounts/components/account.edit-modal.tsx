@@ -110,7 +110,7 @@ export default function EditAccountModal({
                     <FormItem>
                       <FormLabel>Account Name</FormLabel>
                       <FormControl>
-                        <Input disabled={isLinkedAccount} {...field} defaultValue={field.value} />
+                        <Input disabled={isLinkedAccount} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -184,7 +184,7 @@ export default function EditAccountModal({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Color</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select color" />

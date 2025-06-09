@@ -8,7 +8,7 @@
 
 
 :root {
-  --background: oklch(97.91% 0 0);
+  --background: oklch(0.9816 0.0026 106.45);
   --foreground: oklch(0.2621 0.0095 248.19);
   --card: oklch(1.0000 0 0);
   --card-foreground: oklch(0.2621 0.0095 248.1897);
@@ -33,7 +33,7 @@
   --chart-4: oklch(0.7914 0.1571 87.1482);
   --chart-5: oklch(0.6912 0.1142 188.9617);
   --radius: 0.5rem;
-  --sidebar: oklch(97.91% 0 0);
+  --sidebar: oklch(0.9816 0.0026 106.45);
   --sidebar-foreground: oklch(0.2621 0.0095 248.19);
   --sidebar-primary: hsl(240 5.9% 10%);
   --sidebar-primary-foreground: hsl(0 0% 98%);

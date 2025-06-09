@@ -441,7 +441,7 @@ export const RecordsTable = ({
                                 if (!row) return null
                                 const originalTransaction = row.original as RecordSchema;
                                 return (
-                                  <ContextMenu>
+                                  <ContextMenu key={originalTransaction.id}>
                                     <ContextMenuTrigger asChild>
                                       <TableRow key={transaction.id} data-state={row.getIsSelected() && "selected"}>
                                         {row.getVisibleCells().map((cell, cellIndex) => (

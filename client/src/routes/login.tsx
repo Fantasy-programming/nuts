@@ -6,7 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "motion/react";
 import { z } from "zod";
 
-import { processAxiosErr } from "@/lib/error";
+import { config } from "@/lib/env"
+import { logger } from "@/lib/logger"
+import { parseApiError } from "@/lib/error";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth.types";
 
@@ -57,14 +59,40 @@ function RouteComponent() {
     try {
       setIsSubmitting(true);
       await loginFn(values);
+
       toast.success("Welcome to your account 👋");
 
       await router.invalidate();
       await navigate({ to: search.redirect || "/dashboard/home" })
 
     } catch (error) {
-      const err = processAxiosErr(error)
-      toast.error(err || "There was a problem logging you in");
+      const parsedErr = parseApiError(error)
+
+      toast.error("There was a problem logging you in", {
+        description: parsedErr.userMessage,
+      });
+
+      logger.error(parsedErr.originalError, {
+        component: "LoginForm",
+        action: "onSubmit",
+        parsedErrorType: parsedErr.type,
+        parsedUserMessage: parsedErr.userMessage,
+        validationErrors: parsedErr.validationErrors,
+        statusCode: parsedErr.statusCode,
+        axiosErrorCode: parsedErr.axiosErrorCode,
+        attemptedEmail: values.email,
+      });
+
+
+      if (parsedErr.type === 'validation' && parsedErr.validationErrors) {
+        parsedErr.validationErrors.forEach(err => {
+          if (form.formState.defaultValues) {
+            if (err.field in form.formState.defaultValues) {
+              form.setError(err.field as keyof LoginFormValues, { message: err.message });
+            }
+          }
+        });
+      }
 
     } finally {
       setIsSubmitting(false);
@@ -74,9 +102,6 @@ function RouteComponent() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center overflow-hidden p-4">
-      <div
-        className="bg-[#F6F6F4]"
-      />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -84,11 +109,11 @@ function RouteComponent() {
         transition={{ duration: 0.5 }}
         className="relative z-10 w-full max-w-sm"
       >
-        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }}>
-          <Nuts className="w-10 h-10" fill="#000" />
-        </motion.div>
+        <motion.header initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }}>
+          <Nuts className="w-10 h-10" fill="var(--foreground)" />
+        </motion.header>
 
-        <div className="w-full mt-4">
+        <main className="w-full mt-4">
           <div className="space-y-1">
             <h1 className="text-lg font-semibold">Login to Nuts Finance</h1>
             <p className="text-muted-foreground">Manage your finance effortlessly with nuts finance</p>
@@ -153,7 +178,7 @@ function RouteComponent() {
                   disabled={isLoggingIn}
                   asChild
                 >
-                  <a href="http://localhost:3080/api/auth/oauth/google">
+                  <a href={`${config.VITE_API_BASE_URL}/auth/oauth/google`}>
                     <Google className="mr-2 h-4 w-4" />
                     Google
                   </a>
@@ -164,7 +189,7 @@ function RouteComponent() {
                   disabled={isLoggingIn}
                   asChild
                 >
-                  <a href="http://localhost:3080/api/auth/oauth/github">
+                  <a href={`${config.VITE_API_BASE_URL}/auth/oauth/github`}>
                     <Github className="mr-2 h-4 w-4" fill="#000" />
                     Github
                   </a>
@@ -185,7 +210,7 @@ function RouteComponent() {
               </motion.div>
             </form>
           </div>
-        </div>
+        </main>
       </motion.div>
     </div>
   );

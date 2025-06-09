@@ -2,6 +2,8 @@ import { useEffect, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePreferencesStore } from '../stores/preferences.store.ts';
 import { preferencesService } from '../services/preferences';
+import { logger } from '@/lib/logger.ts';
+import { parseApiError } from '@/lib/error.ts';
 
 interface PreferencesProviderProps {
   children: ReactNode;
@@ -34,8 +36,18 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
 
     // If fetch fails, update error state in Zustand
     if (isError && error) {
-      setError(error.message);
-      console.error("PreferencesProvider: Failed to fetch preferences:", error);
+      const parsedErr = parseApiError(error)
+      setError(parsedErr.userMessage);
+
+      logger.error(error, {
+        component: "PreferenceProvider",
+        action: "useEffect",
+        parsedErrorType: parsedErr.type,
+        parsedUserMessage: parsedErr.userMessage,
+        validationErrors: parsedErr.validationErrors,
+        statusCode: parsedErr.statusCode,
+        axiosErrorCode: parsedErr.axiosErrorCode,
+      });
     }
   }, [isLoading, isSuccess, isError, data, error, setPreferences, setLoading, setError]);
 

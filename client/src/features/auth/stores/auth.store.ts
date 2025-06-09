@@ -4,6 +4,8 @@ import { authService } from '../services/auth';
 import { userService } from '@/features/preferences/services/user';
 
 import type { AuthNullable } from '../services/auth.types';
+import { tryCatch } from '@/lib/trycatch';
+import { logger } from '@/lib/logger';
 
 
 interface LoginCredentials {
@@ -20,7 +22,7 @@ export interface AuthState {
   // Actions
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
-  refreshAuth: () => Promise<boolean>;
+  refreshAuth: () => Promise<void>;
   setUser: (user: AuthNullable) => void;
   setLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
@@ -50,29 +52,33 @@ export const useAuthStore = create<AuthState>()(
         resetState: () => set(initialState),
 
         login: async (credentials) => {
-          try {
-            set({ isLoading: true, error: null });
-            await authService.login(credentials);
-            const userData = await userService.getMe();
+          set({ isLoading: true, error: null });
+          let errorMessage = 'Login failed';
+          const { error } = await tryCatch(authService.login(credentials))
 
-            set({
-              user: userData,
-              isAuthenticated: true,
-              error: null,
-              isLoading: false
-            });
-          } catch (err) {
-            let errorMessage = 'Login failed';
-            if (err instanceof Error) {
-              errorMessage = err.message;
-            }
+          if (error) {
+            logger.error(error)
+            errorMessage = error.message;
             set({
               error: errorMessage,
               user: null,
               isAuthenticated: false,
               isLoading: false
             });
-            throw err;
+            throw error
+          }
+
+          //TODO: Handle that error too
+          const { data: userData } = await tryCatch(userService.getMe())
+
+          if (userData) {
+            set({
+              user: userData,
+              isAuthenticated: true,
+              error: null,
+              isLoading: false
+            });
+            return
           }
         },
 
@@ -103,28 +109,39 @@ export const useAuthStore = create<AuthState>()(
         },
 
         refreshAuth: async () => {
-          try {
-            set({ isLoading: true });
-            await authService.refresh();
-            const userData = await userService.getMe();
+          set({ isLoading: true });
+          const { error: refreshErr } = await tryCatch(authService.refresh())
 
-            set({
-              user: userData,
-              isAuthenticated: true,
-              error: null,
-              isLoading: false
-            });
-            return true;
-          } catch (err) {
-            console.log(err)
+          if (refreshErr) {
+            logger.error(refreshErr)
             set({
               user: null,
               isAuthenticated: false,
               isLoading: false,
               error: 'Session expired'
             });
-            return false;
+            throw refreshErr
           }
+
+          const { error: userFetchErr, data: userData } = await tryCatch(userService.getMe())
+
+          if (!userData || userFetchErr) {
+            logger.error(refreshErr)
+            set({
+              user: null,
+              isAuthenticated: false,
+              isLoading: false,
+              error: 'Session expired'
+            });
+            throw userFetchErr;
+          }
+
+          set({
+            user: userData,
+            isAuthenticated: true,
+            error: null,
+            isLoading: false
+          });
         },
       }),
       {

@@ -19,7 +19,7 @@ i18n
 
     // Enables useful output in the browser’s
     // dev console.
-    debug: true,
+    debug: process.env.NODE_ENV === "development",
 
     // Normally, we want `escapeValue: true` as it
     // ensures that i18next escapes any code in

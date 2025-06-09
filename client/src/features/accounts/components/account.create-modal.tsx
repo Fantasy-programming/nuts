@@ -38,7 +38,6 @@ export function AddAccountModal({
     applicationId: config.VITE_TELLER_APP_ID,
     environment: "sandbox",
     onSuccess: (authorization) => {
-      console.log(authorization)
       accountService.linkTellerAccount(authorization)
     },
   });
@@ -300,8 +299,6 @@ export function AddAccountModal({
             type="submit"
             form={formId}
             onClick={() => {
-              console.log(form.formState.isValid)
-              console.log(form.formState.errors)
               form.handleSubmit(handleSubmit)
             }}
           >

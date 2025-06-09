@@ -124,7 +124,7 @@ function RouteComponent() {
           </div>
         </div>
       </header >
-      <main className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         <div className="h-full w-full space-y-8  py-2">
           <div className="space-y-8">
             <Suspense fallback={<AnalyticsLoading />}>
@@ -132,7 +132,7 @@ function RouteComponent() {
             </Suspense>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

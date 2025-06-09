@@ -1,5 +1,6 @@
 import React from 'react';
 import MonoConnect from '@mono.co/connect.js';
+import { logger } from '@/lib/logger';
 
 interface UseMomoProps {
   key: string,
@@ -38,9 +39,7 @@ export function useMono({ key, onSuccess, onLoad, onClose, onEvent }: UseMomoPro
         if (onClose) onClose();
       },
       onEvent: (eventName: string, eventData: unknown) => {
-        console.log('Mono event:', eventName, eventData);
-        // Example: you might want to set loading false on specific error events
-        // if (eventName === 'ERROR') setIsWidgetLoading(false);
+        logger.debug(`Mono event: ${eventName} ${eventData}`);
         if (onEvent) onEvent(eventName, eventData);
       },
     });

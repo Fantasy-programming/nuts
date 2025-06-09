@@ -278,7 +278,6 @@ const SideBarFooterMenu = memo(() => {
 
 const SideBarHeader = memo(() => {
   const { state } = useSidebar();
-  console.log("Rendering SideBarHeader");
 
   return (
     <SidebarHeader className="h-16 max-md:mt-2 mb-2 justify-center">
@@ -294,7 +293,6 @@ const SideBarHeader = memo(() => {
 })
 
 const SideBarMainLinks = memo(() => {
-  console.log("Rendering SideBMainLinks"); // Add console.log for debugging renders 
   const { t } = useTranslation();
 
   return (

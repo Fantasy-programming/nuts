@@ -39,11 +39,11 @@ function RouteComponent() {
     <>
       <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear ">
         <div className="flex w-full items-center justify-between gap-2">
-          <h2 className="text-2xl font-bold tracking-tight">Dashboard {t("greet")}</h2>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard {t("greet")}</h1>
           <AddChartDialog onAddChart={handleAddChart} />
         </div>
       </header>
-      <main className="flex flex-1">
+      <div className="flex flex-1">
         <div className="h-full w-full space-y-8   py-2">
           <div className="space-y-8">
             <DashboardGrid>
@@ -81,7 +81,7 @@ function RouteComponent() {
             </DashboardGrid>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

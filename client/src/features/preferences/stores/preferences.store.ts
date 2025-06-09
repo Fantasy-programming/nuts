@@ -3,9 +3,10 @@ import { devtools } from 'zustand/middleware';
 import { preferencesService, PreferencesResponse } from '../services/preferences'; // Adjust path
 import i18n from '@/core/i18n/config.ts'; // Adjust path
 import { tryCatch } from '@/lib/trycatch';
+import { logger } from '@/lib/logger';
+import { parseApiError } from '@/lib/error';
 
 interface PreferenceState extends PreferencesResponse {
-
   isLoading: boolean;
   error: null | string;
   isInitialized: boolean;
@@ -14,7 +15,6 @@ interface PreferenceState extends PreferencesResponse {
   setError: (error: string) => void;
 
   setLanguageInternal: (language: string) => void;
-
 
   setPreferences: (preferences: PreferencesResponse) => Promise<void>;
   resetPreferences: () => void;
@@ -30,12 +30,10 @@ export const usePreferencesStore = create<PreferenceState>()(
       setError: (error: string) => set({ error }),
 
       setPreferences: async (preferences: PreferencesResponse) => {
-
-        // Call Code to update relevant subsystems
         const savedLang = preferences.locale;
 
         if (savedLang === "") {
-          console.log('No language preference found in DB. Using current/fallback.');
+          logger.warn('No language preference found in DB. Using current/fallback.');
           set({
             ...preferences,
             locale: i18n.language.split('-')[0],
@@ -44,15 +42,15 @@ export const usePreferencesStore = create<PreferenceState>()(
           return
         }
 
-        console.log(`Preferences fetched. Language from DB: ${savedLang}`);
+        logger.debug(`Preferences fetched. Language from DB: ${savedLang}`);
 
 
         if (savedLang !== i18n.language.split('-')[0]) {
           if (i18n.isInitialized) {
             await i18n.changeLanguage(savedLang);
-            console.log(`i18next language changed to: ${savedLang}`);
+            logger.debug(`i18next language changed to: ${savedLang}`);
           } else {
-            console.warn('i18next not ready during fetchPreferences, language may not update immediately.');
+            logger.warn('i18next not ready during fetchPreferences, language may not update immediately.');
           }
         }
 
@@ -63,8 +61,6 @@ export const usePreferencesStore = create<PreferenceState>()(
       setLanguageInternal: (language: string) => {
         set({ locale: language.split('-')[0] }); // Store base language code
       },
-
-
 
       updateTheme: async (theme: 'light' | 'dark' | 'system') => {
         const currentTheme = get().theme;
@@ -83,28 +79,35 @@ export const usePreferencesStore = create<PreferenceState>()(
         const { error: e2 } = await tryCatch(preferencesService.updatePreferences({ theme }))
 
         if (e2) {
-          console.error("updateThemePreference error:", e2.message);
+          const parsedErr = parseApiError(e2)
+          logger.error(e2, {
+            file: "PreferenceStore",
+            action: "updateTheme",
+            parsedErrorType: parsedErr.type,
+            parsedUserMessage: parsedErr.userMessage,
+            validationErrors: parsedErr.validationErrors,
+            statusCode: parsedErr.statusCode,
+            axiosErrorCode: parsedErr.axiosErrorCode,
+            attemptedTheme: theme,
+          });
+
           set({ error: e2.message, isLoading: false });
           return
 
           // Optional: Rollback local changes on server update failure
         }
 
-        console.log(`Server Theme preference updated to: ${theme}`);
-        set({ isLoading: false }); // Success
+        logger.info(`Server Theme preference updated to: ${theme}`);
+        set({ isLoading: false });
       },
 
       // Action to reset preferences (e.g., on logout)
       resetPreferences: () => {
-        console.log("Resetting preference store");
+        logger.info("Resetting preference store");
+
         // Reset to initial i18next language or default fallback
-        const defaultLang = i18n.language.split('-')[0] || 'en';
+        const defaultLang = i18n.language || 'en-US';
         set({ locale: defaultLang });
-        // You might want to ensure i18next also reverts if needed, though often
-        // page reload on logout handles this, or LanguageDetector picks up browser default.
-        // if (i18n.language.split('-')[0] !== defaultLang) {
-        //    i18n.changeLanguage(defaultLang);
-        // }
       },
     }),
     {

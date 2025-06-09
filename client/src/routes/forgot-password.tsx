@@ -9,7 +9,6 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Nuts } from "@/core/assets/icons/Logo"
 
 export const Route = createFileRoute("/forgot-password")({
-
   validateSearch: z.object({
     redirect: z.string().optional().catch(''),
   }),
@@ -40,9 +39,6 @@ function RouteComponent() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center overflow-hidden p-4">
-      <div
-        className="bg-[#F6F6F4]"
-      />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -50,11 +46,11 @@ function RouteComponent() {
         transition={{ duration: 0.5 }}
         className="relative z-10 w-full max-w-sm space-y-8"
       >
-        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} className="flex justify-center">
-          <Nuts className="w-10 h-10" fill="#000" />
-        </motion.div>
+        <motion.header initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }} className="flex justify-center">
+          <Nuts className="w-10 h-10" fill="var(--foreground)" />
+        </motion.header>
 
-        <div className="w-full ">
+        <main className="w-full mt-4">
           <div className="space-y-1">
             <h1 className="text-center text-2xl">Reset password</h1>
             <p className="text-center">Enter your email address and we'll send you a link to reset your password</p>
@@ -106,7 +102,7 @@ function RouteComponent() {
               </Link>
             </motion.div>
           </div>
-        </div>
+        </main>
       </motion.div>
     </div>
   );

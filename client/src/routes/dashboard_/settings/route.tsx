@@ -1,5 +1,3 @@
-"use client"
-
 import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router"
 import { cn } from "@/lib/utils"
 import {
@@ -44,7 +42,7 @@ type NavItem = {
 type NavCategory = {
   title: string
   items: NavItem[]
-  condition?: (context: AuthNullable) => boolean // Optional condition to show category
+  condition?: (context: AuthNullable) => boolean
 }
 
 
@@ -110,24 +108,14 @@ function RouteComponent() {
   useHotkeys(
     "esc",
     () => {
-      if (window.history.length > 1 && !currentPath.startsWith("'/dashboard/settings'")) {
-        // Try going back if possible and not already at the settings root
-        navigate({ to: '..' });
-      } else {
-        navigate({ to: "/dashboard/home" });
-      }
+      navigate({ to: "/dashboard/home" });
     },
-    [],
-    { enableOnFormTags: false } // Prevent ESC closing modals/inputs from triggering navigation
+    [navigate],
+    { enableOnFormTags: false }
   )
 
   const handleBack = () => {
-    // Consider navigating back in history if possible, otherwise to home
-    if (window.history.length > 1 && currentPath !== '/dashboard/settings') {
-      navigate({ to: '..' }); // Go up one level in the route hierarchy
-    } else {
-      navigate({ to: "/dashboard/home" }); // Fallback to home
-    }
+    navigate({ to: "/dashboard/home" });
   }
 
   const handleMobileNavigate = (value: string) => {
