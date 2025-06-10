@@ -6,6 +6,8 @@ type Auth struct {
 	SigningKey string `required:"true"`
 	RefreshKey string `required:"true"`
 
+	RedirectSecure string `split_words:"true" required:"false"`
+
 	GoogleAuthEnabled  bool   `split_words:"true" required:"false" default:"false"`
 	GoogleClientID     string `split_words:"true" required:"false"`
 	GoogleClientSecret string `split_words:"true" required:"false"`

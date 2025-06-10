@@ -12,6 +12,7 @@ import (
 
 	"github.com/pquerna/otp/totp"
 
+	"github.com/Fantasy-Programming/nuts/server/config"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/user"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utility/encrypt"
@@ -44,13 +45,14 @@ var (
 type Handler struct {
 	v       *validation.Validator
 	encrypt *encrypt.Encrypter
+	config  *config.Config
 	tkn     *jwt.Service
 	repo    user.Repository
 	log     *zerolog.Logger
 }
 
-func NewHandler(validator *validation.Validator, encrypt *encrypt.Encrypter, tokenService *jwt.Service, repo user.Repository, logger *zerolog.Logger) *Handler {
-	return &Handler{validator, encrypt, tokenService, repo, logger}
+func NewHandler(config *config.Config, validator *validation.Validator, encrypt *encrypt.Encrypter, tokenService *jwt.Service, repo user.Repository, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, encrypt, config, tokenService, repo, logger}
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -202,7 +204,8 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 	var req SignupRequest
 	ctx := r.Context()
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	valErr, err := h.v.ParseAndValidate(ctx, r, &req)
+	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -210,25 +213,26 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 			ClientErr:  message.ErrBadRequest,
 			ActualErr:  err,
 			Logger:     h.log,
+			Details:    r.Body,
 		})
 		return
 	}
 
-	if err := h.v.Validator.Struct(req); err != nil {
-		// validationErrors := validation.TranslateErrors(ctx, err)
+	if valErr != nil {
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
 			StatusCode: http.StatusBadRequest,
 			ClientErr:  message.ErrValidation,
-			ActualErr:  err,
+			ActualErr:  valErr,
 			Logger:     h.log,
+			Details:    req,
 		})
 		return
 	}
 
 	// check for existing user
-	_, err := h.repo.GetUserByEmail(ctx, req.Email)
+	_, err = h.repo.GetUserByEmail(ctx, req.Email)
 
 	if err == nil {
 		respond.Error(respond.ErrorOptions{
@@ -553,10 +557,12 @@ func (h *Handler) GoogleCallbackHandler(w http.ResponseWriter, r *http.Request) 
 		Expires:  time.Now().Add(7 * 24 * time.Hour),
 	})
 
-	redirectURL := os.Getenv("REDIRECT_SECURE")
+	redirectURL := h.config.RedirectSecure
+
 	if redirectURL == "" {
 		redirectURL = "http://localhost:5173/dashboard"
 	}
+
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 

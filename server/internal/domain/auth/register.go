@@ -27,7 +27,7 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, storage storage.Storage, validate *v
 		logger.Panic().Err(err).Msg("Failed to setup encrypter")
 	}
 
-	h := NewHandler(validate, encrypt, tkn, repo, logger)
+	h := NewHandler(config, validate, encrypt, tkn, repo, logger)
 
 	// Create the auth verify middleware
 	middleware := jwt.NewMiddleware(tkn)

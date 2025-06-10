@@ -74,6 +74,9 @@ func (s *HandlerTestSuite) SetupSuite() {
 		RefreshTokenDuration: 7 * 24 * time.Hour,
 	}
 
+	// Setup Config
+	globalConfig := config.Config{}
+
 	// Create validator
 	validator := validation.New()
 
@@ -100,7 +103,7 @@ func (s *HandlerTestSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	// Create handler
-	s.handler = auth.NewHandler(validator, encrypter, s.jwt, s.repo, &logger)
+	s.handler = auth.NewHandler(&globalConfig, validator, encrypter, s.jwt, s.repo, &logger)
 
 	// Setup router
 	s.router = router.NewRouter()
@@ -134,7 +137,7 @@ func (s *HandlerTestSuite) TearDownSuite() {
 	}
 }
 
-func (s *HandlerTestSuite) makeRequest(method, path string, body interface{}) (*httptest.ResponseRecorder, error) {
+func (s *HandlerTestSuite) makeRequest(method, path string, body any) (*httptest.ResponseRecorder, error) {
 	var req *http.Request
 	var err error
 

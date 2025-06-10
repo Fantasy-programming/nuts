@@ -2,11 +2,12 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.dagger.hilt.android")
 }
 
 android {
     namespace = "com.fantasy.nuts"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.fantasy.nuts"
@@ -37,6 +38,13 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/gradle/incremental.annotation.processors"
+            excludes += "/META-INF/androidx/room/room-compiler-processing/LICENSE.txt"
+        }
+    }
 }
 
 dependencies {
@@ -50,33 +58,34 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.activity.ktx)
-    implementation(libs.androidx.room.compiler)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.retrofit)
-    implementation(libs.converter.gson)
-    implementation(libs.logging.interceptor)
-    implementation(libs.accompanist.systemuicontroller)
-    implementation(libs.accompanist.permissions)
-    implementation(libs.accompanist.navigation.animation)
-    implementation(libs.mpandroidchart)
-    implementation(libs.ycharts)
-    implementation(libs.coil.compose)
-    implementation(libs.androidx.datastore.preferences)
+//    implementation(libs.androidx.room.compiler)
+//    implementation(libs.androidx.room.ktx)
+//    implementation(libs.androidx.room.runtime)
+//    implementation(libs.retrofit)
+//    implementation(libs.converter.gson)
+//    implementation(libs.logging.interceptor)
+//    implementation(libs.accompanist.systemuicontroller)
+//    implementation(libs.accompanist.permissions)
+//    implementation(libs.accompanist.navigation.animation)
+//    implementation(libs.coil.compose)
+//    implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.hilt.android)
-    implementation(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.hilt.android.v2511)
+    implementation(libs.hilt.android.compiler.v2511)
+//    implementation(libs.kotlinx.coroutines.android)
+//    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(libs.compose)
+    implementation(libs.compose.m3)
+    implementation(libs.core)
+//    implementation(libs.annotations)
+//    testImplementation(libs.junit)
+//    androidTestImplementation(libs.androidx.junit)
+//    androidTestImplementation(libs.androidx.espresso.core)
+//    androidTestImplementation(platform(libs.androidx.compose.bom))
+//    androidTestImplementation(libs.androidx.ui.test.junit4)
+//    debugImplementation(libs.androidx.ui.tooling)
+//    debugImplementation(libs.androidx.ui.test.manifest)
 }
