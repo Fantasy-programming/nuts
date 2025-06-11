@@ -1,60 +1,355 @@
 ---
-const testimonials = [
-  {
-    content: "Nut has completely transformed how I manage my finances. The insights it provides have helped me save over $500 a month!",
-    author: "Sarah J.",
-    role: "Marketing Manager"
-  },
-  {
-    content: "As someone who's always struggled with budgeting, Nut makes it incredibly simple. The cross-platform sync is a game-changer.",
-    author: "Michael T.",
-    role: "Software Engineer"
-  },
-  {
-    content: "I've tried many finance apps, but Nut stands out with its clean interface and powerful features. It's helped me pay off my debt faster.",
-    author: "Emma R.",
-    role: "Teacher"
-  }
-];
----
 
-<section class="bg-white py-12">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center">
-      <h2 class="text-base text-primary-600 font-semibold tracking-wide uppercase">Testimonials</h2>
-      <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-        What our users are saying
+---
+<section id="testimonials" class="relative overflow-hidden bg-white">
+  <div class="max-w-6xl mx-auto relative z-10 py-12 lg:py-16  px-4">
+    <div class="mb-12 md:mb-20">
+      <h2 class="text-4xl md:text-6xl font-heading font-bold text-center mb-4 text-gray-900">
+        Loved by our customers
+      </h2>
+      <p class="text-lg text-gray-700 text-center max-w-2xl mx-auto">
+        People trust people. Show off all of the great reviews of your
+        product to ease the minds of potential customers.
       </p>
     </div>
-    <div class="mt-10">
-      <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
-        {testimonials.map(testimonial => (
-          <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
-            <div class="flex items-center mb-4">
-              <svg class="h-5 w-5 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <svg class="h-5 w-5 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <svg class="h-5 w-5 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <svg class="h-5 w-5 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <svg class="h-5 w-5 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
+    
+    <div id="reviews-container" class="relative grid grid-cols-1 gap-3 md:grid-cols-3 overflow-hidden transition-all duration-300" style="height: 400px;">
+      <!-- Left Column -->
+      <div class="h-fit space-y-3 reviews-column">
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=John"
+                alt="Placeholder image for faux user John Johnson"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">John Johnson</span>
+                <span class="block text-gray-500">@johns6</span>
+              </div>
             </div>
-            <p class="text-gray-600 mb-4">{testimonial.content}</p>
-            <div class="font-medium">
-              <p class="text-gray-900">{testimonial.author}</p>
-              <p class="text-gray-500">{testimonial.role}</p>
-            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
           </div>
-        ))}
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Earum labore incidunt temporibus sunt? Excepturi nulla atque odio dolore, velit harum.</p>
+        </div>
+
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Dan"
+                alt="Placeholder image for faux user Dan Daniels"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Dan Daniels</span>
+                <span class="block text-gray-500">@DannyD</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Earum labore velit harum.</p>
+        </div>
+
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Phil"
+                alt="Placeholder image for faux user Phil Phillips"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Phil Phillips</span>
+                <span class="block text-gray-500">@phillipsp55104</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Earum labore incidunt temporibus sunt? Excepturi velit harum.</p>
+        </div>
+
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Andy"
+                alt="Placeholder image for faux user Andy Anderson"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Andy Anderson</span>
+                <span class="block text-gray-500">@andyandyandy</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing. Excepturi nulla atque odio dolore, velit harum.</p>
+        </div>
       </div>
+
+      <!-- Center Column -->
+      <div class="h-fit space-y-3 reviews-column hidden md:block">
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Steve"
+                alt="Placeholder image for faux user Steve Stevenson"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Steve Stevenson</span>
+                <span class="block text-gray-500">@steves</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing.</p>
+        </div>
+
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Peter"
+                alt="Placeholder image for faux user Peter Peterson"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Peter Peterson</span>
+                <span class="block text-gray-500">@petey.pete</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Earum labore incidunt.</p>
+        </div>
+
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Paul"
+                alt="Placeholder image for faux user Paul Paulson"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Paul Paulson</span>
+                <span class="block text-gray-500">@p.paulson44</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing elit velit harum.</p>
+        </div>
+
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Phil"
+                alt="Placeholder image for faux user Andrew Andrews"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Andrew Andrews</span>
+                <span class="block text-gray-500">@andrewA</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Earum labore incidunt temporibus sunt.</p>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="h-fit space-y-3 reviews-column hidden md:block">
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Jeff"
+                alt="Placeholder image for faux user Jeff Jefferson"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Jeff Jefferson</span>
+                <span class="block text-gray-500">@jeffJ99</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Excepturi nulla atque odio dolore, velit harum.</p>
+        </div>
+
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Jess"
+                alt="Placeholder image for faux user Jess Jessica"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Jess Jessica</span>
+                <span class="block text-gray-500">@jess</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Earum labore velit harum. Dolor sit amet consectetur adipisicing elit!</p>
+        </div>
+
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ben"
+                alt="Placeholder image for faux user Ben Benjamin"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Ben Benjamin</span>
+                <span class="block text-gray-500">@banjamin4491</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Earum labore incidunt temporibus sunt? Excepturi velit harum.</p>
+        </div>
+
+        <div class="review-card relative h-full w-full overflow-hidden rounded-2xl border border-gray-300 bg-white p-5" style="padding: 20px;">
+          <div class="mb-1.5 flex items-center justify-between">
+            <div class="relative flex items-center gap-2 py-2 text-xs">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Frank"
+                alt="Placeholder image for faux user Frank Franklin"
+                class="size-8 rounded-full"
+              />
+              <div>
+                <span class="block font-medium text-gray-700">Frank Franklin</span>
+                <span class="block text-gray-500">@frankyf00</span>
+              </div>
+            </div>
+            <svg class="text-sky-500 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
+          <p class="text-gray-700">Lorem ipsum, dolor sit amet consectetur adipisicing. Excepturi nulla.</p>
+        </div>
+      </div>
+
+      <!-- Gradient Overlay -->
+      <div id="gradient-overlay" class="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-white/0 to-white h-20 transition-all duration-300"></div>
     </div>
+    
+    <!-- Toggle Button -->
+    <button
+      id="toggle-button"
+      class="relative z-0 flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-md border border-gray-300 bg-gradient-to-br from-gray-100 to-gray-200 px-3 py-1.5 text-gray-700 transition-all duration-300 mx-auto mt-12 before:absolute before:inset-0 before:-z-10 before:translate-y-[200%] before:scale-[2.5] before:rounded-[100%] before:bg-gray-300 before:transition-transform before:duration-500 before:content-[''] hover:scale-105 hover:text-gray-900 hover:before:translate-y-[0%] active:scale-100"
+    >
+      View more
+    </button>
+  </div>
+  
+  <!-- Corner Grid -->
+  <div class="absolute right-0 top-0 z-0 size-[50vw]" style="background-image: radial-gradient(circle, rgba(59, 130, 246, 0.1) 1px, transparent 1px); background-size: 20px 20px;">
+    <div
+      style="background-image: radial-gradient(100% 100% at 100% 0%, rgba(255,255,255,0), rgba(255,255,255,1))"
+      class="absolute inset-0"
+    ></div>
   </div>
 </section>
+
+<style>
+  .review-card {
+    opacity: 0;
+    filter: blur(2px);
+    animation: fadeInBlur 0.5s ease-in-out 0.25s forwards;
+  }
+
+  @keyframes fadeInBlur {
+    to {
+      opacity: 1;
+      filter: blur(0px);
+    }
+  }
+
+  .review-card:nth-child(1) { animation-delay: 0.1s; }
+  .review-card:nth-child(2) { animation-delay: 0.2s; }
+  .review-card:nth-child(3) { animation-delay: 0.3s; }
+  .review-card:nth-child(4) { animation-delay: 0.4s; }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const toggleButton = document.getElementById('toggle-button') as HTMLButtonElement | null;
+    const reviewsContainer = document.getElementById('reviews-container') as HTMLElement | null;
+    const gradientOverlay = document.getElementById('gradient-overlay') as HTMLElement | null;
+    let isOpen = false;
+
+    function updateResponsiveLayout() {
+      const isMobile = window.innerWidth <= 768;
+      const centerColumn = document.querySelector('.reviews-column:nth-child(2)') as HTMLElement | null;
+      const rightColumn = document.querySelector('.reviews-column:nth-child(3)') as HTMLElement | null;
+      
+      if (isMobile) {
+        // Hide center and right columns on mobile
+        if (centerColumn) centerColumn.style.display = 'none';
+        if (rightColumn) rightColumn.style.display = 'none';
+      } else {
+        // Show all columns on desktop
+        if (centerColumn) centerColumn.style.display = 'block';
+        if (rightColumn) rightColumn.style.display = 'block';
+      }
+    }
+
+    function toggleReviews() {
+      isOpen = !isOpen;
+      
+      if (reviewsContainer && gradientOverlay && toggleButton) {
+        if (isOpen) {
+          reviewsContainer.style.height = 'fit-content';
+          gradientOverlay.style.top = '100%';
+          toggleButton.textContent = 'View less';
+        } else {
+          reviewsContainer.style.height = '400px';
+          gradientOverlay.style.top = '0%';
+          toggleButton.textContent = 'View more';
+        }
+      }
+    }
+
+    if (toggleButton) {
+      toggleButton.addEventListener('click', toggleReviews);
+    }
+    window.addEventListener('resize', updateResponsiveLayout);
+    
+    // Initial setup
+    updateResponsiveLayout();
+  });
+</script>

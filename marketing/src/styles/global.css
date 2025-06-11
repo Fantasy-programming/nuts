@@ -1,5 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+
+@font-face {
+  font-family: 'GeneralSans-Variable';
+  src: url('/fonts/GeneralSans-Variable.woff2') format('woff2'),
+       url('/fonts/GeneralSans-Variable.woff') format('woff'),
+       url('/fonts/GeneralSans-Variable.ttf') format('truetype');
+  font-weight: 200 700;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeneralSans-VariableItalic';
+  src: url('/fonts/GeneralSans-VariableItalic.woff2') format('woff2'),
+       url('/fonts/GeneralSans-VariableItalic.woff') format('woff'),
+       url('/fonts/GeneralSans-VariableItalic.ttf') format('truetype');
+  font-weight: 200 700;
+  font-display: swap;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'BespokeSerif-Variable';
+  src: url('/fonts/BespokeSerif-Variable.woff2') format('woff2'),
+       url('/fonts/BespokeSerif-Variable.woff') format('woff'),
+       url('/fonts/BespokeSerif-Variable.ttf') format('truetype');
+  font-weight: 300 800;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'BespokeSerif-VariableItalic';
+  src: url('/fonts/BespokeSerif-VariableItalic.woff2') format('woff2'),
+       url('/fonts/BespokeSerif-VariableItalic.woff') format('woff'),
+       url('/fonts/BespokeSerif-VariableItalic.ttf') format('truetype');
+  font-weight: 300 800;
+  font-display: swap;
+  font-style: italic;
+}
+
 
 @theme {
   --color-primary-50:  #f0fdf4;
@@ -13,4 +56,21 @@
   --color-primary-800: #166534;
   --color-primary-900: #14532d;
   --color-primary-950: #052e16;
+
+
+  --font-body: "GeneralSans-Variable", var(--font-sans);
+  --font-heading: "BespokeSerif-Variable", var(--font-serif);
+  --font-subheading: "Roboto Mono", var(--font-mono);
+}
+
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }

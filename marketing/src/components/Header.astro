@@ -1,24 +1,27 @@
 ---
-// Enhanced Responsive Header Component with sticky positioning, blur effect, and animated mobile menu
+import Logo from "../assets/Logo-super.svg"
 ---
 
-<header class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm z-50 shadow-sm transition-all duration-200">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<header class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm z-50 shadow-sm transition-all duration-200 font-subheading">
+  <div class="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between h-16 items-center">
       <!-- Logo -->
-      <div class="flex-shrink-0 flex items-center">
-        <a href="/" class="text-2xl font-bold text-primary-600">nut</a>
+      <div class="flex-shrink-0 flex gap-2 items-center font-heading">
+        <Logo class="size-20 fill-primary-900" />
       </div>
-      
+
       <!-- Desktop Navigation - Centered -->
-      <nav class="hidden md:flex absolute left-1/2 transform -translate-x-1/2">
-        <div class="flex space-x-8">
-          <a href="/about" class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium">About Us</a>
-          <a href="/blog" class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium">Blog</a>
-          <a href="https://github.com/Fantasy-programming/nuts" class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium">Contribute</a>
+      <nav class="hidden md:flex items-center justify-center grow absolute left-1/2 transform uppercase text-nowrap -translate-x-1/2">
+        <div class="flex gap-8">
+          <a href="/about" class="text-gray-700 hover:text-primary-600  py-2 text-sm font-medium">Features</a>
+          <a href="/blog" class="text-gray-700 hover:text-primary-600  py-2 text-sm font-medium">For npcs</a>
+          <a href="/blog" class="text-gray-700 hover:text-primary-600  py-2 text-sm font-medium">For Couples</a>
+          <a href="/blog" class="text-gray-700 hover:text-primary-600  py-2 text-sm font-medium">Pricing</a>
+          <a href="/blog" class="text-gray-700 hover:text-primary-600  py-2 text-sm font-medium">Recourcces</a>
+          <a href="https://github.com/Fantasy-programming/nuts" class="text-gray-700 hover:text-primary-600  py-2 text-sm font-medium">Contribute</a>
         </div>
       </nav>
-      
+
       <!-- CTA buttons - right aligned -->
       <div class="hidden md:flex items-center justify-end space-x-4">
         <a href="https://github.com/Fantasy-programming/nuts#self-hosting" class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium flex items-center">
@@ -29,7 +32,7 @@
         </a>
         <a href="https://nutsapp.ridyrich.engineer/" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium">Test Instance</a>
       </div>
-      
+
       <!-- Mobile menu button -->
       <div class="flex md:hidden">
         <button 
@@ -47,7 +50,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Full screen mobile menu -->
   <div id="mobile-menu" class="fixed inset-0 bg-white/95 backdrop-blur-md z-40 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-center items-center">
     <nav class="flex flex-col space-y-8 text-center w-full">
@@ -78,11 +81,11 @@
     const burgerIcon = menuButton?.querySelector('.burger-icon');
     const burgerLines = burgerIcon?.querySelectorAll('span');
     let isOpen = false;
-    
+
     if (menuButton && mobileMenu && burgerLines?.length === 3) {
       menuButton.addEventListener('click', () => {
         isOpen = !isOpen;
-        
+
         // Animate burger to X
         if (isOpen) {
           burgerLines[0].classList.add('rotate-45', 'translate-y-1.5');

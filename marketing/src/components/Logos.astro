@@ -1,0 +1,103 @@
+---
+import { Image } from "astro:assets";
+import NaloLogo from "../assets/images/nalo.webp"
+import ATULogo from "../assets/images/atu.png"
+import FNBLogo from "../assets/images/fnb.png"
+import GoogleLogo from "../assets/google.svg"
+---
+
+<section class="logos-section relative overflow-hidden  py-12 opacity-0">
+  <div class="flex overflow-hidden text-gray-700">
+    <div class="translate-wrapper flex shrink-0">
+      <div class="logo-items min-w-fit flex gap-12 mr-12 items-center">
+        <Image src={NaloLogo} class="logo-item grayscale aspect-square  shrink-0 w-[100px] h-[60px]" alt="Nalo solutions logo" />
+        <Image src={FNBLogo} class="logo-item grayscale aspect-square  shrink-0 w-[120px] h-[60px]" alt="FNB logo" />
+        <Image src={ATULogo} class="logo-item grayscale   shrink-0 w-[60px] h-[60px]" alt="Accra technical university logo" />
+        <GoogleLogo class=" logo-item grayscale   shrink-0 w-[40px] h-[40px]"  />
+      </div>
+    </div>
+    <div class="translate-wrapper flex">
+      <div class="logo-items flex gap-12 mr-12 items-center">
+        <Image src={NaloLogo} class="logo-item grayscale aspect-square  shrink-0 w-[120px] h-[60px]" alt="Nalo solutions logo" />
+        <Image src={FNBLogo} class="logo-item grayscale aspect-square  shrink-0 w-[120px] h-[60px]" alt="FNB logo" />
+        <Image src={ATULogo} class="logo-item grayscale   shrink-0 w-[60px] h-[60px]" alt="Accra technical university logo" />
+        <GoogleLogo class=" logo-item grayscale   shrink-0 w-[40px] h-[40px]"  />
+      </div>
+    </div>
+    <div class="translate-wrapper flex gap-12">
+      <div class="logo-items flex gap-12 items-center">
+        <Image src={NaloLogo} class="logo-item grayscale aspect-square  shrink-0 w-[120px] h-[60px]" alt="Nalo solutions logo" />
+        <Image src={FNBLogo} class="logo-item grayscale aspect-square  shrink-0 w-[120px] h-[60px]" alt="FNB logo" />
+        <Image src={ATULogo} class="logo-item grayscale   shrink-0 w-[60px] h-[60px]" alt="Accra technical university logo" />
+        <GoogleLogo class=" logo-item grayscale   shrink-0 w-[40px] h-[40px]"  />
+      </div>
+    </div>
+  </div>
+  <div class="absolute bottom-0 left-0 top-0 w-1/2 max-w-96 bg-gradient-to-r from-gray-50 from-80% to-gray-50/0">
+  <div class="absolute inset-0 flex items-center justify-center font-subheading">
+    <p class="text-sm font-semibold uppercase tracking-tight text-gray-700">Our users work at</p>
+  </div>
+</div>
+  <div class="absolute bottom-0 right-0 top-0 w-1/3 max-w-64 bg-gradient-to-l from-gray-50 to-gray-50/0"></div>
+</section>
+
+<script>
+  import { animate, inView, type AnimationPlaybackControlsWithThen } from "motion";
+
+  let animations: AnimationPlaybackControlsWithThen[] = [];
+
+  // Function to start continuous scrolling animation
+  function startScrollingAnimation() {
+    const wrappers = document.querySelectorAll('.translate-wrapper');
+
+    wrappers.forEach((wrapper) => {
+      // Calculate the width of the content to know how far to translate
+      const logoItems = wrapper.querySelector('.logo-items') as HTMLElement | null;
+      if (!logoItems) return;
+
+      const itemWidth = logoItems.offsetWidth;
+
+      // Create infinite scrolling animation
+      const scrollAnimation = animate(
+        wrapper,
+        {
+          x: [0, itemWidth]
+        },
+        {
+          duration: 5,
+          repeat: Infinity,
+          ease: "linear"
+        }
+      );
+
+      // Store animation reference for potential cleanup
+      animations.push(scrollAnimation);
+    });
+  }
+
+  // Function to stop animations (useful for performance)
+  function stopScrollingAnimation() {
+    animations.forEach(animation => animation.stop());
+    animations = [];
+  }
+
+  // Start animation when logos come into view for better performance
+  inView('.logos-section', (element) => {
+    // Fade in the section first
+    animate(element, { opacity: [0, 1] }, { duration: 0.8 });
+    
+    // Then start scrolling
+    setTimeout(startScrollingAnimation, 200);
+  }, { 
+    amount: 0.1 
+  });
+
+  // Optional: Stop animations when page is hidden (for performance)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopScrollingAnimation();
+    } else if (document.querySelector('.logos-section')) {
+      startScrollingAnimation();
+    }
+  });
+</script>
