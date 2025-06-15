@@ -100,204 +100,126 @@ WHERE id = sqlc.arg('id')
 RETURNING *;
 
 -- name: GetAccountsBalanceTimeline :many
-WITH relevant_period AS (
+WITH
+-- =================================================================
+-- Step 1: Define the reporting period and the user's base currency
+-- =================================================================
+period AS (
     SELECT
         date_trunc('month', now()) - INTERVAL '11 months' AS start_month,
         date_trunc('month', now()) AS end_month
 ),
-months AS (
-    SELECT generate_series(
-        (SELECT start_month FROM relevant_period),
-        (SELECT end_month FROM relevant_period),
-        INTERVAL '1 month'
-    ) AS month
+user_base_currency AS (
+    SELECT COALESCE((SELECT currency FROM preferences WHERE user_id = $2 LIMIT 1), 'USD') AS base_currency
 ),
-account_info AS (
+-- =================================================================
+-- Step 2: Unify and convert all transaction "movements" for the SPECIFIC account.
+-- =================================================================
+transactions_converted AS (
     SELECT
-        id AS account_id,
-        created_at,
-        is_external,
-        balance AS db_balance
-    FROM accounts
-    WHERE
-        deleted_at IS NULL
-        AND accounts.created_by = sqlc.arg('user_id')
+        m.account_id,
+        m.transaction_datetime,
+        (m.amount * COALESCE(er.rate, 1.0))::DECIMAL AS converted_amount
+    FROM (
+        SELECT t.account_id, t.transaction_datetime, t.amount, t.transaction_currency FROM transactions t
+        WHERE t.created_by = $2 AND t.deleted_at IS NULL AND t.type IN ('income', 'expense') AND t.account_id = $1
+        UNION ALL
+        SELECT t.account_id, t.transaction_datetime, -t.amount, t.transaction_currency FROM transactions t
+        WHERE t.created_by = $2 AND t.deleted_at IS NULL AND t.type = 'transfer' AND t.account_id = $1
+        UNION ALL
+        SELECT t.destination_account_id, t.transaction_datetime, t.amount, t.transaction_currency FROM transactions t
+        WHERE t.created_by = $2 AND t.deleted_at IS NULL AND t.type = 'transfer' AND t.destination_account_id = $1
+    ) m
+    LEFT JOIN LATERAL (
+        SELECT rate FROM exchange_rates er
+        WHERE er.from_currency = m.transaction_currency AND er.to_currency = (SELECT base_currency FROM user_base_currency)
+          AND er.effective_date <= m.transaction_datetime::DATE
+        ORDER BY er.effective_date DESC
+        LIMIT 1
+    ) er ON TRUE
 ),
--- Get all transactions for each account to understand what data we have
-account_transaction_summary AS (
+-- =================================================================
+-- Step 3: Pre-calculate daily net changes for the specific account.
+-- =================================================================
+daily_deltas AS (
     SELECT
-        ai.account_id,
-        COUNT(t.id) AS total_transaction_count,
-        MIN(t.transaction_datetime) AS earliest_transaction_date,
-        MAX(t.transaction_datetime) AS latest_transaction_date,
-        -- Sum of all transactions we have for this account
-        SUM(
-            CASE
-                WHEN t.type = 'income' THEN t.amount
-                WHEN t.type = 'expense' THEN -t.amount
-                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
-                ELSE 0
-            END
-        ) AS total_transaction_impact
-    FROM account_info ai
-    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-        AND t.created_by = sqlc.arg('user_id')
-    GROUP BY ai.account_id
+        date_trunc('day', transaction_datetime)::DATE AS date,
+        SUM(converted_amount) AS delta
+    FROM transactions_converted
+    GROUP BY date_trunc('day', transaction_datetime)
 ),
--- Calculate transactions that happened before our timeline period
-pre_timeline_transactions AS (
+-- =================================================================
+-- Step 4: Get the authoritative "anchor" balance for the specific account.
+-- =================================================================
+account_anchor_balance AS (
     SELECT
-        ai.account_id,
-        SUM(
-            CASE
-                WHEN t.type = 'income' THEN t.amount
-                WHEN t.type = 'expense' THEN -t.amount
-                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
-                ELSE 0
-            END
-        ) AS pre_timeline_impact
-    FROM account_info ai
-    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-        AND t.transaction_datetime < (SELECT start_month FROM relevant_period)
-        AND t.created_by = sqlc.arg('user_id')
-    GROUP BY ai.account_id
-),
--- Calculate transactions within our timeline period
-timeline_transactions AS (
-    SELECT
-        ai.account_id,
-        SUM(
-            CASE
-                WHEN t.type = 'income' THEN t.amount
-                WHEN t.type = 'expense' THEN -t.amount
-                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
-                ELSE 0
-            END
-        ) AS timeline_impact
-    FROM account_info ai
-    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-        AND t.transaction_datetime >= (SELECT start_month FROM relevant_period)
-        AND t.transaction_datetime < ((SELECT end_month FROM relevant_period) + INTERVAL '1 month')
-        AND t.created_by = sqlc.arg('user_id')
-    GROUP BY ai.account_id
-),
--- Determine the correct initial balance for the start of our timeline
-initial_balances AS (
-    SELECT
-        ai.account_id,
-        ai.is_external,
-        ai.db_balance,
-        ai.created_at,
-        ats.total_transaction_count,
-        ats.earliest_transaction_date,
+        a.id AS account_id,
+        a.type,
+        a.created_at,
         CASE
-            -- Internal accounts: Calculate from all pre-timeline transactions
-            WHEN NOT ai.is_external THEN 
-                COALESCE(ptt.pre_timeline_impact, 0)
-            
-            -- External accounts with NO transactions at all: Use DB balance
-            WHEN ai.is_external AND (ats.total_transaction_count = 0 OR ats.total_transaction_count IS NULL) THEN 
-                ai.db_balance
-            
-            -- External accounts WITH transactions: Work backwards from current balance
-            -- Current balance = initial_balance + all_transaction_impacts
-            -- Therefore: initial_balance = current_balance - all_transaction_impacts
-            WHEN ai.is_external AND ats.total_transaction_count > 0 THEN 
-                ai.db_balance - COALESCE(ats.total_transaction_impact, 0)
-            
-            ELSE 0
-        END AS calculated_initial_balance
-    FROM account_info ai
-    LEFT JOIN account_transaction_summary ats ON ai.account_id = ats.account_id
-    LEFT JOIN pre_timeline_transactions ptt ON ai.account_id = ptt.account_id
-    LEFT JOIN timeline_transactions tt ON ai.account_id = tt.account_id
-),
--- Monthly transaction aggregation within our timeline
-monthly_transactions AS (
-    SELECT
-        ai.account_id,
-        date_trunc('month', t.transaction_datetime) AS month,
-        SUM(
-            CASE
-                 WHEN t.type = 'income' THEN t.amount
-                 WHEN t.type = 'expense' THEN -t.amount
-                 WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                 WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
-                 ELSE 0
-            END
-        ) AS monthly_net
-    FROM transactions t
-    JOIN account_info ai ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-    WHERE t.transaction_datetime >= (SELECT start_month FROM relevant_period)
-      AND t.transaction_datetime < ((SELECT end_month FROM relevant_period) + INTERVAL '1 month')
-      AND t.created_by = '323e5fb0-5175-4292-be64-60f48c8cff49'
-    GROUP BY ai.account_id, month
-),
--- Combine everything: accounts, months, and their balances
-combined AS (
-    SELECT
-        m.month,
-        ai.account_id,
-        ai.is_external,
-        ai.db_balance,
-        ib.calculated_initial_balance AS initial_balance,
-        COALESCE(mt.monthly_net, 0) AS monthly_net,
-        ib.total_transaction_count,
-        -- Determine when this account should start appearing in timeline
-        CASE 
-            WHEN ai.is_external THEN (SELECT start_month FROM relevant_period)
-            ELSE GREATEST(
-                date_trunc('month', ai.created_at),
-                (SELECT start_month FROM relevant_period)
-            )
-        END AS account_start_month
-    FROM months m
-    CROSS JOIN account_info ai
-    LEFT JOIN initial_balances ib ON ai.account_id = ib.account_id
-    LEFT JOIN monthly_transactions mt ON ai.account_id = mt.account_id AND m.month = mt.month
-    -- Determine when accounts should start appearing in timeline
-    WHERE 
-        -- Internal accounts: from creation date or timeline start, whichever is later
-        (NOT ai.is_external AND m.month >= GREATEST(
-            date_trunc('month', ai.created_at),
-            (SELECT start_month FROM relevant_period)
-        ))
-        OR
-        -- External accounts: from timeline start (they represent pre-existing accounts)
-        (ai.is_external AND m.month >= (SELECT start_month FROM relevant_period))
-),
--- Calculate running balances
-running_balance AS (
-    SELECT
-        c.month,
-        c.account_id,
-        c.is_external,
-        c.db_balance,
-        c.total_transaction_count,
+            WHEN a.is_external THEN (a.balance * COALESCE(er.rate, 1.0))::DECIMAL
+            ELSE COALESCE((SELECT SUM(tc.converted_amount) FROM transactions_converted tc), 0)
+        END AS anchor_balance,
         CASE
-            -- External accounts with NO transactions: Use DB balance (flat line)
-            WHEN c.is_external AND (c.total_transaction_count = 0 OR c.total_transaction_count IS NULL) THEN 
-                c.db_balance
-            
-            -- All other accounts: Calculate running balance from initial + cumulative monthly changes
-            ELSE c.initial_balance + SUM(c.monthly_net) OVER (
-                PARTITION BY c.account_id
-                ORDER BY c.month
-                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-            )
-        END AS balance
-    FROM combined c
+            WHEN a.is_external THEN a.updated_at
+            ELSE NOW()
+        END AS anchor_date
+    FROM accounts a
+    LEFT JOIN LATERAL (
+        SELECT rate FROM exchange_rates er
+        WHERE er.from_currency = a.currency AND er.to_currency = (SELECT base_currency FROM user_base_currency)
+          AND er.effective_date <= a.updated_at::DATE
+        ORDER BY er.effective_date DESC
+        LIMIT 1
+    ) er ON TRUE
+    WHERE a.id = $1 AND a.created_by = $2 AND a.deleted_at IS NULL
+),
+-- =================================================================
+-- Step 5: Generate the daily balance timeseries for the account.
+-- =================================================================
+balance_timeseries AS (
+    SELECT
+        d.date,
+        a.type,
+        (
+            a.anchor_balance -
+            COALESCE((
+                SELECT SUM(delta) FROM daily_deltas dd
+                WHERE dd.date > (SELECT end_month FROM period)::DATE
+                  AND dd.date <= a.anchor_date::DATE
+            ), 0)
+        )
+        -
+        COALESCE((
+            SELECT SUM(delta) FROM daily_deltas dd
+            WHERE dd.date > d.date
+              AND dd.date <= (SELECT end_month FROM period)::DATE
+        ), 0) AS daily_balance
+    FROM
+        generate_series(
+            (SELECT start_month FROM period)::DATE,
+            (SELECT end_month FROM period)::DATE + interval '1 month' - interval '1 day',
+            '1 day'::interval
+        ) AS d(date)
+    CROSS JOIN account_anchor_balance a
+    WHERE d.date >= date_trunc('day', a.created_at)
+),
+-- =================================================================
+-- Final Step: Select the balance from the LAST DAY of each month.
+-- =================================================================
+monthly_balances AS (
+    SELECT DISTINCT ON (date_trunc('month', date))
+        date_trunc('month', date)::TIMESTAMPTZ AS month,
+        daily_balance,
+        type
+    FROM balance_timeseries
+    ORDER BY date_trunc('month', date), date DESC
 )
--- Final aggregation: Sum all account balances per month
 SELECT
-    rb.month::TIMESTAMPTZ as month,
-    SUM(rb.balance)::DECIMAL AS balance
-FROM running_balance rb
-GROUP BY rb.month
-ORDER BY rb.month;
+    mb.month,
+    (CASE WHEN mb.type IN ('credit', 'loan') THEN mb.daily_balance * -1 ELSE mb.daily_balance END)::DECIMAL AS balance
+FROM monthly_balances mb
+ORDER BY mb.month;
 
 
 

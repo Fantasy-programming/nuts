@@ -25,12 +25,14 @@ INSERT INTO transactions (
     category_id,
     description,
     transaction_datetime,
+    transaction_currency,
+    original_amount,
     details,
     provider_transaction_id,
     is_external,
     created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 );
 
 -- name: GetTransactionById :one
