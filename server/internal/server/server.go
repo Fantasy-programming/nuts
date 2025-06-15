@@ -13,8 +13,8 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/server/config"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/i18n"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/i18n"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"

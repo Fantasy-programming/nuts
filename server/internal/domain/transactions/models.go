@@ -56,7 +56,7 @@ func (ld LocationData) Value() (driver.Value, error) {
 	return json.Marshal(ld)
 }
 
-func (ld *LocationData) Scan(value interface{}) error {
+func (ld *LocationData) Scan(value any) error {
 	if value == nil {
 		return nil
 	}

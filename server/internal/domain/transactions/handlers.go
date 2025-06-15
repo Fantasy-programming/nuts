@@ -5,14 +5,14 @@ import (
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/message"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/respond"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/types"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog"
+	"github.com/shopspring/decimal"
 )
 
 type Handler struct {
@@ -117,7 +117,7 @@ func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate
-	amount := types.Numeric(request.Amount)
+	amount := decimal.NewFromFloat(request.Amount)
 	accountID, err := uuid.Parse(request.AccountID)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
@@ -278,7 +278,7 @@ func (h *Handler) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 
 	// Create transfer using repository
 	transaction, err := h.repo.CreateTransfertTransaction(ctx, TransfertParams{
-		Amount:               request.Amount,
+		Amount:               decimal.NewFromFloat(request.Amount),
 		Type:                 request.Type,
 		AccountID:            accountID,
 		DestinationAccountID: destAccountID,

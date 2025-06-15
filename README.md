@@ -51,7 +51,6 @@
 - Mono / okra (Bank connection africa)
 - Paystack (Payment processing)
 - Resend (Email & Marketing)
-
 - PostHog (analytics)
 
 

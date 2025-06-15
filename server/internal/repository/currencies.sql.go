@@ -12,6 +12,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
 )
 
 const convertAmount = `-- name: ConvertAmount :one
@@ -28,14 +29,14 @@ SELECT
 `
 
 type ConvertAmountParams struct {
-	Column1 *string        `json:"column_1"`
-	Column2 *string        `json:"column_2"`
-	Column3 pgtype.Numeric `json:"column_3"`
+	Column1 *string             `json:"column_1"`
+	Column2 *string             `json:"column_2"`
+	Column3 decimal.NullDecimal `json:"column_3"`
 }
 
-func (q *Queries) ConvertAmount(ctx context.Context, arg ConvertAmountParams) (pgtype.Numeric, error) {
+func (q *Queries) ConvertAmount(ctx context.Context, arg ConvertAmountParams) (decimal.NullDecimal, error) {
 	row := q.db.QueryRow(ctx, convertAmount, arg.Column1, arg.Column2, arg.Column3)
-	var converted_amount pgtype.Numeric
+	var converted_amount decimal.NullDecimal
 	err := row.Scan(&converted_amount)
 	return converted_amount, err
 }
@@ -184,28 +185,28 @@ WHERE t.id = $1
 `
 
 type GetTransactionWithCurrencyRow struct {
-	ID                    uuid.UUID          `json:"id"`
-	Amount                pgtype.Numeric     `json:"amount"`
-	Type                  string             `json:"type"`
-	AccountID             uuid.UUID          `json:"account_id"`
-	CategoryID            uuid.UUID          `json:"category_id"`
-	DestinationAccountID  *uuid.UUID         `json:"destination_account_id"`
-	TransactionDatetime   time.Time          `json:"transaction_datetime"`
-	Description           *string            `json:"description"`
-	Details               dto.Details        `json:"details"`
-	CreatedBy             *uuid.UUID         `json:"created_by"`
-	UpdatedBy             *uuid.UUID         `json:"updated_by"`
-	CreatedAt             time.Time          `json:"created_at"`
-	UpdatedAt             time.Time          `json:"updated_at"`
-	DeletedAt             pgtype.Timestamptz `json:"deleted_at"`
-	IsExternal            *bool              `json:"is_external"`
-	ProviderTransactionID *string            `json:"provider_transaction_id"`
-	TransactionCurrency   string             `json:"transaction_currency"`
-	OriginalAmount        pgtype.Numeric     `json:"original_amount"`
-	ExchangeRate          pgtype.Numeric     `json:"exchange_rate"`
-	ExchangeRateDate      pgtype.Date        `json:"exchange_rate_date"`
-	AccountCurrency       string             `json:"account_currency"`
-	DisplayAmount         pgtype.Numeric     `json:"display_amount"`
+	ID                    uuid.UUID           `json:"id"`
+	Amount                pgtype.Numeric      `json:"amount"`
+	Type                  string              `json:"type"`
+	AccountID             uuid.UUID           `json:"account_id"`
+	CategoryID            uuid.UUID           `json:"category_id"`
+	DestinationAccountID  *uuid.UUID          `json:"destination_account_id"`
+	TransactionDatetime   time.Time           `json:"transaction_datetime"`
+	Description           *string             `json:"description"`
+	Details               dto.Details         `json:"details"`
+	CreatedBy             *uuid.UUID          `json:"created_by"`
+	UpdatedBy             *uuid.UUID          `json:"updated_by"`
+	CreatedAt             time.Time           `json:"created_at"`
+	UpdatedAt             time.Time           `json:"updated_at"`
+	DeletedAt             *time.Time          `json:"deleted_at"`
+	IsExternal            *bool               `json:"is_external"`
+	ProviderTransactionID *string             `json:"provider_transaction_id"`
+	TransactionCurrency   string              `json:"transaction_currency"`
+	OriginalAmount        pgtype.Numeric      `json:"original_amount"`
+	ExchangeRate          pgtype.Numeric      `json:"exchange_rate"`
+	ExchangeRateDate      pgtype.Date         `json:"exchange_rate_date"`
+	AccountCurrency       string              `json:"account_currency"`
+	DisplayAmount         decimal.NullDecimal `json:"display_amount"`
 }
 
 func (q *Queries) GetTransactionWithCurrency(ctx context.Context, id uuid.UUID) (GetTransactionWithCurrencyRow, error) {
@@ -284,9 +285,9 @@ type GetUserNetWorthInBaseCurrencyParams struct {
 	ToCurrency string     `json:"to_currency"`
 }
 
-func (q *Queries) GetUserNetWorthInBaseCurrency(ctx context.Context, arg GetUserNetWorthInBaseCurrencyParams) (pgtype.Numeric, error) {
+func (q *Queries) GetUserNetWorthInBaseCurrency(ctx context.Context, arg GetUserNetWorthInBaseCurrencyParams) (decimal.NullDecimal, error) {
 	row := q.db.QueryRow(ctx, getUserNetWorthInBaseCurrency, arg.CreatedBy, arg.ToCurrency)
-	var net_worth pgtype.Numeric
+	var net_worth decimal.NullDecimal
 	err := row.Scan(&net_worth)
 	return net_worth, err
 }
@@ -301,10 +302,10 @@ DO UPDATE SET
 `
 
 type UpsertExchangeRateParams struct {
-	FromCurrency  string         `json:"from_currency"`
-	ToCurrency    string         `json:"to_currency"`
-	Rate          pgtype.Numeric `json:"rate"`
-	EffectiveDate pgtype.Date    `json:"effective_date"`
+	FromCurrency  string          `json:"from_currency"`
+	ToCurrency    string          `json:"to_currency"`
+	Rate          decimal.Decimal `json:"rate"`
+	EffectiveDate pgtype.Date     `json:"effective_date"`
 }
 
 func (q *Queries) UpsertExchangeRate(ctx context.Context, arg UpsertExchangeRateParams) error {

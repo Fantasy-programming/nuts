@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"

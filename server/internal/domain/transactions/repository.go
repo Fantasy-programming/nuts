@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/types"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/types"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 )
 
 type Repository interface {
@@ -99,7 +99,7 @@ func (r *Trsrepo) CreateTransaction(ctx context.Context, params repository.Creat
 
 	err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
 		ID:      params.AccountID,
-		Balance: params.Amount,
+		Balance: decimal.NewNullDecimal(params.Amount),
 	})
 	if err != nil {
 		return repository.Transaction{}, err
@@ -129,7 +129,7 @@ func (r *Trsrepo) DeleteTransaction(ctx context.Context, id uuid.UUID) error {
 
 // TransfertParams holds parameters for creating a transfer transaction
 type TransfertParams struct {
-	Amount               float64
+	Amount               decimal.Decimal
 	Type                 string
 	AccountID            uuid.UUID
 	DestinationAccountID uuid.UUID
@@ -142,7 +142,6 @@ type TransfertParams struct {
 
 // CreateTransfertTransaction handles the creation of a transfer transaction between accounts
 func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params TransfertParams) (repository.Transaction, error) {
-	// Start transaction
 	tx, err := r.DB.Begin(ctx)
 	if err != nil {
 		return repository.Transaction{}, err
@@ -150,38 +149,38 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 
 	defer func() {
 		if rollbackErr := tx.Rollback(ctx); rollbackErr != nil && rollbackErr != pgx.ErrTxClosed {
-			// Log the rollback error
-
-			fmt.Println("Transaction rollback failed")
-			// r.Logger.Error().Err(rollbackErr).Msg("Transaction rollback failed")
+			// r.logger.Error().Err(rollbackErr).Msg("Transaction rollback failed")
 		}
 	}()
 
 	qtx := r.Queries.WithTx(tx)
 
-	// Verify accounts exist and belong to user
 	sourceAcc, err := qtx.GetAccountById(ctx, params.AccountID)
+
 	if err != nil || *sourceAcc.CreatedBy != params.UserID {
 		return repository.Transaction{}, ErrSrcAccNotFound
 	}
 
 	destAcc, err := qtx.GetAccountById(ctx, params.DestinationAccountID)
+
 	if err != nil || *destAcc.CreatedBy != params.UserID {
 		return repository.Transaction{}, ErrDestAccNotFound
 	}
 
-	// Check sufficient balance
-	amountOut := types.Numeric(-params.Amount)
-	newBalance := sourceAcc.Balance
-	newBalance.Int = new(big.Int).Add(newBalance.Int, amountOut.Int)
-	if newBalance.Int == nil || newBalance.Int.Sign() < 0 {
+	sourceBalanceDecimal := types.PgtypeNumericToDecimal(sourceAcc.Balance)
+	newBalanceDecimal := sourceBalanceDecimal.Sub(params.Amount)
+
+	if newBalanceDecimal.IsNegative() {
 		return repository.Transaction{}, ErrLowBalance
 	}
 
-	// Create the transfer transaction
-	amountIn := types.Numeric(params.Amount)
+	// DECIMAL: The amount for the source account is negative.
+	amountOutDecimal := params.Amount.Neg()
+	// DECIMAL: The amount for the destination account is positive (it's the original params.Amount).
+	amountInDecimal := params.Amount
+
 	transaction, err := qtx.CreateTransaction(ctx, repository.CreateTransactionParams{
-		Amount:               amountOut,
+		Amount:               amountOutDecimal,
 		Type:                 params.Type,
 		AccountID:            params.AccountID,
 		DestinationAccountID: &params.DestinationAccountID,
@@ -195,10 +194,9 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 		return repository.Transaction{}, err
 	}
 
-	// Update account balances
 	err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
 		ID:      params.AccountID,
-		Balance: amountOut,
+		Balance: decimal.NewNullDecimal(amountOutDecimal),
 	})
 	if err != nil {
 		return repository.Transaction{}, err
@@ -206,7 +204,7 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 
 	err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
 		ID:      params.DestinationAccountID,
-		Balance: amountIn,
+		Balance: decimal.NewNullDecimal(amountInDecimal),
 	})
 	if err != nil {
 		return repository.Transaction{}, err

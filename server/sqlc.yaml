@@ -20,6 +20,15 @@ sql:
             go_type:
               import: "github.com/google/uuid"
               type: "UUID"
+          - db_type: "numeric"
+            go_type:
+              import: "github.com/shopspring/decimal"
+              type: "Decimal"
+          - db_type: "numeric"
+            go_type:
+              import: "github.com/shopspring/decimal"
+              type: "NullDecimal"
+            nullable: true
           - db_type: "uuid"
             go_type:
               import: "github.com/google/uuid"
@@ -30,6 +39,12 @@ sql:
             go_type:
               import: "time"
               type: "Time"
+          - db_type: "timestamptz"
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true
+            nullable: true
           - column: "transactions.details"
             go_type:
               import: "github.com/Fantasy-Programming/nuts/server/internal/repository/dto"

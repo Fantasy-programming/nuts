@@ -112,13 +112,12 @@ func (i *I18n) GetLocalizer(lang string) *i18n.Localizer {
 }
 
 // T translates a message using a language, message ID, and optional template data
-func (i *I18n) T(lang, messageID string, templateData map[string]interface{}) string {
+func (i *I18n) T(lang, messageID string, templateData map[string]any) string {
 	localizer := i.GetLocalizer(lang)
 	msg, err := localizer.Localize(&i18n.LocalizeConfig{
 		MessageID:    messageID,
 		TemplateData: templateData,
 	})
-
 	if err != nil {
 		// If translation fails, return the messageID as a fallback
 		return messageID

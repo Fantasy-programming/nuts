@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/i18n"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/log"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/i18n"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/rs/zerolog"
 )
 
@@ -47,15 +46,14 @@ func Error(opts ErrorOptions) {
 		Message: message,
 	}
 
-	// Add stack trace to the log entry
-	log.WithStackTrace(opts.Logger.Error()).
+	opts.Logger.Error().
 		Int("status_code", opts.StatusCode).
 		Err(opts.ActualErr).
 		Interface("details", opts.Details).
 		Msg("Error response")
 
 	if err := json.NewEncoder(opts.W).Encode(response); err != nil {
-		log.WithStackTrace(opts.Logger.Error()).
+		opts.Logger.Error().
 			Err(err).
 			Msg("Failed to encode JSON error response")
 	}
@@ -75,14 +73,14 @@ func Errors(opts ErrorOptions) {
 	}
 
 	// Add stack trace to the log entry
-	log.WithStackTrace(opts.Logger.Error()).
+	opts.Logger.Error().
 		Int("status_code", opts.StatusCode).
 		Err(opts.ActualErr).
 		Interface("details", opts.Details).
 		Msg("Error response")
 
 	if err := json.NewEncoder(opts.W).Encode(response); err != nil {
-		log.WithStackTrace(opts.Logger.Error()).
+		opts.Logger.Error().
 			Err(err).
 			Msg("Failed to encode JSON error response")
 	}
@@ -103,7 +101,7 @@ func Json(w http.ResponseWriter, statusCode int, data any, logger *zerolog.Logge
 	logger.Info().Int("status_code", statusCode).Interface("data", data).Msg("Success response")
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.WithStackTrace(logger.Error()).
+		logger.Error().
 			Err(err).
 			Msg("Failed to encode JSON error response")
 	}

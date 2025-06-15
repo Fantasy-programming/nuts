@@ -9,10 +9,12 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/types"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 )
 
 // Repository defines the interface for account data operations
@@ -30,10 +32,10 @@ type Repository interface {
 	// DeleteAccount marks an account as deleted
 	DeleteAccount(ctx context.Context, id uuid.UUID) error
 	// UpdateAccountBalance updates just the balance of an account
-	UpdateAccountBalance(ctx context.Context, id uuid.UUID, amount pgtype.Numeric) error
+	UpdateAccountBalance(ctx context.Context, id uuid.UUID, amount decimal.NullDecimal) error
 
 	// GetAccountsBTimeline
-	GetAccountsBTimeline(ctx context.Context, userID *uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error)
+	GetAccountsBTimeline(ctx context.Context, userID uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error)
 	GetAccountBTimeline(ctx context.Context, id uuid.UUID) ([]repository.GetAccountBalanceTimelineRow, error)
 	GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]AccountWithTrend, error)
 
@@ -123,7 +125,7 @@ func (r *repo) CreateAccountWInitalTrs(ctx context.Context, act repository.Creat
 
 	// Create the initial transaction
 	_, err = qtx.CreateTransaction(ctx, repository.CreateTransactionParams{
-		Amount:              act.Balance,
+		Amount:              types.NullDecimalToDecimal(act.Balance),
 		Type:                "income",
 		AccountID:           account.ID,
 		Description:         &description,
@@ -160,7 +162,7 @@ func (r *repo) DeleteAccount(ctx context.Context, id uuid.UUID) error {
 }
 
 // UpdateAccountBalance updates just the balance of an account
-func (r *repo) UpdateAccountBalance(ctx context.Context, id uuid.UUID, amount pgtype.Numeric) error {
+func (r *repo) UpdateAccountBalance(ctx context.Context, id uuid.UUID, amount decimal.NullDecimal) error {
 	params := repository.UpdateAccountBalanceParams{
 		ID:      id,
 		Balance: amount,
@@ -168,7 +170,7 @@ func (r *repo) UpdateAccountBalance(ctx context.Context, id uuid.UUID, amount pg
 	return r.queries.UpdateAccountBalance(ctx, params)
 }
 
-func (r *repo) GetAccountsBTimeline(ctx context.Context, userID *uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error) {
+func (r *repo) GetAccountsBTimeline(ctx context.Context, userID uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error) {
 	return r.queries.GetAccountsBalanceTimeline(ctx, userID)
 }
 
@@ -191,7 +193,7 @@ func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTi
 		var a AccountWithTrend
 		err := rows.Scan(
 			&a.ID, &a.Name, &a.Type, &a.Balance, &a.Currency,
-			&a.Color, &a.Meta, &a.UpdatedAt, &a.Trend, &rawTimeseries, &a.IsExternal,
+			&a.Color, &a.Meta, &a.UpdatedAt, &a.IsExternal, &a.Trend, &rawTimeseries,
 		)
 		if err != nil {
 			return nil, err

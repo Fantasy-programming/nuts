@@ -12,7 +12,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/user"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/webhooks"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
 )
 
 func (s *Server) RegisterDomain() {

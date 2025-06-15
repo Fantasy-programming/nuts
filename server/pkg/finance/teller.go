@@ -31,6 +31,18 @@ type TellerProvider struct {
 	baseURL    string
 }
 
+type tellerBalance struct {
+	Available float64 `json:"available,string"`
+	Ledger    float64 `json:"ledger,string"`
+}
+
+type tellerInstitution struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	PrimaryColor string `json:"primary_color"`
+	Logo         string `json:"logo"`
+}
+
 // Teller API response structures
 type tellerAccount struct {
 	ID           string            `json:"id"`
@@ -47,10 +59,6 @@ type tellerAccount struct {
 	Balance      tellerBalance     `json:"balance"`
 }
 
-type tellerBalance struct {
-	Available float64 `json:"available,string"`
-	Ledger    float64 `json:"ledger,string"`
-}
 type tellerTransactionDetailsCounterParty struct {
 	Name *string `json:"name"`
 	Type *string `json:"type"`
@@ -75,13 +83,6 @@ type tellerTransaction struct {
 	Type           string                   `json:"type"`
 }
 
-type tellerInstitution struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	PrimaryColor string `json:"primary_color"`
-	Logo         string `json:"logo"`
-}
-
 func NewTellerProvider(config TellerConfig, logger *zerolog.Logger) (*TellerProvider, error) {
 	hasCert := config.CertPath != "" && config.CertPrivateKeyPath != ""
 	var tlsConfig *tls.Config
@@ -100,7 +101,6 @@ func NewTellerProvider(config TellerConfig, logger *zerolog.Logger) (*TellerProv
 			Certificates: []tls.Certificate{cert},
 			MinVersion:   tls.VersionTLS12,
 		}
-
 	}
 
 	transport := &http.Transport{
@@ -187,8 +187,7 @@ func (t *TellerProvider) GetAccount(ctx context.Context, accessToken, accountID 
 }
 
 func (t *TellerProvider) GetAccountBalance(ctx context.Context, accessToken, accountID string) (*Account, error) {
-	// For Teller, balance is included in the account data
-	return t.GetAccount(ctx, accessToken, accountID)
+	return t.GetAccount(ctx, accessToken, accountID) // For Teller, balance is included in the account data
 }
 
 func (t *TellerProvider) GetAccountBalanceInternal(ctx context.Context, accessToken, accountID string) (*tellerBalance, error) {
@@ -211,17 +210,23 @@ func (t *TellerProvider) GetAccountBalanceInternal(ctx context.Context, accessTo
 
 // GetTransactions retrieves transactions for an account within a date range
 func (t *TellerProvider) GetTransactions(ctx context.Context, accessToken, accountID string, args GetTransactionsArgs) ([]Transaction, error) {
+	endpoint := fmt.Sprintf("/accounts/%s/transactions", accountID)
 	params := url.Values{}
+
+	account, err := t.GetAccount(ctx, accessToken, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get account info: %w", err)
+	}
 
 	if args.Count != nil {
 		params.Set("count", strconv.Itoa(*args.Count))
 	}
+
 	if args.FromID != nil {
 		params.Set("from_id", *args.FromID)
 	}
-	// You could add logic here for startDate and endDate if the API supports them
 
-	endpoint := fmt.Sprintf("/accounts/%s/transactions", accountID)
+	// You could add logic here for startDate and endDate if the API supports them
 	if encoded := params.Encode(); encoded != "" {
 		endpoint += "?" + encoded
 	}
@@ -238,11 +243,12 @@ func (t *TellerProvider) GetTransactions(ctx context.Context, accessToken, accou
 
 	transactions := make([]Transaction, 0, len(tellerTransactions))
 	for _, tt := range tellerTransactions {
-		transaction, err := t.convertTellerTransaction(tt, accountID)
+		transaction, err := t.convertTellerTransaction(tt, account.Type)
 		if err != nil {
 			t.logger.Warn().Err(err).Str("transaction_id", tt.ID).Msg("Failed to convert transaction")
 			continue
 		}
+
 		transactions = append(transactions, transaction)
 	}
 
@@ -448,7 +454,7 @@ func (t *TellerProvider) convertTellerAccount(ta tellerAccount) Account {
 }
 
 // convertTellerTransaction converts a Teller transaction to the standard Transaction struct
-func (t *TellerProvider) convertTellerTransaction(tt tellerTransaction, accountID string) (Transaction, error) {
+func (t *TellerProvider) convertTellerTransaction(tt tellerTransaction, accountType AccountType) (Transaction, error) {
 	amount, err := strconv.ParseFloat(tt.Amount, 64)
 	if err != nil {
 		return Transaction{}, fmt.Errorf("failed to parse amount: %w", err)
@@ -459,22 +465,57 @@ func (t *TellerProvider) convertTellerTransaction(tt tellerTransaction, accountI
 		return Transaction{}, fmt.Errorf("failed to parse date: %w", err)
 	}
 
+	transactionType := t.determineTransactionTypeFromAccountType(amount, accountType)
+
 	return Transaction{
 		ID:                    tt.ID,
-		AccountID:             accountID,
+		AccountID:             tt.AccountID,
 		Amount:                amount,
-		Currency:              "USD", // Teller typically uses USD
+		Currency:              "USD",
 		Description:           tt.Description,
 		Category:              tt.Details.Category,
 		Date:                  date,
 		MerchantName:          tt.Details.CounterParty.Name,
-		Type:                  strings.ToLower(tt.Type),
+		Type:                  transactionType,
 		Status:                strings.ToLower(tt.Status),
 		ProviderTransactionID: tt.ID,
 		Metadata: map[string]string{
-			"running_balance": tt.RunningBalance,
+			"running_balance":   tt.RunningBalance,
+			"teller_type":       tt.Type,
+			"processing_status": tt.Details.ProcessingStatus,
 		},
 	}, nil
+}
+
+func (t *TellerProvider) determineTransactionTypeFromAccountType(amount float64, accountType AccountType) string {
+	switch accountType {
+	case AccountTypeCredit:
+		// For credit accounts (credit cards, lines of credit):
+		// Positive amount = spending (you owe more) = expense
+		// Negative amount = payment (you owe less) = income (reducing debt)
+		if amount > 0 {
+			return "expense"
+		}
+		return "income" // payment
+
+	case AccountTypeLoan:
+		// For loan accounts:
+		// Positive amount = new loan/advance (money received) = income
+		// Negative amount = payment (paying back loan) = expense
+		if amount > 0 {
+			return "income" // loan advance
+		}
+		return "expense" // payment
+
+	default:
+		// For cash accounts (checking, savings, investment):
+		// Positive amount = money in = income
+		// Negative amount = money out = expense
+		if amount > 0 {
+			return "income"
+		}
+		return "expense"
+	}
 }
 
 // mapTellerAccountType maps Teller account types to standard account types

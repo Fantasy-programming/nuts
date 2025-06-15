@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/message"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/respond"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/types"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
@@ -19,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
+	"github.com/shopspring/decimal"
 )
 
 type Handler struct {
@@ -153,7 +153,11 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	balance := types.Numeric(req.Balance)
+	balance := decimal.NullDecimal{
+		Decimal: decimal.NewFromFloat(req.Balance),
+		Valid:   true,
+	}
+
 	act, err := validateAccountType(req.Type)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
@@ -279,7 +283,11 @@ func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	balance := types.Numeric(req.Balance)
+	balance := decimal.NullDecimal{
+		Decimal: decimal.NewFromFloat(req.Balance),
+		Valid:   true,
+	}
+
 	act, err := validateNullableAccountType(req.Type)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
@@ -530,7 +538,7 @@ func (h *Handler) GetAccountsBTimeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := h.repo.GetAccountsBTimeline(ctx, &userID)
+	account, err := h.repo.GetAccountsBTimeline(ctx, userID)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -679,17 +687,23 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 	var accountCreationErrors []error
 
 	for _, providerAccount := range accounts {
+
+		balance := decimal.NullDecimal{
+			Decimal: decimal.NewFromFloat(providerAccount.Balance),
+			Valid:   true,
+		}
+
 		accountParams := repository.CreateAccountParams{
 			CreatedBy:         &userID,
 			Name:              providerAccount.Name,
 			Type:              providerAccount.Type,
-			Balance:           types.Numeric(providerAccount.Balance), // Assuming finance.ProviderAccount.Balance is float64
+			Balance:           balance,
 			ProviderAccountID: &providerAccount.ProviderAccountID,
 			ProviderName:      &providerName,
 			IsExternal:        &isExternal,
 			Currency:          providerAccount.Currency,
-			ConnectionID:      &connection.ID,           // Link to the connection
-			Color:             repository.COLORENUMBlue, // Example: default color
+			ConnectionID:      &connection.ID,
+			Color:             repository.COLORENUMBlue,
 		}
 
 		newAccount, err := h.repo.CreateAccount(ctx, accountParams)

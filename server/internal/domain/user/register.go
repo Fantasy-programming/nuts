@@ -5,7 +5,7 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/server/config"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/server/pkg/router"
 	"github.com/Fantasy-Programming/nuts/server/pkg/storage"

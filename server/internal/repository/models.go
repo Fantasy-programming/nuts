@@ -194,37 +194,37 @@ func (e RiverJobState) Valid() bool {
 }
 
 type Account struct {
-	ID                uuid.UUID          `json:"id"`
-	Name              string             `json:"name"`
-	Type              ACCOUNTTYPE        `json:"type"`
-	Balance           pgtype.Numeric     `json:"balance"`
-	Currency          string             `json:"currency"`
-	Color             COLORENUM          `json:"color"`
-	Meta              []byte             `json:"meta"`
-	CreatedBy         *uuid.UUID         `json:"created_by"`
-	UpdatedBy         *uuid.UUID         `json:"updated_by"`
-	CreatedAt         time.Time          `json:"created_at"`
-	UpdatedAt         time.Time          `json:"updated_at"`
-	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
-	IsExternal        *bool              `json:"is_external"`
-	ProviderAccountID *string            `json:"provider_account_id"`
-	ProviderName      *string            `json:"provider_name"`
-	SyncStatus        *string            `json:"sync_status"`
-	LastSyncedAt      pgtype.Timestamptz `json:"last_synced_at"`
-	ConnectionID      *uuid.UUID         `json:"connection_id"`
-	Subtype           *string            `json:"subtype"`
+	ID                uuid.UUID      `json:"id"`
+	Name              string         `json:"name"`
+	Type              ACCOUNTTYPE    `json:"type"`
+	Balance           pgtype.Numeric `json:"balance"`
+	Currency          string         `json:"currency"`
+	Color             COLORENUM      `json:"color"`
+	Meta              []byte         `json:"meta"`
+	CreatedBy         *uuid.UUID     `json:"created_by"`
+	UpdatedBy         *uuid.UUID     `json:"updated_by"`
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	DeletedAt         *time.Time     `json:"deleted_at"`
+	IsExternal        *bool          `json:"is_external"`
+	ProviderAccountID *string        `json:"provider_account_id"`
+	ProviderName      *string        `json:"provider_name"`
+	SyncStatus        *string        `json:"sync_status"`
+	LastSyncedAt      *time.Time     `json:"last_synced_at"`
+	ConnectionID      *uuid.UUID     `json:"connection_id"`
+	Subtype           *string        `json:"subtype"`
 }
 
 type Category struct {
-	ID        uuid.UUID          `json:"id"`
-	Name      string             `json:"name"`
-	ParentID  *uuid.UUID         `json:"parent_id"`
-	IsDefault *bool              `json:"is_default"`
-	CreatedBy uuid.UUID          `json:"created_by"`
-	UpdatedBy *uuid.UUID         `json:"updated_by"`
-	CreatedAt time.Time          `json:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at"`
-	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+	ID        uuid.UUID  `json:"id"`
+	Name      string     `json:"name"`
+	ParentID  *uuid.UUID `json:"parent_id"`
+	IsDefault *bool      `json:"is_default"`
+	CreatedBy uuid.UUID  `json:"created_by"`
+	UpdatedBy *uuid.UUID `json:"updated_by"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at"`
 }
 
 type Currency struct {
@@ -243,18 +243,18 @@ type ExchangeRate struct {
 }
 
 type FinancialSyncJob struct {
-	ID                 uuid.UUID          `json:"id"`
-	UserID             uuid.UUID          `json:"user_id"`
-	ConnectionID       uuid.UUID          `json:"connection_id"`
-	ProviderName       string             `json:"provider_name"`
-	JobType            string             `json:"job_type"`
-	Status             string             `json:"status"`
-	StartedAt          pgtype.Timestamptz `json:"started_at"`
-	CompletedAt        pgtype.Timestamptz `json:"completed_at"`
-	ErrorMessage       *string            `json:"error_message"`
-	AccountsSynced     *int32             `json:"accounts_synced"`
-	TransactionsSynced *int32             `json:"transactions_synced"`
-	CreatedAt          time.Time          `json:"created_at"`
+	ID                 uuid.UUID  `json:"id"`
+	UserID             uuid.UUID  `json:"user_id"`
+	ConnectionID       uuid.UUID  `json:"connection_id"`
+	ProviderName       string     `json:"provider_name"`
+	JobType            string     `json:"job_type"`
+	Status             string     `json:"status"`
+	StartedAt          *time.Time `json:"started_at"`
+	CompletedAt        *time.Time `json:"completed_at"`
+	ErrorMessage       *string    `json:"error_message"`
+	AccountsSynced     *int32     `json:"accounts_synced"`
+	TransactionsSynced *int32     `json:"transactions_synced"`
+	CreatedAt          time.Time  `json:"created_at"`
 }
 
 type LinkedAccount struct {
@@ -267,27 +267,27 @@ type LinkedAccount struct {
 }
 
 type Preference struct {
-	ID                uuid.UUID          `json:"id"`
-	UserID            uuid.UUID          `json:"user_id"`
-	Locale            string             `json:"locale"`
-	Theme             string             `json:"theme"`
-	Currency          string             `json:"currency"`
-	CreatedAt         time.Time          `json:"created_at"`
-	UpdatedAt         time.Time          `json:"updated_at"`
-	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
-	Timezone          string             `json:"timezone"`
-	TimeFormat        string             `json:"time_format"`
-	DateFormat        string             `json:"date_format"`
-	StartWeekOnMonday bool               `json:"start_week_on_monday"`
-	DarkSidebar       bool               `json:"dark_sidebar"`
+	ID                uuid.UUID  `json:"id"`
+	UserID            uuid.UUID  `json:"user_id"`
+	Locale            string     `json:"locale"`
+	Theme             string     `json:"theme"`
+	Currency          string     `json:"currency"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+	DeletedAt         *time.Time `json:"deleted_at"`
+	Timezone          string     `json:"timezone"`
+	TimeFormat        string     `json:"time_format"`
+	DateFormat        string     `json:"date_format"`
+	StartWeekOnMonday bool       `json:"start_week_on_monday"`
+	DarkSidebar       bool       `json:"dark_sidebar"`
 }
 
 type RiverClient struct {
-	ID        string             `json:"id"`
-	CreatedAt time.Time          `json:"created_at"`
-	Metadata  []byte             `json:"metadata"`
-	PausedAt  pgtype.Timestamptz `json:"paused_at"`
-	UpdatedAt time.Time          `json:"updated_at"`
+	ID        string     `json:"id"`
+	CreatedAt time.Time  `json:"created_at"`
+	Metadata  []byte     `json:"metadata"`
+	PausedAt  *time.Time `json:"paused_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 type RiverClientQueue struct {
@@ -302,24 +302,24 @@ type RiverClientQueue struct {
 }
 
 type RiverJob struct {
-	ID           int64              `json:"id"`
-	State        RiverJobState      `json:"state"`
-	Attempt      int16              `json:"attempt"`
-	MaxAttempts  int16              `json:"max_attempts"`
-	AttemptedAt  pgtype.Timestamptz `json:"attempted_at"`
-	CreatedAt    time.Time          `json:"created_at"`
-	FinalizedAt  pgtype.Timestamptz `json:"finalized_at"`
-	ScheduledAt  time.Time          `json:"scheduled_at"`
-	Priority     int16              `json:"priority"`
-	Args         []byte             `json:"args"`
-	AttemptedBy  []string           `json:"attempted_by"`
-	Errors       [][]byte           `json:"errors"`
-	Kind         string             `json:"kind"`
-	Metadata     []byte             `json:"metadata"`
-	Queue        string             `json:"queue"`
-	Tags         []string           `json:"tags"`
-	UniqueKey    []byte             `json:"unique_key"`
-	UniqueStates pgtype.Bits        `json:"unique_states"`
+	ID           int64         `json:"id"`
+	State        RiverJobState `json:"state"`
+	Attempt      int16         `json:"attempt"`
+	MaxAttempts  int16         `json:"max_attempts"`
+	AttemptedAt  *time.Time    `json:"attempted_at"`
+	CreatedAt    time.Time     `json:"created_at"`
+	FinalizedAt  *time.Time    `json:"finalized_at"`
+	ScheduledAt  time.Time     `json:"scheduled_at"`
+	Priority     int16         `json:"priority"`
+	Args         []byte        `json:"args"`
+	AttemptedBy  []string      `json:"attempted_by"`
+	Errors       [][]byte      `json:"errors"`
+	Kind         string        `json:"kind"`
+	Metadata     []byte        `json:"metadata"`
+	Queue        string        `json:"queue"`
+	Tags         []string      `json:"tags"`
+	UniqueKey    []byte        `json:"unique_key"`
+	UniqueStates pgtype.Bits   `json:"unique_states"`
 }
 
 type RiverLeader struct {
@@ -330,11 +330,11 @@ type RiverLeader struct {
 }
 
 type RiverQueue struct {
-	Name      string             `json:"name"`
-	CreatedAt time.Time          `json:"created_at"`
-	Metadata  []byte             `json:"metadata"`
-	PausedAt  pgtype.Timestamptz `json:"paused_at"`
-	UpdatedAt time.Time          `json:"updated_at"`
+	Name      string     `json:"name"`
+	CreatedAt time.Time  `json:"created_at"`
+	Metadata  []byte     `json:"metadata"`
+	PausedAt  *time.Time `json:"paused_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 type Tag struct {
@@ -346,73 +346,73 @@ type Tag struct {
 }
 
 type Transaction struct {
-	ID                    uuid.UUID          `json:"id"`
-	Amount                pgtype.Numeric     `json:"amount"`
-	Type                  string             `json:"type"`
-	AccountID             uuid.UUID          `json:"account_id"`
-	CategoryID            uuid.UUID          `json:"category_id"`
-	DestinationAccountID  *uuid.UUID         `json:"destination_account_id"`
-	TransactionDatetime   time.Time          `json:"transaction_datetime"`
-	Description           *string            `json:"description"`
-	Details               dto.Details        `json:"details"`
-	CreatedBy             *uuid.UUID         `json:"created_by"`
-	UpdatedBy             *uuid.UUID         `json:"updated_by"`
-	CreatedAt             time.Time          `json:"created_at"`
-	UpdatedAt             time.Time          `json:"updated_at"`
-	DeletedAt             pgtype.Timestamptz `json:"deleted_at"`
-	IsExternal            *bool              `json:"is_external"`
-	ProviderTransactionID *string            `json:"provider_transaction_id"`
-	TransactionCurrency   string             `json:"transaction_currency"`
-	OriginalAmount        pgtype.Numeric     `json:"original_amount"`
-	ExchangeRate          pgtype.Numeric     `json:"exchange_rate"`
-	ExchangeRateDate      pgtype.Date        `json:"exchange_rate_date"`
+	ID                    uuid.UUID      `json:"id"`
+	Amount                pgtype.Numeric `json:"amount"`
+	Type                  string         `json:"type"`
+	AccountID             uuid.UUID      `json:"account_id"`
+	CategoryID            uuid.UUID      `json:"category_id"`
+	DestinationAccountID  *uuid.UUID     `json:"destination_account_id"`
+	TransactionDatetime   time.Time      `json:"transaction_datetime"`
+	Description           *string        `json:"description"`
+	Details               dto.Details    `json:"details"`
+	CreatedBy             *uuid.UUID     `json:"created_by"`
+	UpdatedBy             *uuid.UUID     `json:"updated_by"`
+	CreatedAt             time.Time      `json:"created_at"`
+	UpdatedAt             time.Time      `json:"updated_at"`
+	DeletedAt             *time.Time     `json:"deleted_at"`
+	IsExternal            *bool          `json:"is_external"`
+	ProviderTransactionID *string        `json:"provider_transaction_id"`
+	TransactionCurrency   string         `json:"transaction_currency"`
+	OriginalAmount        pgtype.Numeric `json:"original_amount"`
+	ExchangeRate          pgtype.Numeric `json:"exchange_rate"`
+	ExchangeRateDate      pgtype.Date    `json:"exchange_rate_date"`
 }
 
 type User struct {
-	ID            uuid.UUID          `json:"id"`
-	Email         string             `json:"email"`
-	FirstName     *string            `json:"first_name"`
-	LastName      *string            `json:"last_name"`
-	Password      *string            `json:"password"`
-	CreatedAt     time.Time          `json:"created_at"`
-	UpdatedAt     time.Time          `json:"updated_at"`
-	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
-	AvatarUrl     *string            `json:"avatar_url"`
-	MfaSecret     []byte             `json:"mfa_secret"`
-	MfaEnabled    bool               `json:"mfa_enabled"`
-	MfaVerifiedAt pgtype.Timestamptz `json:"mfa_verified_at"`
+	ID            uuid.UUID  `json:"id"`
+	Email         string     `json:"email"`
+	FirstName     *string    `json:"first_name"`
+	LastName      *string    `json:"last_name"`
+	Password      *string    `json:"password"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+	DeletedAt     *time.Time `json:"deleted_at"`
+	AvatarUrl     *string    `json:"avatar_url"`
+	MfaSecret     []byte     `json:"mfa_secret"`
+	MfaEnabled    bool       `json:"mfa_enabled"`
+	MfaVerifiedAt *time.Time `json:"mfa_verified_at"`
 }
 
 type UserFinancialConnection struct {
-	ID                   uuid.UUID          `json:"id"`
-	UserID               uuid.UUID          `json:"user_id"`
-	ProviderName         string             `json:"provider_name"`
-	AccessTokenEncrypted string             `json:"access_token_encrypted"`
-	ItemID               *string            `json:"item_id"`
-	InstitutionID        *string            `json:"institution_id"`
-	InstitutionName      *string            `json:"institution_name"`
-	Status               *string            `json:"status"`
-	LastSyncAt           pgtype.Timestamptz `json:"last_sync_at"`
-	ExpiresAt            pgtype.Timestamptz `json:"expires_at"`
-	CreatedAt            time.Time          `json:"created_at"`
-	UpdatedAt            time.Time          `json:"updated_at"`
+	ID                   uuid.UUID  `json:"id"`
+	UserID               uuid.UUID  `json:"user_id"`
+	ProviderName         string     `json:"provider_name"`
+	AccessTokenEncrypted string     `json:"access_token_encrypted"`
+	ItemID               *string    `json:"item_id"`
+	InstitutionID        *string    `json:"institution_id"`
+	InstitutionName      *string    `json:"institution_name"`
+	Status               *string    `json:"status"`
+	LastSyncAt           *time.Time `json:"last_sync_at"`
+	ExpiresAt            *time.Time `json:"expires_at"`
+	CreatedAt            time.Time  `json:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at"`
 }
 
 type UserToken struct {
-	ID           uuid.UUID          `json:"id"`
-	UserID       uuid.UUID          `json:"user_id"`
-	RefreshToken string             `json:"refresh_token"`
-	ExpiresAt    time.Time          `json:"expires_at"`
-	LastUsedAt   time.Time          `json:"last_used_at"`
-	UserAgent    *string            `json:"user_agent"`
-	IpAddress    *string            `json:"ip_address"`
-	IsCurrent    *bool              `json:"is_current"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	Location     *string            `json:"location"`
-	BrowserName  *string            `json:"browser_name"`
-	DeviceName   *string            `json:"device_name"`
-	OsName       *string            `json:"os_name"`
-	Revoked      *bool              `json:"revoked"`
+	ID           uuid.UUID  `json:"id"`
+	UserID       uuid.UUID  `json:"user_id"`
+	RefreshToken string     `json:"refresh_token"`
+	ExpiresAt    time.Time  `json:"expires_at"`
+	LastUsedAt   time.Time  `json:"last_used_at"`
+	UserAgent    *string    `json:"user_agent"`
+	IpAddress    *string    `json:"ip_address"`
+	IsCurrent    *bool      `json:"is_current"`
+	CreatedAt    *time.Time `json:"created_at"`
+	Location     *string    `json:"location"`
+	BrowserName  *string    `json:"browser_name"`
+	DeviceName   *string    `json:"device_name"`
+	OsName       *string    `json:"os_name"`
+	Revoked      *bool      `json:"revoked"`
 }
 
 type WebhookEvent struct {

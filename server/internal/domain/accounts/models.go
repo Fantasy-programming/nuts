@@ -9,232 +9,170 @@ import (
 )
 
 const getAccountsWithTrendSQL = `-- name: GetAccountsWithTrend :many
-WITH period AS (
+WITH
+-- =================================================================
+-- Step 1: Define the reporting period and the user's base currency
+-- =================================================================
+period AS (
+    SELECT $1::TIMESTAMPTZ AS start_date, $2::TIMESTAMPTZ AS end_date
+),
+user_base_currency AS (
+    SELECT COALESCE((SELECT currency FROM preferences WHERE user_id = $3 LIMIT 1), 'USD') AS base_currency
+),
+-- =================================================================
+-- Step 2: Unify all raw transaction "movements" into a single stream.
+-- =================================================================
+all_movements AS (
+    SELECT t.account_id, t.transaction_datetime, t.amount, t.transaction_currency FROM transactions t
+    WHERE t.created_by = $3 AND t.deleted_at IS NULL AND t.type IN ('income', 'expense')
+    UNION ALL
+    SELECT t.account_id, t.transaction_datetime, -t.amount AS amount, t.transaction_currency FROM transactions t
+    WHERE t.created_by = $3 AND t.deleted_at IS NULL AND t.type = 'transfer'
+    UNION ALL
+    SELECT t.destination_account_id AS account_id, t.transaction_datetime, t.amount, t.transaction_currency FROM transactions t
+    WHERE t.created_by = $3 AND t.deleted_at IS NULL AND t.type = 'transfer' AND t.destination_account_id IS NOT NULL
+),
+-- =================================================================
+-- Step 3: Convert all movements to the user's base currency, ensuring one rate per transaction.
+-- =================================================================
+transactions_converted AS (
     SELECT
-        $1::TIMESTAMPTZ AS start_date,
-        $2::TIMESTAMPTZ AS end_date
+        m.account_id,
+        m.transaction_datetime,
+        (m.amount * COALESCE(er.rate, 1.0))::DECIMAL AS converted_amount
+    FROM all_movements m
+    LEFT JOIN LATERAL (
+        SELECT rate FROM exchange_rates er
+        WHERE er.from_currency = m.transaction_currency
+          AND er.to_currency = (SELECT base_currency FROM user_base_currency)
+          AND er.effective_date <= m.transaction_datetime::DATE
+        ORDER BY er.effective_date DESC
+        LIMIT 1
+    ) er ON TRUE
+    WHERE m.account_id IS NOT NULL
 ),
-
-date_series AS (
-    SELECT generate_series(
-        (SELECT start_date FROM period),
-        (SELECT end_date FROM period),
-        '1 day'
-    )::DATE AS date
-),
-
-account_info AS (
-    SELECT
-        id AS account_id,
-        name,
-        type,
-        balance AS db_balance,
-        currency,
-        color,
-        meta,
-        created_by,
-        created_at,
-        updated_at,
-        deleted_at,
-        is_external,
-        provider_account_id,
-        provider_name
-    FROM accounts
-    WHERE accounts.created_by = $3
-    AND created_at <= (SELECT end_date FROM period)
-    AND deleted_at IS NULL
-),
-
--- Get all transactions for each account to understand what data we have
-account_transaction_summary AS (
-    SELECT
-        ai.account_id,
-        COUNT(t.id) AS total_transaction_count,
-        MIN(t.transaction_datetime) AS earliest_transaction_date,
-        MAX(t.transaction_datetime) AS latest_transaction_date,
-        -- Sum of all transactions we have for this account
-        SUM(
-            CASE
-                WHEN t.type = 'income' THEN t.amount
-                WHEN t.type = 'expense' THEN -t.amount
-                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
-                ELSE 0
-            END
-        ) AS total_transaction_impact
-    FROM account_info ai
-    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-        AND t.created_by = $3
-    GROUP BY ai.account_id
-),
-
--- Calculate the correct initial balance for the start of the period
-initial_balances AS (
-    SELECT
-        ai.account_id,
-        ai.is_external,
-        ai.db_balance,
-        ats.total_transaction_count,
-        -- Calculate balance at start of period
-        CASE
-            -- Internal accounts: Calculate from transactions before start_date
-            WHEN NOT ai.is_external THEN 
-                COALESCE(SUM(
-                    CASE
-                        WHEN t.transaction_datetime < (SELECT start_date FROM period) THEN
-                            CASE
-                                WHEN t.type = 'income' THEN t.amount
-                                WHEN t.type = 'expense' THEN -t.amount
-                                WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                                WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
-                                ELSE 0
-                            END
-                        ELSE 0
-                    END
-                ), 0)
-            
-            -- External accounts with NO transactions: Use DB balance
-            WHEN ai.is_external AND (ats.total_transaction_count = 0 OR ats.total_transaction_count IS NULL) THEN 
-                ai.db_balance
-            
-            -- External accounts WITH transactions: Work backwards from current balance
-            WHEN ai.is_external AND ats.total_transaction_count > 0 THEN 
-                ai.db_balance - COALESCE(ats.total_transaction_impact, 0)
-            
-            ELSE 0
-        END AS calculated_start_balance,
-        
-        -- Calculate balance at end of period
-        CASE
-            -- External accounts with NO transactions: Use DB balance
-            WHEN ai.is_external AND (ats.total_transaction_count = 0 OR ats.total_transaction_count IS NULL) THEN 
-                ai.db_balance
-            
-            -- External accounts WITH transactions: Use DB balance (current balance)
-            WHEN ai.is_external AND ats.total_transaction_count > 0 THEN 
-                ai.db_balance
-            
-            -- Internal accounts: Calculate from all transactions up to end_date
-            ELSE COALESCE(SUM(
-                CASE
-                    WHEN t.transaction_datetime <= (SELECT end_date FROM period) THEN
-                        CASE
-                            WHEN t.type = 'income' THEN t.amount
-                            WHEN t.type = 'expense' THEN -t.amount
-                            WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                            WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
-                            ELSE 0
-                        END
-                    ELSE 0
-                END
-            ), 0)
-        END AS calculated_end_balance
-    FROM account_info ai
-    LEFT JOIN account_transaction_summary ats ON ai.account_id = ats.account_id
-    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-        AND t.created_by = $3
-    GROUP BY ai.account_id, ai.is_external, ai.db_balance, ats.total_transaction_count, ats.total_transaction_impact
-),
-
-account_trend AS (
-    SELECT
-        ai.account_id,
-        ai.name,
-        ai.type,
-        ib.calculated_end_balance AS balance,
-        ai.currency,
-        ai.color,
-        ai.meta,
-        ai.updated_at,
-        ai.is_external,
-        -- Calculate trend percentage
-        CASE
-            WHEN COALESCE(ib.calculated_start_balance, 0) = 0 THEN
-                CASE
-                    WHEN COALESCE(ib.calculated_end_balance, 0) = 0 THEN 0
-                    WHEN COALESCE(ib.calculated_end_balance, 0) > 0 THEN 100.0
-                    ELSE -100.0
-                END
-            ELSE
-                ((ib.calculated_end_balance - ib.calculated_start_balance) / ABS(ib.calculated_start_balance) * 100.0)
-        END::DECIMAL AS trend
-    FROM account_info ai
-    LEFT JOIN initial_balances ib ON ai.account_id = ib.account_id
-    WHERE ai.created_at <= (SELECT end_date FROM period)
-      AND ai.deleted_at IS NULL
-),
-
-balance_timeseries AS (
-    SELECT
-        ai.account_id,
-        ds.date,
-        CASE
-            -- External accounts with NO transactions: Use DB balance (flat line)
-            WHEN ai.is_external AND (ib.total_transaction_count = 0 OR ib.total_transaction_count IS NULL) THEN 
-                ai.db_balance
-            
-            -- All other accounts: Calculate running balance
-            ELSE ib.calculated_start_balance + COALESCE(SUM(
-                CASE
-                    WHEN t.transaction_datetime >= (SELECT start_date FROM period) 
-                         AND t.transaction_datetime <= ds.date + interval '1 day' - interval '1 second' THEN
-                        CASE
-                            WHEN t.type = 'income' THEN t.amount
-                            WHEN t.type = 'expense' THEN -t.amount
-                            WHEN t.type = 'transfer' AND t.account_id = ai.account_id THEN -t.amount
-                            WHEN t.type = 'transfer' AND t.destination_account_id = ai.account_id THEN t.amount
-                            ELSE 0
-                        END
-                    ELSE 0
-                END
-            ), 0)
-        END::DECIMAL AS daily_balance
-    FROM account_info ai
-    CROSS JOIN date_series ds
-    LEFT JOIN initial_balances ib ON ai.account_id = ib.account_id
-    LEFT JOIN transactions t ON (t.account_id = ai.account_id OR t.destination_account_id = ai.account_id)
-        AND t.created_by = $3
-    -- Only show accounts from when they should appear in timeline
-    WHERE CASE
-        -- Internal accounts: from creation date or period start, whichever is later
-        WHEN NOT ai.is_external THEN ds.date >= GREATEST(
-            ai.created_at::DATE,
-            (SELECT start_date FROM period)::DATE
-        )
-        -- External accounts: from period start
-        ELSE ds.date >= (SELECT start_date FROM period)::DATE
-    END
-    GROUP BY ai.account_id, ds.date, ai.is_external, ai.db_balance, ib.calculated_start_balance, ib.total_transaction_count
-),
-
-aggregated_series AS (
+-- =================================================================
+-- Step 4: Calculate daily net changes (deltas) for each account.
+-- =================================================================
+daily_deltas AS (
     SELECT
         account_id,
+        date_trunc('day', transaction_datetime)::DATE AS date,
+        SUM(converted_amount) AS delta
+    FROM transactions_converted
+    GROUP BY account_id, date_trunc('day', transaction_datetime)
+),
+-- =================================================================
+-- Step 5: Determine the authoritative "anchor" balance for each account.
+-- =================================================================
+accounts_with_anchor_balance AS (
+    SELECT
+        a.id AS account_id,
+        a.name, a.type, a.color, a.meta, a.is_external, a.created_at, a.updated_at,
+        CASE
+            WHEN a.is_external THEN (a.balance * COALESCE(er.rate, 1.0))::DECIMAL
+            ELSE COALESCE((SELECT SUM(tc.converted_amount) FROM transactions_converted tc WHERE tc.account_id = a.id), 0)
+        END AS anchor_balance,
+        CASE
+            WHEN a.is_external THEN a.updated_at
+            ELSE NOW()
+        END AS anchor_date
+    FROM accounts a
+    LEFT JOIN LATERAL (
+        SELECT rate FROM exchange_rates er
+        WHERE er.from_currency = a.currency
+          AND er.to_currency = (SELECT base_currency FROM user_base_currency)
+          AND er.effective_date <= a.updated_at::DATE
+        ORDER BY er.effective_date DESC
+        LIMIT 1
+    ) er ON TRUE
+    WHERE a.created_by = $3 AND a.deleted_at IS NULL
+),
+-- =================================================================
+-- Step 6: Generate the daily balance timeseries by working backward.
+-- =================================================================
+balance_timeseries AS (
+    SELECT
+        a.account_id,
+        d.date,
+        (
+            a.anchor_balance -
+            COALESCE((
+                SELECT SUM(delta) FROM daily_deltas dd
+                WHERE dd.account_id = a.account_id
+                  AND dd.date > (SELECT end_date FROM period)::DATE
+                  AND dd.date <= a.anchor_date::DATE
+            ), 0)
+        )
+        -
+        COALESCE((
+            SELECT SUM(delta) FROM daily_deltas dd
+            WHERE dd.account_id = a.account_id
+              AND dd.date > d.date
+              AND dd.date <= (SELECT end_date FROM period)::DATE
+        ), 0) AS daily_balance
+    FROM
+        generate_series(
+            (SELECT start_date FROM period)::DATE,
+            (SELECT end_date FROM period)::DATE,
+            '1 day'::interval
+        ) AS d(date)
+    CROSS JOIN accounts_with_anchor_balance a
+    -- By removing the "WHERE d.date >= a.created_at" clause, we now generate
+    -- a full timeseries for ALL accounts over the entire requested period.
+),
+-- =================================================================
+-- Step 7: Aggregate the timeseries into JSON and get period start/end balances.
+-- =================================================================
+aggregated_series AS (
+    SELECT
+        bt.account_id,
         jsonb_agg(
             jsonb_build_object(
-                'date', date::timestamptz,
-                'balance', COALESCE(daily_balance, 0)
-            ) ORDER BY date
-        ) AS timeseries
-    FROM balance_timeseries
-    GROUP BY account_id
+                'date', bt.date,
+                'balance',
+                CASE WHEN a.type IN ('credit', 'loan') THEN bt.daily_balance * -1 ELSE bt.daily_balance END
+            ) ORDER BY bt.date
+        ) AS timeseries,
+        (array_agg(bt.daily_balance ORDER BY bt.date ASC))[1] AS start_balance,
+        (array_agg(bt.daily_balance ORDER BY bt.date DESC))[1] AS end_balance
+    FROM balance_timeseries bt
+    JOIN accounts a ON bt.account_id = a.id
+    GROUP BY bt.account_id
 )
-
+-- =================================================================
+-- Final Step: Combine all data for the final output.
+-- =================================================================
 SELECT
-    at.account_id as id,
-    at.name,
-    at.type,
-    at.balance::DECIMAL as balance,
-    at.currency,
-    at.color,
-    at.meta,
-    at.updated_at,
-    at.trend::DECIMAL as trend,
-    COALESCE(agg.timeseries, '[]'::JSONB)::JSONB AS balance_timeseries,
-    at.is_external
-FROM account_trend at
-LEFT JOIN aggregated_series agg ON at.account_id = agg.account_id
-ORDER BY at.name
+    a.account_id AS id,
+    a.name,
+    a.type,
+    (CASE WHEN a.type IN ('credit', 'loan') THEN agg.end_balance * -1 ELSE agg.end_balance END)::DECIMAL AS balance,
+    (SELECT base_currency FROM user_base_currency) AS currency,
+    a.color,
+    a.meta,
+    a.updated_at,
+    a.is_external,
+    COALESCE(
+        CASE
+            WHEN agg.start_balance = 0 THEN
+                CASE
+                    WHEN agg.end_balance > 0 THEN 100.0
+                    WHEN agg.end_balance < 0 THEN -100.0
+                    ELSE 0.0
+                END
+            WHEN a.type IN ('credit', 'loan') THEN
+                ((agg.start_balance - agg.end_balance) / NULLIF(ABS(agg.start_balance), 0)) * 100.0
+            ELSE
+                ((agg.end_balance - agg.start_balance) / NULLIF(ABS(agg.start_balance), 0)) * 100.0
+        END
+    , 0)::DECIMAL AS trend,
+    agg.timeseries AS balance_timeseries
+FROM accounts_with_anchor_balance a
+JOIN aggregated_series agg ON a.account_id = agg.account_id
+-- We still only want to show accounts that actually existed during the period.
+WHERE a.created_at <= (SELECT end_date FROM period)
+ORDER BY a.name;
 `
 
 type AccountWithTrend struct {

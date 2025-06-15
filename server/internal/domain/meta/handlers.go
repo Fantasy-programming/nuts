@@ -3,8 +3,8 @@ package meta
 import (
 	"net/http"
 
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/message"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/respond"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
 	"github.com/rs/zerolog"
 )
 

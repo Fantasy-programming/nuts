@@ -11,7 +11,7 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/types"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/types"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
+	"github.com/shopspring/decimal"
 )
 
 type EmailJob struct {
@@ -177,7 +178,7 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 	var accountsToUpdate []repository.UpdateAccountParams
 
 	for _, account := range accounts {
-		newBalance := types.Numeric(account.Balance)
+		newBalance := types.FloatToNullDecimal(account.Balance)
 		isExternal := true
 
 		// At my knowledge, there wont be new accounts
@@ -297,12 +298,6 @@ func (w *BankSyncWorker) syncAccountTransactions(ctx context.Context, qtx *repos
 			continue
 		}
 
-		// Determine transaction type
-		transactionType := "expense"
-		if transaction.Amount > 0 {
-			transactionType = "income"
-		}
-
 		// Get category ID from cache (or create if needed)
 		categoryID, err := w.getCategoryIDFromCache(ctx, qtx, categoryCache, userID, *transaction.Category)
 		if err != nil {
@@ -310,14 +305,16 @@ func (w *BankSyncWorker) syncAccountTransactions(ctx context.Context, qtx *repos
 			continue
 		}
 
-		amount := types.Numeric(transaction.Amount)
+		amount := decimal.NewFromFloat(transaction.Amount)
 		isExternal := true
 
 		transactionsToCreate = append(transactionsToCreate, repository.BatchCreateTransactionParams{
 			Amount:                amount,
-			Type:                  transactionType,
+			OriginalAmount:        amount,
+			Type:                  transaction.Type,
 			AccountID:             account.ID,
 			CategoryID:            categoryID,
+			TransactionCurrency:   transaction.Currency,
 			TransactionDatetime:   pgtype.Timestamptz{Valid: true, Time: transaction.Date},
 			Description:           &transaction.Description,
 			ProviderTransactionID: &transaction.ProviderTransactionID,
@@ -471,7 +468,7 @@ func (w *HistoricalExchangeRateWorker) Work(ctx context.Context, job *river.Job[
 			err := w.deps.Queries.UpsertExchangeRate(ctx, repository.UpsertExchangeRateParams{
 				FromCurrency:  job.Args.BaseCurrency,
 				ToCurrency:    toCurrency,
-				Rate:          types.Numeric(rate),
+				Rate:          decimal.NewFromFloat(rate),
 				EffectiveDate: pgtype.Date{Time: currentDate, Valid: true},
 			})
 			if err != nil {
@@ -557,6 +554,8 @@ type ExchangeRatesSyncWorker struct {
 	deps *ExchangeRatesWorkerDeps
 }
 
+const APIBaseCurrency = "usd"
+
 func (w *ExchangeRatesSyncWorker) Work(ctx context.Context, job *river.Job[ExchangeRatesSyncJob]) error {
 	logger := w.deps.Logger.With().
 		Str("job_kind", job.Kind).
@@ -565,79 +564,143 @@ func (w *ExchangeRatesSyncWorker) Work(ctx context.Context, job *river.Job[Excha
 		Logger()
 
 	logger.Info().Msg("Starting exchange rates sync")
+	logger.Info().Str("base_currency", APIBaseCurrency).Msg("Fetching all rates from provider")
 
-	currencies, err := w.deps.Queries.GetCurrencies(ctx)
+	// CHANGE: ratesFromBase is now map[string]decimal.Decimal
+	ratesFromBase, err := fetchExchangeRates(ctx, APIBaseCurrency)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to fetch rates from provider")
+		return fmt.Errorf("failed to fetch rates from provider: %w", err)
+	}
+
+	// CHANGE: Use decimal.NewFromInt for the base rate to avoid floats
+	ratesFromBase[APIBaseCurrency] = decimal.NewFromInt(1)
+
+	dbCurrencies, err := w.deps.Queries.GetCurrencies(ctx)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to fetch currencies")
 		return fmt.Errorf("failed to fetch currencies: %w", err)
 	}
 
-	if len(currencies) == 0 {
+	if len(dbCurrencies) == 0 {
 		logger.Warn().Msg("No currencies found in database")
 		return nil
 	}
 
-	logger.Info().Int("currency_count", len(currencies)).Msg("Found currencies to sync")
+	var ratesToUpsert []repository.UpsertExchangeRateParams
+	jobDate := job.Args.JobDate
 
-	var successCount, failureCount int
+	const exchangeRatePrecision = 10
 
-	// Process each currency
-	for _, currency := range currencies {
-		currencyLogger := logger.With().Str("currency", currency.Code).Logger()
-
-		if err := w.syncCurrencyRates(ctx, currency.Code, job.Args.JobDate, &currencyLogger); err != nil {
-			currencyLogger.Error().Err(err).Msg("Failed to sync exchange rates for currency")
-			failureCount++
+	for _, fromCurrency := range dbCurrencies {
+		baseRateForFrom, ok := ratesFromBase[fromCurrency.Code]
+		if !ok {
+			logger.Warn().Str("currency", fromCurrency.Code).Msg("No rate found from API base, cannot calculate rates for this currency")
 			continue
 		}
 
-		currencyLogger.Info().Msg("Successfully synced exchange rates for currency")
-		successCount++
+		for _, toCurrency := range dbCurrencies {
+			if fromCurrency.Code == toCurrency.Code {
+				continue
+			}
+
+			baseRateForTo, ok := ratesFromBase[toCurrency.Code]
+			if !ok {
+				continue
+			}
+
+			// CHANGE: Use safe decimal division.
+			crossRate := baseRateForTo.Div(baseRateForFrom)
+
+			// *** THIS IS THE KEY FIX FOR THE OVERFLOW ***
+			// CHANGE: Round the result to a fixed precision before saving.
+			roundedCrossRate := crossRate.Round(exchangeRatePrecision)
+
+			ratesToUpsert = append(ratesToUpsert, repository.UpsertExchangeRateParams{
+				FromCurrency:  fromCurrency.Code,
+				ToCurrency:    toCurrency.Code,
+				Rate:          roundedCrossRate,
+				EffectiveDate: pgtype.Date{Valid: true, Time: jobDate},
+			})
+		}
 	}
 
-	logger.Info().
-		Int("success_count", successCount).
-		Int("failure_count", failureCount).
-		Int("total_currencies", len(currencies)).
-		Msg("Completed bulk exchange rate sync")
+	logger.Info().Int("rates_to_upsert", len(ratesToUpsert)).Msg("Calculated all cross-currency rates.")
 
-	// TODO: Decide when to fail the job
-	if failureCount > 0 && successCount == 0 {
-		return fmt.Errorf("failed to sync exchange rates for all %d currencies", len(currencies))
+	ssCount, err := w.BatchUpsertRates(ctx, ratesToUpsert)
+	if err != nil {
+		logger.Error().Err(err).Msg("Bulk upsert of exchange rates failed")
+		return fmt.Errorf("failed to store exchange rates in bulk: %w", err)
 	}
 
+	logger.Info().Int64("success_count", ssCount).Msg("Completed bulk exchange rate sync")
 	return nil
 }
 
-// TODO: Filter out errors (crypto stuffs)
-func (w *ExchangeRatesSyncWorker) syncCurrencyRates(ctx context.Context, baseCurrency string, jobDate time.Time, logger *zerolog.Logger) error {
-	logger.Info().Msg("Fetching exchange rates from provider")
+func (w *ExchangeRatesSyncWorker) BatchUpsertRates(ctx context.Context, rates []repository.UpsertExchangeRateParams) (int64, error) {
+	pool := w.deps.DB
 
-	// Fetch exchange rates
-	rates, err := fetchExchangeRates(ctx, baseCurrency)
+	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch exchange rates: %w", err)
+		return 0, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	for targetCurrency, rate := range rates {
-		err := w.deps.Queries.UpsertExchangeRate(ctx, repository.UpsertExchangeRateParams{
-			FromCurrency:  baseCurrency,
-			ToCurrency:    targetCurrency,
-			Rate:          types.Numeric(rate),
-			EffectiveDate: pgtype.Date{Valid: true, Time: jobDate},
-		})
-		if err != nil {
-			logger.Error().Err(err).
-				Str("from_currency", baseCurrency).
-				Str("to_currency", targetCurrency).
-				Msg("Failed to store exchange rate")
-			continue
-		}
+	// 2. Defer a rollback. If anything goes wrong, the transaction will be cancelled.
+	// If tx.Commit() is called, this rollback call is a no-op.
+	defer tx.Rollback(ctx)
 
+	// 3. Create the temporary table *within the transaction*.
+	createTempTableSQL := `
+		CREATE TEMP TABLE temp_exchange_rates (
+			from_currency  VARCHAR(3) NOT NULL,
+			to_currency    VARCHAR(3) NOT NULL,
+			rate           NUMERIC(30, 10) NOT NULL,
+			effective_date DATE NOT NULL
+		) ON COMMIT DROP;` // ON COMMIT DROP is good practice for temp tables
+
+	// Use tx.Exec, not pool.Exec
+	if _, err := tx.Exec(ctx, createTempTableSQL); err != nil {
+		return 0, fmt.Errorf("failed to create temp table: %w", err)
 	}
 
-	logger.Info().Msg("Exchange rates synced successfully")
-	return nil
+	// 4. Prepare and copy data.
+	rows := make([][]any, len(rates))
+	for i, r := range rates {
+		rows[i] = []any{r.FromCurrency, r.ToCurrency, r.Rate, r.EffectiveDate}
+	}
+
+	// Use tx.CopyFrom, not pool.CopyFrom
+	copyCount, err := tx.CopyFrom(
+		ctx,
+		pgx.Identifier{"temp_exchange_rates"},
+		[]string{"from_currency", "to_currency", "rate", "effective_date"},
+		pgx.CopyFromRows(rows),
+	)
+	if err != nil {
+		return 0, fmt.Errorf("failed to copy to temp table: %w", err)
+	}
+
+	// 5. Upsert from the temporary table *within the transaction*.
+	upsertSQL := `
+		INSERT INTO exchange_rates (from_currency, to_currency, rate, effective_date)
+		SELECT from_currency, to_currency, rate, effective_date
+		FROM temp_exchange_rates
+		ON CONFLICT (from_currency, to_currency, effective_date)
+		DO UPDATE SET
+			rate = EXCLUDED.rate,
+			updated_at = NOW();`
+
+	// Use tx.Exec, not pool.Exec
+	if _, err := tx.Exec(ctx, upsertSQL); err != nil {
+		return 0, fmt.Errorf("failed to upsert from temp table: %w", err)
+	}
+
+	// 6. If everything was successful, commit the transaction.
+	if err := tx.Commit(ctx); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return copyCount, nil
 }
 
 // Timeout returns how long the job can run before timing out (10 min here)

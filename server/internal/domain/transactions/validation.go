@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/message"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )

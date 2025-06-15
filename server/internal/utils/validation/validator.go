@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Fantasy-Programming/nuts/server/internal/utility/i18n"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/i18n"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -48,7 +48,7 @@ func New() *Validator {
 }
 
 // ParseAndValidate parses the request body and validates it
-func (v *Validator) ParseAndValidate(ctx context.Context, r *http.Request, req interface{}) (ValidationErrors, error) {
+func (v *Validator) ParseAndValidate(ctx context.Context, r *http.Request, req any) (ValidationErrors, error) {
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("malformed request: %w", err)
 	}
@@ -82,7 +82,7 @@ func TranslateErrors(ctx context.Context, err error) ValidationErrors {
 		param := fieldErr.Param()
 
 		// Create template data for translation
-		templateData := map[string]interface{}{
+		templateData := map[string]any{
 			"Field": field,
 			"Param": param,
 		}
