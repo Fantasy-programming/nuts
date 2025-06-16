@@ -25,6 +25,8 @@ import { timeAgo, findAccountByIdFromGroups } from "./account.utils";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuContent, DropdownMenuTrigger } from "@/core/components/ui/dropdown-menu";
 import EditAccountModal from "./account.edit-modal"
 import DeleteAccountDialog from "./account.delete-dialog"
+import { useBrandImage } from "../hooks/useBrand";
+import { config } from "@/lib/env"
 
 interface SortedInterfaceGroup {
   type: "group",
@@ -92,6 +94,9 @@ export function HorizontalAccountCard({
   onDelete: () => void
   groupId: string
 }) {
+
+  const { imageUrl } = useBrandImage(account.meta.institution_name || "", config.VITE_BRANDFETCH_CLIENTID);
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: account.id,
     data: {
@@ -109,15 +114,15 @@ export function HorizontalAccountCard({
   const getAccountIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case "checking":
-        return <Building className="h-5 w-5 text-blue-500" />
+        return <Building className="h-5 w-5 text-muted-foreground" />
       case "savings":
-        return <PiggyBank className="h-5 w-5 text-emerald-500" />
+        return <PiggyBank className="h-5 w-5 text-muted-foreground" />
       case "investment":
-        return <TrendingUp className="h-5 w-5 text-purple-500" />
+        return <TrendingUp className="h-5 w-5 text-muted-foreground" />
       case "cash":
-        return <Wallet className="h-5 w-5 text-amber-500" />
+        return <Wallet className="h-5 w-5 text-muted-foreground" />
       default:
-        return <CreditCard className="h-5 w-5 text-slate-500" />
+        return <CreditCard className="h-5 w-5 text-muted-foreground" />
     }
   }
 
@@ -140,15 +145,15 @@ export function HorizontalAccountCard({
 
         {/* Account info - col span 6 on mobile, 5 on desktop */}
         <div className="col-span-6 sm:col-span-5 flex items-center gap-2 sm:gap-3">
-          {account?.meta?.institution ? (
+          {account?.meta?.institution_name ? (
             <Avatar className="h-8 w-8 sm:h-10 sm:w-10 rounded-full flex-shrink-0">
-              <AvatarImage src={account?.meta?.logo || "/placeholder.svg"} alt={account?.meta?.institution} />
+              <AvatarImage src={imageUrl || "/placeholder.svg"} alt={account?.meta?.institution_name} />
               <AvatarFallback className="rounded-full bg-primary/10 text-primary text-xs sm:text-sm">
-                {account?.meta?.institution.substring(0, 2).toUpperCase()}
+                {account?.meta?.institution_name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
           ) : (
-            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border bg-muted flex items-center justify-center flex-shrink-0">
               {getAccountIcon(account.type)}
             </div>
           )}
@@ -240,44 +245,55 @@ export function DraggableAccountGroups({
     const savedGroups = localStorage.getItem("accountGroups")
     if (savedGroups) {
       try {
-        // Get the saved order of groups and accounts
-        const savedOrder = JSON.parse(savedGroups)
+        const savedOrder = JSON.parse(savedGroups);
 
-        // Map the saved order to the current data
-        const reorderedGroups = savedOrder.map((groupId: string) => {
-          const group = initialAccounts.find((g) => g.type === groupId) || initialAccounts[0]
+        // --- CHANGE IS HERE ---
+
+        // 1. Map over the saved order. This might create `undefined` entries if a group is gone.
+        const reorderedGroupsWithPotentialGaps = savedOrder.map((groupId: string) => {
+          // Find the group from the fresh initialAccounts data
+          const group = initialAccounts.find((g) => g.type === groupId);
+
+          // If group doesn't exist anymore, return null/undefined
+          if (!group) {
+            return null;
+          }
 
           // Get saved account order for this group
-          const savedAccounts = localStorage.getItem(`accounts-${groupId}`)
+          const savedAccounts = localStorage.getItem(`accounts-${groupId}`);
           if (savedAccounts) {
-            const accountOrder = JSON.parse(savedAccounts)
-            // Reorder accounts based on saved order
+            const accountOrder = JSON.parse(savedAccounts);
             const reorderedAccounts = accountOrder
               .map((accountId: string) => group.accounts.find((a) => a.id === accountId))
-              .filter(Boolean)
+              .filter(Boolean); // filter(Boolean) removes nulls/undefined
 
-            // Add any new accounts that weren't in the saved order
-            const newAccounts = group.accounts.filter((a) => !accountOrder.includes(a.id))
+            const newAccounts = group.accounts.filter((a) => !accountOrder.includes(a.id));
 
             return {
               ...group,
               accounts: [...reorderedAccounts, ...newAccounts],
-            }
+            };
           }
 
-          return group
-        })
+          return group; // Return group as-is if no saved account order
+        });
+
+        // 2. Filter out the null/undefined entries to get a clean list
+        const reorderedGroups = reorderedGroupsWithPotentialGaps.filter(Boolean);
+
+        // --- END OF CHANGE ---
 
         // Add any new groups that weren't in the saved order
-        const newGroups = initialAccounts.filter((g) => !savedOrder.includes(g.type))
+        const existingGroupIds = reorderedGroups.map(g => g.type);
+        const newGroups = initialAccounts.filter((g) => !existingGroupIds.includes(g.type));
 
-        setGroups([...reorderedGroups, ...newGroups])
+        setGroups([...reorderedGroups, ...newGroups]);
       } catch (error) {
-        console.error("Error loading saved account order:", error)
-        setGroups(initialAccounts)
+        console.error("Error loading saved account order:", error);
+        setGroups(initialAccounts);
       }
     } else {
-      setGroups(initialAccounts)
+      setGroups(initialAccounts);
     }
   }, [initialAccounts])
 
@@ -362,6 +378,7 @@ export function DraggableAccountGroups({
     }
   }
 
+
   return (
     <DndContext
       sensors={sensors}
@@ -371,8 +388,8 @@ export function DraggableAccountGroups({
     >
       <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
         <div>
-          {groups.map((group) => (
-            <AccountGroup key={group.type} group={group} onEdit={handleEditAccount} period={period} onDelete={openDeleteDialog} />
+          {groups.map((group, id) => (
+            <AccountGroup key={`${group.type}_${id}`} group={group} onEdit={handleEditAccount} period={period} onDelete={openDeleteDialog} />
           ))}
         </div>
       </SortableContext>

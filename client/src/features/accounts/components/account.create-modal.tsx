@@ -50,10 +50,14 @@ export function AddAccountModal({
   // });
 
   //todo: Mono takes fields like name and email in the data: customer object field
-  const { openMono, isMonoReady } = useMono({
+  const { openMono, context, isMonoReady } = useMono({
     key: config.VITE_MONO_PUBLIC_KEY,
     onSuccess: (payload) => {
-      accountService.linkMonoAccount(payload)
+      accountService.linkMonoAccount({
+        code: payload.code,
+        institution: context.institution.name,
+        institutionID: context.institution.id
+      })
     },
   });
 
