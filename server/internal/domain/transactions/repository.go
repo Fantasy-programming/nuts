@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
@@ -18,7 +19,7 @@ import (
 
 type Repository interface {
 	// Transaction operations
-	GetTransactions(ctx context.Context, params repository.ListTransactionsParams) ([]Group, error)
+	GetTransactions(ctx context.Context, params ListTransactionsParams, groupByDate bool) (*PaginatedTransactionsResponse, error)
 	GetTransaction(ctx context.Context, id uuid.UUID) (repository.Transaction, error)
 	CreateTransaction(ctx context.Context, params repository.CreateTransactionParams) (repository.Transaction, error)
 	CreateTransfertTransaction(ctx context.Context, params TransfertParams) (repository.Transaction, error)
@@ -41,33 +42,87 @@ func NewRepository(db *pgxpool.Pool, queries *repository.Queries) Repository {
 	}
 }
 
-func (r *Trsrepo) GetTransactions(ctx context.Context, params repository.ListTransactionsParams) ([]Group, error) {
-	transactions, err := r.Queries.ListTransactions(ctx, params)
+func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsParams, groupByDate bool) (*PaginatedTransactionsResponse, error) {
+	// 1. Get the total count for pagination metadata
+	totalItems, err := r.Queries.CountTransactions(ctx, repository.CountTransactionsParams{
+		UserID:    &params.UserID,
+		Type:      params.Type,
+		AccountID: params.AccountID,
+		StartDate: params.StartDate,
+		EndDate:   params.EndDate,
+		Search:    params.Search,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Get the paginated list of transactions
+	sqlcParams := repository.ListTransactionsParams{
+		UserID:    &params.UserID,
+		Limit:     int64(params.Limit),
+		Offset:    int64((params.Page - 1) * params.Limit),
+		Type:      params.Type,
+		AccountID: params.AccountID,
+		StartDate: params.StartDate,
+		EndDate:   params.EndDate,
+		Search:    params.Search,
+	}
+
+	transactions, err := r.Queries.ListTransactions(ctx, sqlcParams)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return []Group{}, nil
+			return &PaginatedTransactionsResponse{
+				Data: []Group{}, // Return empty slice
+				Pagination: Pagination{
+					TotalItems: 0,
+					TotalPages: 0,
+					Page:       params.Page,
+					Limit:      params.Limit,
+				},
+			}, nil
 		}
 		return nil, err
 	}
 
-	accounts, err := r.Queries.GetAccounts(ctx, params.UserID)
-	if err != nil {
-		return nil, err
+	enhancedTransactions := make([]EnhancedTransaction, len(transactions))
+
+	for i, t := range transactions {
+		enhanced := EnhancedTransaction{
+			ListTransactionsRow: t,
+		}
+		// If a destination account was found in the JOIN...
+		if t.DestinationAccountIDAlias != nil {
+			enhanced.DestinationAccount = &repository.GetAccountsRow{
+				ID:       *t.DestinationAccountIDAlias,
+				Name:     *t.DestinationAccountName,
+				Type:     t.DestinationAccountType.ACCOUNTTYPE,
+				Currency: *t.DestinationAccountCurrency,
+				Color:    t.DestinationAccountColor.COLORENUM,
+			}
+		}
+		enhancedTransactions[i] = enhanced
 	}
 
-	// Create account map for faster lookups
-	accountMap := createAccountMap(accounts)
-
-	// Enhance transactions with destination account data
-	enhancedTransactions := enhanceTransactionsWithDestAccounts(transactions, accountMap)
-
-	// Group the enhanced transactions
-	grouped, err := groupEnhancedTransactions(enhancedTransactions)
-	if err != nil {
-		return nil, err
+	resp := &PaginatedTransactionsResponse{
+		Pagination: Pagination{
+			TotalItems: int(totalItems),
+			TotalPages: int(math.Ceil(float64(totalItems) / float64(params.Limit))),
+			Page:       params.Page,
+			Limit:      params.Limit,
+		},
 	}
 
-	return grouped, nil
+	if groupByDate {
+		grouped, err := groupEnhancedTransactions(enhancedTransactions)
+		if err != nil {
+			return nil, err
+		}
+		resp.Data = grouped
+	} else {
+		resp.Data = enhancedTransactions // Return the flat, enhanced list
+	}
+
+	return resp, nil
 }
 
 // GetTransaction retrieves a specific transaction by its ID

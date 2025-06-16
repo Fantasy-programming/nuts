@@ -202,15 +202,17 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var account repository.Account
+	external := false
 
 	params := repository.CreateAccountParams{
-		CreatedBy: &userID,
-		Name:      req.Name,
-		Type:      act,
-		Balance:   balance,
-		Currency:  req.Currency,
-		Meta:      req.Meta,
-		Color:     color,
+		CreatedBy:  &userID,
+		Name:       req.Name,
+		Type:       act,
+		Balance:    balance,
+		Currency:   req.Currency,
+		Meta:       req.Meta,
+		Color:      color,
+		IsExternal: &external,
 	}
 
 	if req.Balance == 0 {

@@ -130,6 +130,8 @@ func (r *repo) CreateAccountWInitalTrs(ctx context.Context, act repository.Creat
 		AccountID:           account.ID,
 		Description:         &description,
 		CategoryID:          category.ID,
+		TransactionCurrency: account.Currency,
+		OriginalAmount:      types.NullDecimalToDecimal(act.Balance),
 		TransactionDatetime: pgtype.Timestamptz{Time: time.Now(), Valid: true},
 		Details: dto.Details{
 			PaymentMedium: "",

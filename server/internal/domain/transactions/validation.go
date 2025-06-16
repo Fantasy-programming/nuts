@@ -34,38 +34,6 @@ type Group struct {
 	Transactions []EnhancedTransaction `json:"transactions"`
 }
 
-// createAccountMap creates a map of account IDs to account objects for efficient lookups
-func createAccountMap(accounts []repository.GetAccountsRow) map[uuid.UUID]repository.GetAccountsRow {
-	accountMap := make(map[uuid.UUID]repository.GetAccountsRow, len(accounts))
-	for _, account := range accounts {
-		accountMap[account.ID] = account
-	}
-	return accountMap
-}
-
-// enhanceTransactionsWithDestAccounts replaces destination account IDs with actual account objects
-func enhanceTransactionsWithDestAccounts(
-	transactions []repository.ListTransactionsRow,
-	accountMap map[uuid.UUID]repository.GetAccountsRow,
-) []EnhancedTransaction {
-	enhanced := make([]EnhancedTransaction, len(transactions))
-
-	for i, t := range transactions {
-		enhanced[i] = EnhancedTransaction{
-			ListTransactionsRow: t,
-		}
-
-		// If there's a destination account ID, look it up in the map
-		if t.DestinationAccountID != nil {
-			if destAcc, ok := accountMap[*t.DestinationAccountID]; ok {
-				enhanced[i].DestinationAccount = &destAcc
-			}
-		}
-	}
-
-	return enhanced
-}
-
 func groupEnhancedTransactions(transactions []EnhancedTransaction) (group []Group, err error) {
 	// We'll group by a formatted date string.
 	groupsMap := make(map[string]*Group)

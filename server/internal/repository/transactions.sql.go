@@ -31,6 +31,43 @@ type BatchCreateTransactionParams struct {
 	CreatedBy             *uuid.UUID         `json:"created_by"`
 }
 
+const countTransactions = `-- name: CountTransactions :one
+SELECT count(*)
+FROM
+    transactions AS t
+WHERE
+    t.created_by = $1
+    AND t.deleted_at IS NULL
+    AND ($2::text IS NULL OR t.type = $2)
+    AND ($3::uuid IS NULL OR t.account_id = $3)
+    AND ($4::timestamptz IS NULL OR t.transaction_datetime >= $4)
+    AND ($5::timestamptz IS NULL OR t.transaction_datetime <= $5)
+    AND ($6::text IS NULL OR t.description ILIKE '%' || $6::text || '%')
+`
+
+type CountTransactionsParams struct {
+	UserID    *uuid.UUID `json:"user_id"`
+	Type      *string    `json:"type"`
+	AccountID *uuid.UUID `json:"account_id"`
+	StartDate *time.Time `json:"start_date"`
+	EndDate   *time.Time `json:"end_date"`
+	Search    *string    `json:"search"`
+}
+
+func (q *Queries) CountTransactions(ctx context.Context, arg CountTransactionsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countTransactions,
+		arg.UserID,
+		arg.Type,
+		arg.AccountID,
+		arg.StartDate,
+		arg.EndDate,
+		arg.Search,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createTransaction = `-- name: CreateTransaction :one
 INSERT INTO transactions (
     amount,
@@ -40,12 +77,14 @@ INSERT INTO transactions (
     category_id,
     description,
     transaction_datetime,
+    transaction_currency,
+    original_amount,
     details,
     provider_transaction_id,
     is_external,
     created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 ) RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date
 `
 
@@ -57,6 +96,8 @@ type CreateTransactionParams struct {
 	CategoryID            uuid.UUID          `json:"category_id"`
 	Description           *string            `json:"description"`
 	TransactionDatetime   pgtype.Timestamptz `json:"transaction_datetime"`
+	TransactionCurrency   string             `json:"transaction_currency"`
+	OriginalAmount        decimal.Decimal    `json:"original_amount"`
 	Details               dto.Details        `json:"details"`
 	ProviderTransactionID *string            `json:"provider_transaction_id"`
 	IsExternal            *bool              `json:"is_external"`
@@ -72,6 +113,8 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.CategoryID,
 		arg.Description,
 		arg.TransactionDatetime,
+		arg.TransactionCurrency,
+		arg.OriginalAmount,
 		arg.Details,
 		arg.ProviderTransactionID,
 		arg.IsExternal,
@@ -241,64 +284,88 @@ func (q *Queries) GetTransactionStats(ctx context.Context, arg GetTransactionSta
 
 const listTransactions = `-- name: ListTransactions :many
 SELECT
-    transactions.id,
-    transactions.amount,
-    transactions.type,
-    transactions.destination_account_id,
-    transactions.transaction_datetime,
-    transactions.description,
-    transactions.details,
-    transactions.updated_at,
-    categories.id, categories.name, categories.parent_id, categories.is_default, categories.created_by, categories.updated_by, categories.created_at, categories.updated_at, categories.deleted_at,
-    accounts.id, accounts.name, accounts.type, accounts.balance, accounts.currency, accounts.color, accounts.meta, accounts.created_by, accounts.updated_by, accounts.created_at, accounts.updated_at, accounts.deleted_at, accounts.is_external, accounts.provider_account_id, accounts.provider_name, accounts.sync_status, accounts.last_synced_at, accounts.connection_id, accounts.subtype
-FROM transactions
-JOIN categories ON transactions.category_id = categories.id
-JOIN accounts ON transactions.account_id = accounts.id
+    t.id,
+    t.amount,
+    t.type,
+    t.destination_account_id,
+    t.transaction_datetime,
+    t.description,
+    t.details,
+    t.updated_at,
+    -- Embed the source account
+    source_acct.id, source_acct.name, source_acct.type, source_acct.balance, source_acct.currency, source_acct.color, source_acct.meta, source_acct.created_by, source_acct.updated_by, source_acct.created_at, source_acct.updated_at, source_acct.deleted_at, source_acct.is_external, source_acct.provider_account_id, source_acct.provider_name, source_acct.sync_status, source_acct.last_synced_at, source_acct.connection_id, source_acct.subtype,
+    -- Select destination account fields explicitly with aliases
+    -- We use LEFT JOIN because destination_account_id can be NULL
+    dest_acct.id AS destination_account_id_alias,
+    dest_acct.name AS destination_account_name,
+    dest_acct.type AS destination_account_type,
+    dest_acct.currency AS destination_account_currency,
+    dest_acct.color AS destination_account_color,
+    -- Embed the category
+    cat.id, cat.name, cat.parent_id, cat.is_default, cat.created_by, cat.updated_by, cat.created_at, cat.updated_at, cat.deleted_at
+FROM
+    transactions AS t
+JOIN
+    accounts AS source_acct ON t.account_id = source_acct.id
+JOIN
+    categories AS cat ON t.category_id = cat.id
+LEFT JOIN
+    accounts AS dest_acct ON t.destination_account_id = dest_acct.id
 WHERE
-    transactions.created_by = $1
-    AND transactions.deleted_at IS NULL
-    AND ($2::text IS NULL OR transactions.type = $2)
-    AND ($3::timestamptz IS NULL OR transactions.transaction_datetime >= $3::timestamptz)
-    AND ($4::timestamptz IS NULL OR transactions.transaction_datetime <= $4::timestamptz)
-    AND ($5::uuid IS NULL OR transactions.account_id = $5::uuid)
-ORDER BY transactions.transaction_datetime DESC
-LIMIT CASE
-    WHEN $7::integer IS NULL THEN 50
-    ELSE $7::integer
-END
-OFFSET $6::integer
+    t.created_by = $1
+    AND t.deleted_at IS NULL
+    -- New and improved filters
+    AND ($2::text IS NULL OR t.type = $2)
+    AND ($3::uuid IS NULL OR t.account_id = $3)
+    AND ($4::timestamptz IS NULL OR t.transaction_datetime >= $4)
+    AND ($5::timestamptz IS NULL OR t.transaction_datetime <= $5)
+    -- New search filter (case-insensitive)
+    AND ($6::text IS NULL OR t.description ILIKE '%' || $6::text || '%')
+ORDER BY
+    t.transaction_datetime DESC
+LIMIT
+    $8
+OFFSET
+    $7
 `
 
 type ListTransactionsParams struct {
 	UserID    *uuid.UUID `json:"user_id"`
 	Type      *string    `json:"type"`
+	AccountID *uuid.UUID `json:"account_id"`
 	StartDate *time.Time `json:"start_date"`
 	EndDate   *time.Time `json:"end_date"`
-	AccountID *uuid.UUID `json:"account_id"`
-	Offset    int32      `json:"offset"`
-	Limit     *int32     `json:"limit"`
+	Search    *string    `json:"search"`
+	Offset    int64      `json:"offset"`
+	Limit     int64      `json:"limit"`
 }
 
 type ListTransactionsRow struct {
-	ID                   uuid.UUID      `json:"id"`
-	Amount               pgtype.Numeric `json:"amount"`
-	Type                 string         `json:"type"`
-	DestinationAccountID *uuid.UUID     `json:"destination_account_id"`
-	TransactionDatetime  time.Time      `json:"transaction_datetime"`
-	Description          *string        `json:"description"`
-	Details              dto.Details    `json:"details"`
-	UpdatedAt            time.Time      `json:"updated_at"`
-	Category             Category       `json:"category"`
-	Account              Account        `json:"account"`
+	ID                         uuid.UUID       `json:"id"`
+	Amount                     pgtype.Numeric  `json:"amount"`
+	Type                       string          `json:"type"`
+	DestinationAccountID       *uuid.UUID      `json:"destination_account_id"`
+	TransactionDatetime        time.Time       `json:"transaction_datetime"`
+	Description                *string         `json:"description"`
+	Details                    dto.Details     `json:"details"`
+	UpdatedAt                  time.Time       `json:"updated_at"`
+	Account                    Account         `json:"account"`
+	DestinationAccountIDAlias  *uuid.UUID      `json:"destination_account_id_alias"`
+	DestinationAccountName     *string         `json:"destination_account_name"`
+	DestinationAccountType     NullACCOUNTTYPE `json:"destination_account_type"`
+	DestinationAccountCurrency *string         `json:"destination_account_currency"`
+	DestinationAccountColor    NullCOLORENUM   `json:"destination_account_color"`
+	Category                   Category        `json:"category"`
 }
 
 func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]ListTransactionsRow, error) {
 	rows, err := q.db.Query(ctx, listTransactions,
 		arg.UserID,
 		arg.Type,
+		arg.AccountID,
 		arg.StartDate,
 		arg.EndDate,
-		arg.AccountID,
+		arg.Search,
 		arg.Offset,
 		arg.Limit,
 	)
@@ -318,15 +385,6 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Description,
 			&i.Details,
 			&i.UpdatedAt,
-			&i.Category.ID,
-			&i.Category.Name,
-			&i.Category.ParentID,
-			&i.Category.IsDefault,
-			&i.Category.CreatedBy,
-			&i.Category.UpdatedBy,
-			&i.Category.CreatedAt,
-			&i.Category.UpdatedAt,
-			&i.Category.DeletedAt,
 			&i.Account.ID,
 			&i.Account.Name,
 			&i.Account.Type,
@@ -346,6 +404,20 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Account.LastSyncedAt,
 			&i.Account.ConnectionID,
 			&i.Account.Subtype,
+			&i.DestinationAccountIDAlias,
+			&i.DestinationAccountName,
+			&i.DestinationAccountType,
+			&i.DestinationAccountCurrency,
+			&i.DestinationAccountColor,
+			&i.Category.ID,
+			&i.Category.Name,
+			&i.Category.ParentID,
+			&i.Category.IsDefault,
+			&i.Category.CreatedBy,
+			&i.Category.UpdatedBy,
+			&i.Category.CreatedAt,
+			&i.Category.UpdatedAt,
+			&i.Category.DeletedAt,
 		); err != nil {
 			return nil, err
 		}

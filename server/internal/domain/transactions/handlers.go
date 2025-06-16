@@ -3,6 +3,8 @@ package transactions
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
@@ -42,11 +44,59 @@ func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	q := r.URL.Query()
+
+	// Pagination
+	page, _ := strconv.Atoi(q.Get("page"))
+	if page < 1 {
+		page = 1
+	}
+
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	if limit < 1 || limit > 100 { // Set a reasonable default and max
+		limit = 25
+	}
+
+	// Conditional Grouping
+	groupByDate := q.Get("group_by") == "date"
+
+	// Filters
+	params := ListTransactionsParams{
+		UserID: userID,
+		Page:   page,
+		Limit:  limit,
+	}
+
+	if search := q.Get("q"); search != "" {
+		params.Search = &search
+	}
+
+	if txType := q.Get("type"); txType != "" {
+		params.Type = &txType
+	}
+
+	if accountIDStr := q.Get("account_id"); accountIDStr != "" {
+		if accountID, err := uuid.Parse(accountIDStr); err == nil {
+			params.AccountID = &accountID
+		}
+	}
+
+	// Date Range Filter (example: ?start_date=2023-01-01&end_date=2023-01-31)
+	layout := "2006-01-02"
+	if startDateStr := q.Get("start_date"); startDateStr != "" {
+		if t, err := time.Parse(layout, startDateStr); err == nil {
+			params.StartDate = &t
+		}
+	}
+	if endDateStr := q.Get("end_date"); endDateStr != "" {
+		if t, err := time.Parse(layout, endDateStr); err == nil {
+			params.EndDate = &t
+		}
+	}
+
 	// Get Accounts
 
-	transactions, err := h.repo.GetTransactions(ctx, repository.ListTransactionsParams{
-		UserID: &userID,
-	})
+	transactions, err := h.repo.GetTransactions(ctx, params, groupByDate)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
