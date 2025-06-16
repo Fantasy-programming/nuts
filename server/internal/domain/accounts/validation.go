@@ -4,26 +4,27 @@ import (
 	"net/http"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
 	"github.com/google/uuid"
 )
 
 type CreateAccountRequest struct {
-	Meta     *[]byte `json:"meta,omitempty" validate:"omitempty"`
-	Name     string  `json:"name" validate:"required"`
-	Type     string  `json:"type" validate:"required"`
-	Currency string  `json:"currency" validate:"required"`
-	Color    string  `json:"color" validate:"required"`
-	Balance  float64 `json:"balance" validate:"gte=0"`
+	Meta     dto.AccountMeta `json:"meta,omitempty" validate:"omitempty"`
+	Name     string          `json:"name" validate:"required"`
+	Type     string          `json:"type" validate:"required"`
+	Currency string          `json:"currency" validate:"required"`
+	Color    string          `json:"color" validate:"required"`
+	Balance  float64         `json:"balance" validate:"gte=0"`
 }
 
 type UpdateAccountRequest struct {
-	Name     *string  `json:"name" validate:"required"`
-	Type     *string  `json:"type" validate:"required"`
-	Balance  *float64 `json:"balance" validate:"required"`
-	Currency *string  `json:"currency" validate:"required"`
-	Color    *string  `json:"color" validate:"required"`
-	Meta     *[]byte  `json:"meta,omitempty" validate:"omitempty"`
+	Name     *string         `json:"name" validate:"required"`
+	Type     *string         `json:"type" validate:"required"`
+	Balance  *float64        `json:"balance" validate:"required"`
+	Currency *string         `json:"currency" validate:"required"`
+	Color    *string         `json:"color" validate:"required"`
+	Meta     dto.AccountMeta `json:"meta,omitempty" validate:"omitempty"`
 }
 
 type CreateLinkTokenRequest struct {
@@ -60,7 +61,9 @@ type TellerConnectRequest struct {
 }
 
 type MonoConnectRequest struct {
-	Code string `json:"code" validate:"required"`
+	Code          string `json:"code" validate:"required"`
+	Institution   string `json:"institution" validate:"required"`
+	InstitutionID string `json:"institutionID" validate:"required"`
 }
 
 // Extract pathParam & parse into uuid
@@ -102,11 +105,4 @@ func validateNullableColor(input string) (repository.NullCOLORENUM, error) {
 		return color, message.ErrBadRequest
 	}
 	return color, nil
-}
-
-func parseMeta(meta *[]byte) []byte {
-	if meta != nil {
-		return []byte(*meta)
-	}
-	return nil
 }

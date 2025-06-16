@@ -36,8 +36,6 @@ function RouteComponent() {
   const cashTotal = data.reduce((sum, account) => sum + account.balance, 0)
   const grouppedAccounts = groupAccountsByType(data)
 
-
-
   const createAccount = useMutation({
     mutationFn: accountService.createAccount,
     onSuccess: () => {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -182,7 +183,7 @@ type AccountWithTrend struct {
 	Balance           pgtype.Numeric         `json:"balance"`
 	Currency          string                 `json:"currency"`
 	Color             repository.COLORENUM   `json:"color"`
-	Meta              []byte                 `json:"meta"`
+	Meta              dto.AccountMeta        `json:"meta"`
 	UpdatedAt         time.Time              `json:"updated_at"`
 	Trend             pgtype.Numeric         `json:"trend"`
 	BalanceTimeseries []BalancePoint         `json:"balance_timeseries"`

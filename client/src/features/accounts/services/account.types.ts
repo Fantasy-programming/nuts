@@ -13,6 +13,7 @@ export const accountSchema = z.object({
   meta: z.object({
     notes: z.string().optional(),
     institution: z.string().optional(),
+    institution_name: z.string().optional(),
     logo: z.string().optional(),
   }).optional().nullable(),
   balance: z.number(),

@@ -10,15 +10,35 @@ interface UseMomoProps {
   onEvent?: (eventName: string, eventData: unknown) => void
 }
 
+interface MonoContext {
+  authMethod: string,
+  institution: {
+    id: string,
+    name: string
+  },
+  reference: string,
+  timestamp: number
+}
+
 interface useMonoReturn {
   openMono: () => void
   reauthoriseAccount: (accountId: string) => void
   isWidgetLoading: boolean
   isMonoReady: boolean
+  context: MonoContext
 }
 
 export function useMono({ key, onSuccess, onLoad, onClose, onEvent }: UseMomoProps): useMonoReturn {
   const [isWidgetLoading, setIsWidgetLoading] = React.useState(false);
+  const [context, setContext] = React.useState<MonoContext>({
+    authMethod: "",
+    institution: {
+      id: "",
+      name: ""
+    },
+    reference: "",
+    timestamp: 0
+  })
 
   const monoInstance = React.useMemo(() => {
     if (!key) return null;
@@ -39,7 +59,15 @@ export function useMono({ key, onSuccess, onLoad, onClose, onEvent }: UseMomoPro
         if (onClose) onClose();
       },
       onEvent: (eventName: string, eventData: unknown) => {
-        logger.debug(`Mono event: ${eventName} ${eventData}`);
+        logger.debug(`Mono event: ${eventName}`, {
+          data: eventData
+        });
+
+        if (eventName === "INSTITUTION_SELECTED") {
+          setContext(eventData as MonoContext)
+        }
+
+
         if (onEvent) onEvent(eventName, eventData);
       },
     });
@@ -77,6 +105,7 @@ export function useMono({ key, onSuccess, onLoad, onClose, onEvent }: UseMomoPro
   return {
     openMono,
     reauthoriseAccount,
+    context,
     isWidgetLoading,
     isMonoReady: !!monoInstance, // To check if Mono could be initialized
   };

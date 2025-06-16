@@ -31,7 +31,7 @@ const linkTellerAccount = async (payload: TellerConnectEnrollment) => {
   await axios.post(`${BASEURI}/teller/connect`, payload);
 };
 
-const linkMonoAccount = async (payload: { code: string }) => {
+const linkMonoAccount = async (payload: { code: string, institution: string, institutionID: string }) => {
   await axios.post(`${BASEURI}/mono/connect`, payload);
 };
 

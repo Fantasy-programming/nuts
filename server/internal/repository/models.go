@@ -194,25 +194,25 @@ func (e RiverJobState) Valid() bool {
 }
 
 type Account struct {
-	ID                uuid.UUID      `json:"id"`
-	Name              string         `json:"name"`
-	Type              ACCOUNTTYPE    `json:"type"`
-	Balance           pgtype.Numeric `json:"balance"`
-	Currency          string         `json:"currency"`
-	Color             COLORENUM      `json:"color"`
-	Meta              []byte         `json:"meta"`
-	CreatedBy         *uuid.UUID     `json:"created_by"`
-	UpdatedBy         *uuid.UUID     `json:"updated_by"`
-	CreatedAt         time.Time      `json:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
-	DeletedAt         *time.Time     `json:"deleted_at"`
-	IsExternal        *bool          `json:"is_external"`
-	ProviderAccountID *string        `json:"provider_account_id"`
-	ProviderName      *string        `json:"provider_name"`
-	SyncStatus        *string        `json:"sync_status"`
-	LastSyncedAt      *time.Time     `json:"last_synced_at"`
-	ConnectionID      *uuid.UUID     `json:"connection_id"`
-	Subtype           *string        `json:"subtype"`
+	ID                uuid.UUID       `json:"id"`
+	Name              string          `json:"name"`
+	Type              ACCOUNTTYPE     `json:"type"`
+	Balance           pgtype.Numeric  `json:"balance"`
+	Currency          string          `json:"currency"`
+	Color             COLORENUM       `json:"color"`
+	Meta              dto.AccountMeta `json:"meta"`
+	CreatedBy         *uuid.UUID      `json:"created_by"`
+	UpdatedBy         *uuid.UUID      `json:"updated_by"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
+	DeletedAt         *time.Time      `json:"deleted_at"`
+	IsExternal        *bool           `json:"is_external"`
+	ProviderAccountID *string         `json:"provider_account_id"`
+	ProviderName      *string         `json:"provider_name"`
+	SyncStatus        *string         `json:"sync_status"`
+	LastSyncedAt      *time.Time      `json:"last_synced_at"`
+	ConnectionID      *uuid.UUID      `json:"connection_id"`
+	Subtype           *string         `json:"subtype"`
 }
 
 type Category struct {

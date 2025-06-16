@@ -193,10 +193,13 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 		} else {
 			// Account doesn't exist, prepare for creation
 			accountsToCreate = append(accountsToCreate, repository.BatchCreateAccountParams{
-				Name:              account.Name,
-				Balance:           newBalance,
-				Type:              account.Type,
-				Color:             "red",
+				Name:    account.Name,
+				Balance: newBalance,
+				Type:    account.Type,
+				Color:   "red",
+				Meta: dto.AccountMeta{
+					InstitutionName: *connection.InstitutionName,
+				},
 				Currency:          account.Currency,
 				ProviderName:      &connection.ProviderName,
 				ProviderAccountID: &account.ProviderAccountID,

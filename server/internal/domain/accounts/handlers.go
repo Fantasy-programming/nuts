@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
@@ -186,8 +187,6 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meta := parseMeta(req.Meta)
-
 	userID, err := jwt.GetUserID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
@@ -210,7 +209,7 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		Type:      act,
 		Balance:   balance,
 		Currency:  req.Currency,
-		Meta:      meta,
+		Meta:      req.Meta,
 		Color:     color,
 	}
 
@@ -316,8 +315,6 @@ func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meta := parseMeta(req.Meta)
-
 	userID, err := jwt.GetUserID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
@@ -338,7 +335,7 @@ func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		Currency:  &req.Currency,
 		Balance:   balance,
 		Color:     color,
-		Meta:      meta,
+		Meta:      req.Meta,
 		UpdatedBy: &userID,
 		ID:        accountID,
 	})
@@ -504,7 +501,21 @@ func (h *Handler) GetAccountBTimeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accounts, err := h.repo.GetAccountBTimeline(ctx, accountID)
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    accountID,
+		})
+		return
+	}
+
+	accounts, err := h.repo.GetAccountBTimeline(ctx, userID, accountID)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -693,6 +704,10 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 			Valid:   true,
 		}
 
+		metaMap := dto.AccountMeta{
+			InstitutionName: req.Enrollment.Institution.Name,
+		}
+
 		accountParams := repository.CreateAccountParams{
 			CreatedBy:         &userID,
 			Name:              providerAccount.Name,
@@ -704,6 +719,7 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 			Currency:          providerAccount.Currency,
 			ConnectionID:      &connection.ID,
 			Color:             repository.COLORENUMBlue,
+			Meta:              metaMap,
 		}
 
 		newAccount, err := h.repo.CreateAccount(ctx, accountParams)
@@ -844,8 +860,8 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 			AccessTokenEncrypted: &encryptedMonoIdentifier, // Or a more specific token if Mono provides one
 			ItemID:               &encryptedMonoIdentifier,
 			// Institution details might be fetched later via webhook or separate API call for Mono
-			InstitutionID:   nil,
-			InstitutionName: nil,
+			InstitutionID:   &req.InstitutionID,
+			InstitutionName: &req.Institution,
 			Status:          &status, // Or "active" if data sync is immediate, "pending_auth" if webhooks are primary
 			LastSyncAt:      pgtype.Timestamptz{Valid: false},
 			ExpiresAt:       pgtype.Timestamptz{Valid: false}, // Set if Mono provides expiration

@@ -36,7 +36,7 @@ type Repository interface {
 
 	// GetAccountsBTimeline
 	GetAccountsBTimeline(ctx context.Context, userID uuid.UUID) ([]repository.GetAccountsBalanceTimelineRow, error)
-	GetAccountBTimeline(ctx context.Context, id uuid.UUID) ([]repository.GetAccountBalanceTimelineRow, error)
+	GetAccountBTimeline(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]repository.GetAccountBalanceTimelineRow, error)
 	GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]AccountWithTrend, error)
 
 	// Connection management
@@ -174,8 +174,11 @@ func (r *repo) GetAccountsBTimeline(ctx context.Context, userID uuid.UUID) ([]re
 	return r.queries.GetAccountsBalanceTimeline(ctx, userID)
 }
 
-func (r *repo) GetAccountBTimeline(ctx context.Context, id uuid.UUID) ([]repository.GetAccountBalanceTimelineRow, error) {
-	return r.queries.GetAccountBalanceTimeline(ctx, id)
+func (r *repo) GetAccountBTimeline(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]repository.GetAccountBalanceTimelineRow, error) {
+	return r.queries.GetAccountBalanceTimeline(ctx, repository.GetAccountBalanceTimelineParams{
+		AccountID: accountID,
+		UserID:    userID,
+	})
 }
 
 func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTime time.Time, endTime time.Time) ([]AccountWithTrend, error) {
@@ -190,17 +193,27 @@ func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTi
 
 	for rows.Next() {
 		var rawTimeseries json.RawMessage
+		var rawMeta []byte // raw value from DB
 		var a AccountWithTrend
+
 		err := rows.Scan(
 			&a.ID, &a.Name, &a.Type, &a.Balance, &a.Currency,
-			&a.Color, &a.Meta, &a.UpdatedAt, &a.IsExternal, &a.Trend, &rawTimeseries,
+			&a.Color, &rawMeta, &a.UpdatedAt, &a.IsExternal, &a.Trend, &rawTimeseries,
 		)
 		if err != nil {
 			return nil, err
 		}
+
 		if err := json.Unmarshal(rawTimeseries, &a.BalanceTimeseries); err != nil {
 			return nil, err
 		}
+
+		if len(rawMeta) > 0 {
+			if err := json.Unmarshal(rawMeta, &a.Meta); err != nil {
+				return nil, err
+			}
+		}
+
 		results = append(results, a)
 	}
 	return results, nil

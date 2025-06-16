@@ -9,6 +9,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
@@ -22,7 +23,7 @@ type BatchCreateAccountParams struct {
 	Balance           decimal.NullDecimal `json:"balance"`
 	Currency          string              `json:"currency"`
 	Color             interface{}         `json:"color"`
-	Meta              []byte              `json:"meta"`
+	Meta              dto.AccountMeta     `json:"meta"`
 	ConnectionID      *uuid.UUID          `json:"connection_id"`
 	IsExternal        *bool               `json:"is_external"`
 	ProviderAccountID *string             `json:"provider_account_id"`
@@ -56,7 +57,7 @@ type CreateAccountParams struct {
 	Balance           decimal.NullDecimal `json:"balance"`
 	Currency          string              `json:"currency"`
 	Color             interface{}         `json:"color"`
-	Meta              []byte              `json:"meta"`
+	Meta              dto.AccountMeta     `json:"meta"`
 	ConnectionID      *uuid.UUID          `json:"connection_id"`
 	IsExternal        *bool               `json:"is_external"`
 	ProviderAccountID *string             `json:"provider_account_id"`
@@ -117,98 +118,138 @@ func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAccountBalanceTimeline = `-- name: GetAccountBalanceTimeline :many
-WITH relevant_period AS (
+WITH
+period AS (
     SELECT
         date_trunc('month', now()) - INTERVAL '11 months' AS start_month,
-        date_trunc('month', now()) AS end_month,
-        now() - INTERVAL '1 year' AS start_boundary
+        date_trunc('month', now()) AS end_month
 ),
-months AS (
-    -- Generate months for the relevant period
-    SELECT generate_series(
-        (SELECT start_month FROM relevant_period),
-        (SELECT end_month FROM relevant_period),
-        INTERVAL '1 month'
-    ) AS month
+user_base_currency AS (
+    SELECT COALESCE((SELECT currency FROM preferences WHERE user_id = $2 LIMIT 1), 'USD') AS base_currency
 ),
-account_info AS (
-    -- Get account creation date
-    SELECT created_at
-    FROM accounts
-    WHERE accounts.id = $1
-),
-initial_balance AS (
-     -- Calculate balance for the specific account just BEFORE the start_month
+transactions_converted AS (
     SELECT
-        COALESCE(sum(
-            CASE
-                WHEN t.type = 'income' THEN t.amount
-                WHEN t.type = 'expense' THEN -t.amount
-                WHEN t.type = 'transfer' AND t.account_id = $1 THEN -t.amount -- Source
-                WHEN t.type = 'transfer' AND t.destination_account_id = $1 THEN t.amount -- Destination
-                ELSE 0
-            END
-        ), 0)::DECIMAL AS balance_before_period
-    FROM transactions t
-    WHERE t.account_id = $1 OR t.destination_account_id = $1 -- Consider transfers in/out
-      AND t.transaction_datetime < (SELECT start_month FROM relevant_period)
-      -- Assuming created_by check is handled by ensuring $1 belongs to the user in app logic
+        m.account_id,
+        m.transaction_datetime,
+        (m.amount * COALESCE(er.rate, 1.0))::DECIMAL AS converted_amount
+    FROM (
+        SELECT t.account_id, t.transaction_datetime, t.amount, t.transaction_currency FROM transactions t
+        WHERE t.created_by = $2 AND t.deleted_at IS NULL AND t.type IN ('income', 'expense') AND t.account_id = $1
+        UNION ALL
+        SELECT t.account_id, t.transaction_datetime, -t.amount, t.transaction_currency FROM transactions t
+        WHERE t.created_by = $2 AND t.deleted_at IS NULL AND t.type = 'transfer' AND t.account_id = $1
+        UNION ALL
+        SELECT t.destination_account_id, t.transaction_datetime, t.amount, t.transaction_currency FROM transactions t
+        WHERE t.created_by = $2 AND t.deleted_at IS NULL AND t.type = 'transfer' AND t.destination_account_id = $1
+    ) m
+    LEFT JOIN LATERAL (
+        SELECT rate FROM exchange_rates er
+        WHERE er.from_currency = m.transaction_currency AND er.to_currency = (SELECT base_currency FROM user_base_currency)
+          AND er.effective_date <= m.transaction_datetime::DATE
+        ORDER BY er.effective_date DESC
+        LIMIT 1
+    ) er ON TRUE
 ),
-monthly_transactions AS (
-    -- Aggregate transactions per month for the specific account WITHIN the period
+daily_deltas AS (
     SELECT
-        date_trunc('month', t.transaction_datetime) AS month,
-        sum(
-            CASE
-                WHEN t.type = 'income' THEN t.amount
-                WHEN t.type = 'expense' THEN -t.amount
-                WHEN t.type = 'transfer' AND t.account_id = $1 THEN -t.amount -- Source
-                WHEN t.type = 'transfer' AND t.destination_account_id = $1 THEN t.amount -- Destination
-                ELSE 0
-            END
-        ) AS monthly_net
-    FROM transactions t
-    WHERE (t.account_id = $1 OR t.destination_account_id = $1) -- Consider transfers in/out
-      AND t.transaction_datetime >= (SELECT start_month FROM relevant_period)
-      AND t.transaction_datetime < ( (SELECT end_month FROM relevant_period) + INTERVAL '1 month')
-    GROUP BY month
+        date_trunc('day', transaction_datetime)::DATE AS date,
+        SUM(converted_amount) AS delta
+    FROM transactions_converted
+    GROUP BY date_trunc('day', transaction_datetime)
 ),
-combined AS (
-    -- Combine months, initial balance, and monthly nets
+account_anchor_balance AS (
     SELECT
-        m.month,
-        COALESCE(ib.balance_before_period, 0) AS initial_balance,
-        COALESCE(mt.monthly_net, 0) AS monthly_net
-    FROM months m
-    CROSS JOIN initial_balance ib
-    LEFT JOIN monthly_transactions mt ON m.month = mt.month
-    JOIN account_info ai ON m.month >= date_trunc('month', ai.created_at) -- Filter months before account creation
+        a.id AS account_id,
+        a.type,
+        CASE
+            WHEN a.is_external THEN (a.balance * COALESCE(er.rate, 1.0))::DECIMAL
+            ELSE COALESCE((SELECT SUM(tc.converted_amount) FROM transactions_converted tc), 0)
+        END AS anchor_balance,
+        CASE
+            WHEN a.is_external THEN a.updated_at
+            ELSE NOW()
+        END AS anchor_date
+    FROM accounts a
+    LEFT JOIN LATERAL (
+        SELECT rate FROM exchange_rates er
+        WHERE er.from_currency = a.currency AND er.to_currency = (SELECT base_currency FROM user_base_currency)
+          AND er.effective_date <= a.updated_at::DATE
+        ORDER BY er.effective_date DESC
+        LIMIT 1
+    ) er ON TRUE
+    WHERE a.id = $1 AND a.created_by = $2 AND a.deleted_at IS NULL
 ),
-running_balance AS (
-    -- Compute cumulative balance including the initial balance
+balance_timeseries AS (
     SELECT
-        c.month,
-        c.initial_balance + sum(c.monthly_net) OVER (
-            ORDER BY c.month
-            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        ) AS balance
-    FROM combined c
+        d.date,
+        a.type,
+        (
+            a.anchor_balance -
+            COALESCE((
+                SELECT SUM(delta) FROM daily_deltas dd
+                WHERE dd.date > (SELECT end_month FROM period)::DATE + interval '1 month' - interval '1 day'
+                  AND dd.date <= a.anchor_date::DATE
+            ), 0)
+        )
+        -
+        COALESCE((
+            SELECT SUM(delta) FROM daily_deltas dd
+            WHERE dd.date > d.date
+              AND dd.date <= (SELECT end_month FROM period)::DATE + interval '1 month' - interval '1 day'
+        ), 0) AS daily_balance
+    FROM
+        generate_series(
+            (SELECT start_month FROM period)::DATE,
+            (SELECT end_month FROM period)::DATE + interval '1 month' - interval '1 day',
+            '1 day'::interval
+        ) AS d(date)
+    CROSS JOIN account_anchor_balance a
+),
+monthly_balances AS (
+    SELECT DISTINCT ON (date_trunc('month', date))
+        date_trunc('month', date)::TIMESTAMPTZ AS month,
+        daily_balance,
+        type
+    FROM balance_timeseries
+    ORDER BY date_trunc('month', date), date DESC
 )
 SELECT
-    month::TIMESTAMPTZ,
-    balance::DECIMAL
-FROM running_balance
-ORDER BY month
+    mb.month,
+    (CASE WHEN mb.type IN ('credit', 'loan') THEN mb.daily_balance * -1 ELSE mb.daily_balance END)::DECIMAL AS balance
+FROM monthly_balances mb
+ORDER BY mb.month
 `
+
+type GetAccountBalanceTimelineParams struct {
+	AccountID uuid.UUID `json:"account_id"`
+	UserID    uuid.UUID `json:"user_id"`
+}
 
 type GetAccountBalanceTimelineRow struct {
 	Month   time.Time      `json:"month"`
 	Balance pgtype.Numeric `json:"balance"`
 }
 
-// Changed to :many as it returns multiple rows (one per month)
-func (q *Queries) GetAccountBalanceTimeline(ctx context.Context, id uuid.UUID) ([]GetAccountBalanceTimelineRow, error) {
-	rows, err := q.db.Query(ctx, getAccountBalanceTimeline, id)
+// =================================================================
+// Step 1: Define the reporting period and the user's base currency
+// =================================================================
+// =================================================================
+// Step 2: Unify and convert all transaction "movements" for the SPECIFIC account.
+// =================================================================
+// =================================================================
+// Step 3: Pre-calculate daily net changes for the specific account.
+// =================================================================
+// =================================================================
+// Step 4: Get the authoritative "anchor" balance for the specific account.
+// =================================================================
+// =================================================================
+// Step 5: Generate the daily balance timeseries for the account.
+// =================================================================
+// =================================================================
+// Final Step: Select the balance from the LAST DAY of each month.
+// =================================================================
+func (q *Queries) GetAccountBalanceTimeline(ctx context.Context, arg GetAccountBalanceTimelineParams) ([]GetAccountBalanceTimelineRow, error) {
+	rows, err := q.db.Query(ctx, getAccountBalanceTimeline, arg.AccountID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -248,17 +289,17 @@ LIMIT 1
 `
 
 type GetAccountByIdRow struct {
-	ID           uuid.UUID      `json:"id"`
-	Name         string         `json:"name"`
-	Type         ACCOUNTTYPE    `json:"type"`
-	Subtype      *string        `json:"subtype"`
-	Balance      pgtype.Numeric `json:"balance"`
-	Currency     string         `json:"currency"`
-	Meta         []byte         `json:"meta"`
-	Color        COLORENUM      `json:"color"`
-	CreatedBy    *uuid.UUID     `json:"created_by"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	ConnectionID *uuid.UUID     `json:"connection_id"`
+	ID           uuid.UUID       `json:"id"`
+	Name         string          `json:"name"`
+	Type         ACCOUNTTYPE     `json:"type"`
+	Subtype      *string         `json:"subtype"`
+	Balance      pgtype.Numeric  `json:"balance"`
+	Currency     string          `json:"currency"`
+	Meta         dto.AccountMeta `json:"meta"`
+	Color        COLORENUM       `json:"color"`
+	CreatedBy    *uuid.UUID      `json:"created_by"`
+	UpdatedAt    time.Time       `json:"updated_at"`
+	ConnectionID *uuid.UUID      `json:"connection_id"`
 }
 
 func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountByIdRow, error) {
@@ -310,19 +351,19 @@ type GetAccountByProviderAccountIDParams struct {
 }
 
 type GetAccountByProviderAccountIDRow struct {
-	ID                uuid.UUID      `json:"id"`
-	Name              string         `json:"name"`
-	Type              ACCOUNTTYPE    `json:"type"`
-	Subtype           *string        `json:"subtype"`
-	Balance           pgtype.Numeric `json:"balance"`
-	Currency          string         `json:"currency"`
-	Color             COLORENUM      `json:"color"`
-	Meta              []byte         `json:"meta"`
-	CreatedBy         *uuid.UUID     `json:"created_by"`
-	UpdatedAt         time.Time      `json:"updated_at"`
-	ConnectionID      *uuid.UUID     `json:"connection_id"`
-	ProviderName      *string        `json:"provider_name"`
-	ProviderAccountID *string        `json:"provider_account_id"`
+	ID                uuid.UUID       `json:"id"`
+	Name              string          `json:"name"`
+	Type              ACCOUNTTYPE     `json:"type"`
+	Subtype           *string         `json:"subtype"`
+	Balance           pgtype.Numeric  `json:"balance"`
+	Currency          string          `json:"currency"`
+	Color             COLORENUM       `json:"color"`
+	Meta              dto.AccountMeta `json:"meta"`
+	CreatedBy         *uuid.UUID      `json:"created_by"`
+	UpdatedAt         time.Time       `json:"updated_at"`
+	ConnectionID      *uuid.UUID      `json:"connection_id"`
+	ProviderName      *string         `json:"provider_name"`
+	ProviderAccountID *string         `json:"provider_account_id"`
 }
 
 // Or other desired order
@@ -366,16 +407,16 @@ WHERE
 `
 
 type GetAccountsRow struct {
-	ID           uuid.UUID      `json:"id"`
-	Name         string         `json:"name"`
-	Type         ACCOUNTTYPE    `json:"type"`
-	Subtype      *string        `json:"subtype"`
-	Balance      pgtype.Numeric `json:"balance"`
-	Currency     string         `json:"currency"`
-	Color        COLORENUM      `json:"color"`
-	Meta         []byte         `json:"meta"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	ConnectionID *uuid.UUID     `json:"connection_id"`
+	ID           uuid.UUID       `json:"id"`
+	Name         string          `json:"name"`
+	Type         ACCOUNTTYPE     `json:"type"`
+	Subtype      *string         `json:"subtype"`
+	Balance      pgtype.Numeric  `json:"balance"`
+	Currency     string          `json:"currency"`
+	Color        COLORENUM       `json:"color"`
+	Meta         dto.AccountMeta `json:"meta"`
+	UpdatedAt    time.Time       `json:"updated_at"`
+	ConnectionID *uuid.UUID      `json:"connection_id"`
 }
 
 func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAccountsRow, error) {
@@ -417,7 +458,7 @@ period AS (
         date_trunc('month', now()) AS end_month
 ),
 user_base_currency AS (
-    SELECT COALESCE((SELECT currency FROM preferences WHERE user_id = $2 LIMIT 1), 'USD') AS base_currency
+    SELECT COALESCE((SELECT currency FROM preferences WHERE user_id = $1 LIMIT 1), 'USD') AS base_currency
 ),
 transactions_converted AS (
     SELECT
@@ -425,14 +466,17 @@ transactions_converted AS (
         m.transaction_datetime,
         (m.amount * COALESCE(er.rate, 1.0))::DECIMAL AS converted_amount
     FROM (
+        -- Income/Expense
         SELECT t.account_id, t.transaction_datetime, t.amount, t.transaction_currency FROM transactions t
-        WHERE t.created_by = $2 AND t.deleted_at IS NULL AND t.type IN ('income', 'expense') AND t.account_id = $1
+        WHERE t.created_by = $1 AND t.deleted_at IS NULL AND t.type IN ('income', 'expense')
         UNION ALL
+        -- Transfers (out)
         SELECT t.account_id, t.transaction_datetime, -t.amount, t.transaction_currency FROM transactions t
-        WHERE t.created_by = $2 AND t.deleted_at IS NULL AND t.type = 'transfer' AND t.account_id = $1
+        WHERE t.created_by = $1 AND t.deleted_at IS NULL AND t.type = 'transfer'
         UNION ALL
+        -- Transfers (in)
         SELECT t.destination_account_id, t.transaction_datetime, t.amount, t.transaction_currency FROM transactions t
-        WHERE t.created_by = $2 AND t.deleted_at IS NULL AND t.type = 'transfer' AND t.destination_account_id = $1
+        WHERE t.created_by = $1 AND t.deleted_at IS NULL AND t.type = 'transfer' AND t.destination_account_id IS NOT NULL
     ) m
     LEFT JOIN LATERAL (
         SELECT rate FROM exchange_rates er
@@ -444,19 +488,19 @@ transactions_converted AS (
 ),
 daily_deltas AS (
     SELECT
+        account_id,
         date_trunc('day', transaction_datetime)::DATE AS date,
         SUM(converted_amount) AS delta
     FROM transactions_converted
-    GROUP BY date_trunc('day', transaction_datetime)
+    GROUP BY account_id, date_trunc('day', transaction_datetime)
 ),
 account_anchor_balance AS (
     SELECT
         a.id AS account_id,
         a.type,
-        a.created_at,
         CASE
             WHEN a.is_external THEN (a.balance * COALESCE(er.rate, 1.0))::DECIMAL
-            ELSE COALESCE((SELECT SUM(tc.converted_amount) FROM transactions_converted tc), 0)
+            ELSE COALESCE((SELECT SUM(tc.converted_amount) FROM transactions_converted tc WHERE tc.account_id = a.id), 0)
         END AS anchor_balance,
         CASE
             WHEN a.is_external THEN a.updated_at
@@ -470,25 +514,28 @@ account_anchor_balance AS (
         ORDER BY er.effective_date DESC
         LIMIT 1
     ) er ON TRUE
-    WHERE a.id = $1 AND a.created_by = $2 AND a.deleted_at IS NULL
+    WHERE a.created_by = $1 AND a.deleted_at IS NULL
 ),
 balance_timeseries AS (
     SELECT
+        a.account_id,
         d.date,
         a.type,
         (
             a.anchor_balance -
             COALESCE((
                 SELECT SUM(delta) FROM daily_deltas dd
-                WHERE dd.date > (SELECT end_month FROM period)::DATE
+                WHERE dd.account_id = a.account_id
+                  AND dd.date > ((SELECT end_month FROM period)::DATE + interval '1 month' - interval '1 day')
                   AND dd.date <= a.anchor_date::DATE
             ), 0)
         )
         -
         COALESCE((
             SELECT SUM(delta) FROM daily_deltas dd
-            WHERE dd.date > d.date
-              AND dd.date <= (SELECT end_month FROM period)::DATE
+            WHERE dd.account_id = a.account_id
+              AND dd.date > d.date
+              AND dd.date <= ((SELECT end_month FROM period)::DATE + interval '1 month' - interval '1 day')
         ), 0) AS daily_balance
     FROM
         generate_series(
@@ -497,27 +544,23 @@ balance_timeseries AS (
             '1 day'::interval
         ) AS d(date)
     CROSS JOIN account_anchor_balance a
-    WHERE d.date >= date_trunc('day', a.created_at)
 ),
-monthly_balances AS (
-    SELECT DISTINCT ON (date_trunc('month', date))
+account_monthly_balances AS (
+    SELECT DISTINCT ON (account_id, date_trunc('month', date))
+        account_id,
         date_trunc('month', date)::TIMESTAMPTZ AS month,
         daily_balance,
         type
     FROM balance_timeseries
-    ORDER BY date_trunc('month', date), date DESC
+    ORDER BY account_id, date_trunc('month', date), date DESC
 )
 SELECT
-    mb.month,
-    (CASE WHEN mb.type IN ('credit', 'loan') THEN mb.daily_balance * -1 ELSE mb.daily_balance END)::DECIMAL AS balance
-FROM monthly_balances mb
-ORDER BY mb.month
+    amb.month,
+    SUM(CASE WHEN amb.type IN ('credit', 'loan') THEN amb.daily_balance * -1 ELSE amb.daily_balance END)::DECIMAL AS balance
+FROM account_monthly_balances amb
+GROUP BY amb.month
+ORDER BY amb.month
 `
-
-type GetAccountsBalanceTimelineParams struct {
-	AccountID uuid.UUID `json:"account_id"`
-	UserID    uuid.UUID `json:"user_id"`
-}
 
 type GetAccountsBalanceTimelineRow struct {
 	Month   time.Time      `json:"month"`
@@ -528,22 +571,25 @@ type GetAccountsBalanceTimelineRow struct {
 // Step 1: Define the reporting period and the user's base currency
 // =================================================================
 // =================================================================
-// Step 2: Unify and convert all transaction "movements" for the SPECIFIC account.
+// Step 2: Unify and convert all transaction "movements" for ALL accounts of the user.
 // =================================================================
 // =================================================================
-// Step 3: Pre-calculate daily net changes for the specific account.
+// Step 3: Pre-calculate daily net changes for EACH account.
 // =================================================================
 // =================================================================
-// Step 4: Get the authoritative "anchor" balance for the specific account.
+// Step 4: Get the authoritative "anchor" balance for EACH account.
 // =================================================================
 // =================================================================
-// Step 5: Generate the daily balance timeseries for the account.
+// Step 5: Generate the daily balance timeseries for EACH account.
 // =================================================================
 // =================================================================
-// Final Step: Select the balance from the LAST DAY of each month.
+// Step 6: Select the balance from the LAST DAY of each month FOR EACH ACCOUNT.
 // =================================================================
-func (q *Queries) GetAccountsBalanceTimeline(ctx context.Context, arg GetAccountsBalanceTimelineParams) ([]GetAccountsBalanceTimelineRow, error) {
-	rows, err := q.db.Query(ctx, getAccountsBalanceTimeline, arg.AccountID, arg.UserID)
+// =================================================================
+// Final Step: Aggregate the monthly balances from all accounts.
+// =================================================================
+func (q *Queries) GetAccountsBalanceTimeline(ctx context.Context, userID uuid.UUID) ([]GetAccountsBalanceTimelineRow, error) {
+	rows, err := q.db.Query(ctx, getAccountsBalanceTimeline, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -590,19 +636,19 @@ type GetAccountsByConnectionIDParams struct {
 }
 
 type GetAccountsByConnectionIDRow struct {
-	ID                uuid.UUID      `json:"id"`
-	Name              string         `json:"name"`
-	Type              ACCOUNTTYPE    `json:"type"`
-	Subtype           *string        `json:"subtype"`
-	Balance           pgtype.Numeric `json:"balance"`
-	Currency          string         `json:"currency"`
-	Color             COLORENUM      `json:"color"`
-	Meta              []byte         `json:"meta"`
-	CreatedBy         *uuid.UUID     `json:"created_by"`
-	UpdatedAt         time.Time      `json:"updated_at"`
-	ConnectionID      *uuid.UUID     `json:"connection_id"`
-	ProviderName      *string        `json:"provider_name"`
-	ProviderAccountID *string        `json:"provider_account_id"`
+	ID                uuid.UUID       `json:"id"`
+	Name              string          `json:"name"`
+	Type              ACCOUNTTYPE     `json:"type"`
+	Subtype           *string         `json:"subtype"`
+	Balance           pgtype.Numeric  `json:"balance"`
+	Currency          string          `json:"currency"`
+	Color             COLORENUM       `json:"color"`
+	Meta              dto.AccountMeta `json:"meta"`
+	CreatedBy         *uuid.UUID      `json:"created_by"`
+	UpdatedAt         time.Time       `json:"updated_at"`
+	ConnectionID      *uuid.UUID      `json:"connection_id"`
+	ProviderName      *string         `json:"provider_name"`
+	ProviderAccountID *string         `json:"provider_account_id"`
 }
 
 func (q *Queries) GetAccountsByConnectionID(ctx context.Context, arg GetAccountsByConnectionIDParams) ([]GetAccountsByConnectionIDRow, error) {
@@ -877,7 +923,7 @@ type UpdateAccountParams struct {
 	Balance   decimal.NullDecimal `json:"balance"`
 	Currency  *string             `json:"currency"`
 	Color     interface{}         `json:"color"`
-	Meta      []byte              `json:"meta"`
+	Meta      dto.AccountMeta     `json:"meta"`
 	UpdatedBy *uuid.UUID          `json:"updated_by"`
 	ID        uuid.UUID           `json:"id"`
 }
