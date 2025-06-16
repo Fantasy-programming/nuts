@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_XpQpih8UEE
+createdAt: 2025-05-24T18:52:21.986238455
+updatedAt: 2025-05-24T18:53:23.912974624
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_zwpwhxYdvP
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: DELETE
+name: Delete An Account
+sortPriority: 3000.0
+url: http://localhost:3080/api/accounts/:id
+urlParameters: []

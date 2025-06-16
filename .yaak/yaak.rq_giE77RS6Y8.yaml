@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_giE77RS6Y8
+createdAt: 2025-05-24T00:55:54.607855963
+updatedAt: 2025-05-24T18:52:56.479239952
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_zwpwhxYdvP
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Get All Accounts
+sortPriority: 0.0
+url: http://localhost:3080/api/accounts
+urlParameters: []

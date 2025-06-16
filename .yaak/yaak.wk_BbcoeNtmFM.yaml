@@ -1,0 +1,11 @@
+type: workspace
+model: workspace
+id: wk_BbcoeNtmFM
+createdAt: 2025-05-24T00:53:44.550811719
+updatedAt: 2025-05-24T00:53:50.811060752
+name: Nuts
+description: ''
+encryptionKeyChallenge: eUE0azNuQwH1uBhjy3MNxWA4Hr2YbIcoposzOsSwZYrkX2uIoW3DWFiv8fSoAYFbkbo1DQ0SM3E9/hHWiLrM2rhkXdXakuW/HLKeBNpJnhaIESOXI8ggfs3QhnD5L7BvTcE=
+settingValidateCertificates: true
+settingFollowRedirects: true
+settingRequestTimeout: 0

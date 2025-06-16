@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_srJdKYrDBR
+createdAt: 2025-05-24T18:45:21.704371724
+updatedAt: 2025-05-24T18:53:02.869767578
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_zwpwhxYdvP
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: POST
+name: Create an Account
+sortPriority: 1500.0
+url: http://localhost:3080/api/accounts
+urlParameters: []

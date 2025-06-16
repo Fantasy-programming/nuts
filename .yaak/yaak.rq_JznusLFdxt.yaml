@@ -1,0 +1,30 @@
+type: http_request
+model: http_request
+id: rq_JznusLFdxt
+createdAt: 2025-05-24T18:58:29.442542891
+updatedAt: 2025-05-24T19:03:31.096887940
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_zwpwhxYdvP
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Get Accounts With Trends
+sortPriority: 1999.9998
+url: http://localhost:3080/api/accounts/trends
+urlParameters:
+- enabled: true
+  name: start
+  value: ''
+  id: wxNJQqHsyI
+- enabled: true
+  name: end
+  value: ''
+  id: SKYIduWXfM
+- enabled: true
+  name: ''
+  value: ''
+  id: G4scAbaVsf

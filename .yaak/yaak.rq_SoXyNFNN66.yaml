@@ -1,0 +1,27 @@
+type: http_request
+model: http_request
+id: rq_SoXyNFNN66
+createdAt: 2025-05-24T18:38:35.002002467
+updatedAt: 2025-06-09T00:23:23.013538324
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_Vx2bBPuqxS
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "email": "rocket_1@tutanota.com",
+      "password": "tuestfou92A@"
+    }
+bodyType: application/json
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: 4SBZPUs74f
+method: POST
+name: Login
+sortPriority: -0.0001
+url: http://localhost:3080/api/auth/login
+urlParameters: []

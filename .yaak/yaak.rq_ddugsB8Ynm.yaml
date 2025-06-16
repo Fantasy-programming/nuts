@@ -1,0 +1,26 @@
+type: http_request
+model: http_request
+id: rq_ddugsB8Ynm
+createdAt: 2025-05-24T18:44:06.080712163
+updatedAt: 2025-05-24T18:53:20.277015075
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_zwpwhxYdvP
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Get An Account
+sortPriority: 1000.0
+url: http://localhost:3080/api/accounts/:id
+urlParameters:
+- enabled: true
+  name: :id
+  value: 87eb1b57-20a6-4027-9f41-de677e175f32
+  id: cQmxps5HVe
+- enabled: true
+  name: ''
+  value: ''
+  id: DiKC3Myq36
