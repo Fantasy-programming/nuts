@@ -47,6 +47,24 @@ export const grouppedRecordsSchema = z.object({
 
 export const grouppedRecordsArraySchema = grouppedRecordsSchema.array();
 
+export const paginationSchema = z.object({
+  total_items: z.number(),
+  total_pages: z.number(),
+  page: z.number(),
+  limit: z.number(),
+});
+
+
+export const transactionsDataSchema = z.union([
+  grouppedRecordsArraySchema, // If grouped
+  recordsSchema,              // If not grouped
+]);
+
+export const transactionsResponseSchema = z.object({
+  data: transactionsDataSchema,
+  pagination: paginationSchema,
+});
+
 export const recordCreateSchema = z
   .discriminatedUnion("type", [
     recordTransferSchema
@@ -80,5 +98,9 @@ export const recordCreateSchema = z
 export type RecordSchema = z.infer<typeof recordSchema>;
 export type GrouppedRecordsSchema = z.infer<typeof grouppedRecordsSchema>;
 export type GrouppedRecordsArraySchema = z.infer<typeof grouppedRecordsArraySchema>;
+export type Pagination = z.infer<typeof paginationSchema>;
+export type TransactionsData = z.infer<typeof transactionsDataSchema>;
+export type TransactionsResponse = z.infer<typeof transactionsResponseSchema>;
+
 export type RecordCreateSchema = z.infer<typeof recordCreateSchema>;
 export type RecordsSubmit = (values: RecordCreateSchema) => void;

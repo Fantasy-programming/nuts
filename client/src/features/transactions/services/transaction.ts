@@ -1,11 +1,29 @@
 import { api as axios } from "@/lib/axios";
-import { RecordCreateSchema, grouppedRecordsArraySchema, RecordSchema, GrouppedRecordsArraySchema } from "./transaction.types.ts";
+import { RecordCreateSchema, transactionsResponseSchema, RecordSchema, TransactionsResponse } from "./transaction.types.ts";
 
 const BASEURI = "/transactions";
 
-export const getTransactions = async (): Promise<GrouppedRecordsArraySchema> => {
-  const { data } = await axios.get<GrouppedRecordsArraySchema>(`${BASEURI}/`);
-  return grouppedRecordsArraySchema.parse(data);
+function buildUrlWithParams(baseUrl: string, params: Record<string, unknown>): string {
+  const url = new URL(baseUrl, window.location.origin); // Use window.location.origin as a base for relative URLs
+
+  Object.entries(params).forEach(([key, value]) => {
+    // Only append parameters that have a meaningful value
+    if (value !== null && value !== undefined && value !== '') {
+      url.searchParams.append(key, String(value));
+    }
+  });
+
+  // Return the path with the search string, e.g., "/api/transactions?page=1&q=coffee"
+  return `${url.pathname}${url.search}`;
+}
+
+
+
+export const getTransactions = async (params: Record<string, unknown> = {}): Promise<TransactionsResponse> => {
+  const url = buildUrlWithParams(`${BASEURI}/`, params);
+
+  const { data } = await axios.get<TransactionsResponse>(url);
+  return transactionsResponseSchema.parse(data);
 };
 
 export const deleteTransactions = async (ids: string[] | string) => {

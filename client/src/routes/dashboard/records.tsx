@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { RecordsTable } from "@/features/transactions/components/records-table";
 import { Spinner } from "@/core/components/ui/spinner";
 import { Button } from "@/core/components/ui/button";
@@ -14,54 +14,72 @@ import { accountService } from "@/features/accounts/services/account";
 import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useDebounce } from "@/core/hooks/use-debounce";
+
+
+const DEBOUNCE_DELAY = 500; // ms
 
 export const Route = createFileRoute("/dashboard/records")({
   component: RouteComponent,
   pendingComponent: Spinner,
   loader: ({ context }) => {
-    const queryClient = context.queryClient
+    const queryClient = context.queryClient;
+    const defaultParams = { page: 1, limit: 25, q: "", group_by: "date" };
+
+
     queryClient.prefetchQuery({
-      queryKey: ["transactions"],
-      queryFn: getTransactions,
-    })
+      // Use a dynamic key that matches the component's initial state
+      queryKey: ["transactions", defaultParams],
+      queryFn: () => getTransactions(defaultParams),
+    });
+    // These prefetches are still great
     queryClient.prefetchQuery({
       queryKey: ["categories"],
       queryFn: categoryService.getCategories,
-    })
+    });
     queryClient.prefetchQuery({
       queryKey: ["accounts"],
       queryFn: accountService.getAccounts,
-    })
+    });
 
   },
   errorComponent: ({ error }) => <div>Error loading transactions: {error.message}</div>,
 });
 
 function RouteComponent() {
-
   const queryClient = useQueryClient();
 
-  const {
-    data: transactions
-  } = useSuspenseQuery({
-    queryKey: ["transactions"],
-    queryFn: getTransactions,
-  })
 
-  const {
-    data: categories
-  } = useSuspenseQuery({
-    queryKey: ["categories"],
-    queryFn: categoryService.getCategories,
-  })
+  const [page, setPage] = useState(1);
+  const [limit] = useState(25); // Can be made dynamic if needed
+  const [groupBy, setGroupBy] = useState<"date" | "">("date");
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, DEBOUNCE_DELAY);
 
+  // --- Dynamic Query ---
+  // The query params object and query key MUST change when state changes.
+  const queryParams = { page, limit, q: debouncedSearch, group_by: groupBy };
+  const transactionsQueryKey = ["transactions", queryParams];
 
-  const {
-    data: accounts
-  } = useSuspenseQuery({
-    queryKey: ["accounts"],
-    queryFn: accountService.getAccounts,
+  const { data: transactionsResponse, isFetching } = useSuspenseQuery({
+    queryKey: transactionsQueryKey,
+    queryFn: () => getTransactions(queryParams),
   });
+
+  // const {
+  //   data: categories
+  // } = useSuspenseQuery({
+  //   queryKey: ["categories"],
+  //   queryFn: categoryService.getCategories,
+  // })
+  //
+  //
+  // const {
+  //   data: accounts
+  // } = useSuspenseQuery({
+  //   queryKey: ["accounts"],
+  //   queryFn: accountService.getAccounts,
+  // });
 
 
   const commonMutationOptions = {
@@ -148,13 +166,24 @@ function RouteComponent() {
         <div className="h-full w-full space-y-8  py-2">
           <div className="space-y-8">
             <RecordsTable
-              transactions={transactions}
-              categories={categories}
-              accounts={accounts}
-              onUpdateTransaction={handleUpdateTransaction}
-              onDeleteTransaction={handleDeleteTransaction}
+              // Data and status props
+              response={transactionsResponse}
+              isLoading={isFetching} // Use isFetching for background loading indicators
               isUpdating={updateMutation.isPending}
               isDeleting={deleteMutation.isPending}
+
+              // State values
+              search={search}
+              groupBy={groupBy}
+
+              // State setters
+              setSearch={setSearch}
+              setPage={setPage}
+              setGroupBy={setGroupBy}
+
+              // Mutation handlers
+              onUpdateTransaction={handleUpdateTransaction}
+              onDeleteTransaction={handleDeleteTransaction}
             />
           </div>
         </div>
