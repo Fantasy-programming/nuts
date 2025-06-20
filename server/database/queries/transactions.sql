@@ -63,7 +63,6 @@ SELECT
     dest_acct.name AS destination_account_name,
     dest_acct.type AS destination_account_type,
     dest_acct.currency AS destination_account_currency,
-    dest_acct.color AS destination_account_color,
     -- Embed the category
     sqlc.embed(cat)
 FROM

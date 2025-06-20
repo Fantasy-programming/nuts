@@ -41,7 +41,7 @@ INSERT INTO user_financial_connections (
 type CreateConnectionParams struct {
 	UserID               *uuid.UUID         `json:"user_id"`
 	ProviderName         *string            `json:"provider_name"`
-	AccessTokenEncrypted *string            `json:"access_token_encrypted"`
+	AccessTokenEncrypted []byte             `json:"access_token_encrypted"`
 	ItemID               *string            `json:"item_id"`
 	InstitutionID        *string            `json:"institution_id"`
 	InstitutionName      *string            `json:"institution_name"`
@@ -333,7 +333,7 @@ RETURNING id, user_id, provider_name, access_token_encrypted, item_id, instituti
 `
 
 type UpdateConnectionParams struct {
-	AccessTokenEncrypted *string            `json:"access_token_encrypted"`
+	AccessTokenEncrypted []byte             `json:"access_token_encrypted"`
 	ItemID               *string            `json:"item_id"`
 	InstitutionID        *string            `json:"institution_id"`
 	InstitutionName      *string            `json:"institution_name"`

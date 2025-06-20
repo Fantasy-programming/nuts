@@ -28,5 +28,10 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 	router.Put("/{id}", h.UpdateTransaction)
 	router.Delete("/{id}", h.DeleteTransaction)
 
+	// protectedRoutes.HandleFunc("/recurring_transactions", handlers.CreateRecurringTransaction).Methods("POST")
+	// protectedRoutes.HandleFunc("/recurring_transactions", handlers.GetRecurringTransactions).Methods("GET")
+	// // (Add Update/Delete recurring transactions as needed)
+	// protectedRoutes.HandleFunc("/recurring_transactions/generate_pending", handlers.GeneratePendingRecurringTransactions).Methods("POST")
+	// protectedRoutes.HandleFunc("/transactions/automated_import", handlers.AutomatedImportTransaction).Methods("POST")
 	return router
 }

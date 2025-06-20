@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import { RecordsTable } from "@/features/transactions/components/records-table";
 import { Spinner } from "@/core/components/ui/spinner";
 import { Button } from "@/core/components/ui/button";
-import MobileBurger from "@/core/components/layouts/mobile-burger";
 
 import { RecordCreateSchema, RecordSchema } from "@/features/transactions/services/transaction.types";
 import { RecordsDialog } from "@/features/transactions/components/add-records-dialog";
@@ -14,10 +13,12 @@ import { accountService } from "@/features/accounts/services/account";
 import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { SidebarTrigger } from "@/core/components/ui/sidebar";
 import { useDebounce } from "@/core/hooks/use-debounce";
 
 
 const DEBOUNCE_DELAY = 500; // ms
+
 
 export const Route = createFileRoute("/dashboard/records")({
   component: RouteComponent,
@@ -138,12 +139,14 @@ function RouteComponent() {
   };
 
   return (
-
     <>
-      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+      <div className="border-b border-b-bg-nuts-500/20 py-1 flex gap-2 items-center md:hidden -mx-4 px-3">
+        <SidebarTrigger />
+        <span className="font-semibold text-sm tracking-tight">Transactions</span>
+      </div>
+      <header className="hidden md:flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
         <div className="flex w-full items-center justify-between gap-2">
           <h2 className="text-2xl font-bold tracking-tight">Transactions</h2>
-          <MobileBurger />
           <div className="flex items-center gap-6">
             <RecordsDialog onSubmit={onSubmit}>
               <Button className="hidden items-center gap-2 sm:flex">
@@ -151,14 +154,6 @@ function RouteComponent() {
                 <span>Add transactions</span>
               </Button>
             </RecordsDialog>
-            {/* Mobile FAB */}
-            <div className="fixed bottom-6 right-6 z-50 sm:hidden">
-              <RecordsDialog onSubmit={onSubmit}>
-                <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
-                  <Plus className="size-6" />
-                </Button>
-              </RecordsDialog>
-            </div>
           </div>
         </div>
       </header>
@@ -189,6 +184,14 @@ function RouteComponent() {
         </div>
       </div>
 
+      {/* Mobile FAB */}
+      <div className="fixed bottom-6 right-6 z-50 sm:hidden">
+        <RecordsDialog onSubmit={onSubmit}>
+          <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
+            <Plus className="size-6" />
+          </Button>
+        </RecordsDialog>
+      </div>
     </>
   );
 }

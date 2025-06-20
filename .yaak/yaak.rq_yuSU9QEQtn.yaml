@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_yuSU9QEQtn
+createdAt: 2025-05-24T18:45:48.021105151
+updatedAt: 2025-06-17T19:27:51.025207622
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_zwpwhxYdvP
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: PUT
+name: Update an Account
+sortPriority: 6000.0
+url: ${[ BASE_URL ]}/accounts/:id
+urlParameters: []

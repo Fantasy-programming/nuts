@@ -1,0 +1,13 @@
+type: folder
+model: folder
+id: fl_fEMk8ujqjR
+createdAt: 2025-06-17T14:48:54.154297759
+updatedAt: 2025-06-17T15:13:14.423862911
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_Vx2bBPuqxS
+authentication: {}
+authenticationType: null
+description: ''
+headers: []
+name: MFA
+sortPriority: 2000.0

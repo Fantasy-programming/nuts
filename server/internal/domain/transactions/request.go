@@ -29,8 +29,8 @@ type Pagination struct {
 // PaginatedTransactionsResponse is a generic wrapper for paginated data.
 // The Data field can hold either a flat list of transactions or a grouped list.
 type PaginatedTransactionsResponse struct {
-	Data       interface{} `json:"data"`
-	Pagination Pagination  `json:"pagination"`
+	Data       any        `json:"data"`
+	Pagination Pagination `json:"pagination"`
 }
 
 type CreateTransactionRequest struct {
@@ -38,6 +38,7 @@ type CreateTransactionRequest struct {
 	Description         *string     `json:"description"`
 	Type                string      `json:"type"`
 	AccountID           string      `json:"account_id"`
+	TransactionCurrency *string     `json:"transaction_currency"`
 	CategoryID          string      `json:"category_id"`
 	Details             dto.Details `json:"details"`
 	Amount              float64     `json:"amount"`
@@ -49,6 +50,7 @@ type CreateTransfertRequest struct {
 	Type                 string      `json:"type"`
 	AccountID            string      `json:"account_id"`
 	DestinationAccountID string      `json:"destination_account_id"`
+	TransactionCurrency  *string     `json:"transaction_currency"`
 	CategoryID           string      `json:"category_id"`
 	Details              dto.Details `json:"details"`
 	Amount               float64     `json:"amount"`

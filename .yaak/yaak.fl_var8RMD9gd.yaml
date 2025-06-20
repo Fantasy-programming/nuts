@@ -1,0 +1,13 @@
+type: folder
+model: folder
+id: fl_var8RMD9gd
+createdAt: 2025-06-17T02:21:35.235412504
+updatedAt: 2025-06-17T02:22:45.852667523
+workspaceId: wk_BbcoeNtmFM
+folderId: null
+authentication: {}
+authenticationType: null
+description: ''
+headers: []
+name: AI Service
+sortPriority: 21000.0

@@ -35,7 +35,6 @@ func (r iteratorForBatchCreateAccount) Values() ([]interface{}, error) {
 		r.rows[0].Subtype,
 		r.rows[0].Balance,
 		r.rows[0].Currency,
-		r.rows[0].Color,
 		r.rows[0].Meta,
 		r.rows[0].ConnectionID,
 		r.rows[0].IsExternal,
@@ -49,7 +48,7 @@ func (r iteratorForBatchCreateAccount) Err() error {
 }
 
 func (q *Queries) BatchCreateAccount(ctx context.Context, arg []BatchCreateAccountParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"accounts"}, []string{"created_by", "name", "type", "subtype", "balance", "currency", "color", "meta", "connection_id", "is_external", "provider_account_id", "provider_name"}, &iteratorForBatchCreateAccount{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"accounts"}, []string{"created_by", "name", "type", "subtype", "balance", "currency", "meta", "connection_id", "is_external", "provider_account_id", "provider_name"}, &iteratorForBatchCreateAccount{rows: arg})
 }
 
 // iteratorForBatchCreateTransaction implements pgx.CopyFromSource.

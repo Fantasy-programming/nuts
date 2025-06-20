@@ -294,7 +294,7 @@ func (s *Server) setGlobalMiddleware() {
 }
 
 func (s *Server) NewJobService() {
-	jobService, err := jobs.NewService(s.db, s.logger, s.openfinance)
+	jobService, err := jobs.NewService(s.db, s.logger, s.openfinance, s.cfg.EncryptionSecretKeyHex)
 	if err != nil {
 		s.logger.Fatal().Err(err).Msg("Failed to setup job service")
 	}

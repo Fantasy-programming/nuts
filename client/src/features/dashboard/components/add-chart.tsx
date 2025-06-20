@@ -9,15 +9,16 @@ import {
   DialogTrigger,
 } from "@/core/components/ui/dialog";
 import { ScrollArea } from "@/core/components/ui/scroll-area";
-import { PlusCircle } from 'lucide-react';
 import { getAvailableChartConfigs } from '@/features/dashboard/charts/loader';
 import type { DashboardChartModuleConfig } from '@/features/dashboard/charts/types';
 
 interface AddChartDialogProps {
+  children: React.ReactNode
+  onClose?: () => void
   onAddChart: (config: DashboardChartModuleConfig) => void;
 }
 
-export function AddChartDialog({ onAddChart }: AddChartDialogProps) {
+export function AddChartDialog({ onAddChart, children }: AddChartDialogProps) {
   const [availableCharts, setAvailableCharts] = useState<DashboardChartModuleConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
@@ -47,10 +48,7 @@ export function AddChartDialog({ onAddChart }: AddChartDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Chart
-        </Button>
+        {children}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

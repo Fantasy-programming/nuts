@@ -1,0 +1,27 @@
+type: http_request
+model: http_request
+id: rq_aad6UVSaht
+createdAt: 2025-05-24T18:38:43.816675861
+updatedAt: 2025-06-17T15:13:14.436558513
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_Vx2bBPuqxS
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "email": "rocket_1@tutanota.com",
+      "password": "tuestfou92AZ@"
+    }`
+bodyType: application/json
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: yCmJvAmz6p
+method: POST
+name: Signup
+sortPriority: 4000.0
+url: ${[ BASE_URL ]}/auth/signup
+urlParameters: []

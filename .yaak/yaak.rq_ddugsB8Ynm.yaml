@@ -1,0 +1,26 @@
+type: http_request
+model: http_request
+id: rq_ddugsB8Ynm
+createdAt: 2025-05-24T18:44:06.080712163
+updatedAt: 2025-06-17T19:27:51.013495148
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_zwpwhxYdvP
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Get An Account
+sortPriority: 2000.0
+url: ${[ BASE_URL ]}/accounts/:id
+urlParameters:
+- enabled: true
+  name: :id
+  value: 87eb1b57-20a6-4027-9f41-de677e175f32
+  id: cQmxps5HVe
+- enabled: true
+  name: ''
+  value: ''
+  id: DiKC3Myq36

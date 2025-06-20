@@ -23,8 +23,10 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 	router.Use(middleware.Verify)
 	router.Get("/", h.GetCategories)
 	router.Post("/", h.CreateCategories)
+	// router.Get("/{id}", h.GetCategory)
 	router.Put("/{id}", h.UpdateCategory)
 	router.Delete("/{id}", h.DeleteCategory)
+	router.Post("/predict", h.PredictCategory)
 
 	return router
 }

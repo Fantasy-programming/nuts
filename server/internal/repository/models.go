@@ -77,59 +77,6 @@ func (e ACCOUNTTYPE) Valid() bool {
 	return false
 }
 
-type COLORENUM string
-
-const (
-	COLORENUMRed   COLORENUM = "red"
-	COLORENUMGreen COLORENUM = "green"
-	COLORENUMBlue  COLORENUM = "blue"
-)
-
-func (e *COLORENUM) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = COLORENUM(s)
-	case string:
-		*e = COLORENUM(s)
-	default:
-		return fmt.Errorf("unsupported scan type for COLORENUM: %T", src)
-	}
-	return nil
-}
-
-type NullCOLORENUM struct {
-	COLORENUM COLORENUM `json:"COLOR_ENUM"`
-	Valid     bool      `json:"valid"` // Valid is true if COLORENUM is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullCOLORENUM) Scan(value interface{}) error {
-	if value == nil {
-		ns.COLORENUM, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.COLORENUM.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullCOLORENUM) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.COLORENUM), nil
-}
-
-func (e COLORENUM) Valid() bool {
-	switch e {
-	case COLORENUMRed,
-		COLORENUMGreen,
-		COLORENUMBlue:
-		return true
-	}
-	return false
-}
-
 type RiverJobState string
 
 const (
@@ -199,7 +146,6 @@ type Account struct {
 	Type              ACCOUNTTYPE     `json:"type"`
 	Balance           pgtype.Numeric  `json:"balance"`
 	Currency          string          `json:"currency"`
-	Color             COLORENUM       `json:"color"`
 	Meta              dto.AccountMeta `json:"meta"`
 	CreatedBy         *uuid.UUID      `json:"created_by"`
 	UpdatedBy         *uuid.UUID      `json:"updated_by"`
@@ -213,6 +159,21 @@ type Account struct {
 	LastSyncedAt      *time.Time      `json:"last_synced_at"`
 	ConnectionID      *uuid.UUID      `json:"connection_id"`
 	Subtype           *string         `json:"subtype"`
+	SharedFinanceID   *uuid.UUID      `json:"shared_finance_id"`
+}
+
+type Budget struct {
+	ID              uuid.UUID      `json:"id"`
+	UserID          uuid.UUID      `json:"user_id"`
+	CategoryID      uuid.UUID      `json:"category_id"`
+	Amount          pgtype.Numeric `json:"amount"`
+	StartDate       pgtype.Date    `json:"start_date"`
+	EndDate         pgtype.Date    `json:"end_date"`
+	Frequency       string         `json:"frequency"`
+	CreatedAt       *time.Time     `json:"created_at"`
+	UpdatedAt       *time.Time     `json:"updated_at"`
+	SharedFinanceID *uuid.UUID     `json:"shared_finance_id"`
+	Name            *string        `json:"name"`
 }
 
 type Category struct {
@@ -225,6 +186,7 @@ type Category struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
+	Type      string     `json:"type"`
 }
 
 type Currency struct {
@@ -242,19 +204,17 @@ type ExchangeRate struct {
 	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
-type FinancialSyncJob struct {
-	ID                 uuid.UUID  `json:"id"`
-	UserID             uuid.UUID  `json:"user_id"`
-	ConnectionID       uuid.UUID  `json:"connection_id"`
-	ProviderName       string     `json:"provider_name"`
-	JobType            string     `json:"job_type"`
-	Status             string     `json:"status"`
-	StartedAt          *time.Time `json:"started_at"`
-	CompletedAt        *time.Time `json:"completed_at"`
-	ErrorMessage       *string    `json:"error_message"`
-	AccountsSynced     *int32     `json:"accounts_synced"`
-	TransactionsSynced *int32     `json:"transactions_synced"`
-	CreatedAt          time.Time  `json:"created_at"`
+type FinancialGoal struct {
+	ID            uuid.UUID      `json:"id"`
+	UserID        uuid.UUID      `json:"user_id"`
+	Name          string         `json:"name"`
+	Type          string         `json:"type"`
+	TargetAmount  pgtype.Numeric `json:"target_amount"`
+	CurrentAmount pgtype.Numeric `json:"current_amount"`
+	TargetDate    pgtype.Date    `json:"target_date"`
+	Priority      *string        `json:"priority"`
+	CreatedAt     *time.Time     `json:"created_at"`
+	UpdatedAt     *time.Time     `json:"updated_at"`
 }
 
 type LinkedAccount struct {
@@ -337,11 +297,25 @@ type RiverQueue struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
+type SharedFinance struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	OwnerUserID uuid.UUID `json:"owner_user_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type SharedFinanceMember struct {
+	SharedFinanceID uuid.UUID `json:"shared_finance_id"`
+	UserID          uuid.UUID `json:"user_id"`
+	Role            string    `json:"role"`
+}
+
 type Tag struct {
 	ID        uuid.UUID `json:"id"`
 	UserID    uuid.UUID `json:"user_id"`
 	Name      string    `json:"name"`
-	Color     COLORENUM `json:"color"`
+	Color     string    `json:"color"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -350,7 +324,7 @@ type Transaction struct {
 	Amount                pgtype.Numeric `json:"amount"`
 	Type                  string         `json:"type"`
 	AccountID             uuid.UUID      `json:"account_id"`
-	CategoryID            uuid.UUID      `json:"category_id"`
+	CategoryID            *uuid.UUID     `json:"category_id"`
 	DestinationAccountID  *uuid.UUID     `json:"destination_account_id"`
 	TransactionDatetime   time.Time      `json:"transaction_datetime"`
 	Description           *string        `json:"description"`
@@ -366,6 +340,8 @@ type Transaction struct {
 	OriginalAmount        pgtype.Numeric `json:"original_amount"`
 	ExchangeRate          pgtype.Numeric `json:"exchange_rate"`
 	ExchangeRateDate      pgtype.Date    `json:"exchange_rate_date"`
+	IsCategorized         *bool          `json:"is_categorized"`
+	SharedFinanceID       *uuid.UUID     `json:"shared_finance_id"`
 }
 
 type User struct {
@@ -387,7 +363,7 @@ type UserFinancialConnection struct {
 	ID                   uuid.UUID  `json:"id"`
 	UserID               uuid.UUID  `json:"user_id"`
 	ProviderName         string     `json:"provider_name"`
-	AccessTokenEncrypted string     `json:"access_token_encrypted"`
+	AccessTokenEncrypted []byte     `json:"access_token_encrypted"`
 	ItemID               *string    `json:"item_id"`
 	InstitutionID        *string    `json:"institution_id"`
 	InstitutionName      *string    `json:"institution_name"`

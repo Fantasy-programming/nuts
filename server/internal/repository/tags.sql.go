@@ -22,9 +22,9 @@ INSERT INTO tags (
 `
 
 type CreateTagParams struct {
-	UserID uuid.UUID   `json:"user_id"`
-	Name   string      `json:"name"`
-	Color  interface{} `json:"color"`
+	UserID uuid.UUID `json:"user_id"`
+	Name   string    `json:"name"`
+	Color  string    `json:"color"`
 }
 
 func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error) {
@@ -71,7 +71,7 @@ type GetTagByIdRow struct {
 	ID     uuid.UUID `json:"id"`
 	UserID uuid.UUID `json:"user_id"`
 	Name   string    `json:"name"`
-	Color  COLORENUM `json:"color"`
+	Color  string    `json:"color"`
 }
 
 func (q *Queries) GetTagById(ctx context.Context, id uuid.UUID) (GetTagByIdRow, error) {
@@ -99,7 +99,7 @@ ORDER BY name
 type GetTagsByUserIdRow struct {
 	ID    uuid.UUID `json:"id"`
 	Name  string    `json:"name"`
-	Color COLORENUM `json:"color"`
+	Color string    `json:"color"`
 }
 
 func (q *Queries) GetTagsByUserId(ctx context.Context, userID uuid.UUID) ([]GetTagsByUserIdRow, error) {
@@ -144,7 +144,7 @@ type ListTagsRow struct {
 	ID     uuid.UUID `json:"id"`
 	UserID uuid.UUID `json:"user_id"`
 	Name   string    `json:"name"`
-	Color  COLORENUM `json:"color"`
+	Color  string    `json:"color"`
 }
 
 func (q *Queries) ListTags(ctx context.Context, arg ListTagsParams) ([]ListTagsRow, error) {
@@ -184,10 +184,10 @@ RETURNING id, user_id, name, color, created_at
 `
 
 type UpdateTagParams struct {
-	Name   *string     `json:"name"`
-	Color  interface{} `json:"color"`
-	ID     uuid.UUID   `json:"id"`
-	UserID uuid.UUID   `json:"user_id"`
+	Name   *string   `json:"name"`
+	Color  *string   `json:"color"`
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
 }
 
 func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, error) {

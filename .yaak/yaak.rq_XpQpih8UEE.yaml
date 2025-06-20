@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_XpQpih8UEE
+createdAt: 2025-05-24T18:52:21.986238455
+updatedAt: 2025-06-17T19:27:51.027485631
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_zwpwhxYdvP
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: DELETE
+name: Delete An Account
+sortPriority: 7000.0
+url: ${[ BASE_URL ]}/accounts/:id
+urlParameters: []

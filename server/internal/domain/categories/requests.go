@@ -2,7 +2,6 @@ package categories
 
 import "github.com/google/uuid"
 
-// Request/response structures
 type CreateCategoryRequest struct {
 	Name     string     `json:"name"`
 	Type     string     `json:"type"`

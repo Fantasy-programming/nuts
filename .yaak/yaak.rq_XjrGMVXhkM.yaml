@@ -1,0 +1,26 @@
+type: http_request
+model: http_request
+id: rq_XjrGMVXhkM
+createdAt: 2025-06-17T14:43:03.047563854
+updatedAt: 2025-06-17T19:25:37.058148270
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_36p4pDsXza
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Oauth Login Callback
+sortPriority: 1000.0
+url: ${[ BASE_URL ]}/auth/oauth/:provider/callback
+urlParameters:
+- enabled: true
+  name: :provider
+  value: google
+  id: QncBabe4Bm
+- enabled: true
+  name: ''
+  value: ''
+  id: q6CZ7JUmGh

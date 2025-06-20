@@ -6,10 +6,6 @@ export const accountSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Name is required"),
   type: accountType,
-  color: z.enum(["red", "green", "blue"], {
-    required_error: "Please select a color",
-    message: "Invalid color selected"
-  }),
   meta: z.object({
     notes: z.string().optional(),
     institution: z.string().optional(),

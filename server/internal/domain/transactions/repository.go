@@ -97,7 +97,6 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 				Name:     *t.DestinationAccountName,
 				Type:     t.DestinationAccountType.ACCOUNTTYPE,
 				Currency: *t.DestinationAccountCurrency,
-				Color:    t.DestinationAccountColor.COLORENUM,
 			}
 		}
 		enhancedTransactions[i] = enhanced
@@ -190,6 +189,8 @@ type TransfertParams struct {
 	DestinationAccountID uuid.UUID
 	CategoryID           uuid.UUID
 	Description          *string
+	TransactionCurrency  string
+	OriginalAmount       decimal.Decimal
 	TransactionDatetime  time.Time
 	Details              dto.Details
 	UserID               uuid.UUID
@@ -239,7 +240,7 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 		Type:                 params.Type,
 		AccountID:            params.AccountID,
 		DestinationAccountID: &params.DestinationAccountID,
-		CategoryID:           params.CategoryID,
+		CategoryID:           &params.CategoryID,
 		Description:          params.Description,
 		TransactionDatetime:  pgtype.Timestamptz{Time: params.TransactionDatetime, Valid: true},
 		Details:              params.Details,

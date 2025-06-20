@@ -8,9 +8,9 @@ import { accountService } from "@/features/accounts/services/account";
 import { accountTypeOptions } from "./account.constants";
 import getSymbolFromCurrency from "currency-symbol-map"
 
-import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogTrigger, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter, ResponsiveDialogClose } from "@/core/components/ui/dialog-sheet";
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogTrigger, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from "@/core/components/ui/dialog-sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
+import { ScrollArea } from "@/core/components/ui/scroll-area";
 import { SearchableSelect, SearchableSelectOption } from "@/core/components/ui/search-select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs"
 import { Button } from "@/core/components/ui/button"
@@ -64,7 +64,6 @@ export function AddAccountModal({
   const formId = useId();
   const typeFieldId = useId();
   const currencyFieldId = useId();
-  const colorFieldId = useId();
 
 
   // -- Data Fetches
@@ -140,175 +139,153 @@ export function AddAccountModal({
       <ResponsiveDialogTrigger asChild>
         {children}
       </ResponsiveDialogTrigger>
-      <ResponsiveDialogContent className="sm:max-w-[500px]">
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Add New Account</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>Connect to your bank or add a manual account to track your finances.</ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
+      <ResponsiveDialogContent className="sm:max-w-[500px] no-scrollbar">
+        <ScrollArea className="overflow-y-auto no-scrollbar">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle className="text-center md:text-start">Add New Account</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription className="text-center md:text-start">Connect to your bank or add a manual account to track your finances.</ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <Tabs defaultValue="linked" value={activeTab} onValueChange={setActiveTab} className="mt-4 px-4 md:px-1">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="linked">Bank Linked</TabsTrigger>
+              <TabsTrigger value="manual">Manual Account</TabsTrigger>
+            </TabsList>
 
-        <Tabs defaultValue="linked" value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="linked">Bank Linked</TabsTrigger>
-            <TabsTrigger value="manual">Manual Account</TabsTrigger>
-          </TabsList>
+            <TabsContent value="linked" className="space-y-4 mt-4">
+              <div className="flex flex-col gap-3">
+                {/* <Button onClick={openPlaid} disabled={!plaidReady}>Open Plaid</Button> */}
+                <Button onClick={open} disabled={!ready}>Open teller</Button>
+                <Button onClick={openMono} disabled={!isMonoReady}>Open Mono</Button>
+              </div>
+            </TabsContent>
+            <TabsContent value="manual" className="space-y-4 mt-4">
+              <Form {...form}>
+                <form id={formId} onSubmit={form.handleSubmit(handleSubmit)}>
+                  <div className="grid gap-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Account Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., Chase Checking, My Wallet" className="text-md" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-          <TabsContent value="linked" className="space-y-4 mt-4">
-            <div className="flex flex-col gap-3">
-              {/* <Button onClick={openPlaid} disabled={!plaidReady}>Open Plaid</Button> */}
-              <Button onClick={open} disabled={!ready}>Open teller</Button>
-              <Button onClick={openMono} disabled={!isMonoReady}>Open Mono</Button>
-            </div>
-          </TabsContent>
-          <TabsContent value="manual" className="space-y-4 mt-4">
-            <Form {...form}>
-              <form id={formId} onSubmit={form.handleSubmit(handleSubmit)}>
-                <div className="grid gap-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Account Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="e.g., Chase Checking, My Wallet" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel htmlFor={typeFieldId}>Account Type</FormLabel>
+                          <FormControl>
+                            <SearchableSelect
+                              id={typeFieldId}
+                              options={accountTypeOptions}
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Select account type"
+                              searchPlaceholder="Search account type..."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={form.control}
-                    name="type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor={typeFieldId}>Account Type</FormLabel>
-                        <FormControl>
-                          <SearchableSelect
-                            id={typeFieldId}
-                            options={accountTypeOptions}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Select account type"
-                            searchPlaceholder="Search account type..."
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="balance"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Balance</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <span
-                              ref={currencyPrefixRef}
-                              className="
+                    <FormField
+                      control={form.control}
+                      name="balance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Balance</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span
+                                ref={currencyPrefixRef}
+                                className="
                               pointer-events-none  flex items-center justify-center   peer-disabled:opacity-50
                               absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground
                               ">
-                              {balancePrefix}
-                            </span>
-                            <Input type="number"
-                              step="0.01"
-                              // min="0" // Allow negative balances for credit cards etc.
-                              placeholder="0.00"
-                              className="peer"
-                              style={{ paddingLeft: balanceInputPaddingLeft }}
-                              {...field}
-                              value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? "" : Number(field.value)}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                field.onChange(val === "" ? null : Number.parseFloat(val));
-                              }}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="currency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor={currencyFieldId}>Currency</FormLabel>
-                        <FormControl>
-                          {isErrorCurrencies ? (
-                            <div className="flex items-center justify-start w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-destructive min-h-[40px]">
-                              Error: Could not load currencies.
-                              {currencyError?.message && <span className="ml-1">({currencyError.message})</span>}
+                                {balancePrefix}
+                              </span>
+                              <Input type="number"
+                                step="0.01"
+                                // min="0" // Allow negative balances for credit cards etc.
+                                placeholder="0.00"
+                                className="peer text-md"
+                                style={{ paddingLeft: balanceInputPaddingLeft }}
+                                {...field}
+                                value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? "" : Number(field.value)}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  field.onChange(val === "" ? null : Number.parseFloat(val));
+                                }}
+                              />
                             </div>
-                          ) : (
-                            <SearchableSelect
-                              id={currencyFieldId}
-                              options={currencyOptionsForSelect}
-                              value={field.value}
-                              onChange={field.onChange}
-                              placeholder="Select currency"
-                              searchPlaceholder="Search currency..."
-                              isLoading={isLoadingCurrencies} // Pass loading state from useQuery
-                              loadingText="Loading currencies..."
-                              emptyText="No currencies found." // Text if API returns empty or error
-                            />
-                          )}
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="color"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor={colorFieldId}>Color Tag</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger id={colorFieldId}>
-                              <SelectValue placeholder="Select color" />
-                            </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="red"><div className="flex items-center gap-2"><div className="h-3 w-3 rounded-full bg-red-500" />Red</div></SelectItem>
-                            <SelectItem value="green"><div className="flex items-center gap-2"><div className="h-3 w-3 rounded-full bg-green-500" />Green</div></SelectItem>
-                            <SelectItem value="blue"><div className="flex items-center gap-2"><div className="h-3 w-3 rounded-full bg-blue-500" />Blue</div></SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <button type="submit" style={{ display: "none" }} aria-hidden="true"></button>
-              </form>
-            </Form>
-          </TabsContent>
-        </Tabs>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-        <ResponsiveDialogFooter>
-          <ResponsiveDialogClose asChild>
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button></ResponsiveDialogClose>
-          <Button
-            type="submit"
-            form={formId}
-            onClick={() => {
-              form.handleSubmit(handleSubmit)
-            }}
-          >
-            Add Account
-          </Button>
-        </ResponsiveDialogFooter>
+                    <FormField
+                      control={form.control}
+                      name="currency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel htmlFor={currencyFieldId}>Currency</FormLabel>
+                          <FormControl>
+                            {isErrorCurrencies ? (
+                              <div className="flex items-center justify-start w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-destructive min-h-[40px]">
+                                Error: Could not load currencies.
+                                {currencyError?.message && <span className="ml-1">({currencyError.message})</span>}
+                              </div>
+                            ) : (
+                              <SearchableSelect
+                                id={currencyFieldId}
+                                options={currencyOptionsForSelect}
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Select currency"
+                                searchPlaceholder="Search currency..."
+                                isLoading={isLoadingCurrencies} // Pass loading state from useQuery
+                                loadingText="Loading currencies..."
+                                emptyText="No currencies found." // Text if API returns empty or error
+                              />
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                  </div>
+                  <button type="submit" style={{ display: "none" }} aria-hidden="true"></button>
+                </form>
+              </Form>
+            </TabsContent>
+          </Tabs>
+
+          {activeTab === "manual" && (
+            <ResponsiveDialogFooter>
+              <Button
+                className="w-full mt-4 px-2"
+                type="submit"
+                form={formId}
+                onClick={() => {
+                  form.handleSubmit(handleSubmit)
+                }}
+              >
+                Add Account
+              </Button>
+            </ResponsiveDialogFooter>
+          )}
+        </ScrollArea>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   )

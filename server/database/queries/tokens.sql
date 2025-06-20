@@ -27,6 +27,18 @@ WHERE id = $1;
 
 -- name: GetSessions :many
 SELECT
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
     id,
     last_used_at,
     user_agent,

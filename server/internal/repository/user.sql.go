@@ -194,6 +194,8 @@ SELECT
     last_name,
     password,
     avatar_url,
+    mfa_enabled,
+    mfa_secret,
     created_at,
     updated_at
 FROM users
@@ -201,14 +203,16 @@ WHERE email = $1 LIMIT 1
 `
 
 type GetUserByEmailRow struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	FirstName *string   `json:"first_name"`
-	LastName  *string   `json:"last_name"`
-	Password  *string   `json:"password"`
-	AvatarUrl *string   `json:"avatar_url"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         uuid.UUID `json:"id"`
+	Email      string    `json:"email"`
+	FirstName  *string   `json:"first_name"`
+	LastName   *string   `json:"last_name"`
+	Password   *string   `json:"password"`
+	AvatarUrl  *string   `json:"avatar_url"`
+	MfaEnabled bool      `json:"mfa_enabled"`
+	MfaSecret  []byte    `json:"mfa_secret"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -221,6 +225,8 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.LastName,
 		&i.Password,
 		&i.AvatarUrl,
+		&i.MfaEnabled,
+		&i.MfaSecret,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -236,6 +242,7 @@ SELECT
     password,
     avatar_url,
     mfa_enabled,
+    mfa_secret,
     created_at,
     updated_at
 FROM users
@@ -250,6 +257,7 @@ type GetUserByIdRow struct {
 	Password   *string   `json:"password"`
 	AvatarUrl  *string   `json:"avatar_url"`
 	MfaEnabled bool      `json:"mfa_enabled"`
+	MfaSecret  []byte    `json:"mfa_secret"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
@@ -265,6 +273,7 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (GetUserByIdRow
 		&i.Password,
 		&i.AvatarUrl,
 		&i.MfaEnabled,
+		&i.MfaSecret,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

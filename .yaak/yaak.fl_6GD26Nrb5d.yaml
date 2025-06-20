@@ -1,0 +1,13 @@
+type: folder
+model: folder
+id: fl_6GD26Nrb5d
+createdAt: 2025-06-17T02:21:15.203469152
+updatedAt: 2025-06-17T02:22:45.809028202
+workspaceId: wk_BbcoeNtmFM
+folderId: null
+authentication: {}
+authenticationType: null
+description: ''
+headers: []
+name: Webhooks
+sortPriority: 8000.0

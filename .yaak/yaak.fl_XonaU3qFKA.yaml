@@ -1,0 +1,13 @@
+type: folder
+model: folder
+id: fl_XonaU3qFKA
+createdAt: 2025-06-17T02:20:58.338946937
+updatedAt: 2025-06-17T02:22:45.799362412
+workspaceId: wk_BbcoeNtmFM
+folderId: null
+authentication: {}
+authenticationType: null
+description: ''
+headers: []
+name: Reports
+sortPriority: 5000.0

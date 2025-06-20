@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/encrypt"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -23,14 +24,18 @@ type Service struct {
 	logger      *zerolog.Logger
 }
 
-func NewService(db *pgxpool.Pool, logger *zerolog.Logger, openfinance *finance.ProviderManager) (*Service, error) {
+func NewService(db *pgxpool.Pool, logger *zerolog.Logger, openfinance *finance.ProviderManager, encryptionKey string) (*Service, error) {
 	workers := river.NewWorkers()
 
 	queries := repository.New(db)
+	encrypter, err := encrypt.NewEncrypter(encryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup encrypter for bank sync jobs: %w", err)
+	}
 
 	// Register workers
 	river.AddWorker(workers, &EmailWorker{logger: logger})
-	river.AddWorker(workers, &BankSyncWorker{deps: &BankSyncWorkerDeps{DB: db, Queries: queries, FinanceManager: openfinance, Logger: logger}})
+	river.AddWorker(workers, &BankSyncWorker{deps: &BankSyncWorkerDeps{DB: db, Queries: queries, FinanceManager: openfinance, Logger: logger, encrypt: encrypter}})
 	river.AddWorker(workers, &ExportWorker{logger: logger})
 
 	river.AddWorker(workers, &ExchangeRatesSyncWorker{deps: &ExchangeRatesWorkerDeps{DB: db, Queries: queries, Logger: logger}})

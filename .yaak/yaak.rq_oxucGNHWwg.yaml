@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_oxucGNHWwg
+createdAt: 2025-06-17T14:43:48.029510696
+updatedAt: 2025-06-17T15:17:49.057331514
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_fEMk8ujqjR
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: POST
+name: MFA - Generate
+sortPriority: 0.0
+url: ${[ BASE_URL ]}/auth/mfa/generate
+urlParameters: []

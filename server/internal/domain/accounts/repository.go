@@ -129,7 +129,7 @@ func (r *repo) CreateAccountWInitalTrs(ctx context.Context, act repository.Creat
 		Type:                "income",
 		AccountID:           account.ID,
 		Description:         &description,
-		CategoryID:          category.ID,
+		CategoryID:          &category.ID,
 		TransactionCurrency: account.Currency,
 		OriginalAmount:      types.NullDecimalToDecimal(act.Balance),
 		TransactionDatetime: pgtype.Timestamptz{Time: time.Now(), Valid: true},
@@ -200,7 +200,7 @@ func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTi
 
 		err := rows.Scan(
 			&a.ID, &a.Name, &a.Type, &a.Balance, &a.Currency,
-			&a.Color, &rawMeta, &a.UpdatedAt, &a.IsExternal, &a.Trend, &rawTimeseries,
+			&rawMeta, &a.UpdatedAt, &a.IsExternal, &a.Trend, &rawTimeseries,
 		)
 		if err != nil {
 			return nil, err

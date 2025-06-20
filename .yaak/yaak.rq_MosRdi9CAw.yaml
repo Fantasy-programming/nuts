@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_MosRdi9CAw
+createdAt: 2025-06-17T14:40:04.330803445
+updatedAt: 2025-06-17T19:24:49.222385677
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_Vx2bBPuqxS
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: POST
+name: Refresh
+sortPriority: 7000.0
+url: ${[ BASE_URL ]}/auth/refresh
+urlParameters: []

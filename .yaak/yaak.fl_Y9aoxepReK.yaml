@@ -1,0 +1,13 @@
+type: folder
+model: folder
+id: fl_Y9aoxepReK
+createdAt: 2025-06-17T02:20:46.300058160
+updatedAt: 2025-06-17T02:22:45.793461948
+workspaceId: wk_BbcoeNtmFM
+folderId: null
+authentication: {}
+authenticationType: null
+description: ''
+headers: []
+name: Plugins
+sortPriority: 3000.0

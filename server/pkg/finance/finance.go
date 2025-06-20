@@ -239,7 +239,6 @@ func createProvider(name string, cfg config.Integrations, logger *zerolog.Logger
 			Environment: cfg.PlaidEnvironment,
 			ClientID:    cfg.PlaidClientId,
 			Secret:      cfg.PlaidSecret,
-			BaseURL:     cfg.PlaidBaseUri,
 		}, logger)
 	case "teller":
 		return NewTellerProvider(TellerConfig{

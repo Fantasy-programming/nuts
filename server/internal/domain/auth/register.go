@@ -63,14 +63,15 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, storage storage.Storage, validate *v
 	// Authed - Router
 	authedRouter := router.With(middleware.Verify)
 
-	// MFA
-	authedRouter.Post("/mfa/initiate", h.InitiateMfaSetup)
-	authedRouter.Post("/mfa/verify", h.VerifyMfaSetup)
-	authedRouter.Delete("/mfa", h.DisableMfa)
+	// 2FA - TOTP (change to /2fa/)
+	authedRouter.Post("/mfa/generate", h.InitiateMfaSetup)
+	authedRouter.Post("/mfa/enable", h.VerifyMfaSetup)
+	authedRouter.Delete("/mfa/disable", h.DisableMfa)
 
 	// SESSIONS
 	authedRouter.Get("/sessions", h.GetSessions)
 	authedRouter.Post("/sessions/{id}/logout", h.RevokeSession)
+	// authedRouter.Delete("/sessions", h.RevokeAllSessions) // TODO: Implement this
 
 	// Register validator
 	err = RegisterValidations(validate.Validator)

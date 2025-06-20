@@ -14,7 +14,6 @@ type CreateAccountRequest struct {
 	Name     string          `json:"name" validate:"required"`
 	Type     string          `json:"type" validate:"required"`
 	Currency string          `json:"currency" validate:"required"`
-	Color    string          `json:"color" validate:"required"`
 	Balance  float64         `json:"balance" validate:"gte=0"`
 }
 
@@ -23,7 +22,6 @@ type UpdateAccountRequest struct {
 	Type     *string         `json:"type" validate:"required"`
 	Balance  *float64        `json:"balance" validate:"required"`
 	Currency *string         `json:"currency" validate:"required"`
-	Color    *string         `json:"color" validate:"required"`
 	Meta     dto.AccountMeta `json:"meta,omitempty" validate:"omitempty"`
 }
 
@@ -91,18 +89,9 @@ func validateNullableAccountType(input string) (repository.NullACCOUNTTYPE, erro
 	return act, nil
 }
 
-func validateColor(input string) (repository.COLORENUM, error) {
-	var color repository.COLORENUM
-	if err := color.Scan(input); err != nil || !color.Valid() {
-		return color, message.ErrBadRequest
+func parseMeta(meta *[]byte) []byte {
+	if meta != nil {
+		return []byte(*meta)
 	}
-	return color, nil
-}
-
-func validateNullableColor(input string) (repository.NullCOLORENUM, error) {
-	var color repository.NullCOLORENUM
-	if err := color.Scan(input); err != nil || !color.COLORENUM.Valid() {
-		return color, message.ErrBadRequest
-	}
-	return color, nil
+	return nil
 }

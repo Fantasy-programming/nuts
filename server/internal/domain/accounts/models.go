@@ -69,7 +69,7 @@ daily_deltas AS (
 accounts_with_anchor_balance AS (
     SELECT
         a.id AS account_id,
-        a.name, a.type, a.color, a.meta, a.is_external, a.created_at, a.updated_at,
+        a.name, a.type,  a.meta, a.is_external, a.created_at, a.updated_at,
         CASE
             WHEN a.is_external THEN (a.balance * COALESCE(er.rate, 1.0))::DECIMAL
             ELSE COALESCE((SELECT SUM(tc.converted_amount) FROM transactions_converted tc WHERE tc.account_id = a.id), 0)
@@ -150,7 +150,6 @@ SELECT
     a.type,
     (CASE WHEN a.type IN ('credit', 'loan') THEN agg.end_balance * -1 ELSE agg.end_balance END)::DECIMAL AS balance,
     (SELECT base_currency FROM user_base_currency) AS currency,
-    a.color,
     a.meta,
     a.updated_at,
     a.is_external,
@@ -182,7 +181,6 @@ type AccountWithTrend struct {
 	Type              repository.ACCOUNTTYPE `json:"type"`
 	Balance           pgtype.Numeric         `json:"balance"`
 	Currency          string                 `json:"currency"`
-	Color             repository.COLORENUM   `json:"color"`
 	Meta              dto.AccountMeta        `json:"meta"`
 	UpdatedAt         time.Time              `json:"updated_at"`
 	Trend             pgtype.Numeric         `json:"trend"`

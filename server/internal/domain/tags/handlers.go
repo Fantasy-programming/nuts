@@ -105,20 +105,6 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	color, err := validateColor(req.Color)
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusBadRequest,
-			ClientErr:  ErrColorTypeInvalid,
-			ActualErr:  err,
-			Logger:     h.log,
-			Details:    req,
-		})
-		return
-	}
-
 	userID, err := jwt.GetUserID(r)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
@@ -136,7 +122,7 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 	newTag, err := h.repo.CreateTag(ctx, repository.CreateTagParams{
 		UserID: userID,
 		Name:   req.Name,
-		Color:  color,
+		Color:  req.Color,
 	})
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
@@ -213,25 +199,11 @@ func (h *Handler) UpdateTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	color, err := validateNullColor(req.Color)
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusBadRequest,
-			ClientErr:  ErrColorTypeInvalid,
-			ActualErr:  err,
-			Logger:     h.log,
-			Details:    req,
-		})
-		return
-	}
-
 	newTag, err := h.repo.UpdateTag(ctx, repository.UpdateTagParams{
 		UserID: userID,
 		ID:     tagID,
 		Name:   req.Name,
-		Color:  color,
+		Color:  req.Color,
 	})
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
