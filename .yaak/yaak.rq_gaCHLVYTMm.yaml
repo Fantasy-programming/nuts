@@ -1,0 +1,26 @@
+type: http_request
+model: http_request
+id: rq_gaCHLVYTMm
+createdAt: 2025-06-17T14:40:37.201884883
+updatedAt: 2025-06-17T19:25:13.004831559
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_36p4pDsXza
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Oauth Login
+sortPriority: 0.0
+url: ${[ BASE_URL ]}/auth/oauth/:provider
+urlParameters:
+- enabled: true
+  name: :provider
+  value: google
+  id: muS4G6cQ8k
+- enabled: true
+  name: ''
+  value: ''
+  id: ZniSRDj8jz

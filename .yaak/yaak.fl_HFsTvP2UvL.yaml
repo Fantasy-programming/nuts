@@ -2,9 +2,12 @@ type: folder
 model: folder
 id: fl_HFsTvP2UvL
 createdAt: 2025-05-24T19:21:18.453228535
-updatedAt: 2025-05-24T19:21:57.097318357
+updatedAt: 2025-06-17T02:22:56.201056564
 workspaceId: wk_BbcoeNtmFM
 folderId: null
-name: Transactions
+authentication: {}
+authenticationType: null
 description: ''
-sortPriority: 2000.0
+headers: []
+name: Transactions
+sortPriority: 375.0

@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_DUqCofbNTZ
+createdAt: 2025-06-17T16:11:11.867673808
+updatedAt: 2025-06-17T16:11:19.822082682
+workspaceId: wk_BbcoeNtmFM
+folderId: fl_KoofDQJrth
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Link a Plaid Account
+sortPriority: 999.9999
+url: ''
+urlParameters: []

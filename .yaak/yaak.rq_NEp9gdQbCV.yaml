@@ -1,18 +1,18 @@
 type: http_request
 model: http_request
-id: rq_giE77RS6Y8
-createdAt: 2025-05-24T00:55:54.607855963
-updatedAt: 2025-06-17T19:27:51.010313782
+id: rq_NEp9gdQbCV
+createdAt: 2025-06-17T14:43:42.244742284
+updatedAt: 2025-06-17T15:17:53.512520936
 workspaceId: wk_BbcoeNtmFM
-folderId: fl_zwpwhxYdvP
+folderId: fl_fEMk8ujqjR
 authentication: {}
 authenticationType: null
 body: {}
 bodyType: null
 description: ''
 headers: []
-method: GET
-name: Get All Accounts
+method: POST
+name: MFA - Enable
 sortPriority: 1000.0
-url: ${[ BASE_URL ]}/accounts
+url: ${[ BASE_URL ]}/auth/mfa/enable
 urlParameters: []

@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_JznusLFdxt
 createdAt: 2025-05-24T18:58:29.442542891
-updatedAt: 2025-05-24T19:03:31.096887940
+updatedAt: 2025-06-17T19:27:51.020796169
 workspaceId: wk_BbcoeNtmFM
 folderId: fl_zwpwhxYdvP
 authentication: {}
@@ -13,8 +13,8 @@ description: ''
 headers: []
 method: GET
 name: Get Accounts With Trends
-sortPriority: 1999.9998
-url: http://localhost:3080/api/accounts/trends
+sortPriority: 4000.0
+url: ${[ BASE_URL ]}/accounts/trends
 urlParameters:
 - enabled: true
   name: start

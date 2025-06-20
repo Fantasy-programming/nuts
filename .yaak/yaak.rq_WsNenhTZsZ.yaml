@@ -1,10 +1,10 @@
 type: http_request
 model: http_request
-id: rq_giE77RS6Y8
-createdAt: 2025-05-24T00:55:54.607855963
-updatedAt: 2025-06-17T19:27:51.010313782
+id: rq_WsNenhTZsZ
+createdAt: 2025-06-17T16:09:41.483865927
+updatedAt: 2025-06-17T16:10:47.118995290
 workspaceId: wk_BbcoeNtmFM
-folderId: fl_zwpwhxYdvP
+folderId: fl_KoofDQJrth
 authentication: {}
 authenticationType: null
 body: {}
@@ -12,7 +12,7 @@ bodyType: null
 description: ''
 headers: []
 method: GET
-name: Get All Accounts
+name: Link a Teller account
 sortPriority: 1000.0
-url: ${[ BASE_URL ]}/accounts
+url: ''
 urlParameters: []

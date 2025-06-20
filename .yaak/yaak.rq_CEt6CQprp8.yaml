@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_CEt6CQprp8
 createdAt: 2025-05-24T18:55:17.686907415
-updatedAt: 2025-05-24T18:55:57.335412992
+updatedAt: 2025-06-17T19:27:51.023056036
 workspaceId: wk_BbcoeNtmFM
 folderId: fl_zwpwhxYdvP
 authentication: {}
@@ -13,6 +13,6 @@ description: ''
 headers: []
 method: GET
 name: Get Account Balance timeline
-sortPriority: 1999.9999
-url: http://localhost:3080/api/accounts/timeline
+sortPriority: 5000.0
+url: ${[ BASE_URL ]}/accounts/timeline
 urlParameters: []
