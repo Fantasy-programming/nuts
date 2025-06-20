@@ -30,7 +30,6 @@ account_info AS (
         type,
         balance AS db_balance,
         currency,
-        color,
         meta,
         created_by,
         created_at,
@@ -143,7 +142,6 @@ account_trend AS (
         ai.type,
         ib.calculated_end_balance AS balance,
         ai.currency,
-        ai.color,
         ai.meta,
         ai.updated_at,
         ai.is_external,
@@ -226,7 +224,6 @@ SELECT
     at.type,
     at.balance::DECIMAL as balance,
     at.currency,
-    at.color,
     at.meta,
     at.updated_at,
     at.trend::DECIMAL as trend,
@@ -243,7 +240,6 @@ type AccountWithTrend struct {
 	Type              repository.ACCOUNTTYPE `json:"type"`
 	Balance           pgtype.Numeric         `json:"balance"`
 	Currency          string                 `json:"currency"`
-	Color             repository.COLORENUM   `json:"color"`
 	Meta              []byte                 `json:"meta"`
 	UpdatedAt         time.Time              `json:"updated_at"`
 	Trend             pgtype.Numeric         `json:"trend"`

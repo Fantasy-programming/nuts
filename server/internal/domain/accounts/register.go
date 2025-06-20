@@ -3,7 +3,9 @@ package accounts
 import (
 	"net/http"
 
+	"github.com/Fantasy-Programming/nuts/server/config"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/encrypt"
 	"github.com/Fantasy-Programming/nuts/server/internal/utility/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
@@ -13,10 +15,15 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, openFinanceManager *finance.ProviderManager, scheduler *jobs.Service, logger *zerolog.Logger) http.Handler {
+func RegisterHTTPHandlers(cfg *config.Config, db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, openFinanceManager *finance.ProviderManager, scheduler *jobs.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
 	repo := NewRepository(queries, db)
-	h := NewHandler(validate, db, repo, openFinanceManager, scheduler, logger)
+	encrypt, err := encrypt.NewEncrypter(cfg.EncryptionSecretKeyHex)
+	if err != nil {
+		logger.Panic().Err(err).Msg("Failed to setup encrypter")
+	}
+
+	h := NewHandler(validate, db, repo, encrypt, openFinanceManager, scheduler, logger)
 
 	// Create the auth verify middleware
 	middleware := jwt.NewMiddleware(tkn)
@@ -31,7 +38,7 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 
 	// Bank Connections
 	// router.Get("/institutions", h.SearchInstitutions)
-	//  router.Get("/institutions/{id}", h.GetInstitution)
+	// router.Get("/institutions/{id}", h.GetInstitution)
 
 	// Connection management
 	// router.Post("/connections", h.CreateConnection)
@@ -42,12 +49,20 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 	// Account management
 	// router.Get("/connections/{id}/accounts", h.GetConnectionAccounts)
 	// router.Post("/connections/{id}/sync", h.SyncTransactions)
+	// protectedRoutes.HandleFunc("/plaid/items", handlers.GetPlaidItems).Methods("GET") // New endpoint
+	// protectedRoutes.HandleFunc("/plaid/sync", handlers.SyncPlaidData).Methods("POST") // New endpoint
 
 	// Provider-specific endpoints
 	// router.Post("/plaid/link-token", h.CreatePlaidLinkToken)
 	// router.Post("/plaid/exchange-token", h.ExchangePlaidToken)
 	router.Post("/teller/connect", h.TellerConnect)
+	// router.Post("/plaid/connect", h.PlaidConnect)
 	router.Post("/mono/connect", h.MonoConnect)
+	// router.Post("/mono/webhook", h.MonoConnect)
+
+	// router.Post("/plaid/create_link_token", handlers.CreateLinkToken)
+	// router.Post("/plaid/exchange_public_token", handlers.ExchangePublicToken)
+	// router.Post("/plaid/webhook", handlers.HandlePlaidWebhook)
 
 	// Complex queries
 	router.Get("/timeline", h.GetAccountsBTimeline)

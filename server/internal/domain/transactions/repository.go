@@ -185,7 +185,7 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 		Type:                 params.Type,
 		AccountID:            params.AccountID,
 		DestinationAccountID: &params.DestinationAccountID,
-		CategoryID:           params.CategoryID,
+		CategoryID:           &params.CategoryID,
 		Description:          params.Description,
 		TransactionDatetime:  pgtype.Timestamptz{Time: params.TransactionDatetime, Valid: true},
 		Details:              params.Details,

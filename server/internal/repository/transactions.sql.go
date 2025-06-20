@@ -19,7 +19,7 @@ type BatchCreateTransactionParams struct {
 	Type                  string             `json:"type"`
 	AccountID             uuid.UUID          `json:"account_id"`
 	DestinationAccountID  *uuid.UUID         `json:"destination_account_id"`
-	CategoryID            uuid.UUID          `json:"category_id"`
+	CategoryID            *uuid.UUID         `json:"category_id"`
 	Description           *string            `json:"description"`
 	TransactionDatetime   pgtype.Timestamptz `json:"transaction_datetime"`
 	Details               dto.Details        `json:"details"`
@@ -43,7 +43,7 @@ INSERT INTO transactions (
     created_by
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date
+) RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
 `
 
 type CreateTransactionParams struct {
@@ -51,7 +51,7 @@ type CreateTransactionParams struct {
 	Type                  string             `json:"type"`
 	AccountID             uuid.UUID          `json:"account_id"`
 	DestinationAccountID  *uuid.UUID         `json:"destination_account_id"`
-	CategoryID            uuid.UUID          `json:"category_id"`
+	CategoryID            *uuid.UUID         `json:"category_id"`
 	Description           *string            `json:"description"`
 	TransactionDatetime   pgtype.Timestamptz `json:"transaction_datetime"`
 	Details               dto.Details        `json:"details"`
@@ -96,6 +96,8 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		&i.OriginalAmount,
 		&i.ExchangeRate,
 		&i.ExchangeRateDate,
+		&i.IsCategorized,
+		&i.SharedFinanceID,
 	)
 	return i, err
 }
@@ -104,7 +106,7 @@ const deleteTransaction = `-- name: DeleteTransaction :exec
 UPDATE transactions
 SET deleted_at = current_timestamp
 WHERE id = $1
-RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date
+RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
 `
 
 func (q *Queries) DeleteTransaction(ctx context.Context, id uuid.UUID) error {
@@ -162,7 +164,7 @@ func (q *Queries) GetCategorySpending(ctx context.Context, arg GetCategorySpendi
 }
 
 const getTransactionById = `-- name: GetTransactionById :one
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
 FROM transactions
 WHERE
     id = $1
@@ -194,6 +196,8 @@ func (q *Queries) GetTransactionById(ctx context.Context, id uuid.UUID) (Transac
 		&i.OriginalAmount,
 		&i.ExchangeRate,
 		&i.ExchangeRateDate,
+		&i.IsCategorized,
+		&i.SharedFinanceID,
 	)
 	return i, err
 }
@@ -246,8 +250,8 @@ SELECT
     transactions.description,
     transactions.details,
     transactions.updated_at,
-    categories.id, categories.name, categories.parent_id, categories.is_default, categories.created_by, categories.updated_by, categories.created_at, categories.updated_at, categories.deleted_at,
-    accounts.id, accounts.name, accounts.type, accounts.balance, accounts.currency, accounts.color, accounts.meta, accounts.created_by, accounts.updated_by, accounts.created_at, accounts.updated_at, accounts.deleted_at, accounts.is_external, accounts.provider_account_id, accounts.provider_name, accounts.sync_status, accounts.last_synced_at, accounts.connection_id, accounts.subtype
+    categories.id, categories.name, categories.parent_id, categories.is_default, categories.created_by, categories.updated_by, categories.created_at, categories.updated_at, categories.deleted_at, categories.type,
+    accounts.id, accounts.name, accounts.type, accounts.balance, accounts.currency, accounts.meta, accounts.created_by, accounts.updated_by, accounts.created_at, accounts.updated_at, accounts.deleted_at, accounts.is_external, accounts.provider_account_id, accounts.provider_name, accounts.sync_status, accounts.last_synced_at, accounts.connection_id, accounts.subtype, accounts.shared_finance_id
 FROM transactions
 JOIN categories ON transactions.category_id = categories.id
 JOIN accounts ON transactions.account_id = accounts.id
@@ -324,12 +328,12 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Category.CreatedAt,
 			&i.Category.UpdatedAt,
 			&i.Category.DeletedAt,
+			&i.Category.Type,
 			&i.Account.ID,
 			&i.Account.Name,
 			&i.Account.Type,
 			&i.Account.Balance,
 			&i.Account.Currency,
-			&i.Account.Color,
 			&i.Account.Meta,
 			&i.Account.CreatedBy,
 			&i.Account.UpdatedBy,
@@ -343,6 +347,7 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Account.LastSyncedAt,
 			&i.Account.ConnectionID,
 			&i.Account.Subtype,
+			&i.Account.SharedFinanceID,
 		); err != nil {
 			return nil, err
 		}
@@ -357,7 +362,7 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 const listTransactionsByAccount = `-- name: ListTransactionsByAccount :many
 
 
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
 FROM transactions
 WHERE
     account_id = $1
@@ -406,6 +411,8 @@ func (q *Queries) ListTransactionsByAccount(ctx context.Context, accountID uuid.
 			&i.OriginalAmount,
 			&i.ExchangeRate,
 			&i.ExchangeRateDate,
+			&i.IsCategorized,
+			&i.SharedFinanceID,
 		); err != nil {
 			return nil, err
 		}
@@ -418,7 +425,7 @@ func (q *Queries) ListTransactionsByAccount(ctx context.Context, accountID uuid.
 }
 
 const listTransactionsByCategory = `-- name: ListTransactionsByCategory :many
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
 FROM transactions
 WHERE
     category_id = $1
@@ -426,7 +433,7 @@ WHERE
 ORDER BY transaction_datetime DESC
 `
 
-func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID uuid.UUID) ([]Transaction, error) {
+func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID *uuid.UUID) ([]Transaction, error) {
 	rows, err := q.db.Query(ctx, listTransactionsByCategory, categoryID)
 	if err != nil {
 		return nil, err
@@ -456,6 +463,8 @@ func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID uui
 			&i.OriginalAmount,
 			&i.ExchangeRate,
 			&i.ExchangeRateDate,
+			&i.IsCategorized,
+			&i.SharedFinanceID,
 		); err != nil {
 			return nil, err
 		}
@@ -468,7 +477,7 @@ func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID uui
 }
 
 const listTransactionsByDateRange = `-- name: ListTransactionsByDateRange :many
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
 FROM transactions
 WHERE
     created_by = $1::uuid
@@ -513,6 +522,8 @@ func (q *Queries) ListTransactionsByDateRange(ctx context.Context, arg ListTrans
 			&i.OriginalAmount,
 			&i.ExchangeRate,
 			&i.ExchangeRateDate,
+			&i.IsCategorized,
+			&i.SharedFinanceID,
 		); err != nil {
 			return nil, err
 		}
@@ -538,7 +549,7 @@ SET
 WHERE
     id = $9
     AND deleted_at IS NULL
-RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date
+RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
 `
 
 type UpdateTransactionParams struct {
@@ -587,6 +598,8 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		&i.OriginalAmount,
 		&i.ExchangeRate,
 		&i.ExchangeRateDate,
+		&i.IsCategorized,
+		&i.SharedFinanceID,
 	)
 	return i, err
 }

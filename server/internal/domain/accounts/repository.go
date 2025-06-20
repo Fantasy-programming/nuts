@@ -127,7 +127,7 @@ func (r *repo) CreateAccountWInitalTrs(ctx context.Context, act repository.Creat
 		Type:                "income",
 		AccountID:           account.ID,
 		Description:         &description,
-		CategoryID:          category.ID,
+		CategoryID:          &category.ID,
 		TransactionDatetime: pgtype.Timestamptz{Time: time.Now(), Valid: true},
 		Details: dto.Details{
 			PaymentMedium: "",
@@ -191,7 +191,7 @@ func (r *repo) GetAccountsTrends(ctx context.Context, userID *uuid.UUID, startTi
 		var a AccountWithTrend
 		err := rows.Scan(
 			&a.ID, &a.Name, &a.Type, &a.Balance, &a.Currency,
-			&a.Color, &a.Meta, &a.UpdatedAt, &a.Trend, &rawTimeseries, &a.IsExternal,
+			&a.Meta, &a.UpdatedAt, &a.Trend, &rawTimeseries, &a.IsExternal,
 		)
 		if err != nil {
 			return nil, err

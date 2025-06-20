@@ -1,4 +1,4 @@
-package categories
+package budgets
 
 import (
 	"net/http"
@@ -13,20 +13,21 @@ import (
 
 func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
-	repo := NewRepository(queries)
-	h := NewHandler(validate, repo, logger)
+	repo := NewRepository(queries, db)
+
+	h := NewHandler(validate, tkn, repo, logger)
 
 	// Create the auth verify middleware
 	middleware := jwt.NewMiddleware(tkn)
 
 	router := router.NewRouter()
 	router.Use(middleware.Verify)
-	router.Get("/", h.GetCategories)
-	router.Post("/", h.CreateCategories)
-	// router.Get("/{id}", h.GetCategory)
-	router.Put("/{id}", h.UpdateCategory)
-	router.Delete("/{id}", h.DeleteCategory)
-	router.Post("/predict", h.PredictCategory)
+
+	router.Post("/budgets", h.CreateBudget)
+	router.Get("/budgets/{id}", h.GetBudget)
+	router.Put("/budgets/{id}", h.UpdateBudget)
+	router.Delete("/budgets/{id}", h.DeleteBudget)
+	router.Get("/budgets/progress", h.GetBudgetProgress)
 
 	return router
 }

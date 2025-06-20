@@ -6,14 +6,13 @@ INSERT INTO accounts (
     subtype,
     balance,
     currency,
-    color,
     meta,
     connection_id,
     is_external,
     provider_account_id,
     provider_name
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 ) RETURNING *;
 
 
@@ -25,14 +24,13 @@ INSERT INTO accounts (
     subtype,
     balance,
     currency,
-    color,
     meta,
     connection_id,
     is_external,
     provider_account_id,
     provider_name
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 );
 
 
@@ -45,7 +43,6 @@ SELECT
     balance,
     currency,
     meta,
-    color,
     created_by,
     updated_at,
     connection_id
@@ -63,7 +60,6 @@ SELECT
     subtype,
     balance,
     currency,
-    color,
     meta,
     updated_at,
     connection_id
@@ -80,7 +76,6 @@ SET
     subtype = coalesce(sqlc.narg('subtype'), subtype),
     balance = coalesce(sqlc.narg('balance'), balance),
     currency = coalesce(sqlc.narg('currency'), currency),
-    color = coalesce(sqlc.narg('color'), color),
     meta = coalesce(sqlc.narg('meta'), meta),
     updated_by = sqlc.arg('updated_by')
 WHERE id = sqlc.arg('id')
@@ -410,7 +405,6 @@ account_info AS (
         type,
         subtype,
         currency,
-        color,
         meta,
         created_by,
         created_at,
@@ -473,7 +467,6 @@ account_trend AS (
         ai.subtype,
         coalesce(bc.end_balance, 0) AS balance, -- Current balance is the end_balance
         ai.currency,
-        ai.color,
         ai.meta,
         ai.updated_at,
         CASE
@@ -541,7 +534,6 @@ SELECT
     at.subtype,
     at.balance::DECIMAL as balance, -- Balance at the end_date
     at.currency,
-    at.color,
     at.meta,
     at.updated_at,
     at.trend::DECIMAL as trend,
@@ -558,7 +550,6 @@ SELECT
     subtype,
     balance,
     currency,
-    color,
     meta,
     created_by,
     updated_at,
@@ -581,7 +572,6 @@ SELECT
     subtype,
     balance,
     currency,
-    color,
     meta,
     created_by,
     updated_at,

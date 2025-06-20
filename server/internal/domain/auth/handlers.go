@@ -35,13 +35,6 @@ const (
 
 var roles = []string{"user"}
 
-var (
-	ErrWrongCred     = errors.New("auth.wrong_credentials")
-	ErrEmailRequired = errors.New("auth.email_required")
-	ErrPasswordReq   = errors.New("auth.password_critera")
-	ErrExistingUser  = errors.New("auth.user_exists")
-)
-
 type Handler struct {
 	v       *validation.Validator
 	encrypt *encrypt.Encrypter
@@ -140,6 +133,43 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user.MfaEnabled {
+		if req.TwoFACode == "" {
+			// If 2FA is enabled but no code provided, tell client to request code
+			respond.Json(w, http.StatusOK, LoginResponse{TwoFARequired: true}, h.log)
+			return
+		}
+
+		decryptedSecret, err := h.encrypt.Decrypt(user.MfaSecret)
+		if err != nil {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusInternalServerError,
+				ClientErr:  message.ErrInternalError,
+				ActualErr:  err,
+				Logger:     h.log,
+				Details:    req,
+			})
+			return
+		}
+
+		// Validate 2FA code
+		valid := totp.Validate(req.TwoFACode, string(decryptedSecret))
+		if !valid {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusUnauthorized,
+				ClientErr:  ErrWrong2FA,
+				ActualErr:  err,
+				Logger:     h.log,
+				Details:    req,
+			})
+			return
+		}
+	}
+
 	// Extract useful information
 
 	userAgent := r.UserAgent()
@@ -200,6 +230,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	respond.Status(w, http.StatusOK)
 }
 
+// @Summary Register a new user
+// @Description Register a new user with email and password.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param user body models.User true "User registration details (email, password)"
+// @Success 201 {object} map[string]string "message: User registered successfully"
+// @Failure 400 {string} string "Invalid request body"
+// @Failure 409 {string} string "Could not create user. Email might be taken."
+// @Failure 500 {string} string "Error hashing password"
+// @Router /register [post]
 func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 	var req SignupRequest
 	ctx := r.Context()
@@ -374,10 +415,37 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	respond.Json(w, http.StatusOK, nil, h.log)
 }
 
-// TODO: Revoke the active session on logout
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	secure := os.Getenv("ENVIRONMENT") == "production"
+	ctx := r.Context()
 
+	// Get refresh token from cookie
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		h.log.Warn().Err(err).Msg("Refresh token cookie not found during logout")
+	}
+
+	if cookie != nil && cookie.Value != "" {
+		userID, err := jwt.GetUserID(r)
+
+		if err != nil {
+			// If we can't get the userID (e.g., access token is missing or invalid),
+			// we can't revoke the specific refresh token on the server.
+			// Log this, but proceed with client-side cookie clearing.
+			h.log.Warn().Err(err).Msg("Could not get userID from token during logout; refresh token will not be revoked on server.")
+		} else {
+			// Attempt to revoke the refresh token on the server side.
+			err = h.tkn.RevokeRefreshToken(ctx, userID, cookie.Value)
+			if err != nil {
+				// Log any error during server-side revocation, but don't let it block logout.
+				h.log.Error().Err(err).Str("userID", userID.String()).Msg("Failed to revoke refresh token on server during logout")
+			} else {
+				h.log.Info().Str("userID", userID.String()).Msg("Successfully revoked refresh token on server during logout")
+			}
+		}
+	}
+
+	// Clear the access_token cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    "",
@@ -385,8 +453,10 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
 		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
 	})
 
+	// Clear the refresh_token cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    "",
@@ -394,10 +464,11 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
 		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
 	})
 
 	// Respond with a success message
-	respond.Json(w, http.StatusOK, nil, h.log)
+	respond.Status(w, http.StatusOK)
 }
 
 func (h *Handler) GoogleHandler(w http.ResponseWriter, r *http.Request) {
@@ -830,7 +901,12 @@ func (h *Handler) DisableMfa(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Potentially add password confirmation here for extra security before disabling MFA
+	// TODO: Potentially add password or 2fa confirmation here for extra security before disabling MFA
+
+	// if !totp.Validate(req.Code, user.TwoFASecret) {
+	//     http.Error(w, "Invalid 2FA code. Cannot disable.", http.StatusUnauthorized)
+	//     return
+	// }
 
 	err = h.repo.DisableMFA(ctx, userID)
 	if err != nil {

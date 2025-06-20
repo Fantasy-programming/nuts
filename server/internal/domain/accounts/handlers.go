@@ -1,13 +1,13 @@
 package accounts
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/encrypt"
 	"github.com/Fantasy-Programming/nuts/server/internal/utility/message"
 	"github.com/Fantasy-Programming/nuts/server/internal/utility/respond"
 	"github.com/Fantasy-Programming/nuts/server/internal/utility/types"
@@ -25,13 +25,14 @@ type Handler struct {
 	validator          *validation.Validator
 	db                 *pgxpool.Pool
 	repo               Repository
+	encrypt            *encrypt.Encrypter
 	openFinanceManager *finance.ProviderManager
 	scheduler          *jobs.Service
 	logger             *zerolog.Logger
 }
 
-func NewHandler(validator *validation.Validator, db *pgxpool.Pool, repo Repository, openFinanceManager *finance.ProviderManager, scheduler *jobs.Service, logger *zerolog.Logger) *Handler {
-	return &Handler{validator, db, repo, openFinanceManager, scheduler, logger}
+func NewHandler(validator *validation.Validator, db *pgxpool.Pool, repo Repository, encrypt *encrypt.Encrypter, openFinanceManager *finance.ProviderManager, scheduler *jobs.Service, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, db, repo, encrypt, openFinanceManager, scheduler, logger}
 }
 
 func (h *Handler) GetAccounts(w http.ResponseWriter, r *http.Request) {
@@ -168,20 +169,6 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	color, err := validateColor(req.Color)
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusBadRequest,
-			ClientErr:  ErrColorTypeInvalid,
-			ActualErr:  err,
-			Logger:     h.logger,
-			Details:    req,
-		})
-		return
-	}
-
 	meta := parseMeta(req.Meta)
 
 	userID, err := jwt.GetUserID(r)
@@ -207,7 +194,6 @@ func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		Balance:   balance,
 		Currency:  req.Currency,
 		Meta:      meta,
-		Color:     color,
 	}
 
 	if req.Balance == 0 {
@@ -294,20 +280,6 @@ func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	color, err := validateNullableColor(req.Color)
-	if err != nil {
-		respond.Error(respond.ErrorOptions{
-			W:          w,
-			R:          r,
-			StatusCode: http.StatusBadRequest,
-			ClientErr:  ErrColorTypeInvalid,
-			ActualErr:  err,
-			Logger:     h.logger,
-			Details:    req,
-		})
-		return
-	}
-
 	meta := parseMeta(req.Meta)
 
 	userID, err := jwt.GetUserID(r)
@@ -329,7 +301,6 @@ func (h *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		Type:      act,
 		Currency:  &req.Currency,
 		Balance:   balance,
-		Color:     color,
 		Meta:      meta,
 		UpdatedBy: &userID,
 		ID:        accountID,
@@ -621,24 +592,20 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encryptedAccessToken := req.AccessToken
+	encryptedAccessToken, err := h.encrypt.Encrypt([]byte(req.AccessToken))
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
 
-	// Attempt to find an existing connection for this user, provider, and item_id (if available from Teller)
-	// For Teller, the access token itself might be the unique item_id for the connection.
-	// This part depends on how Teller identifies a specific connection/item.
-	// Let's assume for now Teller doesn't provide a separate item_id and the access_token is unique per link.
-	// If Teller provides an item_id, use it in GetConnectionByProviderItemIDParams.
-	// For this example, we'll proceed to create a new connection or update if a similar one is found.
-
-	// For Teller, we might not have a distinct item_id from the token exchange immediately.
-	// The access_token itself might serve as the primary identifier for the link.
-	// We'll use a placeholder or a hash of the token if an item_id is strictly required by GetConnectionByProviderItemID.
-	// Or, we might skip checking for an existing connection if Teller's flow always means a new link.
-
-	// For now, let's assume we create a new connection record each time,
-	// or you'd implement logic to find/update based on available identifiers.
-	// The `accounts` from `provider.GetAccounts` might contain institution details.
-	// We'll use the first account's institution details if available.
 	var institutionID, institutionName *string
 	if len(accounts) > 0 {
 		institutionID = &accounts[0].InstitutionID
@@ -652,7 +619,7 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 	connParams := repository.CreateConnectionParams{
 		UserID:               &userID,
 		ProviderName:         &providerName,
-		AccessTokenEncrypted: &encryptedAccessToken,
+		AccessTokenEncrypted: encryptedAccessToken,
 		ItemID:               nil, // Teller itemId is the accessID
 		InstitutionID:        institutionID,
 		InstitutionName:      institutionName,
@@ -688,8 +655,7 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 			ProviderName:      &providerName,
 			IsExternal:        &isExternal,
 			Currency:          providerAccount.Currency,
-			ConnectionID:      &connection.ID,           // Link to the connection
-			Color:             repository.COLORENUMBlue, // Example: default color
+			ConnectionID:      &connection.ID, // Link to the connection
 		}
 
 		newAccount, err := h.repo.CreateAccount(ctx, accountParams)
@@ -800,78 +766,39 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 	// Mono's exchangeResp.AccessToken is effectively the item_id (or "account_id" in Mono terms)
 	monoItemID := exchangeResp.AccessToken
 	providerName := "mono"
+	status := "pending"
 
-	// TODO: Encrypt monoItemID if it's sensitive and stored as access_token_encrypted,
-	// or store it primarily as item_id. For Mono, there isn't a traditional access token post-exchange.
-	// The item_id (Mono's account_id) is used for subsequent API calls.
-	// We'll store item_id and leave access_token_encrypted as this item_id for now (needs clarification on best practice for Mono).
-	encryptedMonoIdentifier := monoItemID // Placeholder
+	encryptedMonoIdentifier, err := h.encrypt.Encrypt([]byte(monoItemID))
 
-	// Check if a connection already exists for this user, provider, and item_id
-	existingConn, err := h.repo.GetConnectionByProviderItemID(ctx, repository.GetConnectionByProviderItemIDParams{
-		UserID:       userID,
-		ProviderName: providerName,
-		ItemID:       &encryptedMonoIdentifier,
-	})
+	connParams := repository.CreateConnectionParams{
+		UserID:               &userID,
+		ProviderName:         &providerName,
+		AccessTokenEncrypted: encryptedMonoIdentifier,
+		ItemID:               nil,
+		// Institution details might be fetched later via webhook or separate API call for Mono
+		InstitutionID:   nil,
+		InstitutionName: nil,
+		Status:          &status, // Or "active" if data sync is immediate, "pending_auth" if webhooks are primary
+		LastSyncAt:      pgtype.Timestamptz{Valid: false},
+		ExpiresAt:       pgtype.Timestamptz{Valid: false}, // Set if Mono provides expiration
+	}
 
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		respond.Error(respond.ErrorOptions{W: w, R: r, StatusCode: http.StatusInternalServerError, ClientErr: message.ErrInternalError, ActualErr: err, Logger: h.logger, Details: "Failed to check existing Mono connection"})
+	connection, err := h.repo.CreateConnection(ctx, connParams)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{W: w, R: r, StatusCode: http.StatusInternalServerError, ClientErr: message.ErrInternalError, ActualErr: err, Logger: h.logger, Details: "Failed to create Mono connection record"})
 		return
 	}
 
-	status := "pending_auth"
-	statusActive := "active"
+	h.logger.Info().Str("user_id", userID.String()).Str("connection_id", connection.ID.String()).Msg("Mono connection created")
 
-	var connection repository.UserFinancialConnection
-	if errors.Is(err, pgx.ErrNoRows) { // No existing connection, create new
-		connParams := repository.CreateConnectionParams{
-			UserID:               &userID,
-			ProviderName:         &providerName,
-			AccessTokenEncrypted: &encryptedMonoIdentifier, // Or a more specific token if Mono provides one
-			ItemID:               &encryptedMonoIdentifier,
-			// Institution details might be fetched later via webhook or separate API call for Mono
-			InstitutionID:   nil,
-			InstitutionName: nil,
-			Status:          &status, // Or "active" if data sync is immediate, "pending_auth" if webhooks are primary
-			LastSyncAt:      pgtype.Timestamptz{Valid: false},
-			ExpiresAt:       pgtype.Timestamptz{Valid: false}, // Set if Mono provides expiration
-		}
-		connection, err = h.repo.CreateConnection(ctx, connParams)
-		if err != nil {
-			respond.Error(respond.ErrorOptions{W: w, R: r, StatusCode: http.StatusInternalServerError, ClientErr: message.ErrInternalError, ActualErr: err, Logger: h.logger, Details: "Failed to create Mono connection record"})
-			return
-		}
-		h.logger.Info().Str("user_id", userID.String()).Str("connection_id", connection.ID.String()).Msg("Mono connection created")
-	} else { // Existing connection found
-		connection = existingConn
-		// Optionally, update status or last_sync_at if needed
-		// For example, if re-linking, you might want to set status to 'active' and update last_sync_at
-		updatedConn, updateErr := h.repo.UpdateConnection(ctx, repository.UpdateConnectionParams{
-			ID:                   &connection.ID,
-			UserID:               &userID,                  // For WHERE clause in SQL query
-			Status:               &statusActive,            // Example: mark as active on re-link
-			AccessTokenEncrypted: &encryptedMonoIdentifier, // Update token if it can change
-			LastSyncAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
-		})
-		if updateErr != nil {
-			respond.Error(respond.ErrorOptions{W: w, R: r, StatusCode: http.StatusInternalServerError, ClientErr: message.ErrInternalError, ActualErr: updateErr, Logger: h.logger, Details: "Failed to update existing Mono connection"})
-			return
-		}
-		connection = updatedConn
-		h.logger.Info().Str("user_id", userID.String()).Str("connection_id", connection.ID.String()).Msg("Mono connection re-linked/updated")
-	}
-
-	// At this point, we have the Account ID (monoItemID) but need to wait for data to be available
-	// The account creation in your system will happen via webhook or polling using this monoItemID.
-	// The `connection.ID` links your internal system to this Mono connection.
-
+	// TODO: May remove this as the webhook handles this case ?
 	if err = h.scheduler.EnqueueBankSync(ctx, userID, connection.ID, "full"); err != nil {
 		h.logger.Error().Err(err).Msg("Failed to schedule bank sync")
 	}
 
 	response := map[string]any{
 		"connection_id":    connection.ID.String(),
-		"provider_item_id": monoItemID, // This is Mono's "account_id"
+		"provider_item_id": monoItemID,
 		"status":           connection.Status,
 		"message":          "Mono account linked successfully. Financial data synchronization will follow.",
 	}
@@ -1011,4 +938,320 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 // 		Msg("Successfully created account from Mono")
 //
 // 	return nil
+// }
+
+// func (h *Handler) PlaidConnect(w http.ResponseWriter, r *http.Request) {
+// 	ctx := r.Context()
+//
+// 	userID, err := jwt.GetUserID(r)
+// 	if err != nil {
+// 		respond.Error(respond.ErrorOptions{
+// 			W:          w,
+// 			R:          r,
+// 			StatusCode: http.StatusInternalServerError,
+// 			ClientErr:  message.ErrInternalError,
+// 			ActualErr:  err,
+// 			Logger:     h.logger,
+// 			Details:    userID,
+// 		})
+// 		return
+// 	}
+//
+// plaidClientID := os.Getenv("PLAID_CLIENT_ID")
+// plaidSecret := os.Getenv("PLAID_SECRET")
+// if plaidClientID == "" || plaidSecret == "" {
+// 	http.Error(w, "Plaid credentials not configured", http.StatusInternalServerError)
+// 	return
+// }
+//
+// reqBody := models.CreateLinkTokenRequest{
+// 	PlaidClientID: plaidClientID,
+// 	PlaidSecret:   plaidSecret,
+// 	ClientName:    "Personal Finance Manager", // Your app name
+// 	Language:      "en",
+// 	CountryCodes:  []string{"US"},
+// 	User: struct {
+// 		ClientUserID string `json:"client_user_id"`
+// 	}{
+// 		ClientUserID: userID.String(), // Pass your internal user ID to Plaid
+// 	},
+// 	Products: []string{"transactions"}, // Or other products like "assets", "investments", "balance"
+// }
+//
+// jsonReqBody, _ := json.Marshal(reqBody)
+//
+// resp, err := http.Post(getPlaidEnvURL()+"/link/token/create", "application/json", bytes.NewBuffer(jsonReqBody))
+// if err != nil {
+// 	log.Printf("Error calling Plaid /link/token/create: %v", err)
+// 	http.Error(w, "Failed to connect to Plaid", http.StatusInternalServerError)
+// 	return
+// }
+// defer resp.Body.Close()
+//
+// if resp.StatusCode != http.StatusOK {
+// 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+// 	log.Printf("Plaid /link/token/create returned non-OK status: %d, body: %s", resp.StatusCode, string(bodyBytes))
+// 	http.Error(w, fmt.Sprintf("Plaid error: %s", string(bodyBytes)), resp.StatusCode)
+// 	return
+// }
+//
+// var linkTokenRes models.CreateLinkTokenResponse
+// if err := json.NewDecoder(resp.Body).Decode(&linkTokenRes); err != nil {
+// 	log.Printf("Error decoding Plaid link token response: %v", err)
+// 	http.Error(w, "Failed to parse Plaid response", http.StatusInternalServerError)
+// 	return
+// }
+//
+// json.NewEncoder(w).Encode(linkTokenRes)
+// }
+
+// TODO: Interesting
+
+// 	if account.PlaidItemID != nil || account.PlaidAccountID != nil {
+// 		http.Error(w, "Cannot manually create Plaid-connected accounts via this endpoint", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// Assign shared_finance_id based on active context
+// 	if activeContext.Type == "shared" && activeContext.SharedFinanceID != nil {
+// 		// Verify user is admin or allowed to add to this shared finance group
+// 		// For simplicity: allow any member to add to the shared group they're viewing.
+// 		// More robust: query shared_finance_members table for role 'admin'
+// 		account.SharedFinanceID = activeContext.SharedFinanceID
+// 	} else {
+// 		account.SharedFinanceID = nil // Personal account
+// 	}
+//
+// 	query := `INSERT INTO accounts (user_id, name, type, current_balance, currency, shared_finance_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at, updated_at`
+// 	err = db.GetDB().QueryRow(query,
+// 		account.UserID, account.Name, account.Type, account.CurrentBalance, account.Currency,
+// 		utils.UUIDPtrToNullString(account.SharedFinanceID),
+// 	).Scan(&account.ID, &account.CreatedAt, &account.UpdatedAt)
+// 	if err != nil {
+// 		config.Log.WithError(err).Error("Error creating account")
+// 		http.Error(w, "Could not create account", http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	w.WriteHeader(http.StatusCreated)
+// 	json.NewEncoder(w).Encode(account)
+// }
+//
+// // GetAccounts handles fetching accounts accessible by the user based on context.
+// func GetAccounts(w http.ResponseWriter, r *http.Request) {
+// 	userID, sharedFinanceIDs, err := middleware.GetUserAccessScope(r.Context())
+// 	if err != nil {
+// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+// 		return
+// 	}
+// 	activeContext := middleware.GetActiveSharedFinanceContext(r.Context())
+//
+// 	// Build the base query
+// 	baseQuery := `SELECT id, name, type, current_balance, currency, plaid_item_id, plaid_account_id, shared_finance_id, created_at, updated_at FROM accounts`
+//
+// 	// Add WHERE clause based on active context
+// 	whereClause, args, _ := db.GetAccessWhereClause(userID, sharedFinanceIDs, activeContext, "accounts", 1)
+// 	fullQuery := fmt.Sprintf("%s WHERE %s ORDER BY name", baseQuery, whereClause)
+//
+//
+// 	rows, err := db.GetDB().Query(fullQuery, args...) // Pass arguments dynamically
+// 	if err != nil {
+// 		config.Log.WithError(err).WithField("query", fullQuery).WithField("args", args).Error("Error getting accounts")
+// 		http.Error(w, "Could not retrieve accounts", http.StatusInternalServerError)
+// 		return
+// 	}
+// 	defer rows.Close()
+//
+// 	var accounts []models.Account
+// 	for rows.Next() {
+// 		var account models.Account
+// 		var plaidItemID, plaidAccountID, sharedFinanceID sql.NullString
+// 		err := rows.Scan(
+// 			&account.ID, &account.Name, &account.Type, &account.CurrentBalance,
+// 			&account.Currency, &plaidItemID, &plaidAccountID, &sharedFinanceID, &account.CreatedAt, &account.UpdatedAt,
+// 		)
+// 		if err != nil {
+// 			config.Log.WithError(err).Warn("Error scanning account")
+// 			continue
+// 		}
+// 		account.PlaidItemID = utils.NullStringToStringPtr(plaidItemID)
+// 		account.PlaidAccountID = utils.NullStringToStringPtr(plaidAccountID)
+// 		account.SharedFinanceID = utils.NullStringToUUIDPtr(sharedFinanceID) // Populate shared_finance_id
+// 		account.UserID = userID // For display, though not directly fetched from DB for shared items
+//
+// 		accounts = append(accounts, account)
+// 	}
+//
+// 	if err = rows.Err(); err != nil {
+// 		config.Log.WithError(err).Error("Error iterating rows for accounts")
+// 		http.Error(w, "Internal server error", http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	json.NewEncoder(w).Encode(accounts)
+// }
+//
+// // GetAccount handles fetching a single account, ensuring user access.
+// func GetAccount(w http.ResponseWriter, r *http.Request) {
+// 	userID, sharedFinanceIDs, err := middleware.GetUserAccessScope(r.Context())
+// 	if err != nil {
+// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+// 		return
+// 	}
+// 	activeContext := middleware.GetActiveSharedFinanceContext(r.Context())
+//
+// 	vars := mux.Vars(r)
+// 	accountID, err := uuid.Parse(vars["id"])
+// 	if err != nil {
+// 		http.Error(w, "Invalid account ID", http.StatusBadRequest)
+// 		return
+// 	}
+//
+// 	baseQuery := `SELECT id, user_id, name, type, current_balance, currency, plaid_item_id, plaid_account_id, shared_finance_id, created_at, updated_at FROM accounts`
+//
+// 	// Ensure the ID belongs to the user's accessible scope
+// 	whereClause, args, nextArgIndex := db.GetAccessWhereClause(userID, sharedFinanceIDs, activeContext, "accounts", 1)
+// 	fullQuery := fmt.Sprintf("%s WHERE id = $%d AND %s", baseQuery, nextArgIndex, whereClause)
+// 	args = append([]interface{}{accountID}, args...) // Prepend accountID to args
+//
+//
+// 	var account models.Account
+// 	var plaidItemID, plaidAccountID, sharedFinanceID sql.NullString
+// 	err = db.GetDB().QueryRow(fullQuery, args...).Scan(
+// 		&account.ID, &account.UserID, &account.Name, &account.Type, &account.CurrentBalance, &account.Currency,
+// 		&plaidItemID, &plaidAccountID, &sharedFinanceID, &account.CreatedAt, &account.UpdatedAt,
+// 	)
+// 	if err != nil {
+// 		if err == sql.ErrNoRows {
+// 			http.Error(w, "Account not found or unauthorized", http.StatusNotFound)
+// 			return
+// 		}
+// 		config.Log.WithError(err).WithField("accountID", accountID).Error("Error getting single account")
+// 		http.Error(w, "Internal server error", http.StatusInternalServerError)
+// 		return
+// 	}
+// 	account.PlaidItemID = utils.NullStringToStringPtr(plaidItemID)
+// 	account.PlaidAccountID = utils.NullStringToStringPtr(plaidAccountID)
+// 	account.SharedFinanceID = utils.NullStringToUUIDPtr(sharedFinanceID) // Populate shared_finance_id
+// 	json.NewEncoder(w).Encode(account)
+// }
+//
+//
+// // UpdateAccount handles updating an existing account, ensuring user access.
+// func UpdateAccount(w http.ResponseWriter, r *http.Request) {
+//     userID, sharedFinanceIDs, err := middleware.GetUserAccessScope(r.Context())
+//     if err != nil {
+//         http.Error(w, "Unauthorized", http.StatusUnauthorized)
+//         return
+//     }
+//     activeContext := middleware.GetActiveSharedFinanceContext(r.Context())
+//
+//     vars := mux.Vars(r)
+//     accountID, err := uuid.Parse(vars["id"])
+//     if err != nil {
+//         http.Error(w, "Invalid account ID", http.StatusBadRequest)
+//         return
+//     }
+//
+//     var updatedAccount models.Account
+//     if err := json.NewDecoder(r.Body).Decode(&updatedAccount); err != nil {
+//         http.Error(w, "Invalid request body", http.StatusBadRequest)
+//         return
+//     }
+//
+//     // Prevent updating Plaid specific fields directly via this endpoint
+//     if updatedAccount.PlaidItemID != nil || updatedAccount.PlaidAccountID != nil {
+//         http.Error(w, "Cannot update Plaid-specific fields via this endpoint", http.StatusBadRequest)
+//         return
+//     }
+//     // Prevent updating shared_finance_id directly here, it should be managed by Shared Finance APIs
+//     if updatedAccount.SharedFinanceID != nil {
+//         http.Error(w, "Cannot update shared_finance_id directly via this endpoint", http.StatusBadRequest)
+//         return
+//     }
+//
+//     // First, verify access to the account
+//     verifyQuery := `SELECT id FROM accounts`
+//     verifyWhere, verifyArgs, verifyNextArg := db.GetAccessWhereClause(userID, sharedFinanceIDs, activeContext, "accounts", 1)
+//     verifyQuery = fmt.Sprintf("%s WHERE id = $%d AND %s", verifyQuery, verifyNextArg, verifyWhere)
+//     verifyArgs = append([]interface{}{accountID}, verifyArgs...)
+//
+//     var existingAccountID uuid.UUID
+//     err = db.GetDB().QueryRow(verifyQuery, verifyArgs...).Scan(&existingAccountID)
+//     if err != nil {
+//         if err == sql.ErrNoRows {
+//             http.Error(w, "Account not found or unauthorized", http.StatusNotFound)
+//             return
+//         }
+//         config.Log.WithError(err).WithField("accountID", accountID).Error("Error verifying account access for update")
+//         http.Error(w, "Internal server error during account update verification", http.StatusInternalServerError)
+//         return
+//     }
+//
+//     // Now perform the update on the verified account
+//     query := `UPDATE accounts SET name = $1, type = $2, current_balance = $3, currency = $4, updated_at = $5 WHERE id = $6`
+//     res, err := db.GetDB().Exec(query, updatedAccount.Name, updatedAccount.Type, updatedAccount.CurrentBalance, updatedAccount.Currency, time.Now(), accountID)
+//     if err != nil {
+//         config.Log.WithError(err).Error("Error updating account")
+//         http.Error(w, "Could not update account", http.StatusInternalServerError)
+//         return
+//     }
+//     rowsAffected, _ := res.RowsAffected()
+//     if rowsAffected == 0 {
+//         http.Error(w, "Account not found after verification (race condition or bad ID)", http.StatusInternalServerError)
+//         return
+//     }
+//     w.WriteHeader(http.StatusOK)
+//     json.NewEncoder(w).Encode(map[string]string{"message": "Account updated successfully"})
+// }
+//
+// // DeleteAccount handles deleting an account, ensuring user access.
+// func DeleteAccount(w http.ResponseWriter, r *http.Request) {
+//     userID, sharedFinanceIDs, err := middleware.GetUserAccessScope(r.Context())
+//     if err != nil {
+//         http.Error(w, "Unauthorized", http.StatusUnauthorized)
+//         return
+//     }
+//     activeContext := middleware.GetActiveSharedFinanceContext(r.Context())
+//
+//     vars := mux.Vars(r)
+//     accountID, err := uuid.Parse(vars["id"])
+//     if err != nil {
+//         http.Error(w, "Invalid account ID", http.StatusBadRequest)
+//         return
+//     }
+//
+//     // First, verify access to the account (similar to Update)
+//     verifyQuery := `SELECT id FROM accounts`
+//     verifyWhere, verifyArgs, verifyNextArg := db.GetAccessWhereClause(userID, sharedFinanceIDs, activeContext, "accounts", 1)
+//     verifyQuery = fmt.Sprintf("%s WHERE id = $%d AND %s", verifyQuery, verifyNextArg, verifyWhere)
+//     verifyArgs = append([]interface{}{accountID}, verifyArgs...)
+//
+//     var existingAccountID uuid.UUID
+//     err = db.GetDB().QueryRow(verifyQuery, verifyArgs...).Scan(&existingAccountID)
+//     if err != nil {
+//         if err == sql.ErrNoRows {
+//             http.Error(w, "Account not found or unauthorized", http.StatusNotFound)
+//             return
+//         }
+//         config.Log.WithError(err).WithField("accountID", accountID).Error("Error verifying account access for delete")
+//         http.Error(w, "Internal server error during account delete verification", http.StatusInternalServerError)
+//         return
+//     }
+//
+//     // Now perform the delete
+//     query := `DELETE FROM accounts WHERE id = $1`
+//     res, err := db.GetDB().Exec(query, accountID)
+//     if err != nil {
+//         config.Log.WithError(err).Error("Error deleting account")
+//         http.Error(w, "Could not delete account", http.StatusInternalServerError)
+//         return
+//     }
+//     rowsAffected, _ := res.RowsAffected()
+//     if rowsAffected == 0 {
+//         http.Error(w, "Account not found (race condition or bad ID)", http.StatusInternalServerError)
+//         return
+//     }
+//     w.WriteHeader(http.StatusOK)
+//     json.NewEncoder(w).Encode(map[string]string{"message": "Account deleted successfully"})
 // }

@@ -89,11 +89,17 @@ type Transaction struct {
 	TransactionDatetime     time.Time        `json:"transaction_datetime" db:"transaction_datetime"`
 	Description             *string          `json:"description,omitempty" db:"description"`
 	Details                 *Details         `json:"details,omitempty" db:"details"`
-	CreatedBy               *uuid.UUID       `json:"created_by,omitempty" db:"created_by"`
-	UpdatedBy               *uuid.UUID       `json:"updated_by,omitempty" db:"updated_by"`
-	CreatedAt               time.Time        `json:"created_at" db:"created_at"`
-	UpdatedAt               time.Time        `json:"updated_at" db:"updated_at"`
-	DeletedAt               *time.Time       `json:"deleted_at,omitempty" db:"deleted_at"`
+	// IsCategorized      bool       `json:"is_categorized"`
+	// PlaidTransactionID *string    `json:"plaid_transaction_id"`
+	// SharedFinanceID    *uuid.UUID `json:"shared_finance_id,omitempty"`
+	// IsReconciled       bool       `json:"is_reconciled"`         // NEW
+	// ReconciliationNotes *string    `json:"reconciliation_notes"` // NEW
+	// ReconciledAt       *time.Time `json:"reconciled_at"`       // NEW
+	CreatedBy *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
+	UpdatedBy *uuid.UUID `json:"updated_by,omitempty" db:"updated_by"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
 
 	// Related data that can be loaded with joins
 	Merchant    *Merchant          `json:"merchant,omitempty"`
@@ -253,4 +259,20 @@ type AttachmentUploadResponse struct {
 type AttachmentDownloadResponse struct {
 	DownloadURL string    `json:"download_url"`
 	ExpiresAt   time.Time `json:"expires_at"`
+}
+
+type RecurringTransaction struct {
+	ID                uuid.UUID  `json:"id"`
+	UserID            uuid.UUID  `json:"user_id"`
+	AccountID         uuid.UUID  `json:"account_id"`
+	Description       string     `json:"description"`
+	Amount            float64    `json:"amount"`
+	Type              string     `json:"type"`
+	CategoryID        *uuid.UUID `json:"category_id,omitempty"` // Nullable
+	Frequency         string     `json:"frequency"`
+	StartDate         time.Time  `json:"start_date"`
+	EndDate           *time.Time `json:"end_date,omitempty"`            // Nullable
+	LastGeneratedDate *time.Time `json:"last_generated_date,omitempty"` // Nullable
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }

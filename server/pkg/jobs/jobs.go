@@ -11,6 +11,7 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
+	"github.com/Fantasy-Programming/nuts/server/internal/utility/encrypt"
 	"github.com/Fantasy-Programming/nuts/server/internal/utility/types"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/google/uuid"
@@ -69,6 +70,7 @@ func (w *EmailWorker) Work(ctx context.Context, job *river.Job[EmailJob]) error 
 type BankSyncWorkerDeps struct {
 	DB             *pgxpool.Pool
 	Queries        *repository.Queries
+	encrypt        encrypt.Encrypter
 	FinanceManager *finance.ProviderManager
 	Logger         *zerolog.Logger
 }
@@ -145,11 +147,15 @@ func (w *BankSyncWorker) Work(ctx context.Context, job *river.Job[BankSyncJob]) 
 	return nil
 }
 
-// TODO: We will need to decrypt the accessToken in the future
 // syncAccounts syncs account data from provider
 func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queries, provider finance.Provider, connection repository.UserFinancialConnection, userID uuid.UUID) error {
-	// Get accounts from provider
-	accounts, err := provider.GetAccounts(ctx, connection.AccessTokenEncrypted)
+	decryptedToken, err := w.deps.encrypt.Decrypt(connection.AccessTokenEncrypted)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt access token: %w", err)
+	}
+
+	// Get all accounts of this connection from provider
+	accounts, err := provider.GetAccounts(ctx, string(decryptedToken))
 	if err != nil {
 		return fmt.Errorf("failed to get accounts from provider: %w", err)
 	}
@@ -195,7 +201,6 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 				Name:              account.Name,
 				Balance:           newBalance,
 				Type:              account.Type,
-				Color:             "red",
 				Currency:          account.Currency,
 				ProviderName:      &connection.ProviderName,
 				ProviderAccountID: &account.ProviderAccountID,
@@ -251,14 +256,18 @@ func (w *BankSyncWorker) syncTransactions(ctx context.Context, qtx *repository.Q
 
 // Sync transactions for a single account with optimizations
 func (w *BankSyncWorker) syncAccountTransactions(ctx context.Context, qtx *repository.Queries, provider finance.Provider, connection repository.UserFinancialConnection, account repository.GetAccountsByConnectionIDRow, syncType string, categoryCache map[string]uuid.UUID, userID uuid.UUID) error {
+	decryptedToken, err := w.deps.encrypt.Decrypt(connection.AccessTokenEncrypted)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt access token: %w", err)
+	}
+
 	// Get transactions from provider
 	var transactions []finance.Transaction
-	var err error
 
 	if syncType == "full" {
-		transactions, err = provider.GetTransactions(ctx, connection.AccessTokenEncrypted, *account.ProviderAccountID, finance.GetTransactionsArgs{})
+		transactions, err = provider.GetTransactions(ctx, string(decryptedToken), *account.ProviderAccountID, finance.GetTransactionsArgs{})
 	} else {
-		transactions, err = provider.GetRecentTransactions(ctx, connection.AccessTokenEncrypted, *account.ProviderAccountID, 100)
+		transactions, err = provider.GetRecentTransactions(ctx, string(decryptedToken), *account.ProviderAccountID, 100)
 	}
 
 	if err != nil {
@@ -317,7 +326,7 @@ func (w *BankSyncWorker) syncAccountTransactions(ctx context.Context, qtx *repos
 			Amount:                amount,
 			Type:                  transactionType,
 			AccountID:             account.ID,
-			CategoryID:            categoryID,
+			CategoryID:            &categoryID,
 			TransactionDatetime:   pgtype.Timestamptz{Valid: true, Time: transaction.Date},
 			Description:           &transaction.Description,
 			ProviderTransactionID: &transaction.ProviderTransactionID,

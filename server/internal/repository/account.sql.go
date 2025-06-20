@@ -20,7 +20,6 @@ type BatchCreateAccountParams struct {
 	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
-	Color             interface{}    `json:"color"`
 	Meta              []byte         `json:"meta"`
 	ConnectionID      *uuid.UUID     `json:"connection_id"`
 	IsExternal        *bool          `json:"is_external"`
@@ -36,15 +35,14 @@ INSERT INTO accounts (
     subtype,
     balance,
     currency,
-    color,
     meta,
     connection_id,
     is_external,
     provider_account_id,
     provider_name
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-) RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id, subtype
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+) RETURNING id, name, type, balance, currency, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id, subtype, shared_finance_id
 `
 
 type CreateAccountParams struct {
@@ -54,7 +52,6 @@ type CreateAccountParams struct {
 	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
-	Color             interface{}    `json:"color"`
 	Meta              []byte         `json:"meta"`
 	ConnectionID      *uuid.UUID     `json:"connection_id"`
 	IsExternal        *bool          `json:"is_external"`
@@ -70,7 +67,6 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		arg.Subtype,
 		arg.Balance,
 		arg.Currency,
-		arg.Color,
 		arg.Meta,
 		arg.ConnectionID,
 		arg.IsExternal,
@@ -84,7 +80,6 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		&i.Type,
 		&i.Balance,
 		&i.Currency,
-		&i.Color,
 		&i.Meta,
 		&i.CreatedBy,
 		&i.UpdatedBy,
@@ -98,6 +93,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		&i.LastSyncedAt,
 		&i.ConnectionID,
 		&i.Subtype,
+		&i.SharedFinanceID,
 	)
 	return i, err
 }
@@ -107,7 +103,7 @@ UPDATE accounts
 SET
     deleted_at = current_timestamp
 WHERE id = $1
-RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id, subtype
+RETURNING id, name, type, balance, currency, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id, subtype, shared_finance_id
 `
 
 func (q *Queries) DeleteAccount(ctx context.Context, id uuid.UUID) error {
@@ -235,7 +231,6 @@ SELECT
     balance,
     currency,
     meta,
-    color,
     created_by,
     updated_at,
     connection_id
@@ -254,7 +249,6 @@ type GetAccountByIdRow struct {
 	Balance      pgtype.Numeric `json:"balance"`
 	Currency     string         `json:"currency"`
 	Meta         []byte         `json:"meta"`
-	Color        COLORENUM      `json:"color"`
 	CreatedBy    *uuid.UUID     `json:"created_by"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	ConnectionID *uuid.UUID     `json:"connection_id"`
@@ -271,7 +265,6 @@ func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountB
 		&i.Balance,
 		&i.Currency,
 		&i.Meta,
-		&i.Color,
 		&i.CreatedBy,
 		&i.UpdatedAt,
 		&i.ConnectionID,
@@ -288,7 +281,6 @@ SELECT
     subtype,
     balance,
     currency,
-    color,
     meta,
     created_by,
     updated_at,
@@ -315,7 +307,6 @@ type GetAccountByProviderAccountIDRow struct {
 	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
-	Color             COLORENUM      `json:"color"`
 	Meta              []byte         `json:"meta"`
 	CreatedBy         *uuid.UUID     `json:"created_by"`
 	UpdatedAt         time.Time      `json:"updated_at"`
@@ -335,7 +326,6 @@ func (q *Queries) GetAccountByProviderAccountID(ctx context.Context, arg GetAcco
 		&i.Subtype,
 		&i.Balance,
 		&i.Currency,
-		&i.Color,
 		&i.Meta,
 		&i.CreatedBy,
 		&i.UpdatedAt,
@@ -354,7 +344,6 @@ SELECT
     subtype,
     balance,
     currency,
-    color,
     meta,
     updated_at,
     connection_id
@@ -371,7 +360,6 @@ type GetAccountsRow struct {
 	Subtype      *string        `json:"subtype"`
 	Balance      pgtype.Numeric `json:"balance"`
 	Currency     string         `json:"currency"`
-	Color        COLORENUM      `json:"color"`
 	Meta         []byte         `json:"meta"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	ConnectionID *uuid.UUID     `json:"connection_id"`
@@ -393,7 +381,6 @@ func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAcco
 			&i.Subtype,
 			&i.Balance,
 			&i.Currency,
-			&i.Color,
 			&i.Meta,
 			&i.UpdatedAt,
 			&i.ConnectionID,
@@ -642,7 +629,6 @@ SELECT
     subtype,
     balance,
     currency,
-    color,
     meta,
     created_by,
     updated_at,
@@ -668,7 +654,6 @@ type GetAccountsByConnectionIDRow struct {
 	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
-	Color             COLORENUM      `json:"color"`
 	Meta              []byte         `json:"meta"`
 	CreatedBy         *uuid.UUID     `json:"created_by"`
 	UpdatedAt         time.Time      `json:"updated_at"`
@@ -693,7 +678,6 @@ func (q *Queries) GetAccountsByConnectionID(ctx context.Context, arg GetAccounts
 			&i.Subtype,
 			&i.Balance,
 			&i.Currency,
-			&i.Color,
 			&i.Meta,
 			&i.CreatedBy,
 			&i.UpdatedAt,
@@ -734,7 +718,6 @@ account_info AS (
         type,
         subtype,
         currency,
-        color,
         meta,
         created_by,
         created_at,
@@ -797,7 +780,6 @@ account_trend AS (
         ai.subtype,
         coalesce(bc.end_balance, 0) AS balance, -- Current balance is the end_balance
         ai.currency,
-        ai.color,
         ai.meta,
         ai.updated_at,
         CASE
@@ -864,7 +846,6 @@ SELECT
     at.subtype,
     at.balance::DECIMAL as balance, -- Balance at the end_date
     at.currency,
-    at.color,
     at.meta,
     at.updated_at,
     at.trend::DECIMAL as trend,
@@ -887,7 +868,6 @@ type GetAccountsWithTrendRow struct {
 	Subtype           *string        `json:"subtype"`
 	Balance           pgtype.Numeric `json:"balance"`
 	Currency          string         `json:"currency"`
-	Color             COLORENUM      `json:"color"`
 	Meta              []byte         `json:"meta"`
 	UpdatedAt         time.Time      `json:"updated_at"`
 	Trend             pgtype.Numeric `json:"trend"`
@@ -911,7 +891,6 @@ func (q *Queries) GetAccountsWithTrend(ctx context.Context, arg GetAccountsWithT
 			&i.Subtype,
 			&i.Balance,
 			&i.Currency,
-			&i.Color,
 			&i.Meta,
 			&i.UpdatedAt,
 			&i.Trend,
@@ -935,11 +914,10 @@ SET
     subtype = coalesce($3, subtype),
     balance = coalesce($4, balance),
     currency = coalesce($5, currency),
-    color = coalesce($6, color),
-    meta = coalesce($7, meta),
-    updated_by = $8
-WHERE id = $9
-RETURNING id, name, type, balance, currency, color, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id, subtype
+    meta = coalesce($6, meta),
+    updated_by = $7
+WHERE id = $8
+RETURNING id, name, type, balance, currency, meta, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_account_id, provider_name, sync_status, last_synced_at, connection_id, subtype, shared_finance_id
 `
 
 type UpdateAccountParams struct {
@@ -948,7 +926,6 @@ type UpdateAccountParams struct {
 	Subtype   *string        `json:"subtype"`
 	Balance   pgtype.Numeric `json:"balance"`
 	Currency  *string        `json:"currency"`
-	Color     interface{}    `json:"color"`
 	Meta      []byte         `json:"meta"`
 	UpdatedBy *uuid.UUID     `json:"updated_by"`
 	ID        uuid.UUID      `json:"id"`
@@ -961,7 +938,6 @@ func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (A
 		arg.Subtype,
 		arg.Balance,
 		arg.Currency,
-		arg.Color,
 		arg.Meta,
 		arg.UpdatedBy,
 		arg.ID,
@@ -973,7 +949,6 @@ func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (A
 		&i.Type,
 		&i.Balance,
 		&i.Currency,
-		&i.Color,
 		&i.Meta,
 		&i.CreatedBy,
 		&i.UpdatedBy,
@@ -987,6 +962,7 @@ func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (A
 		&i.LastSyncedAt,
 		&i.ConnectionID,
 		&i.Subtype,
+		&i.SharedFinanceID,
 	)
 	return i, err
 }

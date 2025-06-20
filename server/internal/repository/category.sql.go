@@ -19,7 +19,7 @@ INSERT INTO categories (
     created_by
 ) VALUES (
     $1, $2, $3, $4
-) RETURNING id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
+) RETURNING id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at, type
 `
 
 type CreateCategoryParams struct {
@@ -47,6 +47,7 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Type,
 	)
 	return i, err
 }
@@ -293,7 +294,7 @@ const deleteCategory = `-- name: DeleteCategory :exec
 UPDATE categories
 SET deleted_at = current_timestamp
 WHERE id = $1
-RETURNING id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
+RETURNING id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at, type
 `
 
 func (q *Queries) DeleteCategory(ctx context.Context, id uuid.UUID) error {
@@ -302,7 +303,7 @@ func (q *Queries) DeleteCategory(ctx context.Context, id uuid.UUID) error {
 }
 
 const getCategoryById = `-- name: GetCategoryById :one
-SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at, type
 FROM categories
 WHERE
     id = $1
@@ -323,12 +324,13 @@ func (q *Queries) GetCategoryById(ctx context.Context, id uuid.UUID) (Category, 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Type,
 	)
 	return i, err
 }
 
 const getCategoryByName = `-- name: GetCategoryByName :one
-SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at, type
 FROM categories
 WHERE
     name = $1
@@ -348,12 +350,13 @@ func (q *Queries) GetCategoryByName(ctx context.Context, name string) (Category,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Type,
 	)
 	return i, err
 }
 
 const getDefaultCategories = `-- name: GetDefaultCategories :many
-SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at, type
 FROM categories
 WHERE
     created_by = $1
@@ -380,6 +383,7 @@ func (q *Queries) GetDefaultCategories(ctx context.Context, userID uuid.UUID) ([
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Type,
 		); err != nil {
 			return nil, err
 		}
@@ -392,7 +396,7 @@ func (q *Queries) GetDefaultCategories(ctx context.Context, userID uuid.UUID) ([
 }
 
 const listCategories = `-- name: ListCategories :many
-SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at, type
 FROM categories
 WHERE
     created_by = $1
@@ -418,6 +422,7 @@ func (q *Queries) ListCategories(ctx context.Context, userID uuid.UUID) ([]Categ
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Type,
 		); err != nil {
 			return nil, err
 		}
@@ -430,7 +435,7 @@ func (q *Queries) ListCategories(ctx context.Context, userID uuid.UUID) ([]Categ
 }
 
 const listChildCategories = `-- name: ListChildCategories :many
-SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
+SELECT id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at, type
 FROM categories
 WHERE
     parent_id = $1
@@ -456,6 +461,7 @@ func (q *Queries) ListChildCategories(ctx context.Context, parentID *uuid.UUID) 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Type,
 		); err != nil {
 			return nil, err
 		}
@@ -477,7 +483,7 @@ SET
 WHERE
     id = $5
     AND deleted_at IS NULL
-RETURNING id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at
+RETURNING id, name, parent_id, is_default, created_by, updated_by, created_at, updated_at, deleted_at, type
 `
 
 type UpdateCategoryParams struct {
@@ -507,6 +513,7 @@ func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Type,
 	)
 	return i, err
 }

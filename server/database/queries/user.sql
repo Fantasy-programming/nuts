@@ -17,6 +17,7 @@ SELECT
     password,
     avatar_url,
     mfa_enabled,
+    mfa_secret,
     created_at,
     updated_at
 FROM users
@@ -30,6 +31,8 @@ SELECT
     last_name,
     password,
     avatar_url,
+    mfa_enabled,
+    mfa_secret,
     created_at,
     updated_at
 FROM users
