@@ -3,6 +3,7 @@
 {
   packages = [
     pkgs.git
+    pkgs.nodePackages_latest.localtunnel
   ];
 
   languages.javascript = {
@@ -18,7 +19,8 @@
   };
 
   processes = {
-    webClient.exec = "cd client && pnpm run dev";
-    goServer.exec = "cd server && air";
+    web-client.exec = "cd client && pnpm run dev";
+    go-server.exec = "cd server && air";
+    ai-service.exec = "cd services/ai && uv run uvicorn app.main:app --port 8000";
   };
 }
