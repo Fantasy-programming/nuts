@@ -10,6 +10,7 @@ import { NetWorthCard } from "@/features/accounts/components/account.net-worth";
 import { Button } from "@/core/components/ui/button";
 import { Plus } from "lucide-react";
 import { groupAccountsByType } from "@/features/accounts/components/account.utils";
+import { SidebarTrigger } from "@/core/components/ui/sidebar";
 
 export const Route = createFileRoute("/dashboard/accounts")({
   component: RouteComponent,
@@ -76,17 +77,20 @@ function RouteComponent() {
 
   return (
     <>
-      <header className="flex h-22 shrink-0 items-center gap-2 transition-[width,height] ease-linear ">
+      <div className="border-b border-b-bg-nuts-500/20 py-1 flex gap-2 items-center md:hidden -mx-4 px-3">
+        <SidebarTrigger />
+        <span className="font-semibold text-sm tracking-tight">Accounts</span>
+      </div>
+      <header className="h-22 shrink-0 items-center gap-2 transition-[width,height] ease-linear md:flex hidden ">
         <div className="flex w-full items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
+            <h1 className="text-2xl font-bold tracking-tight md:block hidden">Accounts</h1>
             <p className="text-muted-foreground mt-1">Manage your financial accounts and track your balances</p>
           </div>
-
           <AddAccountModal
             onAddAccount={onCreate}
           >
-            <Button >
+            <Button className="hidden md:inline-flex">
               <Plus className="mr-2 h-4 w-4" />
               Add Account
             </Button>
@@ -113,6 +117,17 @@ function RouteComponent() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile FAB */}
+      <div className="fixed bottom-6 right-6 z-50 sm:hidden">
+        <AddAccountModal
+          onAddAccount={onCreate}
+        >
+          <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
+            <Plus className="size-6" />
+          </Button>
+        </AddAccountModal>
       </div>
     </>
   );

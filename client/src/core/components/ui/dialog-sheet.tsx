@@ -1,5 +1,6 @@
 import type React from "react"
 import type * as DialogPrimitive from "@radix-ui/react-dialog"
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -71,7 +72,7 @@ const ResponsiveDialogContent = ({ children, className, ...props }: React.Compon
   return (
     <Fragment key={isMobile ? 'mobile' : 'desktop'}>
       {isMobile ? (
-        <DrawerContent className={className} {...props}>
+        <DrawerContent className={cn(className)} {...props}>
           {children}
         </DrawerContent>
       ) : (
@@ -87,8 +88,6 @@ const ResponsiveDialogContent = ({ children, className, ...props }: React.Compon
 
 const ResponsiveDialogHeader = ({ children, className, ...props }: React.ComponentProps<typeof DialogHeader>) => {
   const isMobile = useIsMobile()
-
-
 
   return (
     <Fragment key={isMobile ? 'mobile' : 'desktop'}>

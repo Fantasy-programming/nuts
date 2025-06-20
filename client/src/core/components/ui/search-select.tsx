@@ -71,7 +71,7 @@ export function SearchableSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="bg-background hover:bg-background border-input w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]"
+          className="bg-background hover:bg-background border-input w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px] text-md"
           // Disable if it's the initial load (isLoading and no options yet)
           disabled={isLoading && options.length === 0}
         >
@@ -95,6 +95,7 @@ export function SearchableSelect({
       >
         <Command>
           <CommandInput
+            className="text-md"
             placeholder={searchPlaceholder}
             // Disable input if options are not ready due to initial load
             disabled={isLoading && options.length === 0}

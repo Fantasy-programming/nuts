@@ -7,12 +7,13 @@ import { usePluginStore } from "@/features/plugins/store";
 import { renderIcon } from "@/core/components/icon-picker/index.helper";
 import { cn } from "@/lib/utils"
 import { userService } from "@/features/preferences/services/user";
+import { accountService } from "@/features/accounts/services/account";
 import { useTheme } from "@/features/preferences/hooks/use-theme";
 import { useShallow } from 'zustand/react/shallow'
 import { useTranslation } from "react-i18next";
 import {
-  RiBarChartBoxLine,
-  RiBarChartBoxFill,
+  // RiBarChartBoxLine,
+  // RiBarChartBoxFill,
   RiSettingsLine,
   RiBankCard2Line,
   RiBankCard2Fill,
@@ -92,12 +93,12 @@ const navMain: navStuff[] = [
     icon: RiBankCard2Line,
     activeIcon: RiBankCard2Fill,
   },
-  {
-    title: "navigation.analytics",
-    url: "/dashboard/analytics",
-    icon: RiBarChartBoxLine,
-    activeIcon: RiBarChartBoxFill,
-  }
+  // {
+  //   title: "navigation.analytics",
+  //   url: "/dashboard/analytics",
+  //   icon: RiBarChartBoxLine,
+  //   activeIcon: RiBarChartBoxFill,
+  // }
 ];
 
 
@@ -110,13 +111,24 @@ export const Route = createFileRoute("/dashboard")({
     })
   },
   component: DashboardWrapper,
-  beforeLoad: ({ context, location }) => {
+  beforeLoad: async ({ context, location }) => {
     if (!context.auth.isAuthenticated && !context.auth.isLoading) {
       throw redirect({
         to: "/login",
         search: { redirect: location.href },
       });
     }
+    const queryClient = context.queryClient
+
+    const accounts = await queryClient.fetchQuery({
+      queryKey: ["account"],
+      queryFn: accountService.getAccounts,
+    })
+
+    return {
+      hasAccounts: accounts.length > 0,
+    };
+
   },
 });
 
@@ -179,7 +191,7 @@ function DashboardWrapper() {
           </Suspense>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="overflow-hidden px-4 md:px-6 py-4 ">
+      <SidebarInset className="overflow-hidden px-4 md:px-6 py-2 md:py-4">
         <Outlet />
       </SidebarInset>
     </SidebarProvider>
