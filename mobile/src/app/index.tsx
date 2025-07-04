@@ -2,10 +2,8 @@ import { StyleSheet, Text, View } from "react-native";
 
 export default function Index() {
   return (
-    <View
-      style={styles.container}
-    >
-      <Text style={styles.text}>Edit app to edit this screen.</Text>
+    <View style={styles.container}>
+      <Text style={styles.text}>Edit apple to edit this screen.</Text>
     </View>
   );
 }
@@ -17,6 +15,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   text: {
-    color: "red"
-  }
-})
+    color: "red",
+  },
+});
