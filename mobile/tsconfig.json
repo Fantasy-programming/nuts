@@ -3,12 +3,18 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "paths": {
       "@/*": [
-        "./src/*"
+        "./src/*",
+        "./*"
       ],
       "@env": [
         "./src/lib/env.js"
+      ],
+      "tailwind.config": [
+        "./tailwind.config.js"
       ]
     },
     "esModuleInterop": true,
