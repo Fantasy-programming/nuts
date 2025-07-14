@@ -22,6 +22,7 @@ const getAccountsBalanceTimeline = async (): Promise<AccountBalanceTimeline[]> =
 };
 
 const createAccount = async (account: AccountCreate): Promise<Account> => {
+  console.log(account)
   const data = await axios.post<Account>(`${BASEURI}/`, account);
   return data.data;
 };

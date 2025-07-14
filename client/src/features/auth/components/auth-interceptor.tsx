@@ -1,8 +1,8 @@
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useMemo, useRef } from 'react';
 import { useAuthStore } from '../stores/auth.store';
 import { Spinner } from '@/core/components/ui/spinner';
-import { logger } from '@/lib/logger';
 import { Button } from '@/core/components/ui/button';
+import { logger } from '@/lib/logger';
 import { parseApiError } from '@/lib/error';
 
 interface AuthInterceptorProps {
@@ -18,14 +18,26 @@ export const AuthInterceptor: FC<AuthInterceptorProps> = ({ children }) => {
     user
   } = useAuthStore();
 
-  // Helper to check if current path is in protected dashboard routes
-  const isDashboardRoute = (): boolean => {
-    return typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard');
+  const triedRefreshRef = useRef(false);
+
+  const isDashboardRoute = useMemo(() => {
+    return (
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/dashboard")
+    );
+  }, []);
+
+  const redirectToLogin = () => {
+    if (typeof window === "undefined") return;
+    const redirect = encodeURIComponent(window.location.pathname);
+    window.location.href = `/login?redirect=${redirect}`;
   };
 
 
-  // Effect for initial auth check
   useEffect(() => {
+    if (triedRefreshRef.current) return;
+    triedRefreshRef.current = true;
+
     const checkAuth = async () => {
       if (!isAuthenticated && !user) {
         try {
@@ -53,24 +65,16 @@ export const AuthInterceptor: FC<AuthInterceptorProps> = ({ children }) => {
     checkAuth();
   }, [isAuthenticated, refreshAuth, setLoading, user]);
 
-  // TODO: Only show loading state for dashboard routes (modify with animated stuff)
-  if (isLoading && isDashboardRoute()) {
+  if (isDashboardRoute && isLoading) {
     return <Spinner />;
   }
 
-  // Render SessionExpired message if needed
-  if (isDashboardRoute() && !isLoading && !isAuthenticated) {
+  if (isDashboardRoute && !isLoading && !isAuthenticated) {
     return (
-      <div className="flex justify-center items-center h-screen flex-col">
+      <div className="flex flex-col items-center justify-center h-screen">
         <h2 className="text-xl font-semibold mb-2">Session expired</h2>
         <p className="mb-4">Please log in again.</p>
-        <Button
-          onClick={() => {
-            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-          }}
-        >
-          Go to Login
-        </Button>
+        <Button onClick={redirectToLogin}>Go to Login</Button>
       </div>
     );
   }

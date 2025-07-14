@@ -7,7 +7,6 @@ import type { AuthNullable } from '../services/auth.types';
 import { tryCatch } from '@/lib/trycatch';
 import { logger } from '@/lib/logger';
 
-
 interface LoginCredentials {
   email: string;
   password: string;
@@ -19,7 +18,6 @@ export interface AuthState {
   isLoading: boolean;
   error: string | null;
 
-  // Actions
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
@@ -40,116 +38,82 @@ const initialState = {
 export const useAuthStore = create<AuthState>()(
   devtools(
     persist(
-      (set,) => ({
-        ...initialState,
+      (set,) => {
+        const setState = (
+          partial: Partial<AuthState>,
+          label: string,
+        ) => set(partial as AuthState, false, label)
 
-        // Methods
-        setUser: (user) => set({ user }),
-        setLoading: (isLoading) => set({ isLoading }),
-        setError: (error) => set({ error }),
-        setAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
 
-        resetState: () => set(initialState),
+        return {
+          ...initialState,
 
-        login: async (credentials) => {
-          set({ isLoading: true, error: null });
-          let errorMessage = 'Login failed';
-          const { error } = await tryCatch(authService.login(credentials))
+          // Methods
+          setUser: (user) => setState({ user }, 'auth/setUser'),
+          setLoading: (isLoading) => setState({ isLoading }, 'auth/setLoading'),
+          setError: (error) => setState({ error }, 'auth/setError'),
+          setAuthenticated: (auth) => setState({ isAuthenticated: auth }, 'auth/setAuthenticated'),
 
-          if (error) {
-            logger.error(error)
-            errorMessage = error.message;
-            set({
-              error: errorMessage,
-              user: null,
-              isAuthenticated: false,
-              isLoading: false
-            });
-            throw error
-          }
+          resetState: () => setState({ ...initialState }, 'auth/reset'),
 
-          //TODO: Handle that error too
-          const { data: userData } = await tryCatch(userService.getMe())
+          login: async (creds) => {
+            setState({ isLoading: true, error: null }, 'auth/loginStart')
+            const { error: loginErr } = await tryCatch(authService.login(creds))
 
-          if (userData) {
-            set({
-              user: userData,
-              isAuthenticated: true,
-              error: null,
-              isLoading: false
-            });
-            return
-          }
-        },
-
-        logout: async () => {
-          try {
-            set({ isLoading: true, error: null });
-            await authService.logout();
-
-            set({
-              user: null,
-              isAuthenticated: false,
-              isLoading: false
-            });
-          } catch (err) {
-            let errorMessage = 'Logout failed';
-            if (err instanceof Error) {
-              errorMessage = err.message;
+            if (loginErr) {
+              logger.error(loginErr)
+              setState({ error: loginErr.message, isLoading: false }, 'auth/loginError')
+              throw loginErr
             }
-            set({
-              error: errorMessage,
-              isLoading: false,
-              // Still clear user state even if logout API call fails
-              user: null,
-              isAuthenticated: false,
-            });
-            throw err;
-          }
-        },
 
-        refreshAuth: async () => {
-          set({ isLoading: true });
-          const { error: refreshErr } = await tryCatch(authService.refresh())
+            const { data: user, error: meErr } = await tryCatch(userService.getMe())
 
-          if (refreshErr) {
-            logger.error(refreshErr)
-            set({
-              user: null,
-              isAuthenticated: false,
-              isLoading: false,
-              error: 'Session expired'
-            });
-            throw refreshErr
-          }
+            if (!user || meErr) {
+              logger.error(meErr)
+              setState({ error: 'Unable to fetch user', isLoading: false }, 'auth/loginFetchError')
+              throw meErr ?? new Error('Unable to fetch user')
+            }
 
-          const { error: userFetchErr, data: userData } = await tryCatch(userService.getMe())
+            setState({ user, isAuthenticated: true, isLoading: false }, 'auth/loginSuccess')
+          },
 
-          if (!userData || userFetchErr) {
-            logger.error(refreshErr)
-            set({
-              user: null,
-              isAuthenticated: false,
-              isLoading: false,
-              error: 'Session expired'
-            });
-            throw userFetchErr;
-          }
+          logout: async () => {
+            setState({ isLoading: true, error: null }, 'auth/logoutStart')
+            const { error: logoutErr } = await tryCatch(authService.logout())
 
-          set({
-            user: userData,
-            isAuthenticated: true,
-            error: null,
-            isLoading: false
-          });
-        },
-      }),
+            if (logoutErr) {
+              logger.error(logoutErr)
+              setState({ ...initialState, error: logoutErr.message }, 'auth/logoutError')
+              throw logoutErr;
+            }
+
+            setState({ ...initialState }, 'auth/logoutReset')
+          },
+
+          refreshAuth: async () => {
+            setState({ isLoading: true }, 'auth/refreshStart')
+            const { error: refreshErr } = await tryCatch(authService.refresh())
+
+            if (refreshErr) {
+              logger.error(refreshErr)
+              setState({ ...initialState, error: 'Session expired' }, 'auth/refreshFail')
+              throw refreshErr
+            }
+
+            const { data: user, error: userErr } = await tryCatch(userService.getMe())
+            if (!user || userErr) {
+              logger.error(userErr)
+              setState({ ...initialState, error: 'Session expired' }, 'auth/refreshFail')
+              throw userErr ?? new Error('Session expired')
+            }
+
+            setState({ user, isAuthenticated: true, isLoading: false }, 'auth/refreshSuccess')
+          },
+        }
+      },
       {
         name: 'auth-storage',
-        partialize: (state) => ({
-          // Only persist these fields from state
-          isAuthenticated: state.isAuthenticated,
-        }),
+        partialize: ({ isAuthenticated }) => ({ isAuthenticated }),
       }
     )
   )
