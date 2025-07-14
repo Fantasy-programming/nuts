@@ -34,3 +34,33 @@ export const formatDate = (date: Date): string => {
 export const getWeekday = (date: Date): string => {
   return format(date, "EEEE");
 };
+
+
+export const formatCurrency = (amount: number, locale = "en-US", currency = "USD") => {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+  }).format(amount)
+};
+
+export const debounce = <F extends (...args: Parameters<F>) => ReturnType<F>>(
+  func: F,
+  waitFor: number,
+) => {
+  let timeout: NodeJS.Timeout | undefined
+
+  const debounced = (...args: Parameters<F>) => {
+
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), waitFor)
+  }
+
+  debounced.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout)
+      timeout = undefined
+    }
+  }
+
+  return debounced
+}

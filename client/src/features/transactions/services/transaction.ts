@@ -1,5 +1,5 @@
 import { api as axios } from "@/lib/axios";
-import { RecordCreateSchema, transactionsResponseSchema, RecordSchema, TransactionsResponse } from "./transaction.types.ts";
+import { RecordCreateSchema, transactionsResponseSchema, RecordSchema, TransactionsResponse, RecordUpdateSchema } from "./transaction.types.ts";
 
 const BASEURI = "/transactions";
 
@@ -19,8 +19,8 @@ function buildUrlWithParams(baseUrl: string, params: Record<string, unknown>): s
 
 
 
-export const getTransactions = async (params: Record<string, unknown> = {}): Promise<TransactionsResponse> => {
-  const url = buildUrlWithParams(`${BASEURI}/`, params);
+export const getTransactions = async (params: { page: number, q: string, group_by: string }): Promise<TransactionsResponse> => {
+  const url = buildUrlWithParams(`${BASEURI}/`, { limit: 25, ...params });
 
   const { data } = await axios.get<TransactionsResponse>(url);
   return transactionsResponseSchema.parse(data);
@@ -30,8 +30,14 @@ export const deleteTransactions = async (ids: string[] | string) => {
   await axios.delete(`${BASEURI}`, { data: ids });
 };
 
-export const updateTransaction = async (id: string, updatedTransactions: RecordSchema): Promise<RecordSchema> => {
-  const { data } = await axios.put<RecordSchema>(`${BASEURI}/${id}`, { transaction: updatedTransactions });
+
+export const getTransaction = async (id: string): Promise<RecordSchema> => {
+  const { data } = await axios.get<RecordSchema>(`${BASEURI}/${id}`);
+  return data;
+};
+
+export const updateTransaction = async (id: string, updatedTransactions: RecordUpdateSchema): Promise<RecordSchema> => {
+  const { data } = await axios.put<RecordSchema>(`${BASEURI}/${id}`, updatedTransactions);
   return data;
 };
 

@@ -8,7 +8,7 @@ import { accountService } from "@/features/accounts/services/account";
 import { accountTypeOptions } from "./account.constants";
 import getSymbolFromCurrency from "currency-symbol-map"
 
-import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogTrigger, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from "@/core/components/ui/dialog-sheet";
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogTrigger, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogFooter } from "@/core/components/ui/dialog-sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
 import { ScrollArea } from "@/core/components/ui/scroll-area";
 import { SearchableSelect, SearchableSelectOption } from "@/core/components/ui/search-select"
@@ -31,6 +31,7 @@ export function AddAccountModal({
   onAddAccount: AccountSubmit
 }) {
   const [activeTab, setActiveTab] = useState("manual")
+  const [modalOpen, setModalOpen] = useState(false)
   const [balanceInputPaddingLeft, setBalanceInputPaddingLeft] = useState<string | number>("2.5rem"); // Default to pl-10 (2.5rem)
   const currencyPrefixRef = useRef<HTMLSpanElement>(null);
 
@@ -39,6 +40,7 @@ export function AddAccountModal({
     environment: "sandbox",
     onSuccess: (authorization) => {
       accountService.linkTellerAccount(authorization)
+      onClose?.()
     },
   });
 
@@ -58,6 +60,7 @@ export function AddAccountModal({
         institution: context.institution.name,
         institutionID: context.institution.id
       })
+      onClose?.()
     },
   });
 
@@ -95,7 +98,6 @@ export function AddAccountModal({
       name: "",
       type: "cash",
       currency: "USD",
-      color: "blue",
       balance: 0,
     },
   });
@@ -125,25 +127,29 @@ export function AddAccountModal({
   }, [balancePrefix]);
 
 
-  const handleSubmit = useCallback(
+  const onSubmit = useCallback(
     (values: AccountFormSchema) => {
       onAddAccount(values);
       form.reset();
-      onClose?.()
+      setModalOpen(false)
     },
-    [onAddAccount, form, onClose]
+    [onAddAccount, form]
   );
 
   return (
-    <ResponsiveDialog onOpenChange={(open) => !open && onClose?.()}>
+    <ResponsiveDialog open={modalOpen} onOpenChange={(open) => {
+      if (!modalOpen) {
+        onClose?.()
+      }
+      setModalOpen(open)
+    }}>
       <ResponsiveDialogTrigger asChild>
         {children}
       </ResponsiveDialogTrigger>
       <ResponsiveDialogContent className="sm:max-w-[500px] no-scrollbar">
         <ScrollArea className="overflow-y-auto no-scrollbar">
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle className="text-center md:text-start">Add New Account</ResponsiveDialogTitle>
-            <ResponsiveDialogDescription className="text-center md:text-start">Connect to your bank or add a manual account to track your finances.</ResponsiveDialogDescription>
+            <ResponsiveDialogTitle className="text-center md:text-start mb-2">Add New Account</ResponsiveDialogTitle>
           </ResponsiveDialogHeader>
           <Tabs defaultValue="linked" value={activeTab} onValueChange={setActiveTab} className="mt-4 px-4 md:px-1">
             <TabsList className="grid w-full grid-cols-2">
@@ -160,16 +166,16 @@ export function AddAccountModal({
             </TabsContent>
             <TabsContent value="manual" className="space-y-4 mt-4">
               <Form {...form}>
-                <form id={formId} onSubmit={form.handleSubmit(handleSubmit)}>
-                  <div className="grid gap-4">
+                <form id={formId} onSubmit={form.handleSubmit(onSubmit)}>
+                  <div className="grid gap-6">
                     <FormField
                       control={form.control}
                       name="name"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Account Name</FormLabel>
+                        <FormItem className="group relative">
+                          <FormLabel className="bg-card text-foreground/80 absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50">Account Name</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="e.g., Chase Checking, My Wallet" className="text-md" />
+                            <Input {...field} placeholder="Example account name" className="text-md placeholder:text-sm placeholder:text-foreground/50 shadow-card h-11" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -180,8 +186,8 @@ export function AddAccountModal({
                       control={form.control}
                       name="type"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel htmlFor={typeFieldId}>Account Type</FormLabel>
+                        <FormItem className="group relative">
+                          <FormLabel htmlFor={typeFieldId} className="bg-card group-has-disabled:opacity-50bg-background text-foreground absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50">Account Type</FormLabel>
                           <FormControl>
                             <SearchableSelect
                               id={typeFieldId}
@@ -201,10 +207,10 @@ export function AddAccountModal({
                       control={form.control}
                       name="balance"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Current Balance</FormLabel>
-                          <FormControl>
-                            <div className="relative">
+                        <FormItem className="group relative">
+                          <FormLabel className="bg-card text-foreground/80 absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50">Current Balance</FormLabel>
+                          <FormControl className=" relative">
+                            <div>
                               <span
                                 ref={currencyPrefixRef}
                                 className="
@@ -213,20 +219,14 @@ export function AddAccountModal({
                               ">
                                 {balancePrefix}
                               </span>
-                              <Input type="number"
-                                step="0.01"
-                                // min="0" // Allow negative balances for credit cards etc.
-                                placeholder="0.00"
-                                className="peer text-md"
-                                style={{ paddingLeft: balanceInputPaddingLeft }}
-                                {...field}
+
+                              <Input type="number" step="1" style={{ paddingLeft: balanceInputPaddingLeft }} {...field} placeholder="0.00" className="text-md peer placeholder:text-sm shadow-card"
                                 value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? "" : Number(field.value)}
                                 onChange={(e) => {
                                   const val = e.target.value;
                                   field.onChange(val === "" ? null : Number.parseFloat(val));
                                 }}
-                              />
-                            </div>
+                              /></div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -237,8 +237,8 @@ export function AddAccountModal({
                       control={form.control}
                       name="currency"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel htmlFor={currencyFieldId}>Currency</FormLabel>
+                        <FormItem className="group relative">
+                          <FormLabel htmlFor={currencyFieldId} className="bg-background   group-has-disabled:opacity-50bg-background text-foreground absolute start-1 top-0 z-10 block -translate-y-1/2 px-2 text-xs font-medium group-has-disabled:opacity-50">Currency</FormLabel>
                           <FormControl>
                             {isErrorCurrencies ? (
                               <div className="flex items-center justify-start w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-destructive min-h-[40px]">
@@ -257,6 +257,8 @@ export function AddAccountModal({
                                 loadingText="Loading currencies..."
                                 emptyText="No currencies found." // Text if API returns empty or error
                               />
+
+
                             )}
                           </FormControl>
                           <FormMessage />
@@ -277,8 +279,8 @@ export function AddAccountModal({
                 className="w-full mt-4 px-2"
                 type="submit"
                 form={formId}
-                onClick={() => {
-                  form.handleSubmit(handleSubmit)
+                onClick={async () => {
+                  console.log(form.formState.errors)
                 }}
               >
                 Add Account

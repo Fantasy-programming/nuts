@@ -14,7 +14,7 @@ const buttonVariants = cva(
           "bg-primary border-[1.5px] cursor-pointer border-[rgba(0,77,64,0.4)] bg-gradient-to-b from-[#00796b] to-[#00695c]   text-primary-foreground shadow-[0_2px_4px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] hover:bg-gradient-to-b hover:from-[#00897b] hover:to-[#00796b] active:bg-gradient-to-b active:from-[#00695c] active:to-[#004d40] overflow-hidden grain-effect before:animate-grainbt",
         destructive:
           "bg-destructive text-destructive-foreground border-[1.5px] cursor-pointer border-[rgba(136,14,79,0.4)] bg-gradient-to-b from-[#c2185b] to-[#ad1457] text-white font-semibold shadow-[0_2px_4px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] hover:bg-gradient-to-b hover:from-[#d81b60] hover:to-[#c2185b] active:bg-gradient-to-b active:from-[#ad1457] active:to-[#880e4f] overflow-hidden grain-effect ",
-        outline: "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
+        outline: "border border-input bg-transparent hover:bg-neutral-200/40 border-secondary-900/10",
         secondary: "bg-[#f4f4f4] text-[#333333] shadow-xs hover:bg-[#d0d0d0]/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",

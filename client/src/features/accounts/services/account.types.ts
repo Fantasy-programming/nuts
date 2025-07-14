@@ -13,6 +13,7 @@ export const accountSchema = z.object({
     logo: z.string().optional(),
   }).optional().nullable(),
   balance: z.number(),
+  is_external: z.boolean(),
   currency: z.string().min(1, "Currency is required"),
   updated_at: z.string(),
 });
@@ -33,11 +34,13 @@ export const accountBalanceTimelineSchema = z.object({
 export const accountCreateSchema = accountSchema.omit({
   id: true,
   updated_at: true,
+  is_external: true
 });
 
 export const accountFormSchema = accountSchema.omit({
   id: true,
   updated_at: true,
+  is_external: true
   // meta: true,
 })
 

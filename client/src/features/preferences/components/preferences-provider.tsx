@@ -24,17 +24,15 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
     retry: 1,
   });
 
-  // Effect to synchronize React Query state with Zustand store
   useEffect(() => {
     if (isLoading && !isSuccess && !isError) {
       setLoading(true);
     }
 
     if (isSuccess && data) {
-      setPreferences(data);
+      void setPreferences(data);
     }
 
-    // If fetch fails, update error state in Zustand
     if (isError && error) {
       const parsedErr = parseApiError(error)
       setError(parsedErr.userMessage);
@@ -48,6 +46,10 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
         statusCode: parsedErr.statusCode,
         axiosErrorCode: parsedErr.axiosErrorCode,
       });
+    }
+
+    if (!isLoading && !isError) {
+      setLoading(false);
     }
   }, [isLoading, isSuccess, isError, data, error, setPreferences, setLoading, setError]);
 

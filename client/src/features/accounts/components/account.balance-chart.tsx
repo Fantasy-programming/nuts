@@ -6,15 +6,12 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Dot, // Import Dot for the activeDot function
+  Dot,
 } from "recharts";
-import { accountService } from "../services/account";
+import { getAllAccountsBalanceTimeline } from "../services/account.queries";
 
 export function AccountBalanceChart() {
-  const { data, isError } = useSuspenseQuery({
-    queryKey: ["accountsBT"],
-    queryFn: accountService.getAccountsBalanceTimeline,
-  });
+  const { data, isError } = useSuspenseQuery(getAllAccountsBalanceTimeline());
 
   if (isError) {
     return <div className="h-[180px] flex items-center justify-center">Failed to load...</div>;
@@ -30,7 +27,7 @@ export function AccountBalanceChart() {
   const max = Math.max(...balances);
   const min = Math.min(...balances);
   const gradientOffset = () => {
-    if (max <= 0) {
+    if (max < 0) {
       // If all values are negative, the whole chart should be red
       return 0;
     }
@@ -43,12 +40,12 @@ export function AccountBalanceChart() {
   };
 
   const off = gradientOffset();
-  const positiveColor = "var(--chart-1)"; // sky-500
+  const positiveColor = "#68C6A9"; // sky-500
   const negativeColor = "#ef4444"; // red-500
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={formattedData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+      <AreaChart data={formattedData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
         {/* 2. Define the gradient */}
         <defs>
           <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
@@ -57,6 +54,7 @@ export function AccountBalanceChart() {
           </linearGradient>
         </defs>
         <XAxis
+          padding="no-gap"
           dataKey="date"
           tickLine={false}
           axisLine={false}
@@ -64,6 +62,7 @@ export function AccountBalanceChart() {
           tickMargin={10}
         />
         <YAxis
+          hide={true}
           tickFormatter={(value) => `$${value / 1000}k`}
           tickLine={false}
           axisLine={false}
@@ -88,7 +87,7 @@ export function AccountBalanceChart() {
                       <span className="text-[0.70rem] uppercase text-muted-foreground">Balance</span>
                       {/* 5. Conditional coloring in the tooltip */}
                       <span className={`font-bold text-sm ${balanceColor}`}>
-                        {balance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {balance?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                       </span>
                     </div>
                   </div>

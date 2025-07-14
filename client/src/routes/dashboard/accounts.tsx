@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 
 import { accountService } from "@/features/accounts/services/account";
@@ -8,56 +8,54 @@ import { AccountFormSchema } from "@/features/accounts/services/account.types";
 import { AddAccountModal } from "@/features/accounts/components/account.create-modal";
 import { NetWorthCard } from "@/features/accounts/components/account.net-worth";
 import { Button } from "@/core/components/ui/button";
-import { Plus } from "lucide-react";
+import { LayoutDashboard, Plus } from "lucide-react";
 import { groupAccountsByType } from "@/features/accounts/components/account.utils";
 import { SidebarTrigger } from "@/core/components/ui/sidebar";
+import { getAllAccountsWithTrends } from "@/features/accounts/services/account.queries";
+import { EmptyStateGuide } from "@/core/components/EmptyStateGuide";
 
 export const Route = createFileRoute("/dashboard/accounts")({
   component: RouteComponent,
   pendingComponent: AccountsLoading,
   loader: ({ context }) => {
     const queryClient = context.queryClient
-    queryClient.prefetchQuery({
-      queryKey: ["accountsWT"],
-      queryFn: accountService.getAccountsWTrends,
-    })
+    queryClient.prefetchQuery(getAllAccountsWithTrends())
   }
 });
 
 function RouteComponent() {
   const queryClient = useQueryClient();
 
-  const {
-    data
-  } = useSuspenseQuery({
-    queryKey: ["accountsWT"],
-    queryFn: accountService.getAccountsWTrends,
-  });
+  const { hasAccounts } = useRouteContext({ from: "/dashboard" });
+  const { data } = useSuspenseQuery(getAllAccountsWithTrends());
 
   const cashTotal = data.reduce((sum, account) => sum + account.balance, 0)
   const grouppedAccounts = groupAccountsByType(data)
 
+
+  const onCloseModal = () => {
+    queryClient.invalidateQueries({ queryKey: ['accounts'] })
+  }
+
+
   const createAccount = useMutation({
     mutationFn: accountService.createAccount,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] })
-      queryClient.invalidateQueries({ queryKey: ['accountsWT'] })
+      onCloseModal()
     },
   });
 
   const updateAccount = useMutation({
     mutationFn: accountService.updateAccount,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] })
-      queryClient.invalidateQueries({ queryKey: ['accountsWT'] })
+      onCloseModal()
     },
   });
 
   const deleteAccount = useMutation({
     mutationFn: accountService.deleteAccount,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] })
-      queryClient.invalidateQueries({ queryKey: ['accountsWT'] })
+      onCloseModal()
     },
   });
 
@@ -75,6 +73,23 @@ function RouteComponent() {
 
   return (
     <>
+      {!hasAccounts && (
+        <EmptyStateGuide
+          Icon={LayoutDashboard}
+          title="Here you can view account details"
+          description="Add an account with the button below to get started"
+        >
+          <AddAccountModal
+            onAddAccount={onCreate}
+            onClose={onCloseModal}
+          >
+            <Button className="hidden md:inline-flex mt-4">
+              Add Account
+            </Button>
+          </AddAccountModal>
+
+        </EmptyStateGuide>
+      )}
       <div className="border-b border-b-bg-nuts-500/20 py-1 flex gap-2 items-center md:hidden -mx-4 px-3">
         <SidebarTrigger />
         <span className="font-semibold text-sm tracking-tight">Accounts</span>
@@ -83,14 +98,15 @@ function RouteComponent() {
         <div className="flex w-full items-center justify-between gap-2">
           <div>
             <h1 className="text-2xl font-bold tracking-tight md:block hidden">Accounts</h1>
-            <p className="text-muted-foreground mt-1">Manage your financial accounts and track your balances</p>
+            <p className="text-[#757575] mt-1">Manage your financial accounts and track your balances</p>
           </div>
           <AddAccountModal
             onAddAccount={onCreate}
+            onClose={onCloseModal}
           >
             <Button className="hidden md:inline-flex">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Account
+              <Plus className="mr-1 h-4 w-4" />
+              New
             </Button>
           </AddAccountModal>
         </div>

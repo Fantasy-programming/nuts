@@ -19,7 +19,7 @@ import { Label } from "@/core/components/ui/label";
 import { Separator } from "@/core/components/ui/separator";
 import { Nuts } from "@/core/assets/icons/Logo"
 import { Google } from "@/core/assets/icons/google";
-import { Github } from "@/core/assets/icons/github";
+import { Apple } from "@/core/assets/icons/apple";
 
 export const Route = createFileRoute("/login")({
   validateSearch: z.object({
@@ -174,24 +174,24 @@ function RouteComponent() {
               <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="grid  md:grid-cols-2 gap-2">
                 <Button
                   variant="outline"
-                  className="relative w-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-all duration-300 after:absolute after:inset-0 after:rounded-md after:opacity-0 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)] hover:bg-white/95 hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] hover:after:opacity-100"
+                  className="relative gap-0 w-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-all duration-300 after:absolute after:inset-0 after:rounded-md after:opacity-0 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)] hover:bg-white/95 hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] hover:after:opacity-100"
                   disabled={isLoggingIn}
                   asChild
                 >
                   <a href={`${config.VITE_API_BASE_URL}/auth/oauth/google`}>
-                    <Google className="mr-2 h-4 w-4" />
+                    <Google className="mr-2 h-2 w-2" />
                     Google
                   </a>
                 </Button>
                 <Button
                   variant="outline"
-                  className="relative w-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-all duration-300 after:absolute after:inset-0 after:rounded-md after:opacity-0 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)] hover:bg-white/95 hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] hover:after:opacity-100"
+                  className="relative w-full gap-0 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-all duration-300 after:absolute after:inset-0 after:rounded-md after:opacity-0 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)] hover:bg-white/95 hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] hover:after:opacity-100"
                   disabled={isLoggingIn}
                   asChild
                 >
                   <a href={`${config.VITE_API_BASE_URL}/auth/oauth/github`}>
-                    <Github className="mr-2 h-4 w-4" fill="#000" />
-                    Github
+                    <Apple className="mr-2 h-2 w-2" fill="#000" />
+                    Apple
                   </a>
                 </Button>
               </motion.div>

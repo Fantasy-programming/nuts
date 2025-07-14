@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import { Button } from "@/core/components/ui/button";
 import { AccountWTrend, AccountUpdate, GroupedAccount } from "../services/account.types";
 
@@ -44,10 +44,8 @@ interface MiniChartInterface {
 }
 
 
-// Mini chart component using Recharts
-function MiniChart({ data }: { data: MiniChartInterface[] }) {
+const MiniChart = memo(({ data }: { data: MiniChartInterface[] }) => {
 
-  // If no data is provided, return empty chart
   if (!data || data.length === 0) {
     return <div className="h-8 w-20" />
   }
@@ -56,7 +54,7 @@ function MiniChart({ data }: { data: MiniChartInterface[] }) {
   const chartData = data.map((value) => ({ value: value.balance }))
 
   const trend = data[data.length - 1].balance - data[0].balance
-  const strokeColor = trend >= 0 ? "rgb(16, 185, 129)" : "rgb(239, 68, 68)" // emerald-500 or red-500
+  const strokeColor = trend >= 0 ? "rgb(16, 185, 129)" : "rgb(239, 68, 68)"
 
   return (
     <div className="h-8 w-20">
@@ -81,9 +79,9 @@ function MiniChart({ data }: { data: MiniChartInterface[] }) {
       </ResponsiveContainer>
     </div>
   )
-}
+})
 
-export function HorizontalAccountCard({
+export const HorizontalAccountCard = memo(({
   account,
   onEdit,
   onDelete,
@@ -93,9 +91,8 @@ export function HorizontalAccountCard({
   onEdit: () => void
   onDelete: () => void
   groupId: string
-}) {
-
-  const { imageUrl } = useBrandImage(account.meta.institution_name || "", config.VITE_BRANDFETCH_CLIENTID);
+}) => {
+  const { imageUrl } = useBrandImage(account?.meta?.institution_name || "", config.VITE_BRANDFETCH_CLIENTID);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: account.id,
@@ -109,28 +106,30 @@ export function HorizontalAccountCard({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
   }
 
-  const getAccountIcon = (type: string) => {
+  const getAccountIcon = useCallback((type: string) => {
     switch (type.toLowerCase()) {
       case "checking":
-        return <Building className="h-5 w-5 text-muted-foreground" />
+        return <Building className="h-5 w-5 text-gray-500" />;
       case "savings":
-        return <PiggyBank className="h-5 w-5 text-muted-foreground" />
+        return <PiggyBank className="h-5 w-5 text-gray-500" />;
       case "investment":
-        return <TrendingUp className="h-5 w-5 text-muted-foreground" />
+        return <TrendingUp className="h-5 w-5 text-gray-500" />;
       case "cash":
-        return <Wallet className="h-5 w-5 text-muted-foreground" />
+        return <Wallet className="h-5 w-5 text-gray-500" />;
       default:
-        return <CreditCard className="h-5 w-5 text-muted-foreground" />
+        return <CreditCard className="h-5 w-5 text-gray-500" />;
     }
-  }
+  }, []);
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group bg-card relative border-b last:border-b-0 transition-colors ${isDragging ? "bg-muted shadow-lg rounded-lg z-10" : "hover:bg-muted/30"
+      className={`group bg-card relative border-b last:border-b-0 transition-colors
+                ${isDragging ? "bg-muted shadow-lg rounded-lg z-10" : "hover:bg-muted/30"
         }`}
     >
       {/* Grid layout for consistent column alignment - responsive for mobile */}
@@ -138,7 +137,7 @@ export function HorizontalAccountCard({
         <div
           {...attributes}
           {...listeners}
-          className="absolute -left-2 top-1/2 -translate-y-1/2 p-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -left-2 top-1/2 -translate-y-1/2 p-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none"
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
@@ -202,11 +201,141 @@ export function HorizontalAccountCard({
       </div>
     </div>
   )
-}
+})
+
+
+export const AccountGroup = memo(({
+  group,
+  onEdit,
+  onDelete,
+  period
+}: {
+  group: GroupedAccount
+  period?: string
+  onEdit: (id: string) => void
+  onDelete: (id: string) => void
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true)
+
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: group.type,
+    data: {
+      type: "group",
+      group,
+    },
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.8 : 1,
+  }
+
+
+  const toggleExpanded = useCallback(() => {
+    setIsExpanded(prev => !prev);
+  }, []);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`border rounded-lg overflow-hidden mb-6 ${isDragging ? "shadow-xl z-10" : ""}`}
+    >
+      <div className="group relative flex items-center justify-between p-4 bg-card/90">
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute -left-2 top-1/2 -translate-y-1/2 p-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleExpanded} className="flex items-center gap-2 flex-grow text-left">
+            {isExpanded ? (
+              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            )}
+            <h2 className="font-medium">{group.type}</h2>
+            {group.trend !== 0 && (
+              <span
+                className={group.trend > 0 ? "text-emerald-600" : "text-red-600"}
+                style={{ fontSize: "0.9rem" }}
+              >
+                {group.trend > 0 ? "↑" : "↓"} <span className="hidden md:inline">${Math.abs(group.trend).toFixed(2)} (
+                  {Math.abs((group.trend / group.total) * 100).toFixed(1)}%)</span>
+              </span>
+            )}
+            <span className="md:text-sm text-xs text-muted-foreground">{period}</span>
+          </button>
+        </div>
+        <div className="font-semibold text-sm md:text-md">
+          ${group.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div>
+          <SortableContext items={group.accounts.map((account) => account.id)} strategy={verticalListSortingStrategy}>
+            <div className="divide-y">
+              {group.accounts.map((account) => (
+                <HorizontalAccountCard
+                  key={account.id}
+                  account={account}
+                  onEdit={() => onEdit(account.id)}
+                  onDelete={() => onDelete(account.id)}
+                  groupId={group.type}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </div>
+      )}
+    </div>
+  )
+})
+
+const AccountDragOverlay = memo(({ account }: { account: AccountWTrend }) => (
+  <div className="flex items-center justify-between p-4 border rounded-lg shadow-lg bg-white opacity-95 min-w-[300px]">
+    <div className="flex items-center gap-3">
+      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <CreditCard className="h-5 w-5 text-gray-500" />
+      </div>
+      <div>
+        <h3 className="font-medium">{account.name}</h3>
+        <p className="text-sm text-gray-500">{account.type}</p>
+      </div>
+    </div>
+    <div className="font-semibold">
+      ${account.balance.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}
+    </div>
+  </div>
+));
+
+const GroupDragOverlay = memo(({ group }: { group: GroupedAccount }) => (
+  <div className="border rounded-lg overflow-hidden mb-6 shadow-xl bg-white opacity-95 min-w-[400px]">
+    <div className="flex items-center justify-between p-4 bg-gray-50">
+      <div className="flex items-center gap-2">
+        <h2 className="font-medium">{group.type}</h2>
+      </div>
+      <div className="font-semibold">
+        ${group.total.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}
+      </div>
+    </div>
+  </div>
+));
 
 
 
-export function DraggableAccountGroups({
+export const DraggableAccountGroups = ({
   initialAccounts,
   onEdit,
   onDelete,
@@ -216,7 +345,7 @@ export function DraggableAccountGroups({
   onEdit: AccountUpdate
   onDelete: (id: string) => void
   period?: string
-}) {
+}) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<AccountWTrend | null>(null)
@@ -224,21 +353,23 @@ export function DraggableAccountGroups({
   const [groups, setGroups] = useState<GroupedAccount[]>(initialAccounts)
   const [activeItem, setActiveItem] = useState<SortedInterfaceAccount | SortedInterfaceGroup | null>(null)
 
-  // For the sortable context
-  const groupIds = useMemo(() => groups.map((group) => group.type), [groups])
-
-
   // Configure sensors for drag detection
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Minimum drag distance before activation
+        distance: 5, // Minimum drag distance before activation
       },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   )
+
+
+  // For the sortable context
+  const groupIds = useMemo(() => groups.map((group) => group.type), [groups])
+
+
 
   // Load saved order from localStorage on component mount
   useEffect(() => {
@@ -279,7 +410,7 @@ export function DraggableAccountGroups({
         });
 
         // 2. Filter out the null/undefined entries to get a clean list
-        const reorderedGroups = reorderedGroupsWithPotentialGaps.filter(Boolean);
+        const reorderedGroups: GroupedAccount[] = reorderedGroupsWithPotentialGaps.filter(Boolean);
 
         // --- END OF CHANGE ---
 
@@ -298,13 +429,13 @@ export function DraggableAccountGroups({
   }, [initialAccounts])
 
   // Handle drag start
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event
     setActiveItem(active.data.current as SortedInterfaceAccount | SortedInterfaceGroup)
-  }
+  }, [])
 
   // Handle drag end
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
 
     if (!over) return
@@ -352,12 +483,10 @@ export function DraggableAccountGroups({
           localStorage.setItem(`accounts-${activeGroupId}`, JSON.stringify(accountIds))
         }
       }
-      // If moving between groups (not implementing this for simplicity)
-      // This would require updating account types and recalculating balances
     }
 
     setActiveItem(null)
-  }
+  }, [groups]);
 
 
   const handleEditAccount = (id: string) => {
@@ -395,43 +524,12 @@ export function DraggableAccountGroups({
       </SortableContext>
 
       {/* Drag overlay for visual feedback during dragging */}
-      <DragOverlay adjustScale={true}>
+      <DragOverlay adjustScale={false} dropAnimation={null}>
         {activeItem?.type === "group" && activeItem.group && (
-          <div className="border rounded-lg overflow-hidden mb-6 shadow-xl bg-white dark:bg-slate-900 opacity-80">
-            <div className="flex items-center justify-between p-4 bg-muted/30">
-              <div className="flex items-center gap-2">
-                <h2 className="font-medium">{activeItem.group.type}</h2>
-              </div>
-              <div className="font-semibold">
-                $
-                {activeItem.group.total.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </div>
-            </div>
-          </div>
+          <GroupDragOverlay group={activeItem.group} />
         )}
-
         {activeItem?.type === "account" && activeItem.account && (
-          <div className="flex items-center justify-between p-4 border rounded-lg shadow-lg bg-white dark:bg-slate-900 opacity-80">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-slate-500" />
-              </div>
-              <div>
-                <h3 className="font-medium">{activeItem.account.name}</h3>
-                <p className="text-sm text-muted-foreground">{activeItem.account.type}</p>
-              </div>
-            </div>
-            <div className="font-semibold">
-              $
-              {activeItem.account.balance.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-          </div>
+          <AccountDragOverlay account={activeItem.account} />
         )}
       </DragOverlay>
 
@@ -455,94 +553,8 @@ export function DraggableAccountGroups({
 }
 
 
-export function AccountGroup({
-  group,
-  onEdit,
-  onDelete,
-  period
-}: {
-  group: GroupedAccount
-  period?: string
-  onEdit: (id: string) => void
-  onDelete: (id: string) => void
-}) {
-  const [isExpanded, setIsExpanded] = useState(true)
 
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: group.type,
-    data: {
-      type: "group",
-      group,
-    },
-  })
+export const PortfolioSummary = () => {
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
-
-
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded)
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`border rounded-lg overflow-hidden mb-6 ${isDragging ? "shadow-xl z-10" : ""}`}
-    >
-      <div className="group relative flex items-center justify-between p-4 bg-card/90">
-        <div
-          {...attributes}
-          {...listeners}
-          className="absolute -left-2 top-1/2 -translate-y-1/2 p-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={toggleExpanded} className="flex items-center gap-2 flex-grow text-left">
-            {isExpanded ? (
-              <ChevronDown className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            )}
-            <h2 className="font-medium">{group.type}</h2>
-            {group.trend !== 0 && (
-              <span
-                className={group.trend > 0 ? "text-emerald-600" : "text-red-600"}
-                style={{ fontSize: "0.9rem" }}
-              >
-                {group.trend > 0 ? "↑" : "↓"} ${Math.abs(group.trend).toFixed(2)} (
-                {Math.abs((group.trend / group.total) * 100).toFixed(1)}%)
-              </span>
-            )}
-            <span className="text-sm text-muted-foreground">{period}</span>
-          </button>
-        </div>
-        <div className="font-semibold">
-          ${group.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </div>
-      </div>
-
-      {isExpanded && (
-        <div>
-          <SortableContext items={group.accounts.map((account) => account.id)} strategy={verticalListSortingStrategy}>
-            <div className="divide-y">
-              {group.accounts.map((account) => (
-                <HorizontalAccountCard
-                  key={account.id}
-                  account={account}
-                  onEdit={() => onEdit(account.id)}
-                  onDelete={() => onDelete(account.id)}
-                  groupId={group.type}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </div>
-      )}
-    </div>
-  )
 }

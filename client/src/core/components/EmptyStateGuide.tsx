@@ -1,12 +1,14 @@
 import { Button } from "@/core/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { type LucideIcon } from "lucide-react";
+import { ReactNode } from "react";
 
 interface EmptyStateGuideProps {
   Icon: LucideIcon;
   title: string;
+  children?: ReactNode;
   description: string;
-  ctaText: string;
+  ctaText?: string;
   ctaTarget?: string; // Optional route to navigate to
   onCtaClick?: () => void; // Optional custom click handler
 }
@@ -14,6 +16,7 @@ interface EmptyStateGuideProps {
 export function EmptyStateGuide({
   Icon,
   title,
+  children,
   description,
   ctaText,
   ctaTarget = "/dashboard/accounts",
@@ -42,9 +45,11 @@ export function EmptyStateGuide({
         <p className="mt-2  text-xs md:text-sm text-muted-foreground">
           {description}
         </p>
-        <Button onClick={handleClick} className="mt-6">
-          {ctaText}
-        </Button>
+        {children ? children : (
+          <Button onClick={handleClick} className="mt-6">
+            {ctaText}
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -6,6 +6,8 @@ export const categorySchema = z.object({
   parent_id: z.string().nullable(),
   is_default: z.boolean().nullable(),
   updated_at: z.string(),
+  icon: z.string(),
+  color: z.string().nullable(),
 });
 
 export const categoryCreateSchema = categorySchema.omit({

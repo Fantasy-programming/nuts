@@ -8,29 +8,40 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/core/components/ui/alert-dialog"
-import { RecordSchema } from "../services/transaction.types"
+import { useMutation } from "@tanstack/react-query"
+import { deleteTransactions } from "../services/transaction"
+import { toast } from "sonner"
+import { logger } from "@/lib/logger"
 
 export function DeleteTransactionDialog({
   isOpen,
   onClose,
-  transaction,
-  onDeleteTransaction,
-  isDeleting
+  transactionId,
 }: {
   isOpen: boolean
   onClose: () => void
-  transaction: RecordSchema | null
-  onDeleteTransaction: (id: string) => void
-  isDeleting: boolean | undefined
+  transactionId: string | string[] | null
 }) {
-  const handleDelete = () => {
-    if (transaction) {
-      onDeleteTransaction(transaction.id)
-      onClose()
-    }
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string | string[]) => deleteTransactions(id),
+    onSuccess: () => {
+      toast.success("Transaction deleted successfully!");
+    },
+    onError: (error: Error) => {
+      logger.error(error.message);
+      toast.error(error.message || "An error occurred.");
+    },
+  });
+
+
+  const onSubmit = () => {
+    if (!transactionId) return;
+    deleteMutation.mutateAsync(transactionId);
+    onClose()
   }
 
-  if (!transaction) return null
+  if (!transactionId) return null
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
@@ -38,15 +49,16 @@ export function DeleteTransactionDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete the transaction "{transaction.description}" for $
-            {Math.abs(transaction.amount).toFixed(2)}. This action cannot be undone.
+            {Array.isArray(transactionId) && transactionId.length > 1
+              ? `This will permanently delete ${transactionId.length} transactions. This action cannot be undone.`
+              : `This will permanently delete this transaction. This action cannot be undone.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleDelete}
-            disabled={isDeleting}
+            onClick={onSubmit}
+            disabled={deleteMutation.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             Delete

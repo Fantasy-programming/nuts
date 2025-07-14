@@ -23,21 +23,9 @@ export interface Merchant {
   category?: string;
 }
 
-export interface UserProfile {
-  firstName: string;
-  lastName: string;
-  avatar?: string;
-}
 
-export interface Preferences {
-  locale: string;
-  currency: string;
-  theme: "dark" | "light" | "system";
-}
 
 interface SettingsState {
-  profile: UserProfile;
-  preferences: Preferences;
   tags: Tag[];
   categories: Category[];
   merchants: Merchant[];
@@ -47,9 +35,6 @@ interface SettingsState {
     events: string[];
     active: boolean;
   }>;
-  updateProfile: (profile: Partial<UserProfile>) => void;
-  updatePreferences: (preferences: Partial<Preferences>) => void;
-  deleteAccount: () => void;
   addTag: (tag: Omit<Tag, "id">) => void;
   updateTag: (id: string, tag: Partial<Tag>) => void;
   deleteTag: (id: string) => void;
@@ -81,23 +66,6 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   categories: [],
   merchants: [],
   webhooks: [],
-  updateProfile: (profile) =>
-    set((state) => ({
-      profile: { ...state.profile, ...profile },
-    })),
-  updatePreferences: (preferences) =>
-    set((state) => ({
-      preferences: { ...state.preferences, ...preferences },
-    })),
-  deleteAccount: () =>
-    set(() => ({
-      profile: { firstName: "", lastName: "" },
-      preferences: { locale: "en-US", currency: "USD", theme: "system" },
-      tags: [],
-      categories: [],
-      merchants: [],
-      webhooks: [],
-    })),
   addTag: (tag) =>
     set((state) => ({
       tags: [...state.tags, { ...tag, id: crypto.randomUUID() }],

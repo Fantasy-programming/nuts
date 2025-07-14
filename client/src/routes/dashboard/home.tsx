@@ -94,8 +94,9 @@ function RouteComponent() {
                     return (
                       // Optional: ErrorBoundary
                       // <ErrorBoundary key={chartId} FallbackComponent={(props) => <ChartErrorFallback chartId={chartId} error={props.error} />}>
-                      <Suspense key={chartId} fallback={<ChartLoadingSkeleton size={layout.size} />}>
+                      <Suspense key={chartId} fallback={<ChartLoadingSkeleton key={chartId} size={layout.size} />}>
                         <ChartToRender
+                          key={chartId}
                           id={layout.id}
                           size={layout.size}
                           isLocked={layout.isLocked}

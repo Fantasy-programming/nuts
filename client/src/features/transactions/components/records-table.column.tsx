@@ -1,42 +1,76 @@
-import { RecordSchema } from "@/features/transactions/services/transaction.types";
+import { TableRecordSchema } from "@/features/transactions/services/transaction.types";
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/core/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/core/components/ui/avatar";
-import { Button } from "@/core/components/ui/button"
-import { MoreHorizontal } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/core/components/ui/dropdown-menu"
+import { Badge } from "@/core/components/ui/badge";
+import { renderIcon } from "@/core/components/icon-picker/index.helper";
+import { memo } from "react";
+import { Link } from "@tanstack/react-router";
 
-type TransactionRowData = RecordSchema & {
-  groupId: string;
-  groupDate: Date;
-  groupTotal: number;
+type TransactionRowData = TableRecordSchema & {
+  groupId?: string;
+  groupDate?: Date;
+  groupTotal?: number;
 };
 
 interface ActionColumnHandlers {
-  onEdit: (transaction: RecordSchema) => void;
-  onDelete: (transaction: RecordSchema) => void;
-  isUpdating?: boolean;
-  isDeleting?: boolean;
+  onEdit: (transactionId: TableRecordSchema) => void;
 }
 
+// Memoized components to prevent unnecessary re-renders
+const TransactionCell = memo(({
+  transaction,
+  onEdit
+}: {
+  transaction: TableRecordSchema;
+  onEdit: (transaction: TableRecordSchema) => void;
+}) => (
+  <div className="flex items-center space-x-3">
+    <Avatar className="h-8 w-8">
+      <AvatarFallback className="bg-[#595959] text-background">
+        {transaction.account.name.slice(0, 2).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
+    <div className="flex flex-col gap-0.5">
+      <button
+        onClick={() => { onEdit(transaction) }}
+        className="text-left hover:underline font-medium"
+      >
+        {transaction.description}
+      </button>
+      <Link
+        to="/dashboard/accounts/$id"
+        params={{ id: transaction.account.id }}
+        className="text-xs text-muted-foreground hover:underline"
+      >
+        {transaction.account.name}
+      </Link>
+    </div>
+  </div>
+));
 
+const CategoryCell = memo(({ transaction }: { transaction: TableRecordSchema }) => (
+  <Badge variant="outline" className="rounded-full text-md px-2 py-1 [&>svg]:size-4">
+    {renderIcon(transaction.category?.icon || "")} {transaction.category?.name}
+  </Badge>
+));
+
+const AmountCell = memo(({ amount }: { amount: number }) => {
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
+  return <div className="font-medium text-right pr-4">{formatted}</div>;
+});
 
 export const getRecordsTableColumns = ({
   onEdit,
-  onDelete,
-  isUpdating,
-  isDeleting,
 }: ActionColumnHandlers): ColumnDef<TransactionRowData>[] => [
     {
       id: "select",
-      size: 15,
-      maxSize: 15,
-      minSize: 15,
+      size: 10,
+      maxSize: 10,
+      minSize: 10,
       header: ({ table }) => (
         <Checkbox
           checked={table.getIsAllPageRowsSelected()}
@@ -46,94 +80,44 @@ export const getRecordsTableColumns = ({
         />
       ),
       cell: ({ row }) => (
-        <Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label="Select row" className="translate-y-[2px]" />
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          className="translate-y-[2px]"
+        />
       ),
       enableSorting: false,
       enableHiding: false,
     },
     {
       accessorKey: "description",
-      header: "Description",
-      size: 150,
-      maxSize: 150,
-      minSize: 150,
+      header: "Transaction",
+      size: 300,
       cell: ({ row }) => (
-        <div className="flex items-center space-x-2">
-          {row.original?.details?.payment_status &&
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>
-                NW
-              </AvatarFallback>
-            </Avatar>
-          }
-          <span>{row.getValue("description")}</span>
-        </div>
+        <TransactionCell
+          transaction={row.original}
+          onEdit={onEdit}
+        />
       ),
     },
     {
-      accessorKey: "amount",
-      header: () => <>Amount</>,
-      size: 150,
-      maxSize: 150,
-      minSize: 150,
-      cell: ({ row }) => {
-        const amount = Number.parseFloat(row.getValue("amount"));
-        const formatted = new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        }).format(amount);
-        return <div className="font-medium">{formatted}</div>;
-      },
-    },
-    {
-      accessorKey: "category.name",
+      accessorFn: row => row.category?.name,
+      id: "category.name",
       header: "Category",
       size: 150,
-      maxSize: 150,
-      minSize: 150,
-    },
-    {
-      accessorKey: "account.name",
-      header: "Account",
-      size: 150,
-      maxSize: 150,
-      minSize: 150,
-    },
-
-    {
-      id: "actions",
-      size: 80,
       cell: ({ row }) => {
-        // row.original will be of type TransactionRowData,
-        // which includes all properties of RecordSchema
-        const transaction = row.original;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onSelect={() => onEdit(transaction)}
-                disabled={isUpdating}
-              >
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => onDelete(transaction)}
-                disabled={isDeleting}
-                className="text-destructive" // Consistent with ContextMenu
-              >
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-      enableSorting: false,
-      enableHiding: false, // Usually you want actions always visible
+          <CategoryCell transaction={row.original} />
+        )
+      }
+    },
+    {
+      accessorKey: "amount",
+      header: () => <div className="text-right">Amount</div>,
+      size: 120,
+      cell: ({ row }) => (
+        <AmountCell amount={Number.parseFloat(row.getValue("amount"))} />
+      ),
     },
   ];

@@ -1,144 +1,179 @@
-import { useMemo, useState, useEffect, Fragment, useCallback } from "react"
+import { useMemo, useState, Fragment, useCallback, memo } from "react"
 import {
   type ColumnFiltersState,
+  Row,
   type SortingState,
-  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
+import { Link } from "@tanstack/react-router"
 
-import { ChevronDown, ChevronRight, Filter, Plus, Minus, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronRight, Filter, Plus, Minus, Search, Loader2 } from "lucide-react"
 import { Button } from "@/core/components/ui/button"
 import { Checkbox } from "@/core/components/ui/checkbox"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/core/components/ui/dropdown-menu"
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/core/components/ui/context-menu";
 import { Input } from "@/core/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/core/components/ui/table"
-import { formatDate } from "@/lib/utils"
+import { formatCurrency, formatDate } from "@/lib/utils"
 import { getRecordsTableColumns } from "./records-table.column"
 import { useIsMobile } from "@/core/hooks/use-mobile"
 import { Avatar, AvatarFallback } from "@/core/components/ui/avatar"
 import { Card, CardContent } from "@/core/components/ui/card"
-import { Badge } from "@/core/components/ui/badge"
-import { TransactionsResponse, RecordSchema, GrouppedRecordsArraySchema } from "../services/transaction.types"
-// import EditTransactionSheet from "./edt-records-sheet"
+import { ExtendedRecordSchema, TableRecordsArraySchema, TableRecordSchema } from "../services/transaction.types"
+import EditTransactionSheet from "./edt-records-sheet"
 import { DeleteTransactionDialog } from "./del-records-dialog"
-import { Switch } from "@/core/components/ui/switch"; // For toggling grouping
-import { Label } from "@/core/components/ui/label";
+import { FloatingActionBar } from "./floating-records-bar"
+import { useDebounce } from "@/core/hooks/use-debounce";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { deleteTransactions, getTransactions } from "../services/transaction"
+import { logger } from "@/lib/logger"
+import { toast } from "sonner"
 
 interface RecordsTableProps {
-  response?: TransactionsResponse; // Make optional to handle initial loading state
-  isLoading: boolean;
-  isDeleting?: boolean;
-  isUpdating?: boolean;
-
-  // State and setters from parent
-  search: string;
-  groupBy: "date" | "";
-  setSearch: (value: string) => void;
-  setPage: (page: number) => void;
-  setGroupBy: (value: "date" | "") => void;
-
-  // Mutation functions
-  // onUpdateTransaction: (params: { id: string; data: any }) => void;
-  onDeleteTransaction: (id: string | string[]) => void;
+  initialPage: number;
+  onPageChange: (newPage: number) => void;
 }
 
 
+
+const MemoizedTransactionCard = memo(({
+  transaction,
+  row,
+  formatCurrency,
+  onEdit
+}: {
+  transaction: TableRecordSchema;
+  row: Row<TableRecordSchema>;
+  formatCurrency: (amount: number) => string;
+  onEdit: (transaction: TableRecordSchema) => void;
+}) => (
+  <Card key={transaction.id} className={row.getIsSelected() ? "border-primary" : ""}>
+    <CardContent className="p-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 pt-1">
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label={`Select transaction ${transaction.id}`}
+          />
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback>
+                  {transaction.account.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <button
+                  onClick={() => onEdit(transaction)}
+                  className="font-medium text-left hover:underline text-md"
+                >
+                  {transaction.description}
+                </button>
+                <Link
+                  to="/dashboard/accounts/$id"
+                  params={{ id: transaction.account.id }}
+                  className="text-sm text-muted-foreground hover:underline"
+                >
+                  {transaction.account.name}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="font-medium">{formatCurrency(Number(transaction.amount))}</div>
+      </div>
+    </CardContent>
+  </Card>
+));
+
+
 export const RecordsTable = ({
-  response,
-  isLoading,
-  isDeleting,
-  isUpdating,
-  search,
-  groupBy,
-  setSearch,
-  setPage,
-  setGroupBy,
-  onDeleteTransaction,
+  initialPage,
+  onPageChange
 }: RecordsTableProps) => {
-  // --- Local UI State Only ---
-
-
   const [sorting, setSorting] = useState<SortingState>([])
   const [rowSelection, setRowSelection] = useState({})
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
-
-
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [showFilters, setShowFilters] = useState(false)
-  const [deletingTransaction, setDeletingTransaction] = useState<RecordSchema | null>(null)
+  const [deletingTransactionId, setDeletingTransactionId] = useState<string | string[] | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
+
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
+
   const isMobile = useIsMobile()
-  // const [editingTransaction, setEditingTransaction] = useState<RecordSchema | null>(null)
-  // const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
+  const queryClient = useQueryClient();
 
-  const isGrouped = groupBy === 'date';
+  const { data: transactions, isFetching } = useSuspenseQuery({
+    queryKey: ["transactions", { page: initialPage, q: debouncedSearch }],
+    queryFn: () => getTransactions({
+      group_by: "date",
+      page: initialPage,
+      q: debouncedSearch,
+    }),
+  });
 
-  const groups = useMemo(() => {
-    if (!response?.data) return [];
 
-    if (isGrouped) {
-      return response.data as GrouppedRecordsArraySchema;
-    }
+  const deleteMutation = useMutation({
+    mutationFn: (id: string | string[]) => deleteTransactions(id),
+    onSuccess: () => {
+      toast.success("Transaction deleted successfully!");
+    },
+    onError: (error: Error) => {
+      logger.error(error.message);
+      toast.error(error.message || "An error occurred.");
+    },
+  });
 
-    return [{
-      id: "all-transactions",
-      date: new Date(), // Dummy date, won't be displayed
-      total: 0, // Total is not relevant in flat view
-      transactions: response.data,
-    }];
 
-  }, [response, isGrouped]);
+  const groups: TableRecordsArraySchema = useMemo(() => {
+    if (!transactions?.data) return [];
+    return transactions.data as TableRecordsArraySchema;
+
+  }, [transactions?.data]);
 
   const allTransactions = useMemo(() => {
+    if (!groups.length) return [];
     return groups.flatMap((group) => group.transactions);
   }, [groups]);
 
 
-  // const allTransactions = useMemo(() => {
-  //   return transactions.flatMap((group) =>
-  //     group.transactions.map((transaction) => ({
-  //       ...transaction,
-  //       groupId: group.id,
-  //       groupDate: group.date,
-  //       groupTotal: group.total,
-  //     })),
-  //   )
-  // }, [transactions])
+  // Create a transaction ID to row index map for O(1) lookups
+  const transactionRowMap = useMemo(() => {
+    const map = new Map<string, number>();
+    allTransactions.forEach((transaction, index) => {
+      map.set(transaction.id, index);
+    });
+    return map;
+  }, [allTransactions]);
 
 
-  // const handleOpenEditSheet = (transaction: RecordSchema) => {
-  //   setEditingTransaction(transaction)
-  //   setIsEditSheetOpen(true)
-  // }
 
-  const handleOpenDeleteDialog = useCallback((transaction: RecordSchema) => {
-    setDeletingTransaction(transaction);
-    setIsDeleteDialogOpen(true);
-  }, []);
+  // Stable callback handlers
+  const handleOpenEditSheet = useCallback((txn: TableRecordSchema) => {
+    queryClient.setQueryData(["transaction", txn.id], txn);
 
+    setEditingTransactionId(txn.id);
+    setIsEditSheetOpen(true);
+  }, [queryClient]);
+
+  // const handleOpenDeleteDialog = useCallback((transaction: RecordSchema) => {
+  //   setDeletingTransaction(transaction);
+  //   setIsDeleteDialogOpen(true);
+  // }, []);
+
+  // Memoized columns with stable callbacks
   const columns = useMemo(
     () => getRecordsTableColumns({
-      onEdit: () => { /* handleOpenEditSheet */ },
-      onDelete: handleOpenDeleteDialog,
+      onEdit: handleOpenEditSheet,
     }),
-    [handleOpenDeleteDialog]
+    [handleOpenEditSheet]
   );
 
   const table = useReactTable({
@@ -147,30 +182,29 @@ export const RecordsTable = ({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    // getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    // onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    // onSortingChange: setSorting,
-    //  onRowSelectionChange: setRowSelection,
-    //  getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
-    pageCount: response?.pagination.total_pages ?? -1,
-    state: { sorting, rowSelection },
-  })
+    pageCount: transactions?.pagination.total_pages ?? -1,
+    state: {
+      sorting,
+      rowSelection,
+      columnFilters,
+    },
+  });
 
   const toggleGroup = useCallback((groupId: string) => {
     setOpenGroups((prev) => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(groupId)) {
-        next.delete(groupId)
+        next.delete(groupId);
       } else {
-        next.add(groupId)
+        next.add(groupId);
       }
-      return next
-    })
-  }, [])
+      return next;
+    });
+  }, []);
 
 
   const toggleAllGroups = useCallback(() => {
@@ -181,77 +215,62 @@ export const RecordsTable = ({
     }
   }, [groups, openGroups.size])
 
-  //
-  //
-  // useEffect(() => {
-  //   if (searchFilter || categoryFilters.length > 0 || accountFilters.length > 0 || dateRangeFilterValue) {
-  //     setOpenGroups(new Set(filteredGroups.map((g) => g.id)))
-  //   }
-  // }, [filteredGroups, searchFilter, categoryFilters, accountFilters, dateRangeFilterValue])
-  //
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD", // Consider making this dynamic or a prop
-    }).format(amount)
-  }
 
 
-  // Called by EditTransactionSheet on submit
-  // const handleConfirmUpdateTransaction = async (id: string, data: RecordSchema) => {
-  //   try {
-  //     await onUpdateTransaction({ id, data });
-  //     setIsEditSheetOpen(false)
-  //     setEditingTransaction(null)
-  //     // Optionally: show success toast
-  //   } catch (error) {
-  //     // Optionally: show error toast from EditTransactionSheet or here
-  //     console.error("Failed to update transaction:", error);
-  //   }
-  // }
-
-  // Called by DeleteTransactionDialog on confirm
-  const handleConfirmDeleteTransaction = async (id: string) => {
-    try {
-      await onDeleteTransaction(id);
-      setIsDeleteDialogOpen(false)
-      setDeletingTransaction(null)
-      // Optionally: show success toast
-    } catch (error) {
-      // Optionally: show error toast
-      console.error("Failed to delete transaction:", error);
-    }
-  }
-
-  const handleDeleteSelectedRows = async () => {
-    const selectedRowOriginals = table.getFilteredSelectedRowModel().rows.map(row => row.original as RecordSchema);
+  const handleDeleteSelectedRows = useCallback(async () => {
+    const selectedRowOriginals = table.getFilteredSelectedRowModel().rows.map(row => row.original as ExtendedRecordSchema);
     const idsToDelete = selectedRowOriginals.map(t => t.id);
     if (idsToDelete.length > 0) {
       try {
-        await onDeleteTransaction(idsToDelete);
-        table.resetRowSelection(); // Clear selection
-        // Optionally: show success toast
+        await deleteMutation.mutateAsync(idsToDelete);
+        table.resetRowSelection();
       } catch (error) {
-        // Optionally: show error toast
-        console.error("Failed to delete selected transactions:", error);
+        logger.error("Failed to delete selected transactions:", { origianlError: error })
       }
     }
-  }
-  const page = response?.pagination.page ?? 1;
-  const totalPages = response?.pagination.total_pages ?? 1;
+  }, [table, deleteMutation]);
+
+
+  const handleClearSelection = useCallback(() => {
+    table.resetRowSelection();
+  }, [table]);
+
+
+  // Optimized row finding function
+  const findRowByTransactionId = useCallback((transactionId: string) => {
+    const index = transactionRowMap.get(transactionId);
+    if (index !== undefined) {
+      return table.getRowModel().rows[index];
+    }
+    return undefined;
+  }, [transactionRowMap, table]);
+
+
+
+
+  const page = transactions?.pagination.page ?? 1;
+  const totalPages = transactions?.pagination.total_pages ?? 1;
   const canPreviousPage = page > 1;
   const canNextPage = page < totalPages;
+
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div className="flex flex-1 items-center space-x-2">
-          <Input
-            placeholder="Search transactions..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="max-w-full md:max-w-sm"
-          />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search transactions..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="max-w-full bg-card md:max-w-full pl-10"
+            />
+            {isFetching && (
+              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -262,60 +281,7 @@ export const RecordsTable = ({
             <span className="hidden sm:inline">Filters</span>
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-          {table.getFilteredSelectedRowModel().rows.length > 0 && !isMobile && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDeleteSelectedRows}
-              disabled={isDeleting || table.getFilteredSelectedRowModel().rows.length === 0}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete ({table.getFilteredSelectedRowModel().rows.length})
-            </Button>
-          )}
-          {!isMobile && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="ml-auto">
-                  Columns <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    )
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
       </div>
-
-
-
-
-      {/* {showFilters && ( */}
-      {/*   <RecordsFilters */}
-      {/*     onCategoryChange={handleCategoryChange} */}
-      {/*     onAccountChange={handleAccountChange} */}
-      {/*     onDateRangeChange={handleDateRangeChange} */}
-      {/*     onReset={handleResetFilters} */}
-      {/*     categories={categories} */}
-      {/*     accounts={accounts} */}
-      {/*   /> */}
-      {/* )} */}
 
       {/* Mobile View */}
       {isMobile ? (
@@ -328,19 +294,17 @@ export const RecordsTable = ({
               >
                 <div className="flex items-center gap-2">
                   <Checkbox
-                    checked={group.transactions.every((t) =>
-                      table
-                        .getRowModel()
-                        .rows.find((r) => r.original.id === t.id)
-                        ?.getIsSelected(),
-                    )}
+                    checked={group.transactions.every((t) => {
+                      const row = findRowByTransactionId(t.id);
+                      return row?.getIsSelected() ?? false;
+                    })}
                     onCheckedChange={(value) => {
                       group.transactions.forEach((t) => {
-                        const row = table.getRowModel().rows.find((r) => r.original.id === t.id)
+                        const row = findRowByTransactionId(t.id);
                         if (row) {
-                          row.toggleSelected(!!value)
+                          row.toggleSelected(!!value);
                         }
-                      })
+                      });
                     }}
                     aria-label={`Select group ${group.id}`}
                     onClick={(e) => e.stopPropagation()}
@@ -356,39 +320,18 @@ export const RecordsTable = ({
               {openGroups.has(group.id) && (
                 <div className="p-2 space-y-2">
                   {group.transactions.map((transaction) => {
-                    const row = table.getRowModel().rows.find((r) => r.original.id === transaction.id)
-                    if (!row) return null
+                    const row = findRowByTransactionId(transaction.id);
+                    if (!row) return null;
 
                     return (
-                      <Card key={transaction.id} className={row.getIsSelected() ? "border-primary" : ""}>
-                        <CardContent className="p-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-2 pt-1">
-                              <Checkbox
-                                checked={row.getIsSelected()}
-                                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                                aria-label={`Select transaction ${transaction.id}`}
-                              />
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  {transaction?.details?.payment_status && (
-                                    <Avatar className="h-6 w-6">
-                                      <AvatarFallback>NW</AvatarFallback>
-                                    </Avatar>
-                                  )}
-                                  <span className="font-medium">{transaction.description}</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                                  <Badge variant="outline">{transaction.category.name}</Badge>
-                                  <Badge variant="outline">{transaction.account.name}</Badge>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="font-medium">{formatCurrency(Number(transaction.amount))}</div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
+                      <MemoizedTransactionCard
+                        onEdit={handleOpenEditSheet}
+                        key={transaction.id}
+                        transaction={transaction}
+                        row={row}
+                        formatCurrency={formatCurrency}
+                      />
+                    );
                   })}
                 </div>
               )}
@@ -398,7 +341,7 @@ export const RecordsTable = ({
       ) : (
         /* Desktop View */
         <div className="rounded-md border">
-          <Table>
+          <Table className="bg-white">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -421,7 +364,7 @@ export const RecordsTable = ({
                               )}
                             </button>
                           </div>
-                          <span>
+                          <span className="text-muted-foreground">
                             {header.isPlaceholder
                               ? null
                               : flexRender(header.column.columnDef.header, header.getContext())}
@@ -429,7 +372,7 @@ export const RecordsTable = ({
                         </div>
                       </TableHead>
                     ) : (
-                      <TableHead key={header.id} style={{ width: header.getSize() }}>
+                      <TableHead key={header.id} style={{ width: header.getSize() }} className="text-muted-foreground">
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>
                     )
@@ -439,25 +382,22 @@ export const RecordsTable = ({
             </TableHeader>
             <TableBody>
               {groups.map((group) => (
-                <Fragment key={group.id}>
-                  <TableRow>
+                <Fragment key={`group-${group.id}`}>
+                  <TableRow key={`group-header-${group.id}`}>
                     <TableCell colSpan={table.getVisibleLeafColumns().length} className="p-0">
-                      <div className="bg-background mx-2 my-1 rounded-md border">
-                        {/* Group header as custom div instead of table row */}
-                        <div className="bg-muted/50 flex items-center p-2">
-                          <div className="flex w-[50px] items-center space-x-1 pl-2">
+                      <div className="bg-white mx-2 my-1 rounded-md border">
+                        <div className="bg-muted flex items-center p-2">
+                          <div className="flex  items-center space-x-1 pl-2">
                             <Checkbox
-                              checked={group.transactions.every((t) =>
-                                table
-                                  .getRowModel()
-                                  .rows.find((r) => r.original.id === t.id)
-                                  ?.getIsSelected(),
-                              )}
+                              checked={group.transactions.every((t) => {
+                                const row = findRowByTransactionId(t.id);
+                                return row?.getIsSelected() ?? false;
+                              })}
                               onCheckedChange={(value) =>
                                 group.transactions.forEach((t) => {
-                                  const row = table.getRowModel().rows.find((r) => r.original.id === t.id)
+                                  const row = findRowByTransactionId(t.id);
                                   if (row) {
-                                    row.toggleSelected(!!value)
+                                    row.toggleSelected(!!value);
                                   }
                                 })
                               }
@@ -476,41 +416,31 @@ export const RecordsTable = ({
                           <div className="mr-4 text-right font-medium">{formatCurrency(group.total)}</div>
                         </div>
 
-                        {/* Subtable for transactions */}
                         {openGroups.has(group.id) && (
                           <Table>
                             <TableBody>
                               {group.transactions.map((transaction) => {
-                                const row = table.getRowModel().rows.find((r) => r.original.id === transaction.id)
-                                if (!row) return null
-                                const originalTransaction = row.original as RecordSchema;
+                                const row = findRowByTransactionId(transaction.id);
+                                if (!row) return null;
+
                                 return (
-                                  <ContextMenu>
-                                    <ContextMenuTrigger asChild>
-                                      <TableRow key={transaction.id} data-state={row.getIsSelected() && "selected"}>
-                                        {row.getVisibleCells().map((cell, cellIndex) => (
-                                          <TableCell
-                                            key={cell.id}
-                                            style={{
-                                              width: cell.column.getSize(),
-                                            }}
-                                            className={cellIndex === 0 ? "pl-4" : ""}
-                                          >
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                          </TableCell>
-                                        ))}
-                                      </TableRow>
-                                    </ContextMenuTrigger>
-                                    <ContextMenuContent>
-                                      <ContextMenuItem onSelect={() => handleOpenEditSheet(originalTransaction)} disabled={isUpdating}>
-                                        Edit
-                                      </ContextMenuItem>
-                                      <ContextMenuItem onSelect={() => handleOpenDeleteDialog(originalTransaction)} disabled={isDeleting} className="text-destructive">
-                                        Delete
-                                      </ContextMenuItem>
-                                    </ContextMenuContent>
-                                  </ContextMenu>
-                                )
+                                  <TableRow
+                                    key={`transaction-row-${transaction.id}`}
+                                    data-state={row.getIsSelected() && "selected"}
+                                  >
+                                    {row.getVisibleCells().map((cell, cellIndex) => (
+                                      <TableCell
+                                        key={`cell-${cell.id}`}
+                                        style={{
+                                          width: cell.column.getSize(),
+                                        }}
+                                        className={cellIndex === 0 ? "pl-4" : ""}
+                                      >
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                      </TableCell>
+                                    ))}
+                                  </TableRow>
+                                );
                               })}
                             </TableBody>
                           </Table>
@@ -534,49 +464,55 @@ export const RecordsTable = ({
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 py-4">
         <div className="text-muted-foreground text-sm order-2 sm:order-1 sm:flex-1">
-          {table.getFilteredSelectedRowModel().rows.length} of {response?.pagination.total_items} row(s) selected.
+          {table.getFilteredSelectedRowModel().rows.length} of {transactions?.pagination.total_items} row(s) selected.
         </div>
         <div className="flex justify-between sm:justify-end space-x-2 order-1 sm:order-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage(page - 1)}
-            disabled={!canPreviousPage || isLoading}
+            onClick={() => onPageChange(page - 1)}
+            disabled={!canPreviousPage || isFetching}
           >
             Previous
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage(page + 1)}
-            disabled={!canNextPage || isLoading}
+            onClick={() => onPageChange(page + 1)}
+            disabled={!canNextPage || isFetching}
           >
             Next
           </Button>
         </div>
       </div>
 
-
-
       <DeleteTransactionDialog
         isOpen={isDeleteDialogOpen}
-        onClose={() => { setIsDeleteDialogOpen(false); setDeletingTransaction(null); }}
-        transaction={deletingTransaction}
-        onDeleteTransaction={handleConfirmDeleteTransaction} // This now calls the prop
-        isDeleting={isDeleting}
+        onClose={() => {
+          setIsDeleteDialogOpen(false);
+          setDeletingTransactionId(null);
+        }}
+        transactionId={deletingTransactionId}
       />
-      {/* <EditTransactionSheet */}
-      {/*   isOpen={isEditSheetOpen} */}
-      {/*   onClose={() => { setIsEditSheetOpen(false); setEditingTransaction(null); }} */}
-      {/*   transaction={editingTransaction} */}
-      {/*   onUpdateTransaction={handleConfirmUpdateTransaction} // This now calls the prop */}
-      {/*   // Pass accounts and categories if EditTransactionSheet needs them for dropdowns */}
-      {/*   accounts={accounts} */}
-      {/*   categories={categories} */}
-      {/*   isSubmitting={isUpdating} */}
-      {/* /> */}
-    </div >
-  )
+
+      <FloatingActionBar
+        selectedCount={selectedRows.length}
+        onEdit={() => { }} //handleEditSelectedRows
+        onDelete={handleDeleteSelectedRows}
+        onClear={handleClearSelection}
+        isDeleting={deleteMutation.isPending}
+      />
+
+      <EditTransactionSheet
+        isOpen={isEditSheetOpen}
+        onClose={() => {
+          setIsEditSheetOpen(false);
+          setEditingTransactionId(null);
+        }}
+        transactionId={editingTransactionId}
+      />
+    </div>
+  );
 }
 
 export default RecordsTable

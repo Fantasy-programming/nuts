@@ -13,7 +13,6 @@ import {
   DialogTitle,
 } from "@/core/components/ui/dialog"
 import { Input } from "@/core/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select"
 import { SearchableSelect } from "@/core/components/ui/search-select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar"
 import { AccountWTrend, accountFormSchema, AccountFormSchema } from "../services/account.types"
@@ -41,7 +40,6 @@ export default function EditAccountModal({
       name: account.name,
       type: account.type,
       currency: account.currency,
-      color: account.color,
       balance: account.balance,
       meta: account.meta,
     },
@@ -54,7 +52,6 @@ export default function EditAccountModal({
         name: account.name,
         type: account.type,
         currency: account.currency,
-        color: account.color,
         balance: account.balance,
         meta: account.meta,
       });
@@ -72,7 +69,6 @@ export default function EditAccountModal({
     [onUpdateAccount, form, onClose, account?.id]
   );
 
-  const isLinkedAccount = !!account?.meta?.institution
   if (!account) return null;
 
   return (
@@ -85,10 +81,10 @@ export default function EditAccountModal({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-4" id="updateAccount">
-            {isLinkedAccount && (
+            {account.is_external && (
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <Avatar className="h-10 w-10 rounded-md">
-                  <AvatarImage src={account?.meta?.logo} alt={account?.meta?.institution} />
+                  <AvatarImage src={account?.meta?.logo} alt={account?.meta?.institution_name} />
                   <AvatarFallback className="rounded-md bg-primary/10 text-primary">
                     {account?.meta?.institution?.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
@@ -110,7 +106,7 @@ export default function EditAccountModal({
                     <FormItem>
                       <FormLabel>Account Name</FormLabel>
                       <FormControl>
-                        <Input disabled={isLinkedAccount} {...field} />
+                        <Input disabled={account.is_external} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -128,6 +124,7 @@ export default function EditAccountModal({
                       <FormControl>
                         <SearchableSelect
                           id={typeFieldId}
+                          disabled={account.is_external}
                           options={accountTypeOptions}
                           value={field.value}
                           onChange={field.onChange}
@@ -159,7 +156,7 @@ export default function EditAccountModal({
 
                               $</span>
                             <Input type="number"
-                              disabled={isLinkedAccount}
+                              disabled={account.is_external}
                               step="0.01"
                               min="0"
                               placeholder="0.00"
@@ -167,44 +164,10 @@ export default function EditAccountModal({
                               {...field} onChange={(e) => field.onChange(Number.parseFloat(e.target.value))} />
                           </div>
 
-                          {isLinkedAccount && (
+                          {account.is_external && (
                             <p className="text-xs text-muted-foreground mt-1">Balance is automatically updated from your bank.</p>
                           )}</>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <FormField
-                  control={form.control}
-                  name="color"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Color</FormLabel>
-                      <Select onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select color" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="red" className="flex items-center gap-2">
-                            <div className="h-4 w-4 rounded-full bg-red-500" />
-                            Red
-                          </SelectItem>
-                          <SelectItem value="green" className="flex items-center gap-2">
-                            <div className="h-4 w-4 rounded-full bg-green-500" />
-                            Green
-                          </SelectItem>
-                          <SelectItem value="blue" className="flex items-center gap-2">
-                            <div className="h-4 w-4 rounded-full bg-blue-500" />
-                            Blue
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
