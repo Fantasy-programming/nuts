@@ -5,7 +5,6 @@ import { router, queryClient } from "./router";
 
 function RouterWrapper() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isLoading = useAuthStore((state) => state.isLoading);
 
   return (
     <RouterProvider
@@ -13,7 +12,6 @@ function RouterWrapper() {
       context={{
         auth: {
           isAuthenticated,
-          isLoading
         },
         queryClient
       }}

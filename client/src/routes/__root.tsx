@@ -11,7 +11,6 @@ interface RouterContext {
   queryClient: QueryClient;
   auth: {
     isAuthenticated: boolean;
-    isLoading: boolean;
   };
 }
 

@@ -19,7 +19,11 @@ export const Route = createFileRoute("/dashboard/accounts")({
   pendingComponent: AccountsLoading,
   loader: ({ context }) => {
     const queryClient = context.queryClient
-    queryClient.prefetchQuery(getAllAccountsWithTrends())
+
+    if (!queryClient.getQueryData(["accounts", "trends"])) {
+      queryClient.prefetchQuery(getAllAccountsWithTrends());
+    }
+
   }
 });
 

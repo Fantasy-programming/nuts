@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { authService } from "@/features/auth/services/auth";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { config } from "./env"
+import { userService } from "@/features/preferences/services/user";
 
 export const api = axios.create({
   baseURL: config.VITE_API_BASE_URL,
@@ -10,22 +11,17 @@ export const api = axios.create({
 
 api.defaults.headers.common["Content-Type"] = "application/json";
 
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
 
-// Managing auth token refresh state
-const createTokenRefreshManager = () => {
-  let isRefreshing = false;
-  let refreshPromise: Promise<void> | null = null;
-
-  return {
-    isRefreshing: () => isRefreshing,
-    setRefreshing: (status: boolean) => { isRefreshing = status; },
-    getRefreshPromise: () => refreshPromise,
-    setRefreshPromise: (promise: Promise<void> | null) => { refreshPromise = promise; }
-  };
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+  refreshSubscribers.push(cb);
 };
 
-const tokenRefreshManager = createTokenRefreshManager();
-
+const onRefreshed = (token: string) => {
+  refreshSubscribers.map(cb => cb(token));
+  refreshSubscribers = [];
+};
 
 api.interceptors.response.use(
   (response) => response,
@@ -41,39 +37,36 @@ api.interceptors.response.use(
       !requestUrl.includes('/auth/refresh') &&
       !requestUrl.includes('/auth/login')
     ) {
+
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh(() => {
+            resolve(axios(originalRequest));
+          });
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
-        // If refresh already in progress, wait for it
-        if (tokenRefreshManager.isRefreshing()) {
-          const existingPromise = tokenRefreshManager.getRefreshPromise();
-          if (existingPromise) {
-            await existingPromise;
-            return api(originalRequest);
-          }
-        }
+        await authService.refresh();
+        const user = await userService.getMe();
 
-        // Start new refresh
-        tokenRefreshManager.setRefreshing(true);
-        const refreshPromise = authService.refresh();
-        tokenRefreshManager.setRefreshPromise(refreshPromise);
+        // Update store
+        useAuthStore.getState().setUser(user);
+        useAuthStore.getState().setAuthenticated(true);
 
-        await refreshPromise;
+        onRefreshed('refreshed'); // Token is handled by httpOnly cookie
+        isRefreshing = false;
 
-        // Reset refresh state and retry original request
-        tokenRefreshManager.setRefreshing(false);
-        tokenRefreshManager.setRefreshPromise(null);
-
-        // Retry original request
-        return api(originalRequest);
+        return axios(originalRequest);
       } catch (refreshError) {
-        tokenRefreshManager.setRefreshing(false);
-        tokenRefreshManager.setRefreshPromise(null);
+        isRefreshing = false;
+        useAuthStore.getState().resetState();
 
-        // Optional: trigger logout in store if refresh fails
-        const authStore = useAuthStore.getState();
-        await authStore.logout();
-
+        // Redirect to login or handle auth failure
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }

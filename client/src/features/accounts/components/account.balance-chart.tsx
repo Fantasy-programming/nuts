@@ -40,8 +40,8 @@ export function AccountBalanceChart() {
   };
 
   const off = gradientOffset();
-  const positiveColor = "#68C6A9"; // sky-500
-  const negativeColor = "#ef4444"; // red-500
+  const positiveColor = "var(--primary)";
+  const negativeColor = "var(--destructive)";
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -51,6 +51,10 @@ export function AccountBalanceChart() {
           <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
             <stop offset={off} stopColor={positiveColor} stopOpacity={1} />
             <stop offset={off} stopColor={negativeColor} stopOpacity={1} />
+          </linearGradient>
+          <linearGradient id="splitColorOpacity" x1="0" y1="0" x2="0" y2="1">
+            <stop offset={off} stopColor={positiveColor} stopOpacity={0.2} />
+            <stop offset={off} stopColor={negativeColor} stopOpacity={0.2} />
           </linearGradient>
         </defs>
         <XAxis
@@ -72,7 +76,7 @@ export function AccountBalanceChart() {
         />
         <Tooltip
           content={({ active, payload }) => {
-            if (active && payload && payload.length) {
+            if (active && payload && payload.length && typeof payload[0].value === 'number') {
               const balance = payload[0].value;
               const balanceColor = balance >= 0 ? "text-primary" : "text-destructive"; // Using semantic colors is good practice
 
@@ -87,7 +91,7 @@ export function AccountBalanceChart() {
                       <span className="text-[0.70rem] uppercase text-muted-foreground">Balance</span>
                       {/* 5. Conditional coloring in the tooltip */}
                       <span className={`font-bold text-sm ${balanceColor}`}>
-                        {balance?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {balance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                       </span>
                     </div>
                   </div>
@@ -108,6 +112,9 @@ export function AccountBalanceChart() {
           // 4. Make the active dot color conditional
           activeDot={(props) => {
             const { cx, cy, payload } = props;
+            if (typeof payload.balance !== 'number') {
+              return <></>;
+            }
             return (
               <Dot
                 cx={cx}

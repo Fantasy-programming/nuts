@@ -1,29 +1,24 @@
 import { UserInfo } from "@/features/preferences/services/user";
 import { z } from "zod";
 
-export const signupSchema = z
-  .object({
-    email: z.string().email({
-      message: "Please enter a valid email address.",
-    }),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters long")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]{8,}$/,
-        "Password must contain at least one lowercase letter, one uppercase letter, one number and one special character"
-      ),
-    confirmPassword: z.string(),
-  })
+export const signupSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters long")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]{8,}$/,
+      "Password must contain at least one lowercase letter, one uppercase letter, one number and one special character"
+    ),
+  confirmPassword: z.string(),
+})
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
   });
 
 export const loginSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(4, "this password is too short"),
 });
 

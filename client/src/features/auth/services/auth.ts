@@ -8,29 +8,34 @@ const signup = async (credentials: SignupFormValues) => {
   return response.data;
 };
 
-const login = async (credentials: LoginFormValues) => {
-  await axios.post(`${BASEURI}/login`, credentials);
+const login = async (credentials: LoginFormValues): Promise<void> => {
+  const data = await axios.post(`${BASEURI}/login`, credentials);
+  console.debug(data)
 };
 
-const logout = async () => {
-  await axios.post(`${BASEURI}/logout`);
+const logout = async (): Promise<void> => {
+  const data = await axios.post(`${BASEURI}/logout`);
+  console.debug(data)
 };
 
-const refresh = async () => {
-  await axios.post(`${BASEURI}/refresh`)
+const refresh = async (): Promise<void> => {
+  const data = await axios.post(`${BASEURI}/refresh`)
+  console.debug(data)
 }
 
 const initiateMfaSetup = async (): Promise<InitMFASchema> => {
-  const response = await axios.post<InitMFASchema>(`${BASEURI}/mfa/initiate`)
+  const response = await axios.post<InitMFASchema>(`${BASEURI}/mfa/generate`)
   return response.data
 }
 
-const verifyMfaSetup = async (code: string) => {
-  await axios.post(`${BASEURI}/mfa/verify`, { otp: code })
+const verifyMfaSetup = async (code: string): Promise<void> => {
+  const data = await axios.post(`${BASEURI}/mfa/enable`, { otp: code })
+  console.debug(data)
 }
 
-const disableMfa = async () => {
-  await axios.delete(`${BASEURI}/mfa`)
+const disableMfa = async (): Promise<void> => {
+  const data = await axios.delete(`${BASEURI}/mfa/disable`)
+  console.debug(data)
 }
 
 const getSessions = async (): Promise<SessionSchema[]> => {
@@ -38,16 +43,19 @@ const getSessions = async (): Promise<SessionSchema[]> => {
   return response.data
 }
 
-const revokeSession = async (sessionId: string) => {
-  await axios.delete(`${BASEURI}/sessions/${sessionId}/logout`)
+const revokeSession = async (sessionId: string): Promise<void> => {
+  const data = await axios.delete(`${BASEURI}/sessions/${sessionId}/logout`)
+  console.debug(data)
 }
 
-const unlinkSocialAccount = async (provider: string) => {
-  await axios.delete(`${BASEURI}/oauth/${provider}/unlink`)
+const unlinkSocialAccount = async (provider: 'google' | 'apple'): Promise<void> => {
+  const data = await axios.delete(`${BASEURI}/oauth/${provider}/unlink`)
+  console.debug(data)
 }
 
-const revokeAllOtherSessions = async () => {
-  await axios.post(`${BASEURI}/sessions`)
+const revokeAllOtherSessions = async (): Promise<void> => {
+  const data = await axios.delete(`${BASEURI}/sessions`)
+  console.debug(data)
 }
 
-export const authService = { signup, logout, login, refresh, verifyMfaSetup, initiateMfaSetup, disableMfa, getSessions, revokeSession, unlinkSocialAccount, revokeAllOtherSessions };
+export const authService = { signup, logout, login, refresh, verifyMfaSetup, initiateMfaSetup, disableMfa, getSessions, revokeSession, unlinkSocialAccount, revokeAllOtherSessions } as const;

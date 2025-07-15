@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { createFileRoute, Link, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +8,6 @@ import { z } from "zod";
 import { config } from "@/lib/env"
 import { logger } from "@/lib/logger"
 import { parseApiError } from "@/lib/error";
-import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth.types";
 
 import { AtSignIcon, Lock } from "lucide-react"
@@ -20,6 +18,7 @@ import { Separator } from "@/core/components/ui/separator";
 import { Nuts } from "@/core/assets/icons/Logo"
 import { Google } from "@/core/assets/icons/google";
 import { Apple } from "@/core/assets/icons/apple";
+import { useLogin } from "@/features/auth/services/auth.mutations";
 
 export const Route = createFileRoute("/login")({
   validateSearch: z.object({
@@ -37,14 +36,11 @@ export const Route = createFileRoute("/login")({
 });
 
 function RouteComponent() {
-  const loginFn = useAuthStore((state) => state.login);
+  const loginMutation = useLogin()
   const router = useRouter();
   const navigate = useNavigate();
   const search = Route.useSearch()
-  const isLoading = useRouterState({ select: (s) => s.isLoading });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isLoggingIn = isLoading || isSubmitting;
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -57,8 +53,7 @@ function RouteComponent() {
 
   async function onSubmit(values: LoginFormValues) {
     try {
-      setIsSubmitting(true);
-      await loginFn(values);
+      await loginMutation.mutateAsync(values);
 
       toast.success("Welcome to your account 👋");
 
@@ -94,8 +89,6 @@ function RouteComponent() {
         });
       }
 
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
@@ -127,7 +120,7 @@ function RouteComponent() {
                     id="email"
                     type="email"
                     placeholder="Email address"
-                    disabled={isLoggingIn}
+                    disabled={loginMutation.isPending}
                     className="bg-white/50 backdrop-blur-sm transition-colors duration-300 focus:bg-white/80 peer ps-9"
                     {...form.register("email")}
                   />
@@ -145,7 +138,7 @@ function RouteComponent() {
                     id="password"
                     type="password"
                     placeholder="Password"
-                    disabled={isLoggingIn}
+                    disabled={loginMutation.isPending}
                     className="bg-white/50 backdrop-blur-sm transition-colors duration-300 focus:bg-white/80  peer ps-9"
                     {...form.register("password")}
                   />
@@ -159,9 +152,9 @@ function RouteComponent() {
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-br from-primary-nuts-600 to-primary-nuts-700 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:from-primary-nuts-500 hover:to-primary-nuts-600 hover:shadow-primary-nuts-600/25"
-                  loading={isLoggingIn}
+                  disabled={loginMutation.isPending}
                 >
-                  {isLoggingIn ? "Loggin in..." : "Log in"}
+                  {loginMutation.isPending ? "Loggin in..." : "Log in"}
                 </Button>
               </motion.div>
 
@@ -175,7 +168,7 @@ function RouteComponent() {
                 <Button
                   variant="outline"
                   className="relative gap-0 w-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-all duration-300 after:absolute after:inset-0 after:rounded-md after:opacity-0 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)] hover:bg-white/95 hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] hover:after:opacity-100"
-                  disabled={isLoggingIn}
+                  disabled={loginMutation.isPending}
                   asChild
                 >
                   <a href={`${config.VITE_API_BASE_URL}/auth/oauth/google`}>
@@ -186,7 +179,7 @@ function RouteComponent() {
                 <Button
                   variant="outline"
                   className="relative w-full gap-0 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-all duration-300 after:absolute after:inset-0 after:rounded-md after:opacity-0 after:transition-opacity after:duration-300 after:[background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0)_100%)] hover:bg-white/95 hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] hover:after:opacity-100"
-                  disabled={isLoggingIn}
+                  disabled={loginMutation.isPending}
                   asChild
                 >
                   <a href={`${config.VITE_API_BASE_URL}/auth/oauth/github`}>

@@ -2,18 +2,14 @@ import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useCallback, Suspense, memo } from "react";
 import { useHotkeys } from 'react-hotkeys-hook'
-import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { usePluginStore } from "@/features/plugins/store";
 import { renderIcon } from "@/core/components/icon-picker/index.helper";
 import { cn } from "@/lib/utils"
 import { userService } from "@/features/preferences/services/user";
-import { accountService } from "@/features/accounts/services/account";
 import { useTheme } from "@/features/preferences/hooks/use-theme";
 import { useShallow } from 'zustand/react/shallow'
 import { useTranslation } from "react-i18next";
 import {
-  // RiBarChartBoxLine,
-  // RiBarChartBoxFill,
   RiSettingsLine,
   RiBankCard2Line,
   RiBankCard2Fill,
@@ -64,6 +60,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/core/comp
 import type { FileRoutesByTo } from "@/routeTree.gen";
 import { ChevronRight } from "lucide-react";
 import { Theme } from "@/features/preferences/contexts/theme.context";
+import { Spinner } from "@/core/components/ui/spinner";
+import { useLogout } from "@/features/auth/services/auth.mutations";
+import { getAllAccounts } from "@/features/accounts/services/account.queries";
 
 export type ValidRoutes = keyof FileRoutesByTo;
 
@@ -103,6 +102,21 @@ const navMain: navStuff[] = [
 
 
 export const Route = createFileRoute("/dashboard")({
+  beforeLoad: async ({ context, location }) => {
+    if (!context.auth.isAuthenticated) {
+      throw redirect({
+        to: "/login",
+        search: { redirect: location.href },
+      });
+    }
+
+    const queryClient = context.queryClient
+    const accounts = await queryClient.fetchQuery(getAllAccounts())
+
+    return {
+      hasAccounts: accounts.length > 0,
+    };
+  },
   loader: ({ context }) => {
     const queryClient = context.queryClient
     queryClient.prefetchQuery({
@@ -111,25 +125,6 @@ export const Route = createFileRoute("/dashboard")({
     })
   },
   component: DashboardWrapper,
-  beforeLoad: async ({ context, location }) => {
-    if (!context.auth.isAuthenticated && !context.auth.isLoading) {
-      throw redirect({
-        to: "/login",
-        search: { redirect: location.href },
-      });
-    }
-    const queryClient = context.queryClient
-
-    const accounts = await queryClient.fetchQuery({
-      queryKey: ["account"],
-      queryFn: accountService.getAccounts,
-    })
-
-    return {
-      hasAccounts: accounts.length > 0,
-    };
-
-  },
 });
 
 
@@ -186,7 +181,7 @@ function DashboardWrapper() {
           <SideBarPluginsLinks />
         </SidebarContent>
         <SidebarFooter>
-          <Suspense fallback={<div>fuck it</div>}>
+          <Suspense fallback={<Spinner />}>
             <SideBarFooterMenu />
           </Suspense>
         </SidebarFooter>
@@ -209,13 +204,13 @@ const SideBarFooterMenu = memo(() => {
     queryFn: userService.getMe,
   });
 
-  const logout = useAuthStore((state) => state.logout);
+  const logout = useLogout();
   const { theme, setTheme } = useTheme();
   const { isMobile } = useSidebar();
   const { t } = useTranslation();
 
   const onLogout = useCallback(async () => {
-    await logout()
+    await logout.mutateAsync()
     navigate({ to: "/login", replace: true })
   }, [logout, navigate]);
 
@@ -292,12 +287,12 @@ const SideBarHeader = memo(() => {
   const { state } = useSidebar();
 
   return (
-    <SidebarHeader className="h-16 max-md:mt-2 mb-2 justify-center">
+    <SidebarHeader className="h-fit max-md:mt-2 mb-2 justify-center">
       <div className="flex w-full items-center px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center rounded-lg bg-sidebar text-sidebar-primary-foreground">
         {state === "collapsed" ? (
           <Nuts className="size-4 fill-sidebar-primary-foreground" />
         ) : (
-          <LogoWTXT className="size-16 fill-sidebar-primary-foreground" />
+          <LogoWTXT className=" size-14 fill-sidebar-primary-foreground" />
         )}
       </div>
     </SidebarHeader>
@@ -309,7 +304,7 @@ const SideBarMainLinks = memo(() => {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="uppercase text-muted-foreground/60">General</SidebarGroupLabel>
+      <SidebarGroupLabel className="uppercase text-[#757575]">General</SidebarGroupLabel>
       <SidebarGroupContent className="px-1 group-data-[collapsible=icon]:px-0">
         <SidebarMenu className="group-data-[collapsible=icon]:items-center">
           {navMain.map((item) => (
@@ -317,13 +312,13 @@ const SideBarMainLinks = memo(() => {
               <SidebarMenuButton
                 asChild
                 tooltip={item.title}
-                className="group/menu-button  font-medium gap-3 h-9 rounded-md text-muted-foreground/95   [&>svg]:size-auto"
+                className="group/menu-button  font-medium gap-3 h-9 rounded-md text-[#757575] hover:text-secondary-900/45 hover:bg-neutral-200/40 [&>svg]:size-auto"
               >
-                <Link to={item.url} activeProps={{ className: "bg-sidebar-accent shadow-sm" }}
+                <Link to={item.url} activeProps={{ className: "bg-sidebar-accent shadow-sm hover:bg-sidebar-accent" }}
                 >{({ isActive }) => (
                   <>
                     {isActive ? (
-                      <item.activeIcon size={16} aria-hidden="true" className="text-sidebar-primary-foreground/80" />
+                      <item.activeIcon size={16} aria-hidden="true" className="text-secondary-900/80" />
                     ) : (
                       <item.icon size={16} aria-hidden="true" className="text-muted-foreground/60" />
                     )
