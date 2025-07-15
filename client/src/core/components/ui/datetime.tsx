@@ -54,8 +54,8 @@ export function DatetimePicker({
     onChange(d);
   };
 
-  const isDisabled = (d: Date) =>
-    (minDate && d < minDate) || (maxDate && d > maxDate);
+  const isDisabled = (d: Date): boolean =>
+    (minDate && d < minDate) || (maxDate && d > maxDate) || false;
 
   return (
     <Popover open={opened} onOpenChange={setOpened}>
@@ -87,7 +87,7 @@ export function DatetimePicker({
           <Calendar
             mode="single"
             captionLayout="dropdown"
-            selected={date || value}
+            selected={date || value || undefined}
             onSelect={(d) => d && applyDate(d)}
             onDayClick={() => setOpened(false)}
             startMonth={startMonth}

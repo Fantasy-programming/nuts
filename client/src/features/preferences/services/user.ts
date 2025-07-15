@@ -43,7 +43,7 @@ export interface UserInfo {
 
 export interface LinkedAccount {
   id: string
-  provider: string
+  provider: "apple" | "google"
   created_at: Date
 }
 

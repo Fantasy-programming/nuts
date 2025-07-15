@@ -84,8 +84,7 @@ const settingsNavigation = (): NavCategory[] => [
 export const Route = createFileRoute("/dashboard_/settings")({
   component: RouteComponent,
   beforeLoad: ({ context }) => {
-    const { isLoading, isAuthenticated } = context.auth;
-    if (!isLoading && !isAuthenticated) {
+    if (!context.auth.isAuthenticated) {
       throw redirect({
         to: "/login",
       })
