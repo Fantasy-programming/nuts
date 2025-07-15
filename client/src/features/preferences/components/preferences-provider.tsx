@@ -1,9 +1,9 @@
 import { useEffect, ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { usePreferencesStore } from '../stores/preferences.store.ts';
 import { preferencesService } from '../services/preferences';
 import { logger } from '@/lib/logger.ts';
 import { parseApiError } from '@/lib/error.ts';
+import { useAuthenticatedQuery } from '@/lib/authed-query.ts';
 
 interface PreferencesProviderProps {
   children: ReactNode;
@@ -15,7 +15,7 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
   const setError = usePreferencesStore((state) => state.setError)
   const setPreferences = usePreferencesStore(state => state.setPreferences)
 
-  const { data, isLoading, error, isSuccess, isError } = useQuery({
+  const { data, isLoading, error, isSuccess, isError } = useAuthenticatedQuery({
     queryKey: ['preferences'],
     queryFn: preferencesService.getPreferences,
     staleTime: Infinity,
