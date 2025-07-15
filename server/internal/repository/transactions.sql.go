@@ -25,7 +25,7 @@ type BatchCreateTransactionParams struct {
 	TransactionDatetime   pgtype.Timestamptz `json:"transaction_datetime"`
 	TransactionCurrency   string             `json:"transaction_currency"`
 	OriginalAmount        decimal.Decimal    `json:"original_amount"`
-	Details               dto.Details        `json:"details"`
+	Details               *dto.Details       `json:"details"`
 	ProviderTransactionID *string            `json:"provider_transaction_id"`
 	IsExternal            *bool              `json:"is_external"`
 	CreatedBy             *uuid.UUID         `json:"created_by"`
@@ -35,9 +35,19 @@ const countTransactions = `-- name: CountTransactions :one
 SELECT count(*)
 FROM
     transactions AS t
+JOIN
+    accounts AS source_acct ON t.account_id = source_acct.id
+    AND source_acct.deleted_at IS NULL
+
+LEFT JOIN
+    accounts AS dest_acct ON t.destination_account_id = dest_acct.id
+    AND dest_acct.deleted_at IS NULL
+
 WHERE
     t.created_by = $1
     AND t.deleted_at IS NULL
+
+    -- Filters
     AND ($2::text IS NULL OR t.type = $2)
     AND ($3::uuid IS NULL OR t.account_id = $3)
     AND ($4::timestamptz IS NULL OR t.transaction_datetime >= $4)
@@ -98,7 +108,7 @@ type CreateTransactionParams struct {
 	TransactionDatetime   pgtype.Timestamptz `json:"transaction_datetime"`
 	TransactionCurrency   string             `json:"transaction_currency"`
 	OriginalAmount        decimal.Decimal    `json:"original_amount"`
-	Details               dto.Details        `json:"details"`
+	Details               *dto.Details       `json:"details"`
 	ProviderTransactionID *string            `json:"provider_transaction_id"`
 	IsExternal            *bool              `json:"is_external"`
 	CreatedBy             *uuid.UUID         `json:"created_by"`
@@ -295,6 +305,7 @@ SELECT
     t.transaction_datetime,
     t.description,
     t.details,
+    t.is_external,
     t.updated_at,
     -- Embed the source account
     source_acct.id, source_acct.name, source_acct.type, source_acct.balance, source_acct.currency, source_acct.meta, source_acct.created_by, source_acct.updated_by, source_acct.created_at, source_acct.updated_at, source_acct.deleted_at, source_acct.is_external, source_acct.provider_account_id, source_acct.provider_name, source_acct.sync_status, source_acct.last_synced_at, source_acct.connection_id, source_acct.subtype, source_acct.shared_finance_id,
@@ -305,15 +316,17 @@ SELECT
     dest_acct.type AS destination_account_type,
     dest_acct.currency AS destination_account_currency,
     -- Embed the category
-    cat.id, cat.name, cat.parent_id, cat.is_default, cat.created_by, cat.updated_by, cat.created_at, cat.updated_at, cat.deleted_at, cat.type
+    cat.id, cat.name, cat.parent_id, cat.is_default, cat.created_by, cat.updated_by, cat.created_at, cat.updated_at, cat.deleted_at, cat.type, cat.color, cat.icon
 FROM
     transactions AS t
 JOIN
     accounts AS source_acct ON t.account_id = source_acct.id
+    AND source_acct.deleted_at IS NULL
 JOIN
     categories AS cat ON t.category_id = cat.id
 LEFT JOIN
     accounts AS dest_acct ON t.destination_account_id = dest_acct.id
+    AND dest_acct.deleted_at IS NULL
 WHERE
     t.created_by = $1
     AND t.deleted_at IS NULL
@@ -350,7 +363,8 @@ type ListTransactionsRow struct {
 	DestinationAccountID       *uuid.UUID      `json:"destination_account_id"`
 	TransactionDatetime        time.Time       `json:"transaction_datetime"`
 	Description                *string         `json:"description"`
-	Details                    dto.Details     `json:"details"`
+	Details                    *dto.Details    `json:"details"`
+	IsExternal                 *bool           `json:"is_external"`
 	UpdatedAt                  time.Time       `json:"updated_at"`
 	Account                    Account         `json:"account"`
 	DestinationAccountIDAlias  *uuid.UUID      `json:"destination_account_id_alias"`
@@ -386,6 +400,7 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.TransactionDatetime,
 			&i.Description,
 			&i.Details,
+			&i.IsExternal,
 			&i.UpdatedAt,
 			&i.Account.ID,
 			&i.Account.Name,
@@ -420,6 +435,8 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Category.UpdatedAt,
 			&i.Category.DeletedAt,
 			&i.Category.Type,
+			&i.Category.Color,
+			&i.Category.Icon,
 		); err != nil {
 			return nil, err
 		}
@@ -631,7 +648,7 @@ type UpdateTransactionParams struct {
 	CategoryID          *uuid.UUID          `json:"category_id"`
 	Description         *string             `json:"description"`
 	TransactionDatetime pgtype.Timestamptz  `json:"transaction_datetime"`
-	Details             dto.Details         `json:"details"`
+	Details             *dto.Details        `json:"details"`
 	UpdatedBy           *uuid.UUID          `json:"updated_by"`
 	ID                  uuid.UUID           `json:"id"`
 }

@@ -273,6 +273,8 @@ SELECT
     balance,
     currency,
     meta,
+    is_external,
+    last_synced_at,
     created_by,
     updated_at,
     connection_id
@@ -291,6 +293,8 @@ type GetAccountByIdRow struct {
 	Balance      pgtype.Numeric  `json:"balance"`
 	Currency     string          `json:"currency"`
 	Meta         dto.AccountMeta `json:"meta"`
+	IsExternal   *bool           `json:"is_external"`
+	LastSyncedAt *time.Time      `json:"last_synced_at"`
 	CreatedBy    *uuid.UUID      `json:"created_by"`
 	UpdatedAt    time.Time       `json:"updated_at"`
 	ConnectionID *uuid.UUID      `json:"connection_id"`
@@ -307,6 +311,8 @@ func (q *Queries) GetAccountById(ctx context.Context, id uuid.UUID) (GetAccountB
 		&i.Balance,
 		&i.Currency,
 		&i.Meta,
+		&i.IsExternal,
+		&i.LastSyncedAt,
 		&i.CreatedBy,
 		&i.UpdatedAt,
 		&i.ConnectionID,
@@ -386,6 +392,8 @@ SELECT
     subtype,
     balance,
     currency,
+    is_external,
+    last_synced_at,
     meta,
     updated_at,
     connection_id
@@ -402,6 +410,8 @@ type GetAccountsRow struct {
 	Subtype      *string         `json:"subtype"`
 	Balance      pgtype.Numeric  `json:"balance"`
 	Currency     string          `json:"currency"`
+	IsExternal   *bool           `json:"is_external"`
+	LastSyncedAt *time.Time      `json:"last_synced_at"`
 	Meta         dto.AccountMeta `json:"meta"`
 	UpdatedAt    time.Time       `json:"updated_at"`
 	ConnectionID *uuid.UUID      `json:"connection_id"`
@@ -423,6 +433,8 @@ func (q *Queries) GetAccounts(ctx context.Context, userID *uuid.UUID) ([]GetAcco
 			&i.Subtype,
 			&i.Balance,
 			&i.Currency,
+			&i.IsExternal,
+			&i.LastSyncedAt,
 			&i.Meta,
 			&i.UpdatedAt,
 			&i.ConnectionID,

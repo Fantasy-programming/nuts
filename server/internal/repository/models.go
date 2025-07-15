@@ -187,6 +187,8 @@ type Category struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
 	Type      string     `json:"type"`
+	Color     *string    `json:"color"`
+	Icon      string     `json:"icon"`
 }
 
 type Currency struct {
@@ -328,7 +330,7 @@ type Transaction struct {
 	DestinationAccountID  *uuid.UUID     `json:"destination_account_id"`
 	TransactionDatetime   time.Time      `json:"transaction_datetime"`
 	Description           *string        `json:"description"`
-	Details               dto.Details    `json:"details"`
+	Details               *dto.Details   `json:"details"`
 	CreatedBy             *uuid.UUID     `json:"created_by"`
 	UpdatedBy             *uuid.UUID     `json:"updated_by"`
 	CreatedAt             time.Time      `json:"created_at"`

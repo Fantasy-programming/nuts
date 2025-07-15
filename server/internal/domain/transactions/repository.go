@@ -173,7 +173,86 @@ func (r *Trsrepo) CreateTransactionClean(ctx context.Context, params repository.
 
 // UpdateTransaction updates an existing transaction
 func (r *Trsrepo) UpdateTransaction(ctx context.Context, params repository.UpdateTransactionParams) (repository.Transaction, error) {
-	return r.Queries.UpdateTransaction(ctx, params)
+	tx, err := r.DB.Begin(ctx)
+	if err != nil {
+		return repository.Transaction{}, err
+	}
+
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(ctx); rbErr != nil && !errors.Is(rbErr, pgx.ErrTxClosed) {
+				fmt.Println("Failed to rollback")
+			}
+		}
+	}()
+
+	qtx := r.Queries.WithTx(tx)
+
+	// Get the original transaction
+	originalTx, err := qtx.GetTransactionById(ctx, params.ID)
+	if err != nil {
+		return repository.Transaction{}, err
+	}
+
+	// Reverse the original transaction amount on the original account
+	reversalAmount := types.PgtypeNumericToDecimal(originalTx.Amount)
+
+	err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
+		ID:      originalTx.AccountID,
+		Balance: decimal.NewNullDecimal(reversalAmount.Neg()),
+	})
+	if err != nil {
+		return repository.Transaction{}, err
+	}
+
+	// If it was a transfer, reverse the amount on the destination account as well
+	if originalTx.DestinationAccountID != nil {
+		// For transfers, the original amount was negative for the source and positive for the destination
+		// So, to reverse, we add to the source (which we did) and subtract from the destination.
+		reversalDestAmount := types.PgtypeNumericToDecimal(originalTx.Amount)
+		err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
+			ID:      *originalTx.DestinationAccountID,
+			Balance: decimal.NewNullDecimal(reversalDestAmount.Neg()),
+		})
+		if err != nil {
+			return repository.Transaction{}, err
+		}
+	}
+
+	// Update the transaction with the new details
+	updatedTx, err := qtx.UpdateTransaction(ctx, params)
+	if err != nil {
+		return repository.Transaction{}, err
+	}
+
+	// Apply the new transaction amount to the new account
+	newAmount := types.PgtypeNumericToDecimal(updatedTx.Amount)
+	err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
+		ID:      updatedTx.AccountID,
+		Balance: decimal.NewNullDecimal(newAmount),
+	})
+	if err != nil {
+		return repository.Transaction{}, err
+	}
+
+	// If it's a new transfer, apply the amount to the new destination account
+	if updatedTx.DestinationAccountID != nil {
+		destAmount := types.PgtypeNumericToDecimal(updatedTx.Amount)
+		// For transfers, the amount is negative for the source and positive for the destination
+		err = qtx.UpdateAccountBalance(ctx, repository.UpdateAccountBalanceParams{
+			ID:      *updatedTx.DestinationAccountID,
+			Balance: decimal.NewNullDecimal(destAmount.Neg()),
+		})
+		if err != nil {
+			return repository.Transaction{}, err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return repository.Transaction{}, err
+	}
+
+	return updatedTx, nil
 }
 
 // DeleteTransaction deletes a transaction
@@ -243,7 +322,7 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 		CategoryID:           &params.CategoryID,
 		Description:          params.Description,
 		TransactionDatetime:  pgtype.Timestamptz{Time: params.TransactionDatetime, Valid: true},
-		Details:              params.Details,
+		Details:              &params.Details,
 		CreatedBy:            &params.UserID,
 	})
 	if err != nil {

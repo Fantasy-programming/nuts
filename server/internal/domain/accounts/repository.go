@@ -122,6 +122,11 @@ func (r *repo) CreateAccountWInitalTrs(ctx context.Context, act repository.Creat
 	}
 
 	description := "Initial Balance"
+	medium := ""
+	note := ""
+	status := ""
+	location := ""
+	external := false
 
 	// Create the initial transaction
 	_, err = qtx.CreateTransaction(ctx, repository.CreateTransactionParams{
@@ -131,13 +136,14 @@ func (r *repo) CreateAccountWInitalTrs(ctx context.Context, act repository.Creat
 		Description:         &description,
 		CategoryID:          &category.ID,
 		TransactionCurrency: account.Currency,
+		IsExternal:          &external,
 		OriginalAmount:      types.NullDecimalToDecimal(act.Balance),
 		TransactionDatetime: pgtype.Timestamptz{Time: time.Now(), Valid: true},
-		Details: dto.Details{
-			PaymentMedium: "",
-			Location:      "",
-			Note:          "",
-			PaymentStatus: "",
+		Details: &dto.Details{
+			PaymentMedium: &medium,
+			Location:      &location,
+			Note:          &note,
+			PaymentStatus: &status,
 		},
 		CreatedBy: account.CreatedBy,
 	})

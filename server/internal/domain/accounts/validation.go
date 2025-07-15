@@ -88,10 +88,3 @@ func validateNullableAccountType(input string) (repository.NullACCOUNTTYPE, erro
 	}
 	return act, nil
 }
-
-func parseMeta(meta *[]byte) []byte {
-	if meta != nil {
-		return []byte(*meta)
-	}
-	return nil
-}

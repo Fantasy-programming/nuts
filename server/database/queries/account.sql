@@ -43,6 +43,8 @@ SELECT
     balance,
     currency,
     meta,
+    is_external,
+    last_synced_at,
     created_by,
     updated_at,
     connection_id
@@ -60,6 +62,8 @@ SELECT
     subtype,
     balance,
     currency,
+    is_external,
+    last_synced_at,
     meta,
     updated_at,
     connection_id

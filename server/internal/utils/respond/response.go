@@ -98,7 +98,7 @@ func Json(w http.ResponseWriter, statusCode int, data any, logger *zerolog.Logge
 		return
 	}
 
-	logger.Info().Int("status_code", statusCode).Interface("data", data).Msg("Success response")
+	// logger.Info().Int("status_code", statusCode).Interface("data", data).Msg("Success response")
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		logger.Error().

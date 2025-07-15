@@ -6,7 +6,6 @@ INSERT INTO user_financial_connections (
     item_id,
     institution_id,
     institution_name,
-    provider_account_id,
     status,
     last_sync_at,
     expires_at
@@ -17,7 +16,6 @@ INSERT INTO user_financial_connections (
     sqlc.arg(item_id),
     sqlc.arg(institution_id),
     sqlc.arg(institution_name),
-    sqlc.arg(provider_account_id),
     sqlc.arg(status),
     sqlc.arg(last_sync_at),
     sqlc.arg(expires_at)
@@ -46,7 +44,6 @@ SET
     item_id = COALESCE(sqlc.narg('item_id'), item_id),
     institution_id = COALESCE(sqlc.narg('institution_id'), institution_id),
     institution_name = COALESCE(sqlc.narg('institution_name'), institution_name),
-    provider_account_id = COALESCE(sqlc.narg('provider_account_id'), provider_account_id),
     status = COALESCE(sqlc.narg('status'), status),
     last_sync_at = sqlc.narg('last_sync_at'), -- Use sqlc.narg for nullable timestamp
     expires_at = sqlc.narg('expires_at'),   -- Use sqlc.narg for nullable timestamp

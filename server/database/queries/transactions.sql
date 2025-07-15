@@ -54,6 +54,7 @@ SELECT
     t.transaction_datetime,
     t.description,
     t.details,
+    t.is_external,
     t.updated_at,
     -- Embed the source account
     sqlc.embed(source_acct),
@@ -69,10 +70,12 @@ FROM
     transactions AS t
 JOIN
     accounts AS source_acct ON t.account_id = source_acct.id
+    AND source_acct.deleted_at IS NULL
 JOIN
     categories AS cat ON t.category_id = cat.id
 LEFT JOIN
     accounts AS dest_acct ON t.destination_account_id = dest_acct.id
+    AND dest_acct.deleted_at IS NULL
 WHERE
     t.created_by = sqlc.arg('user_id')
     AND t.deleted_at IS NULL
@@ -94,9 +97,19 @@ OFFSET
 SELECT count(*)
 FROM
     transactions AS t
+JOIN
+    accounts AS source_acct ON t.account_id = source_acct.id
+    AND source_acct.deleted_at IS NULL
+
+LEFT JOIN
+    accounts AS dest_acct ON t.destination_account_id = dest_acct.id
+    AND dest_acct.deleted_at IS NULL
+
 WHERE
     t.created_by = sqlc.arg('user_id')
     AND t.deleted_at IS NULL
+
+    -- Filters
     AND (sqlc.narg('type')::text IS NULL OR t.type = sqlc.narg('type'))
     AND (sqlc.narg('account_id')::uuid IS NULL OR t.account_id = sqlc.narg('account_id'))
     AND (sqlc.narg('start_date')::timestamptz IS NULL OR t.transaction_datetime >= sqlc.narg('start_date'))

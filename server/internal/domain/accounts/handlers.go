@@ -638,8 +638,8 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 	isExternal := true
 
 	connParams := repository.CreateConnectionParams{
-		UserID:               &userID,
-		ProviderName:         &providerName,
+		UserID:               userID,
+		ProviderName:         providerName,
 		AccessTokenEncrypted: encryptedAccessToken,
 		ItemID:               nil, // Teller itemId is the accessID
 		InstitutionID:        institutionID,
@@ -673,10 +673,6 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 			Valid:   true,
 		}
 
-		metaMap := dto.AccountMeta{
-			InstitutionName: req.Enrollment.Institution.Name,
-		}
-
 		accountParams := repository.CreateAccountParams{
 			CreatedBy:         &userID,
 			Name:              providerAccount.Name,
@@ -687,8 +683,12 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 			IsExternal:        &isExternal,
 			Currency:          providerAccount.Currency,
 			ConnectionID:      &connection.ID,
-			Meta:              metaMap,
+			Meta: dto.AccountMeta{
+				InstitutionName: req.Enrollment.Institution.Name,
+			},
 		}
+
+		h.logger.Debug().Any("meta", accountParams).Msg("the map")
 
 		newAccount, err := h.repo.CreateAccount(ctx, accountParams)
 		if err != nil {
@@ -815,16 +815,15 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	connParams := repository.CreateConnectionParams{
-		UserID:               &userID,
-		ProviderName:         &providerName,
+		UserID:               userID,
+		ProviderName:         providerName,
 		AccessTokenEncrypted: encryptedMonoIdentifier,
 		ItemID:               nil,
-		// Institution details might be fetched later via webhook or separate API call for Mono
-		InstitutionID:   nil,
-		InstitutionName: nil,
-		Status:          &status, // Or "active" if data sync is immediate, "pending_auth" if webhooks are primary
-		LastSyncAt:      pgtype.Timestamptz{Valid: false},
-		ExpiresAt:       pgtype.Timestamptz{Valid: false}, // Set if Mono provides expiration
+		InstitutionID:        &req.InstitutionID,
+		InstitutionName:      &req.Institution,
+		Status:               &status, // Or "active" if data sync is immediate, "pending_auth" if webhooks are primary
+		LastSyncAt:           pgtype.Timestamptz{Valid: false},
+		ExpiresAt:            pgtype.Timestamptz{Valid: false}, // Set if Mono provides expiration
 	}
 
 	connection, err := h.repo.CreateConnection(ctx, connParams)

@@ -56,4 +56,16 @@ type CreateTransfertRequest struct {
 	Amount               float64     `json:"amount"`
 }
 
+type UpdateTransactionRequest struct {
+	Amount              *float64     `json:"amount,omitempty"`
+	Type                *string      `json:"type,omitempty"`
+	AccountID           *string      `json:"account_id,omitempty"`
+	CategoryID          *string      `json:"category_id,omitempty"`
+	Description         *string      `json:"description,omitempty"`
+	TransactionDatetime *time.Time   `json:"transaction_datetime"`
+	Details             *dto.Details `json:"details"`
+	TransactionCurrency *string      `json:"transaction_currency"`
+	OriginalAmount      *float64     `json:"original_amount"`
+}
+
 // location, note, medium -> details

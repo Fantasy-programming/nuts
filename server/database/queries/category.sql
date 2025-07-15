@@ -1,11 +1,14 @@
 -- name: CreateCategory :one
 INSERT INTO categories (
     name,
+    icon,
+    color,
     parent_id,
     is_default,
+    type,
     created_by
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5, $6, $7
 ) RETURNING *;
 
 -- name: GetCategoryById :one
@@ -68,229 +71,84 @@ WITH parent_categories AS (
     INSERT INTO categories (
         name,
         is_default,
-        created_by
+        created_by,
+        type,
+        color,
+        icon
     )
     VALUES
-    ('Food & Beverage', TRUE, sqlc.arg('user_id')),
-    ('Shopping', TRUE, sqlc.arg('user_id')),
-    ('Housing', TRUE, sqlc.arg('user_id')),
-    ('Transportation', TRUE, sqlc.arg('user_id')),
-    ('Vehicle', TRUE, sqlc.arg('user_id')),
-    ('Life & Entertainment', TRUE, sqlc.arg('user_id')),
-    ('Communication & PC', TRUE, sqlc.arg('user_id')),
-    ('Financial Expenses', TRUE, sqlc.arg('user_id')),
-    ('Investments', TRUE, sqlc.arg('user_id')),
-    ('Income', TRUE, sqlc.arg('user_id')),
-    ('Others', TRUE, sqlc.arg('user_id')),
-    ('Transfers', TRUE, sqlc.arg('user_id'))
-    RETURNING id, name
+    ('Food & Beverage', TRUE, sqlc.arg('user_id'), 'expense', '#FF7043', 'Pizza'),
+    ('Shopping', TRUE, sqlc.arg('user_id'), 'expense', '#AB47BC', 'ShoppingBag'),
+    ('Housing', TRUE, sqlc.arg('user_id'), 'expense', '#29B6F6', 'Gome'),
+    ('Transportation', TRUE, sqlc.arg('user_id'), 'expense', '#42A5F5', 'Bus'),
+    ('Vehicle', TRUE, sqlc.arg('user_id'), 'expense', '#8D6E63', 'Car'),
+    ('Life & Entertainment', TRUE, sqlc.arg('user_id'), 'expense', '#66BB6A', 'Music'),
+    ('Communication & PC', TRUE, sqlc.arg('user_id'), 'expense', '#26A69A', 'Smartphone'),
+    ('Financial Expenses', TRUE, sqlc.arg('user_id'), 'expense', '#EC407A', 'Credit-card'),
+    ('Investments', TRUE, sqlc.arg('user_id'), 'expense', '#7E57C2', 'BarChart2'),
+    ('Income', TRUE, sqlc.arg('user_id'), 'income', '#26C6DA', 'DollarSign'),
+    ('Others', TRUE, sqlc.arg('user_id'), 'expense', '#78909C', 'Circle'),
+    ('Transfers', TRUE, sqlc.arg('user_id'), 'expense', '#FFA726', 'Repeat')
+    RETURNING id, name, color, icon
 ),
 food_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Food & Beverage'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Bar & Cafe'),
-        ('Groceries'),
-        ('Restaurant & Fast Food')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'expense', pc.color, pc.icon
+    FROM (VALUES ('Bar & Cafe'), ('Groceries'), ('Restaurant & Fast Food')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Food & Beverage'
 ),
 shopping_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Shopping'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Clothing & Shoes'),
-        ('Electronics'),
-        ('Health & Beauty'),
-        ('Home & Garden'),
-        ('Gifts'),
-        ('Sports Equipment')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'expense', pc.color, pc.icon
+    FROM (VALUES ('Clothing & Shoes'), ('Electronics'), ('Health & Beauty'), ('Home & Garden'), ('Gifts'), ('Sports Equipment')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Shopping'
 ),
 housing_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Housing'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Rent'),
-        ('Mortgage'),
-        ('Utilities'),
-        ('Maintenance & Repairs'),
-        ('Property Tax')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'expense', pc.color, pc.icon
+    FROM (VALUES ('Rent'), ('Mortgage'), ('Utilities'), ('Maintenance & Repairs'), ('Property Tax')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Housing'
 ),
 transportation_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Transportation'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Public Transport'),
-        ('Taxi & Ride Share'),
-        ('Parking'),
-        ('Travel')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'expense', pc.color, pc.icon
+    FROM (VALUES ('Public Transport'), ('Taxi & Ride Share'), ('Parking'), ('Travel')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Transportation'
 ),
 vehicle_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Vehicle'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Fuel'),
-        ('Service & Maintenance'),
-        ('Insurance'),
-        ('Registration & Tax')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'expense', pc.color, pc.icon
+    FROM (VALUES ('Fuel'), ('Service & Maintenance'), ('Insurance'), ('Registration & Tax')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Vehicle'
 ),
 life_entertainment_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Life & Entertainment'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Entertainment'),
-        ('Health & Fitness'),
-        ('Hobbies'),
-        ('Education'),
-        ('Pets'),
-        ('Subscriptions')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'expense', pc.color, pc.icon
+    FROM (VALUES ('Entertainment'), ('Health & Fitness'), ('Hobbies'), ('Education'), ('Pets'), ('Subscriptions')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Life & Entertainment'
 ),
 communication_pc_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Communication & PC'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Phone'),
-        ('Internet'),
-        ('Software & Apps'),
-        ('Hardware & Devices')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'expense', pc.color, pc.icon
+    FROM (VALUES ('Phone'), ('Internet'), ('Software & Apps'), ('Hardware & Devices')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Communication & PC'
 ),
 financial_expenses_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Financial Expenses'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Bank Fees'),
-        ('Interest'),
-        ('Taxes'),
-        ('Insurance')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'expense', pc.color, pc.icon
+    FROM (VALUES ('Bank Fees'), ('Interest'), ('Taxes'), ('Insurance')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Financial Expenses'
 ),
 investments_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Investments'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Stocks'),
-        ('Crypto'),
-        ('Real Estate'),
-        ('Retirement'),
-        ('Savings')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'expense', pc.color, pc.icon
+    FROM (VALUES ('Stocks'), ('Crypto'), ('Real Estate'), ('Retirement'), ('Savings')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Investments'
 ),
 income_subcategories AS (
-    INSERT INTO categories (
-        name,
-        parent_id,
-        is_default,
-        created_by
-    )
-    SELECT
-        subcat.name,
-        (SELECT id FROM parent_categories WHERE name = 'Income'),
-        TRUE,
-        sqlc.arg('user_id')
-    FROM (
-        VALUES
-        ('Salary'),
-        ('Business'),
-        ('Dividends'),
-        ('Interest'),
-        ('Rental'),
-        ('Sale'),
-        ('Gifts Received')
-    ) AS subcat (name)
+    INSERT INTO categories (name, parent_id, is_default, created_by, type, color, icon)
+    SELECT subcat.name, pc.id, TRUE, sqlc.arg('user_id'), 'income', pc.color, pc.icon
+    FROM (VALUES ('Salary'), ('Business'), ('Dividends'), ('Interest'), ('Rental'), ('Sale'), ('Gifts Received')) AS subcat(name)
+    JOIN parent_categories pc ON pc.name = 'Income'
 )
 SELECT 1;

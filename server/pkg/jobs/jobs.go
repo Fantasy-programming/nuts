@@ -174,6 +174,7 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 	}
 
 	existingAccountMap := make(map[string]repository.GetAccountsByConnectionIDRow)
+
 	for _, acc := range existingAccounts {
 		if acc.ProviderAccountID != nil {
 			existingAccountMap[*acc.ProviderAccountID] = acc
@@ -186,7 +187,6 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 	for _, account := range accounts {
 		newBalance := types.FloatToNullDecimal(account.Balance)
 		isExternal := true
-
 		// At my knowledge, there wont be new accounts
 
 		if existingAccount, exists := existingAccountMap[account.ProviderAccountID]; exists {
@@ -195,6 +195,9 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 				ID:      existingAccount.ID,
 				Name:    &account.Name,
 				Balance: newBalance,
+				Meta: dto.AccountMeta{
+					InstitutionName: *connection.InstitutionName,
+				},
 			})
 		} else {
 			// Account doesn't exist, prepare for creation
@@ -330,7 +333,7 @@ func (w *BankSyncWorker) syncAccountTransactions(ctx context.Context, qtx *repos
 			TransactionDatetime:   pgtype.Timestamptz{Valid: true, Time: transaction.Date},
 			Description:           &transaction.Description,
 			ProviderTransactionID: &transaction.ProviderTransactionID,
-			Details:               dto.Details{},
+			Details:               &dto.Details{},
 			CreatedBy:             &userID,
 			IsExternal:            &isExternal,
 		})
@@ -376,6 +379,7 @@ func (w *BankSyncWorker) getCategoryIDFromCache(ctx context.Context, qtx *reposi
 		Name:      categoryName,
 		CreatedBy: userID,
 		IsDefault: &isDefault,
+		Type:      "expense",
 	})
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("failed to create category: %w", err)

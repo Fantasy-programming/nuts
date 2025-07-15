@@ -2,25 +2,14 @@ package transactions
 
 import (
 	"fmt"
-	"net/http"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
-	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
-
-// Extract pathParam & parse into uuid
-func parseUUID(r *http.Request, paramName string) (uuid.UUID, error) {
-	idStr := r.URL.Query().Get(paramName)
-	if idStr == "" {
-		return uuid.Nil, message.ErrMissingParams
-	}
-	return uuid.Parse(idStr)
-}
 
 type EnhancedTransaction struct {
 	repository.ListTransactionsRow

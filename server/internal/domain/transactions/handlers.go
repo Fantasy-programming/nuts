@@ -7,7 +7,9 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/request"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/types"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
 	"github.com/google/uuid"
@@ -114,7 +116,7 @@ func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetTransaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	trscID, err := parseUUID(r, "id")
+	trscID, err := request.ParseUUID(r, "id")
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -221,6 +223,8 @@ func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isExternal := false
+
 	// NOTE: Default to usd for now
 	transaction, err := h.repo.CreateTransaction(ctx, repository.CreateTransactionParams{
 		Amount:              amount,
@@ -230,8 +234,9 @@ func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		Description:         req.Description,
 		TransactionDatetime: pgtype.Timestamptz{Time: req.TransactionDatetime, Valid: true},
 		TransactionCurrency: "USD",
+		IsExternal:          &isExternal,
 		OriginalAmount:      amount,
-		Details:             req.Details,
+		Details:             &req.Details,
 		CreatedBy:           &userID,
 	})
 	if err != nil {
@@ -406,12 +411,127 @@ func (h *Handler) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 	respond.Json(w, http.StatusOK, transaction, h.logger)
 }
 
-func (h *Handler) UpdateTransaction(w http.ResponseWriter, r *http.Request) {}
+func (h *Handler) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	trscID, err := request.ParseUUID(r, "id")
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.URL.Path,
+		})
+		return
+	}
+
+	var req UpdateTransactionRequest
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
+
+	h.logger.Debug().Any("req", req).Msg("request")
+
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusUnauthorized,
+			ClientErr:  message.ErrUnauthorized,
+			ActualErr:  err,
+			Logger:     h.logger,
+		})
+		return
+	}
+
+	params := repository.UpdateTransactionParams{
+		ID:        trscID,
+		Details:   req.Details,
+		UpdatedBy: &userID,
+	}
+
+	if req.Amount != nil {
+		params.Amount = types.FloatToNullDecimal(*req.Amount)
+	}
+
+	if req.AccountID != nil {
+		accountID, err := uuid.Parse(*req.AccountID)
+		if err != nil {
+			// Handle error
+		}
+		params.AccountID = &accountID
+	}
+
+	if req.CategoryID != nil {
+		categoryID, err := uuid.Parse(*req.CategoryID)
+		if err != nil {
+			// Handle error
+		}
+		params.CategoryID = &categoryID
+	}
+
+	if req.Description != nil {
+		params.Description = req.Description
+	}
+
+	if req.TransactionDatetime != nil {
+		params.TransactionDatetime = pgtype.Timestamptz{Time: *req.TransactionDatetime, Valid: true}
+	}
+
+	if req.Type != nil {
+		params.Type = req.Type
+	}
+
+	h.logger.Info().Any("request", req).Msg("cool")
+	h.logger.Info().Any("package", params).Msg("nothin day")
+
+	transaction, err := h.repo.UpdateTransaction(ctx, params)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    trscID,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, transaction, h.logger)
+}
 
 func (h *Handler) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	trscID, err := parseUUID(r, "id")
+	trscID, err := request.ParseUUID(r, "id")
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,

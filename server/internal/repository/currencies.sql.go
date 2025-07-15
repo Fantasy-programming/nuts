@@ -193,7 +193,7 @@ type GetTransactionWithCurrencyRow struct {
 	DestinationAccountID  *uuid.UUID          `json:"destination_account_id"`
 	TransactionDatetime   time.Time           `json:"transaction_datetime"`
 	Description           *string             `json:"description"`
-	Details               dto.Details         `json:"details"`
+	Details               *dto.Details        `json:"details"`
 	CreatedBy             *uuid.UUID          `json:"created_by"`
 	UpdatedBy             *uuid.UUID          `json:"updated_by"`
 	CreatedAt             time.Time           `json:"created_at"`
