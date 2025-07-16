@@ -1,0 +1,26 @@
+{
+  "app-name": "Ship Mobile Fast",
+  "language": "Dil",
+  "success": "Başarılı",
+  "error": "Hata",
+  "loading": "Yükleniyor...",
+  "not-found": "Oops! Sayfa bulunamadı",
+  "buttons": {
+    "delete": "Sil",
+    "cancel": "İptal",
+    "okay": "Tamam",
+    "logout": "Çıkış yap",
+    "getStarted": "Başla",
+    "next": "Sonraki",
+    "send": "Gönder",
+    "back": "Geri",
+    "try": "Dene",
+    "continue": "Devam et"
+  },
+  "placeholders": {
+    "email": "Email adresiniz",
+    "password": "Şifreniz",
+    "confirm-password": "Şifreyi onayla",
+    "search": "Bir şeyler ara"
+  }
+}
