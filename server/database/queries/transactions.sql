@@ -79,13 +79,26 @@ LEFT JOIN
 WHERE
     t.created_by = sqlc.arg('user_id')
     AND t.deleted_at IS NULL
-    -- New and improved filters
+    -- Enhanced filters
     AND (sqlc.narg('type')::text IS NULL OR t.type = sqlc.narg('type'))
     AND (sqlc.narg('account_id')::uuid IS NULL OR t.account_id = sqlc.narg('account_id'))
+    AND (sqlc.narg('category_id')::uuid IS NULL OR t.category_id = sqlc.narg('category_id'))
+    AND (sqlc.narg('currency')::text IS NULL OR t.transaction_currency = sqlc.narg('currency'))
+    AND (sqlc.narg('is_external')::boolean IS NULL OR t.is_external = sqlc.narg('is_external'))
     AND (sqlc.narg('start_date')::timestamptz IS NULL OR t.transaction_datetime >= sqlc.narg('start_date'))
     AND (sqlc.narg('end_date')::timestamptz IS NULL OR t.transaction_datetime <= sqlc.narg('end_date'))
-    -- New search filter (case-insensitive)
+    AND (sqlc.narg('min_amount')::decimal IS NULL OR t.amount >= sqlc.narg('min_amount'))
+    AND (sqlc.narg('max_amount')::decimal IS NULL OR t.amount <= sqlc.narg('max_amount'))
+    -- Search filter (case-insensitive)
     AND (sqlc.narg('search')::text IS NULL OR t.description ILIKE '%' || sqlc.narg('search')::text || '%')
+    -- Tags filter (assuming tags are stored in the details JSONB field)
+    AND (sqlc.narg('tags')::text[] IS NULL OR 
+         EXISTS (
+             SELECT 1 
+             FROM unnest(sqlc.narg('tags')::text[]) AS tag
+             WHERE t.details ? tag OR t.details->>'note' ILIKE '%' || tag || '%'
+         )
+    )
 ORDER BY
     t.transaction_datetime DESC
 LIMIT
@@ -109,12 +122,25 @@ WHERE
     t.created_by = sqlc.arg('user_id')
     AND t.deleted_at IS NULL
 
-    -- Filters
+    -- Enhanced filters
     AND (sqlc.narg('type')::text IS NULL OR t.type = sqlc.narg('type'))
     AND (sqlc.narg('account_id')::uuid IS NULL OR t.account_id = sqlc.narg('account_id'))
+    AND (sqlc.narg('category_id')::uuid IS NULL OR t.category_id = sqlc.narg('category_id'))
+    AND (sqlc.narg('currency')::text IS NULL OR t.transaction_currency = sqlc.narg('currency'))
+    AND (sqlc.narg('is_external')::boolean IS NULL OR t.is_external = sqlc.narg('is_external'))
     AND (sqlc.narg('start_date')::timestamptz IS NULL OR t.transaction_datetime >= sqlc.narg('start_date'))
     AND (sqlc.narg('end_date')::timestamptz IS NULL OR t.transaction_datetime <= sqlc.narg('end_date'))
-    AND (sqlc.narg('search')::text IS NULL OR t.description ILIKE '%' || sqlc.narg('search')::text || '%');
+    AND (sqlc.narg('min_amount')::decimal IS NULL OR t.amount >= sqlc.narg('min_amount'))
+    AND (sqlc.narg('max_amount')::decimal IS NULL OR t.amount <= sqlc.narg('max_amount'))
+    AND (sqlc.narg('search')::text IS NULL OR t.description ILIKE '%' || sqlc.narg('search')::text || '%')
+    -- Tags filter
+    AND (sqlc.narg('tags')::text[] IS NULL OR 
+         EXISTS (
+             SELECT 1 
+             FROM unnest(sqlc.narg('tags')::text[]) AS tag
+             WHERE t.details ? tag OR t.details->>'note' ILIKE '%' || tag || '%'
+         )
+    );
 
 
 -- SELECT

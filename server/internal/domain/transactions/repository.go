@@ -45,12 +45,18 @@ func NewRepository(db *pgxpool.Pool, queries *repository.Queries) Repository {
 func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsParams, groupByDate bool) (*PaginatedTransactionsResponse, error) {
 	// 1. Get the total count for pagination metadata
 	totalItems, err := r.Queries.CountTransactions(ctx, repository.CountTransactionsParams{
-		UserID:    &params.UserID,
-		Type:      params.Type,
-		AccountID: params.AccountID,
-		StartDate: params.StartDate,
-		EndDate:   params.EndDate,
-		Search:    params.Search,
+		UserID:     &params.UserID,
+		Type:       params.Type,
+		AccountID:  params.AccountID,
+		CategoryID: params.CategoryID,
+		Currency:   params.Currency,
+		StartDate:  params.StartDate,
+		EndDate:    params.EndDate,
+		Search:     params.Search,
+		IsExternal: params.IsExternal,
+		MinAmount:  params.MinAmount,
+		MaxAmount:  params.MaxAmount,
+		Tags:       params.Tags,
 	})
 	if err != nil {
 		return nil, err
@@ -58,14 +64,20 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 
 	// 2. Get the paginated list of transactions
 	sqlcParams := repository.ListTransactionsParams{
-		UserID:    &params.UserID,
-		Limit:     int64(params.Limit),
-		Offset:    int64((params.Page - 1) * params.Limit),
-		Type:      params.Type,
-		AccountID: params.AccountID,
-		StartDate: params.StartDate,
-		EndDate:   params.EndDate,
-		Search:    params.Search,
+		UserID:     &params.UserID,
+		Limit:      int64(params.Limit),
+		Offset:     int64((params.Page - 1) * params.Limit),
+		Type:       params.Type,
+		AccountID:  params.AccountID,
+		CategoryID: params.CategoryID,
+		Currency:   params.Currency,
+		StartDate:  params.StartDate,
+		EndDate:    params.EndDate,
+		Search:     params.Search,
+		IsExternal: params.IsExternal,
+		MinAmount:  params.MinAmount,
+		MaxAmount:  params.MaxAmount,
+		Tags:       params.Tags,
 	}
 
 	transactions, err := r.Queries.ListTransactions(ctx, sqlcParams)

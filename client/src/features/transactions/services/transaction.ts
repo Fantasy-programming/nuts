@@ -19,8 +19,25 @@ function buildUrlWithParams(baseUrl: string, params: Record<string, unknown>): s
 
 
 
-export const getTransactions = async (params: { page: number, q: string, group_by: string }): Promise<TransactionsResponse> => {
-  const url = buildUrlWithParams(`${BASEURI}/`, { limit: 25, ...params });
+export interface GetTransactionsParams {
+  page: number;
+  q?: string;
+  group_by?: string;
+  account_id?: string;
+  category_id?: string;
+  type?: string;
+  start_date?: string;
+  end_date?: string;
+  currency?: string;
+  limit?: number;
+}
+
+export const getTransactions = async (params: GetTransactionsParams): Promise<TransactionsResponse> => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== "")
+  );
+  
+  const url = buildUrlWithParams(`${BASEURI}/`, { limit: 25, ...cleanParams });
 
   const { data } = await axios.get<TransactionsResponse>(url);
   return transactionsResponseSchema.parse(data);

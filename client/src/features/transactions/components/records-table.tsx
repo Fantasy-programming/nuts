@@ -27,9 +27,10 @@ import { DeleteTransactionDialog } from "./del-records-dialog"
 import { FloatingActionBar } from "./floating-records-bar"
 import { useDebounce } from "@/core/hooks/use-debounce";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { deleteTransactions, getTransactions } from "../services/transaction"
+import { deleteTransactions, getTransactions, type GetTransactionsParams } from "../services/transaction"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
+import { TransactionFilterDropdown, type TransactionFilterState } from "./transaction-filter-dropdown"
 
 interface RecordsTableProps {
   initialPage: number;
@@ -98,7 +99,6 @@ export const RecordsTable = ({
   const [rowSelection, setRowSelection] = useState({})
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [showFilters, setShowFilters] = useState(false)
   const [deletingTransactionId, setDeletingTransactionId] = useState<string | string[] | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
@@ -107,16 +107,54 @@ export const RecordsTable = ({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
 
+  // Transaction filters state
+  const [filters, setFilters] = useState<TransactionFilterState>({})
+  const debouncedFilters = useDebounce(filters, 500);
+
   const isMobile = useIsMobile()
   const queryClient = useQueryClient();
 
-  const { data: transactions, isFetching } = useSuspenseQuery({
-    queryKey: ["transactions", { page: initialPage, q: debouncedSearch }],
-    queryFn: () => getTransactions({
+  // Build query parameters
+  const queryParams = useMemo((): GetTransactionsParams => {
+    const params: GetTransactionsParams = {
       group_by: "date",
       page: initialPage,
-      q: debouncedSearch,
-    }),
+    };
+
+    if (debouncedSearch) {
+      params.q = debouncedSearch;
+    }
+
+    if (debouncedFilters.account_id) {
+      params.account_id = debouncedFilters.account_id;
+    }
+
+    if (debouncedFilters.category_id) {
+      params.category_id = debouncedFilters.category_id;
+    }
+
+    if (debouncedFilters.type) {
+      params.type = debouncedFilters.type;
+    }
+
+    if (debouncedFilters.currency) {
+      params.currency = debouncedFilters.currency;
+    }
+
+    if (debouncedFilters.start_date) {
+      params.start_date = debouncedFilters.start_date.toISOString().split('T')[0];
+    }
+
+    if (debouncedFilters.end_date) {
+      params.end_date = debouncedFilters.end_date.toISOString().split('T')[0];
+    }
+
+    return params;
+  }, [initialPage, debouncedSearch, debouncedFilters]);
+
+  const { data: transactions, isFetching } = useSuspenseQuery({
+    queryKey: ["transactions", queryParams],
+    queryFn: () => getTransactions(queryParams),
   });
 
 
@@ -235,6 +273,15 @@ export const RecordsTable = ({
     table.resetRowSelection();
   }, [table]);
 
+  // Filter handlers
+  const handleFiltersChange = useCallback((newFilters: TransactionFilterState) => {
+    setFilters(newFilters);
+  }, []);
+
+  const handleClearAllFilters = useCallback(() => {
+    setFilters({});
+  }, []);
+
 
   // Optimized row finding function
   const findRowByTransactionId = useCallback((transactionId: string) => {
@@ -271,20 +318,18 @@ export const RecordsTable = ({
               <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className={showFilters ? "bg-secondary" : ""}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Filters</span>
-          </Button>
+          <TransactionFilterDropdown
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            onClearAll={handleClearAllFilters}
+          />
         </div>
       </div>
 
-      {/* Mobile View */}
-      {isMobile ? (
+      {/* Table Content */}
+      <div>
+        {/* Mobile View */}
+        {isMobile ? (
         <div className="space-y-4">
           {groups.map((group) => (
             <div key={group.id} className="border rounded-md overflow-hidden">
@@ -461,6 +506,7 @@ export const RecordsTable = ({
           </Table>
         </div>
       )}
+      </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 py-4">
         <div className="text-muted-foreground text-sm order-2 sm:order-1 sm:flex-1">
