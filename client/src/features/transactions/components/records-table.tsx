@@ -30,7 +30,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { deleteTransactions, getTransactions, type GetTransactionsParams } from "../services/transaction"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
-import { TransactionFilters, type TransactionFilterState } from "./transaction-filters"
+import { TransactionFilterDropdown, type TransactionFilterState } from "./transaction-filter-dropdown"
 
 interface RecordsTableProps {
   initialPage: number;
@@ -99,7 +99,6 @@ export const RecordsTable = ({
   const [rowSelection, setRowSelection] = useState({})
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [showFilters, setShowFilters] = useState(false)
   const [deletingTransactionId, setDeletingTransactionId] = useState<string | string[] | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
@@ -319,36 +318,16 @@ export const RecordsTable = ({
               <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className={showFilters ? "bg-secondary" : ""}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Filters</span>
-          </Button>
+          <TransactionFilterDropdown
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            onClearAll={handleClearAllFilters}
+          />
         </div>
       </div>
 
-      {/* Filter Panel */}
-      {showFilters && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <div className="lg:col-span-1">
-            <TransactionFilters
-              filters={filters}
-              onFiltersChange={handleFiltersChange}
-              onClearAll={handleClearAllFilters}
-            />
-          </div>
-          <div className="lg:col-span-3">
-            {/* Table content will go here */}
-          </div>
-        </div>
-      )}
-
       {/* Table Content */}
-      <div className={showFilters ? "lg:ml-0" : ""}>
+      <div>
         {/* Mobile View */}
         {isMobile ? (
         <div className="space-y-4">
