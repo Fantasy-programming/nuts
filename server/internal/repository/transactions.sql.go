@@ -58,7 +58,7 @@ WHERE
     AND ($9::decimal IS NULL OR t.amount >= $9)
     AND ($10::decimal IS NULL OR t.amount <= $10)
     AND ($11::text IS NULL OR t.description ILIKE '%' || $11::text || '%')
-    -- Tags filter (assuming tags are stored in the details JSONB field)
+    -- Tags filter
     AND ($12::text[] IS NULL OR 
          EXISTS (
              SELECT 1 
@@ -69,18 +69,18 @@ WHERE
 `
 
 type CountTransactionsParams struct {
-	UserID     *uuid.UUID `json:"user_id"`
-	Type       *string    `json:"type"`
-	AccountID  *uuid.UUID `json:"account_id"`
-	CategoryID *uuid.UUID `json:"category_id"`
-	Currency   *string    `json:"currency"`
-	IsExternal *bool      `json:"is_external"`
-	StartDate  *time.Time `json:"start_date"`
-	EndDate    *time.Time `json:"end_date"`
-	MinAmount  *float64   `json:"min_amount"`
-	MaxAmount  *float64   `json:"max_amount"`
-	Search     *string    `json:"search"`
-	Tags       []string   `json:"tags"`
+	UserID     *uuid.UUID     `json:"user_id"`
+	Type       *string        `json:"type"`
+	AccountID  *uuid.UUID     `json:"account_id"`
+	CategoryID *uuid.UUID     `json:"category_id"`
+	Currency   *string        `json:"currency"`
+	IsExternal *bool          `json:"is_external"`
+	StartDate  *time.Time     `json:"start_date"`
+	EndDate    *time.Time     `json:"end_date"`
+	MinAmount  pgtype.Numeric `json:"min_amount"`
+	MaxAmount  pgtype.Numeric `json:"max_amount"`
+	Search     *string        `json:"search"`
+	Tags       []string       `json:"tags"`
 }
 
 func (q *Queries) CountTransactions(ctx context.Context, arg CountTransactionsParams) (int64, error) {
@@ -365,6 +365,7 @@ WHERE
     AND ($8::timestamptz IS NULL OR t.transaction_datetime <= $8)
     AND ($9::decimal IS NULL OR t.amount >= $9)
     AND ($10::decimal IS NULL OR t.amount <= $10)
+    -- Search filter (case-insensitive)
     AND ($11::text IS NULL OR t.description ILIKE '%' || $11::text || '%')
     -- Tags filter (assuming tags are stored in the details JSONB field)
     AND ($12::text[] IS NULL OR 
@@ -383,20 +384,20 @@ OFFSET
 `
 
 type ListTransactionsParams struct {
-	UserID     *uuid.UUID `json:"user_id"`
-	Type       *string    `json:"type"`
-	AccountID  *uuid.UUID `json:"account_id"`
-	CategoryID *uuid.UUID `json:"category_id"`
-	Currency   *string    `json:"currency"`
-	IsExternal *bool      `json:"is_external"`
-	StartDate  *time.Time `json:"start_date"`
-	EndDate    *time.Time `json:"end_date"`
-	MinAmount  *float64   `json:"min_amount"`
-	MaxAmount  *float64   `json:"max_amount"`
-	Search     *string    `json:"search"`
-	Tags       []string   `json:"tags"`
-	Offset     int64      `json:"offset"`
-	Limit      int64      `json:"limit"`
+	UserID     *uuid.UUID     `json:"user_id"`
+	Type       *string        `json:"type"`
+	AccountID  *uuid.UUID     `json:"account_id"`
+	CategoryID *uuid.UUID     `json:"category_id"`
+	Currency   *string        `json:"currency"`
+	IsExternal *bool          `json:"is_external"`
+	StartDate  *time.Time     `json:"start_date"`
+	EndDate    *time.Time     `json:"end_date"`
+	MinAmount  pgtype.Numeric `json:"min_amount"`
+	MaxAmount  pgtype.Numeric `json:"max_amount"`
+	Search     *string        `json:"search"`
+	Tags       []string       `json:"tags"`
+	Offset     int64          `json:"offset"`
+	Limit      int64          `json:"limit"`
 }
 
 type ListTransactionsRow struct {
