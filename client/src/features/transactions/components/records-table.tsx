@@ -27,9 +27,10 @@ import { DeleteTransactionDialog } from "./del-records-dialog"
 import { FloatingActionBar } from "./floating-records-bar"
 import { useDebounce } from "@/core/hooks/use-debounce";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { deleteTransactions, getTransactions } from "../services/transaction"
+import { deleteTransactions, getTransactions, type GetTransactionsParams } from "../services/transaction"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
+import { TransactionFilters, type TransactionFilterState } from "./transaction-filters"
 
 interface RecordsTableProps {
   initialPage: number;
@@ -107,16 +108,54 @@ export const RecordsTable = ({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
 
+  // Transaction filters state
+  const [filters, setFilters] = useState<TransactionFilterState>({})
+  const debouncedFilters = useDebounce(filters, 500);
+
   const isMobile = useIsMobile()
   const queryClient = useQueryClient();
 
-  const { data: transactions, isFetching } = useSuspenseQuery({
-    queryKey: ["transactions", { page: initialPage, q: debouncedSearch }],
-    queryFn: () => getTransactions({
+  // Build query parameters
+  const queryParams = useMemo((): GetTransactionsParams => {
+    const params: GetTransactionsParams = {
       group_by: "date",
       page: initialPage,
-      q: debouncedSearch,
-    }),
+    };
+
+    if (debouncedSearch) {
+      params.q = debouncedSearch;
+    }
+
+    if (debouncedFilters.account_id) {
+      params.account_id = debouncedFilters.account_id;
+    }
+
+    if (debouncedFilters.category_id) {
+      params.category_id = debouncedFilters.category_id;
+    }
+
+    if (debouncedFilters.type) {
+      params.type = debouncedFilters.type;
+    }
+
+    if (debouncedFilters.currency) {
+      params.currency = debouncedFilters.currency;
+    }
+
+    if (debouncedFilters.start_date) {
+      params.start_date = debouncedFilters.start_date.toISOString().split('T')[0];
+    }
+
+    if (debouncedFilters.end_date) {
+      params.end_date = debouncedFilters.end_date.toISOString().split('T')[0];
+    }
+
+    return params;
+  }, [initialPage, debouncedSearch, debouncedFilters]);
+
+  const { data: transactions, isFetching } = useSuspenseQuery({
+    queryKey: ["transactions", queryParams],
+    queryFn: () => getTransactions(queryParams),
   });
 
 
@@ -235,6 +274,15 @@ export const RecordsTable = ({
     table.resetRowSelection();
   }, [table]);
 
+  // Filter handlers
+  const handleFiltersChange = useCallback((newFilters: TransactionFilterState) => {
+    setFilters(newFilters);
+  }, []);
+
+  const handleClearAllFilters = useCallback(() => {
+    setFilters({});
+  }, []);
+
 
   // Optimized row finding function
   const findRowByTransactionId = useCallback((transactionId: string) => {
@@ -283,8 +331,26 @@ export const RecordsTable = ({
         </div>
       </div>
 
-      {/* Mobile View */}
-      {isMobile ? (
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <div className="lg:col-span-1">
+            <TransactionFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onClearAll={handleClearAllFilters}
+            />
+          </div>
+          <div className="lg:col-span-3">
+            {/* Table content will go here */}
+          </div>
+        </div>
+      )}
+
+      {/* Table Content */}
+      <div className={showFilters ? "lg:ml-0" : ""}>
+        {/* Mobile View */}
+        {isMobile ? (
         <div className="space-y-4">
           {groups.map((group) => (
             <div key={group.id} className="border rounded-md overflow-hidden">
@@ -461,6 +527,7 @@ export const RecordsTable = ({
           </Table>
         </div>
       )}
+      </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 py-4">
         <div className="text-muted-foreground text-sm order-2 sm:order-1 sm:flex-1">

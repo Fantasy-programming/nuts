@@ -3,6 +3,7 @@ package transactions
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
@@ -79,6 +80,45 @@ func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	if accountIDStr := q.Get("account_id"); accountIDStr != "" {
 		if accountID, err := uuid.Parse(accountIDStr); err == nil {
 			params.AccountID = &accountID
+		}
+	}
+
+	if categoryIDStr := q.Get("category_id"); categoryIDStr != "" {
+		if categoryID, err := uuid.Parse(categoryIDStr); err == nil {
+			params.CategoryID = &categoryID
+		}
+	}
+
+	if currency := q.Get("currency"); currency != "" {
+		params.Currency = &currency
+	}
+
+	if isExternalStr := q.Get("is_external"); isExternalStr != "" {
+		if isExternal, err := strconv.ParseBool(isExternalStr); err == nil {
+			params.IsExternal = &isExternal
+		}
+	}
+
+	if minAmountStr := q.Get("min_amount"); minAmountStr != "" {
+		if minAmount, err := strconv.ParseFloat(minAmountStr, 64); err == nil {
+			params.MinAmount = &minAmount
+		}
+	}
+
+	if maxAmountStr := q.Get("max_amount"); maxAmountStr != "" {
+		if maxAmount, err := strconv.ParseFloat(maxAmountStr, 64); err == nil {
+			params.MaxAmount = &maxAmount
+		}
+	}
+
+	// Tags filter (comma-separated values)
+	if tagsStr := q.Get("tags"); tagsStr != "" {
+		tags := strings.Split(tagsStr, ",")
+		for i := range tags {
+			tags[i] = strings.TrimSpace(tags[i])
+		}
+		if len(tags) > 0 && tags[0] != "" {
+			params.Tags = tags
 		}
 	}
 

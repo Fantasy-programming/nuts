@@ -8,14 +8,20 @@ import (
 )
 
 type ListTransactionsParams struct {
-	UserID    uuid.UUID
-	Page      int
-	Limit     int
-	Search    *string
-	Type      *string
-	AccountID *uuid.UUID
-	StartDate *time.Time
-	EndDate   *time.Time
+	UserID        uuid.UUID
+	Page          int
+	Limit         int
+	Search        *string
+	Type          *string
+	AccountID     *uuid.UUID
+	CategoryID    *uuid.UUID
+	Currency      *string
+	StartDate     *time.Time
+	EndDate       *time.Time
+	MinAmount     *float64
+	MaxAmount     *float64
+	Tags          []string
+	IsExternal    *bool
 }
 
 // Pagination represents the metadata for a paginated response.
