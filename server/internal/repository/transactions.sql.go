@@ -47,21 +47,40 @@ WHERE
     t.created_by = $1
     AND t.deleted_at IS NULL
 
-    -- Filters
+    -- Enhanced filters
     AND ($2::text IS NULL OR t.type = $2)
     AND ($3::uuid IS NULL OR t.account_id = $3)
-    AND ($4::timestamptz IS NULL OR t.transaction_datetime >= $4)
-    AND ($5::timestamptz IS NULL OR t.transaction_datetime <= $5)
-    AND ($6::text IS NULL OR t.description ILIKE '%' || $6::text || '%')
+    AND ($4::uuid IS NULL OR t.category_id = $4)
+    AND ($5::text IS NULL OR t.transaction_currency = $5)
+    AND ($6::boolean IS NULL OR t.is_external = $6)
+    AND ($7::timestamptz IS NULL OR t.transaction_datetime >= $7)
+    AND ($8::timestamptz IS NULL OR t.transaction_datetime <= $8)
+    AND ($9::decimal IS NULL OR t.amount >= $9)
+    AND ($10::decimal IS NULL OR t.amount <= $10)
+    AND ($11::text IS NULL OR t.description ILIKE '%' || $11::text || '%')
+    -- Tags filter (assuming tags are stored in the details JSONB field)
+    AND ($12::text[] IS NULL OR 
+         EXISTS (
+             SELECT 1 
+             FROM unnest($12::text[]) AS tag
+             WHERE t.details ? tag OR t.details->>'note' ILIKE '%' || tag || '%'
+         )
+    )
 `
 
 type CountTransactionsParams struct {
-	UserID    *uuid.UUID `json:"user_id"`
-	Type      *string    `json:"type"`
-	AccountID *uuid.UUID `json:"account_id"`
-	StartDate *time.Time `json:"start_date"`
-	EndDate   *time.Time `json:"end_date"`
-	Search    *string    `json:"search"`
+	UserID     *uuid.UUID `json:"user_id"`
+	Type       *string    `json:"type"`
+	AccountID  *uuid.UUID `json:"account_id"`
+	CategoryID *uuid.UUID `json:"category_id"`
+	Currency   *string    `json:"currency"`
+	IsExternal *bool      `json:"is_external"`
+	StartDate  *time.Time `json:"start_date"`
+	EndDate    *time.Time `json:"end_date"`
+	MinAmount  *float64   `json:"min_amount"`
+	MaxAmount  *float64   `json:"max_amount"`
+	Search     *string    `json:"search"`
+	Tags       []string   `json:"tags"`
 }
 
 func (q *Queries) CountTransactions(ctx context.Context, arg CountTransactionsParams) (int64, error) {
@@ -69,9 +88,15 @@ func (q *Queries) CountTransactions(ctx context.Context, arg CountTransactionsPa
 		arg.UserID,
 		arg.Type,
 		arg.AccountID,
+		arg.CategoryID,
+		arg.Currency,
+		arg.IsExternal,
 		arg.StartDate,
 		arg.EndDate,
+		arg.MinAmount,
+		arg.MaxAmount,
 		arg.Search,
+		arg.Tags,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -330,30 +355,48 @@ LEFT JOIN
 WHERE
     t.created_by = $1
     AND t.deleted_at IS NULL
-    -- New and improved filters
+    -- Enhanced filters
     AND ($2::text IS NULL OR t.type = $2)
     AND ($3::uuid IS NULL OR t.account_id = $3)
-    AND ($4::timestamptz IS NULL OR t.transaction_datetime >= $4)
-    AND ($5::timestamptz IS NULL OR t.transaction_datetime <= $5)
-    -- New search filter (case-insensitive)
-    AND ($6::text IS NULL OR t.description ILIKE '%' || $6::text || '%')
+    AND ($4::uuid IS NULL OR t.category_id = $4)
+    AND ($5::text IS NULL OR t.transaction_currency = $5)
+    AND ($6::boolean IS NULL OR t.is_external = $6)
+    AND ($7::timestamptz IS NULL OR t.transaction_datetime >= $7)
+    AND ($8::timestamptz IS NULL OR t.transaction_datetime <= $8)
+    AND ($9::decimal IS NULL OR t.amount >= $9)
+    AND ($10::decimal IS NULL OR t.amount <= $10)
+    AND ($11::text IS NULL OR t.description ILIKE '%' || $11::text || '%')
+    -- Tags filter (assuming tags are stored in the details JSONB field)
+    AND ($12::text[] IS NULL OR 
+         EXISTS (
+             SELECT 1 
+             FROM unnest($12::text[]) AS tag
+             WHERE t.details ? tag OR t.details->>'note' ILIKE '%' || tag || '%'
+         )
+    )
 ORDER BY
     t.transaction_datetime DESC
 LIMIT
-    $8
+    $14
 OFFSET
-    $7
+    $13
 `
 
 type ListTransactionsParams struct {
-	UserID    *uuid.UUID `json:"user_id"`
-	Type      *string    `json:"type"`
-	AccountID *uuid.UUID `json:"account_id"`
-	StartDate *time.Time `json:"start_date"`
-	EndDate   *time.Time `json:"end_date"`
-	Search    *string    `json:"search"`
-	Offset    int64      `json:"offset"`
-	Limit     int64      `json:"limit"`
+	UserID     *uuid.UUID `json:"user_id"`
+	Type       *string    `json:"type"`
+	AccountID  *uuid.UUID `json:"account_id"`
+	CategoryID *uuid.UUID `json:"category_id"`
+	Currency   *string    `json:"currency"`
+	IsExternal *bool      `json:"is_external"`
+	StartDate  *time.Time `json:"start_date"`
+	EndDate    *time.Time `json:"end_date"`
+	MinAmount  *float64   `json:"min_amount"`
+	MaxAmount  *float64   `json:"max_amount"`
+	Search     *string    `json:"search"`
+	Tags       []string   `json:"tags"`
+	Offset     int64      `json:"offset"`
+	Limit      int64      `json:"limit"`
 }
 
 type ListTransactionsRow struct {
@@ -379,9 +422,15 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 		arg.UserID,
 		arg.Type,
 		arg.AccountID,
+		arg.CategoryID,
+		arg.Currency,
+		arg.IsExternal,
 		arg.StartDate,
 		arg.EndDate,
+		arg.MinAmount,
+		arg.MaxAmount,
 		arg.Search,
+		arg.Tags,
 		arg.Offset,
 		arg.Limit,
 	)
