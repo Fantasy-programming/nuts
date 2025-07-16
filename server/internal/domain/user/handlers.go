@@ -2,9 +2,9 @@ package user
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/config"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
@@ -75,9 +75,22 @@ func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hasPassword := user.Password != nil
+	hasKey := user.AvatarKey != nil
+
+	avatar_url := user.AvatarUrl
+
+	if hasKey {
+		avatar_url_tmp, err := h.storage.GenerateGetSignedURL(ctx, h.cfg.PublicBucketName, *user.AvatarKey, time.Minute*5)
+
+		if err != nil {
+			h.logger.Error().Err(err).Any("avatar_key", user.AvatarKey).Msg("failed to get avatar_url while key exist")
+		} else {
+			avatar_url = &avatar_url_tmp
+		}
+	}
 
 	respond.Json(w, http.StatusOK, &GetUserResponse{
-		AvatarUrl:  user.AvatarUrl,
+		AvatarUrl:  avatar_url,
 		Email:      user.Email,
 		FirstName:  user.FirstName,
 		LastName:   user.LastName,
@@ -271,16 +284,15 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate avatar URL
-	avatarURL := fmt.Sprintf("http://localhost:9000/%s/%s", h.cfg.PublicBucketName, filename)
+	// avatarURL := fmt.Sprintf("http://localhost:9000/%s/%s", h.cfg.PublicBucketName, filename)
 
 	// Update user in database with new avatar URL
 	params := repository.UpdateUserParams{
 		ID:        id,
-		AvatarUrl: &avatarURL,
+		AvatarKey: &filename,
 	}
 
-	user, err := h.repo.UpdateUser(ctx, params)
+	_, err = h.repo.UpdateUser(ctx, params)
 	if err != nil {
 		respond.Error(respond.ErrorOptions{
 			W:          w,
@@ -294,8 +306,23 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate avatar URL
+	avatarURL, err := h.storage.GenerateGetSignedURL(ctx, h.cfg.PublicBucketName, filename, time.Minute*5)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    "Failed to get signedURL",
+		})
+		return
+	}
+
 	// Return success response with avatar URL
 	respond.Json(w, http.StatusOK, map[string]string{
-		"avatar_url": *user.AvatarUrl,
+		"avatar_url": avatarURL,
 	}, h.logger)
 }

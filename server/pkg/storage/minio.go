@@ -106,8 +106,7 @@ func (s *MinioStore) GenerateGetSignedURL(ctx context.Context, bucket, key strin
 		return "", fmt.Errorf("minio presign get failed: %w", err)
 	}
 
-	// TODO: Check this
-	return presignedURL.Path, nil
+	return presignedURL.String(), nil
 }
 
 func (s *MinioStore) GeneratePutSignedURL(ctx context.Context, bucket, key string, expires time.Duration) (string, error) {
@@ -115,7 +114,7 @@ func (s *MinioStore) GeneratePutSignedURL(ctx context.Context, bucket, key strin
 	if err != nil {
 		return "", fmt.Errorf("s3 presign put failed: %w", err)
 	}
-	return presignedURL.Path, nil
+	return presignedURL.String(), nil
 }
 
 // TODO: Fix this

@@ -359,6 +359,7 @@ type User struct {
 	MfaSecret     []byte     `json:"mfa_secret"`
 	MfaEnabled    bool       `json:"mfa_enabled"`
 	MfaVerifiedAt *time.Time `json:"mfa_verified_at"`
+	AvatarKey     *string    `json:"avatar_key"`
 }
 
 type UserFinancialConnection struct {

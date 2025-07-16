@@ -15,6 +15,7 @@ SELECT
     first_name,
     last_name,
     password,
+    avatar_key,
     avatar_url,
     mfa_enabled,
     mfa_secret,
@@ -30,6 +31,7 @@ SELECT
     first_name,
     last_name,
     password,
+    avatar_key,
     avatar_url,
     mfa_enabled,
     mfa_secret,
@@ -50,6 +52,7 @@ SELECT
     email,
     first_name,
     last_name,
+    avatar_key,
     avatar_url,
     password,
     created_at,
@@ -66,6 +69,7 @@ SET
     email = coalesce(sqlc.narg('email'), email),
     first_name = coalesce(sqlc.narg('first_name'), first_name),
     last_name = coalesce(sqlc.narg('last_name'), last_name),
+    avatar_key = coalesce(sqlc.narg('avatar_key'), avatar_key),
     avatar_url = coalesce(sqlc.narg('avatar_url'), avatar_url)
 WHERE id = sqlc.arg('id')
 RETURNING *;
