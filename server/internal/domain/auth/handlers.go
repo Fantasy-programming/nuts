@@ -136,7 +136,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if user.MfaEnabled {
 		if req.TwoFACode == "" {
 			// If 2FA is enabled but no code provided, tell client to request code
-			respond.Json(w, http.StatusOK, LoginResponse{TwoFARequired: true}, h.log)
+			respond.Json(w, http.StatusAccepted, LoginResponse{TwoFARequired: true}, h.log)
 			return
 		}
 

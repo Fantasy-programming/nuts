@@ -1,5 +1,6 @@
 import { api as axios } from "@/lib/axios";
-import { InitMFASchema, LoginFormValues, SessionSchema, SignupFormValues } from "./auth.types";
+import { InitMFASchema, LoginFormValues, LoginResponse, SessionSchema, SignupFormValues } from "./auth.types";
+import { AxiosResponse } from "axios";
 
 const BASEURI = "/auth";
 
@@ -8,9 +9,8 @@ const signup = async (credentials: SignupFormValues) => {
   return response.data;
 };
 
-const login = async (credentials: LoginFormValues): Promise<void> => {
-  const data = await axios.post(`${BASEURI}/login`, credentials);
-  console.debug(data)
+const login = async (credentials: LoginFormValues): Promise<AxiosResponse<LoginResponse>> => {
+  return await axios.post(`${BASEURI}/login`, credentials);
 };
 
 const logout = async (): Promise<void> => {

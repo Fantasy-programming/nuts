@@ -20,6 +20,7 @@ export const signupSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(4, "this password is too short"),
+  two_fa_code: z.string().optional(),
 });
 
 export const userSchema = z.object({
@@ -47,6 +48,10 @@ export type User = z.infer<typeof userSchema>;
 export type SignupFormValues = z.infer<typeof signupSchema>;
 export type LoginFormValues = z.infer<typeof loginSchema>;
 export type SessionSchema = z.infer<typeof userSessionSchema>
+
+export interface LoginResponse {
+  two_fa_required?: boolean;
+}
 
 export interface ErrorResponse {
   error: string;

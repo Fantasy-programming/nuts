@@ -13,17 +13,21 @@ export const useLogin = () => {
 
   return useMutation({
     mutationFn: async (credentials: LoginFormValues) => {
-      // Login
-      await authService.login(credentials);
+      const response = await authService.login(credentials);
 
-      // Get user data
+      if (response.status === 202 && response.data.two_fa_required) {
+        return { twoFactorRequired: true, user: null };
+      }
+
       const user = await userService.getMe();
-      return user;
+      return { twoFactorRequired: false, user: user };
     },
-    onSuccess: (user) => {
-      setUser(user);
-      setAuthenticated(true);
-      queryClient.invalidateQueries({ queryKey: ['user'] });
+    onSuccess: (data) => {
+      if (!data.twoFactorRequired && data.user) {
+        setUser(data.user);
+        setAuthenticated(true);
+        queryClient.invalidateQueries({ queryKey: ['user'] });
+      }
     },
     onError: (error) => {
       logger.error('Login failed:', { error: error });
