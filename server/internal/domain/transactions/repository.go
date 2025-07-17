@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
@@ -16,6 +17,20 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 )
+
+// Helper function to convert float64 to pgtype.Numeric
+func floatToNumeric(f *float64) pgtype.Numeric {
+	if f == nil {
+		return pgtype.Numeric{Valid: false}
+	}
+	
+	var n pgtype.Numeric
+	err := n.ScanScientific(strconv.FormatFloat(*f, 'f', -1, 64))
+	if err != nil {
+		return pgtype.Numeric{Valid: false}
+	}
+	return n
+}
 
 type Repository interface {
 	// Transaction operations
@@ -59,8 +74,8 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 		EndDate:    params.EndDate,
 		Search:     params.Search,
 		IsExternal: params.IsExternal,
-		MinAmount:  params.MinAmount,
-		MaxAmount:  params.MaxAmount,
+		MinAmount:  floatToNumeric(params.MinAmount),
+		MaxAmount:  floatToNumeric(params.MaxAmount),
 		Tags:       params.Tags,
 	})
 	if err != nil {
@@ -80,8 +95,8 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 		EndDate:    params.EndDate,
 		Search:     params.Search,
 		IsExternal: params.IsExternal,
-		MinAmount:  params.MinAmount,
-		MaxAmount:  params.MaxAmount,
+		MinAmount:  floatToNumeric(params.MinAmount),
+		MaxAmount:  floatToNumeric(params.MaxAmount),
 		Tags:       params.Tags,
 	}
 
