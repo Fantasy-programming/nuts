@@ -21,6 +21,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { useHotkeys } from "react-hotkeys-hook"
 import { Button } from "@/core/components/ui/button"
 import type { AuthNullable } from '@/features/auth/services/auth.types';
+import { useTranslation } from "react-i18next";
 
 import {
   Select,
@@ -35,12 +36,12 @@ import {
 
 type NavItem = {
   to: ValidRoutes
-  label: string
+  labelKey: string
   icon: LucideIcon
 }
 
 type NavCategory = {
-  title: string
+  titleKey: string
   items: NavItem[]
   condition?: (context: AuthNullable) => boolean
 }
@@ -48,34 +49,34 @@ type NavCategory = {
 
 const settingsNavigation = (): NavCategory[] => [
   {
-    title: "ACCOUNT",
+    titleKey: "settings.account",
     items: [
-      { to: "/dashboard/settings/profile", label: "Profile", icon: User },
-      { to: "/dashboard/settings/security", label: "Security", icon: ShieldCheck },
+      { to: "/dashboard/settings/profile", labelKey: "settings.profile", icon: User },
+      { to: "/dashboard/settings/security", labelKey: "settings.security", icon: ShieldCheck },
     ],
   },
   {
-    title: "PREFERENCES",
+    titleKey: "settings.preferences",
     items: [
-      { to: "/dashboard/settings/appearance", label: "Appearance", icon: Palette },
-      { to: "/dashboard/settings/localization", label: "Localization", icon: Globe },
-      { to: "/dashboard/settings/features", label: "Features", icon: Wrench },
+      { to: "/dashboard/settings/appearance", labelKey: "settings.appearance", icon: Palette },
+      { to: "/dashboard/settings/localization", labelKey: "settings.localization", icon: Globe },
+      { to: "/dashboard/settings/features", labelKey: "settings.features", icon: Wrench },
     ],
   },
   {
-    title: "TRANSACTION SETUP",
+    titleKey: "settings.transactionSetup",
     items: [
-      { to: "/dashboard/settings/tags", label: "Tags", icon: Tags },
-      { to: "/dashboard/settings/categories", label: "Categories", icon: List },
-      { to: "/dashboard/settings/merchants", label: "Merchants", icon: Store },
-      { to: "/dashboard/settings/currencies", label: "Currencies", icon: Coins },
+      { to: "/dashboard/settings/tags", labelKey: "settings.tags", icon: Tags },
+      { to: "/dashboard/settings/categories", labelKey: "settings.categories", icon: List },
+      { to: "/dashboard/settings/merchants", labelKey: "settings.merchants", icon: Store },
+      { to: "/dashboard/settings/currencies", labelKey: "settings.currencies", icon: Coins },
     ],
   },
   {
-    title: "ABOUT",
+    titleKey: "settings.about",
     items: [
-      { to: "/dashboard/settings/news", label: "What's New", icon: Bell },
-      { to: "/dashboard/settings/feedback", label: "Feedback", icon: MessageSquare },
+      { to: "/dashboard/settings/news", labelKey: "settings.news", icon: Bell },
+      { to: "/dashboard/settings/feedback", labelKey: "settings.feedback", icon: MessageSquare },
     ],
   },
 ]
@@ -95,6 +96,7 @@ export const Route = createFileRoute("/dashboard_/settings")({
 
 function RouteComponent() {
   const navigate = useNavigate()
+  const { t } = useTranslation();
   // const user = useAuthStore((state) => state.user); // Get auth context
   const currentPath = useLocation({
     select: (location) => location.pathname,
@@ -133,7 +135,7 @@ function RouteComponent() {
   // Find the label for the currentMobileOption to display in SelectValue placeholder
   const currentLabel = navigation
     .flatMap(cat => cat.items)
-    .find(item => item.to === currentMobileOption)?.label ?? 'Select Setting...'
+    .find(item => item.to === currentMobileOption)?.labelKey ?? 'Select Setting...'
 
 
   return (
@@ -141,7 +143,7 @@ function RouteComponent() {
       <div className="mb-6 flex items-center gap-2 flex-shrink-0">
         <Button variant="ghost" size="sm" onClick={handleBack} className="flex items-center gap-1">
           <ChevronLeft className="h-4 w-4" />
-          <span>Back</span>
+          <span>{t('common.back')}</span>
           <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-muted rounded">ESC</kbd>
         </Button>
       </div>
@@ -152,18 +154,18 @@ function RouteComponent() {
           <Select value={currentMobileOption} onValueChange={handleMobileNavigate}>
             <SelectTrigger className="w-full">
               {/* Display the current selection label */}
-              <SelectValue placeholder="Select a setting..."> {currentLabel} </SelectValue>
+              <SelectValue placeholder="Select a setting..."> {t(currentLabel)} </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {navigation.map((category) => (
-                <SelectGroup key={category.title}>
+                <SelectGroup key={category.titleKey}>
                   {/* Optional: Add a label for the group in the dropdown */}
-                  <SelectLabel className="px-2 py-1.5 text-xs font-semibold">{category.title}</SelectLabel>
+                  <SelectLabel className="px-2 py-1.5 text-xs font-semibold">{t(category.titleKey).toUpperCase()}</SelectLabel>
                   {category.items.map((item) => (
                     <SelectItem key={item.to} value={item.to}>
                       {/* Optional: Add icon in dropdown */}
                       {/* <item.icon className="h-4 w-4 mr-2 inline-block" /> */}
-                      {item.label}
+                      {t(item.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -175,9 +177,9 @@ function RouteComponent() {
         {/* Desktop sidebar */}
         <aside className="hidden md:block space-y-6 md:w-60 lg:w-64 shrink-0 md:overflow-y-auto md:pb-10">
           {navigation.map((category) => (
-            <div key={category.title} className="space-y-1">
+            <div key={category.titleKey} className="space-y-1">
               <div className="px-3 text-xs font-semibold text-muted-foreground tracking-wider uppercase pb-1 mb-1 border-b">
-                {category.title}
+                {t(category.titleKey).toUpperCase()}
               </div>
               {category.items.map((link) => (
                 <Link
@@ -194,7 +196,7 @@ function RouteComponent() {
                   className={cn("flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors")}
                 >
                   <link.icon className="h-4 w-4" />
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               ))}
             </div>

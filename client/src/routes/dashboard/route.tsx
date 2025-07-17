@@ -249,23 +249,23 @@ const SideBarFooterMenu = memo(() => {
             <DropdownMenuItem asChild>
               <Link to="/dashboard/settings" className="gap-3 px-1">
                 <RiSettingsLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
-                Account settings
+                {t("settings.accountSettings")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="gap-3 px-1 ps-2">
                 <RiSunLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
-                Theme
+                {t("settings.theme")}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
                   <DropdownMenuRadioItem value="light">
                     <RiSunLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
-                    Light
+                    {t("settings.light")}
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="dark">
                     <RiMoonLine size={16} className="text-muted-foreground/70" aria-hidden="true" />
-                    Dark
+                    {t("settings.dark")}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
