@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { usePreferencesStore } from '@/features/preferences/stores/preferences.store';
 import getSymbolFromCurrency from 'currency-symbol-map';
 
@@ -188,12 +189,15 @@ export function useFormatting() {
     time_format: state.time_format,
   }));
 
-  return {
+  // Memoize the formatting functions to prevent infinite re-renders
+  const formatters = useMemo(() => ({
     formatDate: (date: Date | string) => formatDate(date, preferences),
     formatTime: (date: Date | string) => formatTime(date, preferences),
     formatDateTime: (date: Date | string) => formatDateTime(date, preferences),
     formatCurrency: (amount: number, currency?: string) => formatCurrency(amount, currency, preferences),
     formatNumber: (number: number, options?: Intl.NumberFormatOptions) => formatNumber(number, preferences, options),
     getCurrencySymbol,
-  };
+  }), [preferences.locale, preferences.currency, preferences.date_format, preferences.time_format]);
+
+  return formatters;
 }
