@@ -64,3 +64,32 @@ export const createTransaction = async (transaction: RecordCreateSchema): Promis
   const { data } = await axios.post<RecordSchema[]>(uri, transaction);
   return data;
 };
+
+// Bulk operations
+export const bulkDeleteTransactions = async (transactionIds: string[]): Promise<void> => {
+  await axios.delete(`${BASEURI}/`, { data: { transaction_ids: transactionIds } });
+};
+
+export const bulkUpdateCategories = async (transactionIds: string[], categoryId: string): Promise<void> => {
+  await axios.put(`${BASEURI}/bulk/categories`, {
+    transaction_ids: transactionIds,
+    category_id: categoryId,
+  });
+};
+
+export const bulkUpdateManualTransactions = async (params: {
+  transactionIds: string[];
+  categoryId?: string;
+  accountId?: string;
+  transactionDatetime?: Date;
+}): Promise<void> => {
+  const body: Record<string, any> = {
+    transaction_ids: params.transactionIds,
+  };
+  
+  if (params.categoryId) body.category_id = params.categoryId;
+  if (params.accountId) body.account_id = params.accountId;
+  if (params.transactionDatetime) body.transaction_datetime = params.transactionDatetime.toISOString();
+  
+  await axios.put(`${BASEURI}/bulk/manual`, body);
+};

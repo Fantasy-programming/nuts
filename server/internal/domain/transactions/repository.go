@@ -26,6 +26,11 @@ type Repository interface {
 	UpdateTransaction(ctx context.Context, params repository.UpdateTransactionParams) (repository.Transaction, error)
 	DeleteTransaction(ctx context.Context, id uuid.UUID) error
 
+	// Bulk operations
+	BulkDeleteTransactions(ctx context.Context, ids []uuid.UUID, userID uuid.UUID) error
+	BulkUpdateTransactionCategories(ctx context.Context, ids []uuid.UUID, categoryID uuid.UUID, userID uuid.UUID) error
+	BulkUpdateManualTransactions(ctx context.Context, params BulkUpdateManualTransactionsParams) error
+
 	// Transaction stats
 	// GetTransactionsStats(ctx context.Context, params repository.GetTransactionStatsParams) (repository.GetTransactionStatsRow, error)
 }
@@ -363,4 +368,46 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 	}
 
 	return transaction, nil
+}
+
+// BulkUpdateManualTransactionsParams holds parameters for bulk updating manual transactions
+type BulkUpdateManualTransactionsParams struct {
+Ids                 []uuid.UUID
+CategoryID          *uuid.UUID
+AccountID           *uuid.UUID
+TransactionDatetime *time.Time
+UserID              uuid.UUID
+}
+
+// BulkDeleteTransactions deletes multiple transactions
+func (r *Trsrepo) BulkDeleteTransactions(ctx context.Context, ids []uuid.UUID, userID uuid.UUID) error {
+return r.Queries.BulkDeleteTransactions(ctx, repository.BulkDeleteTransactionsParams{
+Ids:    ids,
+UserID: userID,
+})
+}
+
+// BulkUpdateTransactionCategories updates categories for multiple transactions
+func (r *Trsrepo) BulkUpdateTransactionCategories(ctx context.Context, ids []uuid.UUID, categoryID uuid.UUID, userID uuid.UUID) error {
+return r.Queries.BulkUpdateTransactionCategories(ctx, repository.BulkUpdateTransactionCategoriesParams{
+CategoryID: categoryID,
+UpdatedBy:  userID,
+Ids:        ids,
+})
+}
+
+// BulkUpdateManualTransactions updates multiple manual transactions (non-external)
+func (r *Trsrepo) BulkUpdateManualTransactions(ctx context.Context, params BulkUpdateManualTransactionsParams) error {
+var transactionDatetime pgtype.Timestamptz
+if params.TransactionDatetime != nil {
+transactionDatetime = pgtype.Timestamptz{Time: *params.TransactionDatetime, Valid: true}
+}
+
+return r.Queries.BulkUpdateManualTransactions(ctx, repository.BulkUpdateManualTransactionsParams{
+CategoryID:          params.CategoryID,
+AccountID:           params.AccountID,
+TransactionDatetime: transactionDatetime,
+UpdatedBy:           params.UserID,
+Ids:                 params.Ids,
+})
 }

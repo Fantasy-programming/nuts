@@ -25,9 +25,10 @@ import { ExtendedRecordSchema, TableRecordsArraySchema, TableRecordSchema } from
 import EditTransactionSheet from "./edt-records-sheet"
 import { DeleteTransactionDialog } from "./del-records-dialog"
 import { FloatingActionBar } from "./floating-records-bar"
+import { BulkEditDialog } from "./bulk-edit-dialog"
 import { useDebounce } from "@/core/hooks/use-debounce";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { deleteTransactions, getTransactions, type GetTransactionsParams } from "../services/transaction"
+import { getTransactions, bulkDeleteTransactions, type GetTransactionsParams } from "../services/transaction"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 import { TransactionFilterDropdown, type TransactionFilterState } from "./transaction-filter-dropdown"
@@ -103,6 +104,7 @@ export const RecordsTable = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
+  const [isBulkEditDialogOpen, setIsBulkEditDialogOpen] = useState(false)
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
@@ -158,10 +160,12 @@ export const RecordsTable = ({
   });
 
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string | string[]) => deleteTransactions(id),
-    onSuccess: () => {
-      toast.success("Transaction deleted successfully!");
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteTransactions(ids),
+    onSuccess: (_, ids) => {
+      toast.success(`${ids.length} transaction${ids.length > 1 ? 's' : ''} deleted successfully!`);
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      table.resetRowSelection();
     },
     onError: (error: Error) => {
       logger.error(error.message);
@@ -260,13 +264,16 @@ export const RecordsTable = ({
     const idsToDelete = selectedRowOriginals.map(t => t.id);
     if (idsToDelete.length > 0) {
       try {
-        await deleteMutation.mutateAsync(idsToDelete);
-        table.resetRowSelection();
+        await bulkDeleteMutation.mutateAsync(idsToDelete);
       } catch (error) {
         logger.error("Failed to delete selected transactions:", { origianlError: error })
       }
     }
-  }, [table, deleteMutation]);
+  }, [table, bulkDeleteMutation]);
+
+  const handleEditSelectedRows = useCallback(() => {
+    setIsBulkEditDialogOpen(true);
+  }, []);
 
 
   const handleClearSelection = useCallback(() => {
@@ -543,10 +550,16 @@ export const RecordsTable = ({
 
       <FloatingActionBar
         selectedCount={selectedRows.length}
-        onEdit={() => { }} //handleEditSelectedRows
+        onEdit={handleEditSelectedRows}
         onDelete={handleDeleteSelectedRows}
         onClear={handleClearSelection}
-        isDeleting={deleteMutation.isPending}
+        isDeleting={bulkDeleteMutation.isPending}
+      />
+
+      <BulkEditDialog
+        isOpen={isBulkEditDialogOpen}
+        onClose={() => setIsBulkEditDialogOpen(false)}
+        selectedTransactions={selectedRows.map(row => row.original)}
       />
 
       <EditTransactionSheet

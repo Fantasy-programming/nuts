@@ -201,6 +201,33 @@ SET deleted_at = current_timestamp
 WHERE id = sqlc.arg('id')
 RETURNING *;
 
+-- name: BulkDeleteTransactions :exec
+UPDATE transactions
+SET deleted_at = current_timestamp
+WHERE id = ANY(sqlc.arg('ids')::uuid[])
+    AND created_by = sqlc.arg('user_id');
+
+-- name: BulkUpdateTransactionCategories :exec
+UPDATE transactions
+SET 
+    category_id = sqlc.arg('category_id'),
+    updated_by = sqlc.arg('updated_by')
+WHERE id = ANY(sqlc.arg('ids')::uuid[])
+    AND created_by = sqlc.arg('user_id')
+    AND deleted_at IS NULL;
+
+-- name: BulkUpdateManualTransactions :exec
+UPDATE transactions
+SET 
+    category_id = coalesce(sqlc.narg('category_id'), category_id),
+    account_id = coalesce(sqlc.narg('account_id'), account_id),
+    transaction_datetime = coalesce(sqlc.narg('transaction_datetime'), transaction_datetime),
+    updated_by = sqlc.arg('updated_by')
+WHERE id = ANY(sqlc.arg('ids')::uuid[])
+    AND created_by = sqlc.arg('user_id')
+    AND is_external = false
+    AND deleted_at IS NULL;
+
 -- name: GetTransactionStats :one
 SELECT
     count(*) AS total_count,

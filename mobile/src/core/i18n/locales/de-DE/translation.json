@@ -1,0 +1,26 @@
+{
+  "app-name": "Ship Mobile Fast",
+  "language": "Sprache",
+  "success": "Erfolgreich",
+  "error": "Fehler",
+  "loading": "Wird geladen...",
+  "not-found": "Ups! Seite nicht gefunden",
+  "buttons": {
+    "delete": "Löschen",
+    "cancel": "Abbrechen",
+    "okay": "Okay",
+    "logout": "Abmelden",
+    "getStarted": "Starten",
+    "next": "Weiter",
+    "send": "Senden",
+    "back": "Zurück",
+    "try": "Versuchen",
+    "continue": "Fortfahren"
+  },
+  "placeholders": {
+    "email": "Ihre E-Mail-Adresse",
+    "password": "Ihr Passwort",
+    "confirm-password": "Passwort bestätigen",
+    "search": "Suchen Sie etwas"
+  }
+}
