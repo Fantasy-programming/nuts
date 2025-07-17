@@ -7,6 +7,7 @@ import { AccountsLoading } from "@/features/accounts/components/account.loading"
 import { AccountFormSchema } from "@/features/accounts/services/account.types";
 import { AddAccountModal } from "@/features/accounts/components/account.create-modal";
 import { NetWorthCard } from "@/features/accounts/components/account.net-worth";
+import { SummaryCard } from "@/features/accounts/components/account.summary-card";
 import { Button } from "@/core/components/ui/button";
 import { LayoutDashboard, Plus } from "lucide-react";
 import { groupAccountsByType } from "@/features/accounts/components/account.utils";
@@ -130,7 +131,7 @@ function RouteComponent() {
             </div>
             <div className="lg:col-span-1">
               <div className="sticky top-8">
-                {/* <SummaryCard assets={summaryData.assets} liabilities={summaryData.liabilities} /> */}
+                <SummaryCard accounts={data} />
               </div>
             </div>
           </div>
