@@ -275,6 +275,7 @@ func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		TransactionDatetime: pgtype.Timestamptz{Time: req.TransactionDatetime, Valid: true},
 		TransactionCurrency: "USD",
 		IsExternal:          &isExternal,
+		IsRecurring:         req.IsRecurring,
 		OriginalAmount:      amount,
 		Details:             &req.Details,
 		CreatedBy:           &userID,
@@ -411,6 +412,7 @@ func (h *Handler) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 		Description:          req.Description,
 		TransactionDatetime:  req.TransactionDatetime,
 		Details:              req.Details,
+		IsRecurring:          req.IsRecurring,
 		UserID:               userID,
 	})
 	// Handle specific errors with appropriate status codes
@@ -511,9 +513,10 @@ func (h *Handler) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := repository.UpdateTransactionParams{
-		ID:        trscID,
-		Details:   req.Details,
-		UpdatedBy: &userID,
+		ID:          trscID,
+		Details:     req.Details,
+		IsRecurring: req.IsRecurring,
+		UpdatedBy:   &userID,
 	}
 
 	if req.Amount != nil {

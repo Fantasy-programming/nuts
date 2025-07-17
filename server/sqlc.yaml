@@ -3,8 +3,6 @@ sql:
   - engine: "postgresql"
     queries: "./database/queries"
     schema: "./database/migrations"
-    database:
-        uri: "${GOOSE_DBSTRING}"
     gen:
       go:
         package: "repository"

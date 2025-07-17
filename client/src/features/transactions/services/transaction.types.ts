@@ -20,6 +20,7 @@ const baseRecordSchema = z.object({
   details: recordDetailsSchema.optional(),
   updated_at: z.coerce.date(),
   is_external: z.boolean(),
+  is_recurring: z.boolean().optional(),
   transaction_currency: z.string(),
   original_amount: z.number(),
 });
@@ -34,6 +35,7 @@ const baseExtendedRecordSchema = z.object({
   details: recordDetailsSchema.optional(),
   updated_at: z.coerce.date(),
   is_external: z.boolean(),
+  is_recurring: z.boolean().optional(),
   transaction_currency: z.string(),
   original_amount: z.number(),
 });

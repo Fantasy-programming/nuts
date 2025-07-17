@@ -12,9 +12,10 @@ INSERT INTO transactions (
     details,
     provider_transaction_id,
     is_external,
+    is_recurring,
     created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 ) RETURNING *;
 
 
@@ -32,9 +33,10 @@ INSERT INTO transactions (
     details,
     provider_transaction_id,
     is_external,
+    is_recurring,
     created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 );
 
 -- name: GetTransactionById :one
@@ -55,6 +57,7 @@ SELECT
     t.description,
     t.details,
     t.is_external,
+    t.is_recurring,
     t.updated_at,
     -- Embed the source account
     sqlc.embed(source_acct),
@@ -189,6 +192,7 @@ SET
     description = coalesce(sqlc.narg('description'), description),
     transaction_datetime = coalesce(sqlc.narg('transaction_datetime'), transaction_datetime),
     details = coalesce(sqlc.narg('details'), details),
+    is_recurring = coalesce(sqlc.narg('is_recurring'), is_recurring),
     updated_by = sqlc.arg('updated_by')
 WHERE
     id = sqlc.arg('id')

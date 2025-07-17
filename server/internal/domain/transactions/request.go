@@ -48,6 +48,7 @@ type CreateTransactionRequest struct {
 	CategoryID          string      `json:"category_id"`
 	Details             dto.Details `json:"details"`
 	Amount              float64     `json:"amount"`
+	IsRecurring         *bool       `json:"is_recurring"`
 }
 
 type CreateTransfertRequest struct {
@@ -60,6 +61,7 @@ type CreateTransfertRequest struct {
 	CategoryID           string      `json:"category_id"`
 	Details              dto.Details `json:"details"`
 	Amount               float64     `json:"amount"`
+	IsRecurring          *bool       `json:"is_recurring"`
 }
 
 type UpdateTransactionRequest struct {
@@ -72,6 +74,7 @@ type UpdateTransactionRequest struct {
 	Details             *dto.Details `json:"details"`
 	TransactionCurrency *string      `json:"transaction_currency"`
 	OriginalAmount      *float64     `json:"original_amount"`
+	IsRecurring         *bool        `json:"is_recurring"`
 }
 
 // Bulk operation request types

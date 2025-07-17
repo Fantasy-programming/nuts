@@ -113,6 +113,23 @@ export const getRecordsTableColumns = ({
       }
     },
     {
+      accessorKey: "is_recurring",
+      header: "Recurring",
+      size: 100,
+      cell: ({ row }) => {
+        const isRecurring = row.getValue("is_recurring") as boolean;
+        return (
+          <div className="flex items-center justify-center">
+            {isRecurring ? (
+              <Badge variant="secondary" className="text-xs">
+                Recurring
+              </Badge>
+            ) : null}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "amount",
       header: () => <div className="text-right">Amount</div>,
       size: 120,

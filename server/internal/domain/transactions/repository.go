@@ -303,6 +303,7 @@ type TransfertParams struct {
 	OriginalAmount       decimal.Decimal
 	TransactionDatetime  time.Time
 	Details              dto.Details
+	IsRecurring          *bool
 	UserID               uuid.UUID
 }
 
@@ -354,6 +355,7 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 		Description:          params.Description,
 		TransactionDatetime:  pgtype.Timestamptz{Time: params.TransactionDatetime, Valid: true},
 		Details:              &params.Details,
+		IsRecurring:          params.IsRecurring,
 		CreatedBy:            &params.UserID,
 	})
 	if err != nil {
