@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import { Button } from "@/core/components/ui/button";
 import { AccountWTrend, AccountUpdate, GroupedAccount } from "../services/account.types";
+import { useFormatting } from "@/lib/formatting";
+import { useTranslation } from "react-i18next";
 
 import {
   CreditCard,
@@ -93,6 +95,8 @@ export const HorizontalAccountCard = memo(({
   groupId: string
 }) => {
   const { imageUrl } = useBrandImage(account?.meta?.institution_name || "", config.VITE_BRANDFETCH_CLIENTID);
+  const { formatCurrency } = useFormatting();
+  const { t } = useTranslation();
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: account.id,
@@ -158,7 +162,7 @@ export const HorizontalAccountCard = memo(({
           )}
           <div className="min-w-0">
             <h3 className="font-medium truncate text-sm sm:text-base">{account.name}</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">{account.type}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">{t(`accounts.types.${account.type}`)}</p>
           </div>
         </div>
 
@@ -171,7 +175,8 @@ export const HorizontalAccountCard = memo(({
         <div className="col-span-5 sm:col-span-3 flex flex-col items-end">
           <div className="flex items-center gap-1 sm:gap-2">
             <span className="font-semibold text-sm sm:text-base">
-              ${account.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {/* Show account balance in the account's native currency */}
+              {formatCurrency(account.balance, account.currency)}
             </span>
           </div>
           <p className="text-xs text-muted-foreground">{timeAgo(account.updated_at)}</p>
@@ -188,12 +193,12 @@ export const HorizontalAccountCard = memo(({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onEdit}>
                 <Pencil className="mr-2 h-4 w-4" />
-                Edit
+                {t('common.edit')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                {t('common.delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -216,6 +221,8 @@ export const AccountGroup = memo(({
   onDelete: (id: string) => void
 }) => {
   const [isExpanded, setIsExpanded] = useState(true)
+  const { formatCurrency } = useFormatting();
+  const { t } = useTranslation();
 
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -258,13 +265,13 @@ export const AccountGroup = memo(({
             ) : (
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             )}
-            <h2 className="font-medium">{group.type}</h2>
+            <h2 className="font-medium">{t(`accounts.types.${group.type}`)}</h2>
             {group.trend !== 0 && (
               <span
                 className={group.trend > 0 ? "text-emerald-600" : "text-red-600"}
                 style={{ fontSize: "0.9rem" }}
               >
-                {group.trend > 0 ? "↑" : "↓"} <span className="hidden md:inline">${Math.abs(group.trend).toFixed(2)} (
+                {group.trend > 0 ? "↑" : "↓"} <span className="hidden md:inline">{formatCurrency(Math.abs(group.trend))} (
                   {Math.abs((group.trend / group.total) * 100).toFixed(1)}%)</span>
               </span>
             )}
@@ -272,7 +279,8 @@ export const AccountGroup = memo(({
           </button>
         </div>
         <div className="font-semibold text-sm md:text-md">
-          ${group.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {/* Show group total in app currency (converted from account currencies) */}
+          {formatCurrency(group.total)}
         </div>
       </div>
 
@@ -297,41 +305,43 @@ export const AccountGroup = memo(({
   )
 })
 
-const AccountDragOverlay = memo(({ account }: { account: AccountWTrend }) => (
-  <div className="flex items-center justify-between p-4 border rounded-lg shadow-lg bg-white opacity-95 min-w-[300px]">
-    <div className="flex items-center gap-3">
-      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
-        <CreditCard className="h-5 w-5 text-gray-500" />
-      </div>
-      <div>
-        <h3 className="font-medium">{account.name}</h3>
-        <p className="text-sm text-gray-500">{account.type}</p>
-      </div>
-    </div>
-    <div className="font-semibold">
-      ${account.balance.toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}
-    </div>
-  </div>
-));
-
-const GroupDragOverlay = memo(({ group }: { group: GroupedAccount }) => (
-  <div className="border rounded-lg overflow-hidden mb-6 shadow-xl bg-white opacity-95 min-w-[400px]">
-    <div className="flex items-center justify-between p-4 bg-gray-50">
-      <div className="flex items-center gap-2">
-        <h2 className="font-medium">{group.type}</h2>
+const AccountDragOverlay = memo(({ account }: { account: AccountWTrend }) => {
+  const { formatCurrency } = useFormatting();
+  
+  return (
+    <div className="flex items-center justify-between p-4 border rounded-lg shadow-lg bg-white opacity-95 min-w-[300px]">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+          <CreditCard className="h-5 w-5 text-gray-500" />
+        </div>
+        <div>
+          <h3 className="font-medium">{account.name}</h3>
+          <p className="text-sm text-gray-500">{account.type}</p>
+        </div>
       </div>
       <div className="font-semibold">
-        ${group.total.toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
+        {formatCurrency(account.balance, account.currency)}
       </div>
     </div>
-  </div>
-));
+  );
+});
+
+const GroupDragOverlay = memo(({ group }: { group: GroupedAccount }) => {
+  const { formatCurrency } = useFormatting();
+  
+  return (
+    <div className="border rounded-lg overflow-hidden mb-6 shadow-xl bg-white opacity-95 min-w-[400px]">
+      <div className="flex items-center justify-between p-4 bg-gray-50">
+        <div className="flex items-center gap-2">
+          <h2 className="font-medium">{group.type}</h2>
+        </div>
+        <div className="font-semibold">
+          {formatCurrency(group.total)}
+        </div>
+      </div>
+    </div>
+  );
+});
 
 
 

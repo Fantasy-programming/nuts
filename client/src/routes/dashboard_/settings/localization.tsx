@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/core/components/ui/radio-group";
 import { Switch } from "@/core/components/ui/switch";
 import { Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import timezones from 'timezones-list';
 
 const AVAILABLE_LOCALES = [
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/dashboard_/settings/localization")({
 
 function LocalizationSettingsComponent() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const locale = usePreferencesStore((state) => state.locale)
   const timezone = usePreferencesStore((state) => state.timezone)
@@ -74,24 +76,24 @@ function LocalizationSettingsComponent() {
 
   return (
     <div className="space-y-6">
-      <Suspense fallback={<div>Loading preferences...</div>}>
+      <Suspense fallback={<div>{t('common.loading')}</div>}>
 
         <Card className="flex justify-between items-center">
           <CardHeader>
-            <CardTitle>Language & Region (Locale)</CardTitle>
+            <CardTitle>{t('localization.language')}</CardTitle>
             <CardDescription>
-              Affects language and some number/date formatting defaults.
+              {t('localization.languageDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className=" p-0 pr-6">
-            <Label htmlFor="locale-select" className="sr-only">Language & Region (Locale)</Label>
+            <Label htmlFor="locale-select" className="sr-only">{t('localization.language')}</Label>
             <Select
               value={locale}
               onValueChange={(value) => updatePreferences.mutate({ locale: value })}
               disabled={isLoading}
             >
               <SelectTrigger id="locale-select" className="w-[280px]">
-                <SelectValue placeholder="Select locale..." />
+                <SelectValue placeholder={t('localization.selectLanguage')} />
               </SelectTrigger>
               <SelectContent>
                 {AVAILABLE_LOCALES.map((locale) => (
@@ -106,19 +108,19 @@ function LocalizationSettingsComponent() {
 
         <Card className="flex justify-between items-center">
           <CardHeader>
-            <CardTitle>Timezone</CardTitle>
-            <CardDescription>Used to display dates and times accurately for your location.</CardDescription>
+            <CardTitle>{t('localization.timezone')}</CardTitle>
+            <CardDescription>{t('localization.timezoneDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="p-0 pr-6">
             <div className="space-y-2">
-              <Label htmlFor="timezone-select" className="sr-only">Timezone</Label>
+              <Label htmlFor="timezone-select" className="sr-only">{t('localization.timezone')}</Label>
               <Select
                 value={timezone}
                 onValueChange={(value) => updatePreferences.mutate({ timezone: value })}
                 disabled={isLoading}
               >
                 <SelectTrigger id="timezone-select" className="w-[280px]">
-                  <SelectValue placeholder="Select timezone..." />
+                  <SelectValue placeholder={t('localization.selectTimezone')} />
                 </SelectTrigger>
                 {/* Consider using SelectGroup for regions if list is long */}
                 {/* Consider adding a search input for very long lists */}
@@ -136,11 +138,11 @@ function LocalizationSettingsComponent() {
 
         <Card className="flex justify-between items-center">
           <CardHeader>
-            <CardTitle>Time Display Format</CardTitle>
+            <CardTitle>{t('localization.timeFormat')}</CardTitle>
           </CardHeader>
           <CardContent className="p-0 pr-6">
             <div className="space-y-2">
-              <Label className="sr-only">Time Display Format</Label>
+              <Label className="sr-only">{t('localization.timeFormat')}</Label>
               <RadioGroup
                 value={time_format}
                 onValueChange={(value: PreferencesResponse['time_format']) => updatePreferences.mutate({ time_format: value })}
@@ -160,11 +162,11 @@ function LocalizationSettingsComponent() {
 
         <Card className="flex justify-between items-center">
           <CardHeader>
-            <CardTitle>Date Display Format</CardTitle>
+            <CardTitle>{t('localization.dateFormat')}</CardTitle>
           </CardHeader>
           <CardContent className="p-0 pr-6">
             <div className="space-y-2">
-              <Label className="sr-only">Date Display Format</Label>
+              <Label className="sr-only">{t('localization.dateFormat')}</Label>
               <RadioGroup
                 value={date_format}
                 onValueChange={(value: PreferencesResponse['date_format']) => updatePreferences.mutate({ date_format: value })}
@@ -184,7 +186,7 @@ function LocalizationSettingsComponent() {
 
         <Card className="flex justify-between items-center">
           <CardHeader>
-            <CardTitle>Start week on Monday</CardTitle>
+            <CardTitle>{t('localization.startWeekMonday')}</CardTitle>
           </CardHeader>
           <CardContent className="p-0 pr-6">
             <div className="flex items-center space-x-3 pt-2">
@@ -194,7 +196,7 @@ function LocalizationSettingsComponent() {
                 onCheckedChange={(checked) => updatePreferences.mutate({ start_week_on_monday: checked })}
                 disabled={isLoading}
               />
-              <Label htmlFor="start-week-monday" className="sr-only">Start week on Monday</Label>
+              <Label htmlFor="start-week-monday" className="sr-only">{t('localization.startWeekMonday')}</Label>
             </div>
           </CardContent>
         </Card>

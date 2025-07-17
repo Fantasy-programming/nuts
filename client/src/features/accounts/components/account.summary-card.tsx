@@ -3,6 +3,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/core/components/ui/t
 import { ChartContainer } from "@/core/components/ui/chart";
 import { AccountWTrend } from "../services/account.types";
 import { PieChart, Pie, Cell } from "recharts";
+import { useFormatting } from "@/lib/formatting";
+import { useTranslation } from "react-i18next";
+import { usePreferencesStore } from "@/features/preferences/stores/preferences.store";
 
 interface SummaryCardProps {
   accounts: AccountWTrend[];
@@ -36,6 +39,10 @@ const LIABILITY_TYPES = [
 ] as const;
 
 export const SummaryCard = ({ accounts }: SummaryCardProps) => {
+  const { formatCurrency } = useFormatting();
+  const { t } = useTranslation();
+  const appCurrency = usePreferencesStore((state) => state.currency);
+
   const calculateSummaryData = (): SummaryData => {
     const assets: CategoryBreakdown[] = [];
     const liabilities: CategoryBreakdown[] = [];
@@ -53,6 +60,8 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
     ASSET_TYPES.forEach(({ type, name, color }) => {
       const typeAccounts = accountGroups[type] || [];
       if (typeAccounts.length > 0) {
+        // For summary totals, convert all amounts to app currency if needed
+        // TODO: Implement currency conversion here
         const total = typeAccounts.reduce((sum, account) => sum + account.balance, 0);
         assets.push({
           name,
@@ -86,10 +95,6 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
       totalAssets,
       totalLiabilities
     };
-  };
-
-  const formatCurrency = (amount: number): string => {
-    return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const formatPercentage = (amount: number, total: number): string => {
@@ -127,9 +132,9 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
       <CardHeader className="pb-4">
         <Tabs defaultValue="summary" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="totals">Totals</TabsTrigger>
-            <TabsTrigger value="percent">Percent</TabsTrigger>
+            <TabsTrigger value="summary">{t('analytics.overview')}</TabsTrigger>
+            <TabsTrigger value="totals">{t('analytics.totals')}</TabsTrigger>
+            <TabsTrigger value="percent">{t('analytics.percent')}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="summary" className="mt-6">
@@ -137,9 +142,9 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
               {/* Assets Section */}
               <div>
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold text-lg">Assets</h3>
+                  <h3 className="font-semibold text-lg">{t('analytics.assets')}</h3>
                   <span className="font-mono text-lg font-semibold">
-                    ${formatCurrency(summaryData.totalAssets)}
+                    {formatCurrency(summaryData.totalAssets, appCurrency)}
                   </span>
                 </div>
                 
@@ -172,7 +177,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                         <span className="text-sm">{category.name}</span>
                       </div>
                       <span className="font-mono text-sm font-medium">
-                        ${formatCurrency(category.total)}
+                        {formatCurrency(category.total, appCurrency)}
                       </span>
                     </div>
                   ))}
@@ -183,9 +188,9 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
               {summaryData.liabilities.length > 0 && (
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-semibold text-lg">Liabilities</h3>
+                    <h3 className="font-semibold text-lg">{t('analytics.liabilities')}</h3>
                     <span className="font-mono text-lg font-semibold">
-                      ${formatCurrency(summaryData.totalLiabilities)}
+                      {formatCurrency(summaryData.totalLiabilities, appCurrency)}
                     </span>
                   </div>
                   
@@ -212,7 +217,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                           <span className="text-sm">{category.name}</span>
                         </div>
                         <span className="font-mono text-sm font-medium">
-                          ${formatCurrency(category.total)}
+                          {formatCurrency(category.total, appCurrency)}
                         </span>
                       </div>
                     ))}
@@ -225,15 +230,15 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
           <TabsContent value="totals" className="mt-6">
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium">Total Assets</span>
+                <span className="font-medium">{t('analytics.totalAssets')}</span>
                 <span className="font-mono font-semibold text-green-600">
-                  ${formatCurrency(summaryData.totalAssets)}
+                  {formatCurrency(summaryData.totalAssets, appCurrency)}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium">Total Liabilities</span>
+                <span className="font-medium">{t('analytics.totalLiabilities')}</span>
                 <span className="font-mono font-semibold text-red-600">
-                  ${formatCurrency(summaryData.totalLiabilities)}
+                  {formatCurrency(summaryData.totalLiabilities, appCurrency)}
                 </span>
               </div>
             </div>
@@ -268,10 +273,10 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-blue-500" />
-                    <span className="text-sm font-medium">ASSETS</span>
+                    <span className="text-sm font-medium">{t('analytics.assets').toUpperCase()}</span>
                   </div>
                   <div className="text-right">
-                    <div className="font-mono font-semibold">${formatCurrency(summaryData.totalAssets)}</div>
+                    <div className="font-mono font-semibold">{formatCurrency(summaryData.totalAssets, appCurrency)}</div>
                     <div className="text-sm text-muted-foreground">
                       {formatPercentage(summaryData.totalAssets, grandTotal)}
                     </div>
@@ -282,10 +287,10 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-red-500" />
-                      <span className="text-sm font-medium">LIABILITIES</span>
+                      <span className="text-sm font-medium">{t('analytics.liabilities').toUpperCase()}</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-mono font-semibold">${formatCurrency(summaryData.totalLiabilities)}</div>
+                      <div className="font-mono font-semibold">{formatCurrency(summaryData.totalLiabilities, appCurrency)}</div>
                       <div className="text-sm text-muted-foreground">
                         {formatPercentage(summaryData.totalLiabilities, grandTotal)}
                       </div>

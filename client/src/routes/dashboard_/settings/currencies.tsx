@@ -5,6 +5,7 @@ import { preferencesService } from "@/features/preferences/services/preferences"
 import { metaService } from "@/features/preferences/services/meta";
 import getSymbolFromCurrency from "currency-symbol-map";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/core/components/ui/card";
 import {
@@ -45,6 +46,7 @@ export const Route = createFileRoute('/dashboard_/settings/currencies')({
 
 function RouteComponent() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const currency = usePreferencesStore((state) => state.currency)
   const [isCSelectorOpen, setIsCSelectorOpen] = useState(false);
 
@@ -67,26 +69,26 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Preferences</CardTitle>
-        <CardDescription>Customize your application experience</CardDescription>
+        <CardTitle>{t('currency.defaultCurrency')}</CardTitle>
+        <CardDescription>{t('currency.defaultCurrencyDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6">
 
         <div className="grid gap-2">
-          <Label>Currency</Label>
+          <Label>{t('common.currency')}</Label>
           <ComboBox open={isCSelectorOpen} onOpenChange={setIsCSelectorOpen}>
             <ComboBoxTrigger>
               <Button variant="outline" role="combobox"
                 aria-expanded={isCSelectorOpen} className="justify-between">
-                {currency ? <>{currencies.find((c => c.code === currency))?.name} ({getSymbolFromCurrency(currency)})</> : <>Select Language</>}
+                {currency ? <>{currencies.find((c => c.code === currency))?.name} ({getSymbolFromCurrency(currency)})</> : <>{t('currency.selectCurrency')}</>}
                 <ChevronsUpDown className="opacity-50" />
               </Button>
             </ComboBoxTrigger>
             <ComboBoxContent>
               <Command>
-                <CommandInput placeholder="Filter status..." />
+                <CommandInput placeholder={t('common.search')} />
                 <CommandList>
-                  <CommandEmpty>No results found.</CommandEmpty>
+                  <CommandEmpty>{t('common.noResults')}</CommandEmpty>
                   <CommandGroup>
                     {currencies.map((currency) => (
                       <CommandItem
@@ -108,7 +110,7 @@ function RouteComponent() {
           </ComboBox>
         </div>
 
-        {updatePreferences.isPending && <p className="text-sm text-blue-500">Saving preferences...</p>}
+        {updatePreferences.isPending && <p className="text-sm text-blue-500">{t('common.loading')}</p>}
       </CardContent>
     </Card>
 
