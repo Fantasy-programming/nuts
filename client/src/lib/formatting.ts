@@ -182,22 +182,23 @@ export function getCurrencySymbol(currencyCode: string): string {
  * Hook to get formatting functions with current preferences
  */
 export function useFormatting() {
-  const preferences = usePreferencesStore((state) => ({
-    locale: state.locale,
-    currency: state.currency,
-    date_format: state.date_format,
-    time_format: state.time_format,
-  }));
+  const locale = usePreferencesStore((state) => state.locale);
+  const currency = usePreferencesStore((state) => state.currency);
+  const date_format = usePreferencesStore((state) => state.date_format);
+  const time_format = usePreferencesStore((state) => state.time_format);
 
   // Memoize the formatting functions to prevent infinite re-renders
-  const formatters = useMemo(() => ({
-    formatDate: (date: Date | string) => formatDate(date, preferences),
-    formatTime: (date: Date | string) => formatTime(date, preferences),
-    formatDateTime: (date: Date | string) => formatDateTime(date, preferences),
-    formatCurrency: (amount: number, currency?: string) => formatCurrency(amount, currency, preferences),
-    formatNumber: (number: number, options?: Intl.NumberFormatOptions) => formatNumber(number, preferences, options),
-    getCurrencySymbol,
-  }), [preferences.locale, preferences.currency, preferences.date_format, preferences.time_format]);
+  const formatters = useMemo(() => {
+    const preferences = { locale, currency, date_format, time_format };
+    return {
+      formatDate: (date: Date | string) => formatDate(date, preferences),
+      formatTime: (date: Date | string) => formatTime(date, preferences),
+      formatDateTime: (date: Date | string) => formatDateTime(date, preferences),
+      formatCurrency: (amount: number, currency?: string) => formatCurrency(amount, currency, preferences),
+      formatNumber: (number: number, options?: Intl.NumberFormatOptions) => formatNumber(number, preferences, options),
+      getCurrencySymbol,
+    };
+  }, [locale, currency, date_format, time_format]);
 
   return formatters;
 }
