@@ -13,6 +13,7 @@ import { Input } from "@/core/components/ui/input"
 import { Textarea } from "@/core/components/ui/textarea"
 import { Sheet, SheetContent, SheetTitle, SheetClose, SheetHeader, SheetDescription } from "@/core/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select"
+import { Checkbox } from "@/core/components/ui/checkbox"
 import { Tabs, TabsList, TabsTrigger } from "@/core/components/ui/tabs"
 import { X, ArrowDownLeft, ArrowUpRight, Loader2, Info, Lock } from "lucide-react"
 import { RecordUpdateSchema, recordUpdateSchema } from "../services/transaction.types";
@@ -369,6 +370,26 @@ export default function EditTransactionSheet({
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="is_recurring"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Recurring Transaction
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

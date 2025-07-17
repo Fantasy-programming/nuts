@@ -343,6 +343,7 @@ type Transaction struct {
 	ExchangeRate          pgtype.Numeric `json:"exchange_rate"`
 	ExchangeRateDate      pgtype.Date    `json:"exchange_rate_date"`
 	IsCategorized         *bool          `json:"is_categorized"`
+	IsRecurring           *bool          `json:"is_recurring"`
 	SharedFinanceID       *uuid.UUID     `json:"shared_finance_id"`
 }
 

@@ -17,6 +17,20 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Helper function to convert *float64 to pgtype.Numeric
+func floatToPgNumeric(f *float64) pgtype.Numeric {
+	if f == nil {
+		return pgtype.Numeric{Valid: false}
+	}
+	decimal := decimal.NewFromFloat(*f)
+	var numeric pgtype.Numeric
+	err := numeric.Scan(decimal.String())
+	if err != nil {
+		return pgtype.Numeric{Valid: false}
+	}
+	return numeric
+}
+
 type Repository interface {
 	// Transaction operations
 	GetTransactions(ctx context.Context, params ListTransactionsParams, groupByDate bool) (*PaginatedTransactionsResponse, error)
@@ -59,8 +73,8 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 		EndDate:    params.EndDate,
 		Search:     params.Search,
 		IsExternal: params.IsExternal,
-		MinAmount:  params.MinAmount,
-		MaxAmount:  params.MaxAmount,
+		MinAmount:  floatToPgNumeric(params.MinAmount),
+		MaxAmount:  floatToPgNumeric(params.MaxAmount),
 		Tags:       params.Tags,
 	})
 	if err != nil {
@@ -80,8 +94,8 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 		EndDate:    params.EndDate,
 		Search:     params.Search,
 		IsExternal: params.IsExternal,
-		MinAmount:  params.MinAmount,
-		MaxAmount:  params.MaxAmount,
+		MinAmount:  floatToPgNumeric(params.MinAmount),
+		MaxAmount:  floatToPgNumeric(params.MaxAmount),
 		Tags:       params.Tags,
 	}
 
@@ -289,6 +303,7 @@ type TransfertParams struct {
 	OriginalAmount       decimal.Decimal
 	TransactionDatetime  time.Time
 	Details              dto.Details
+	IsRecurring          *bool
 	UserID               uuid.UUID
 }
 
@@ -340,6 +355,7 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 		Description:          params.Description,
 		TransactionDatetime:  pgtype.Timestamptz{Time: params.TransactionDatetime, Valid: true},
 		Details:              &params.Details,
+		IsRecurring:          params.IsRecurring,
 		CreatedBy:            &params.UserID,
 	})
 	if err != nil {

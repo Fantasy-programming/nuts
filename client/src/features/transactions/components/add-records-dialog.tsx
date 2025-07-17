@@ -11,6 +11,7 @@ import {
 } from "@/core/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
+import { Checkbox } from "@/core/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/core/components/ui/tabs";
 import { Input } from "@/core/components/ui/input";
 import { accountService } from "@/features/accounts/services/account";
@@ -259,6 +260,26 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="is_recurring"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Recurring Transaction
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
             <Button type="submit" className="w-full">
               Create Expense
             </Button>
@@ -358,6 +379,26 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
                     <DatetimePicker  {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="is_recurring"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Recurring Transaction
+                    </FormLabel>
+                  </div>
                 </FormItem>
               )}
             />
@@ -463,6 +504,26 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
                     <DatetimePicker  {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="is_recurring"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Recurring Transaction
+                    </FormLabel>
+                  </div>
                 </FormItem>
               )}
             />

@@ -28,6 +28,7 @@ type BatchCreateTransactionParams struct {
 	Details               *dto.Details       `json:"details"`
 	ProviderTransactionID *string            `json:"provider_transaction_id"`
 	IsExternal            *bool              `json:"is_external"`
+	IsRecurring           *bool              `json:"is_recurring"`
 	CreatedBy             *uuid.UUID         `json:"created_by"`
 }
 
@@ -117,10 +118,11 @@ INSERT INTO transactions (
     details,
     provider_transaction_id,
     is_external,
+    is_recurring,
     created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
-) RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+) RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, is_recurring, shared_finance_id
 `
 
 type CreateTransactionParams struct {
@@ -136,6 +138,7 @@ type CreateTransactionParams struct {
 	Details               *dto.Details       `json:"details"`
 	ProviderTransactionID *string            `json:"provider_transaction_id"`
 	IsExternal            *bool              `json:"is_external"`
+	IsRecurring           *bool              `json:"is_recurring"`
 	CreatedBy             *uuid.UUID         `json:"created_by"`
 }
 
@@ -153,6 +156,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.Details,
 		arg.ProviderTransactionID,
 		arg.IsExternal,
+		arg.IsRecurring,
 		arg.CreatedBy,
 	)
 	var i Transaction
@@ -178,6 +182,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		&i.ExchangeRate,
 		&i.ExchangeRateDate,
 		&i.IsCategorized,
+		&i.IsRecurring,
 		&i.SharedFinanceID,
 	)
 	return i, err
@@ -245,7 +250,7 @@ func (q *Queries) GetCategorySpending(ctx context.Context, arg GetCategorySpendi
 }
 
 const getTransactionById = `-- name: GetTransactionById :one
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, is_recurring, shared_finance_id
 FROM transactions
 WHERE
     id = $1
@@ -278,6 +283,7 @@ func (q *Queries) GetTransactionById(ctx context.Context, id uuid.UUID) (Transac
 		&i.ExchangeRate,
 		&i.ExchangeRateDate,
 		&i.IsCategorized,
+		&i.IsRecurring,
 		&i.SharedFinanceID,
 	)
 	return i, err
@@ -331,6 +337,7 @@ SELECT
     t.description,
     t.details,
     t.is_external,
+    t.is_recurring,
     t.updated_at,
     -- Embed the source account
     source_acct.id, source_acct.name, source_acct.type, source_acct.balance, source_acct.currency, source_acct.meta, source_acct.created_by, source_acct.updated_by, source_acct.created_at, source_acct.updated_at, source_acct.deleted_at, source_acct.is_external, source_acct.provider_account_id, source_acct.provider_name, source_acct.sync_status, source_acct.last_synced_at, source_acct.connection_id, source_acct.subtype, source_acct.shared_finance_id,
@@ -409,6 +416,7 @@ type ListTransactionsRow struct {
 	Description                *string         `json:"description"`
 	Details                    *dto.Details    `json:"details"`
 	IsExternal                 *bool           `json:"is_external"`
+	IsRecurring                *bool           `json:"is_recurring"`
 	UpdatedAt                  time.Time       `json:"updated_at"`
 	Account                    Account         `json:"account"`
 	DestinationAccountIDAlias  *uuid.UUID      `json:"destination_account_id_alias"`
@@ -451,6 +459,7 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Description,
 			&i.Details,
 			&i.IsExternal,
+			&i.IsRecurring,
 			&i.UpdatedAt,
 			&i.Account.ID,
 			&i.Account.Name,
@@ -501,7 +510,7 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 const listTransactionsByAccount = `-- name: ListTransactionsByAccount :many
 
 
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, is_recurring, shared_finance_id
 FROM transactions
 WHERE
     account_id = $1
@@ -551,6 +560,7 @@ func (q *Queries) ListTransactionsByAccount(ctx context.Context, accountID uuid.
 			&i.ExchangeRate,
 			&i.ExchangeRateDate,
 			&i.IsCategorized,
+			&i.IsRecurring,
 			&i.SharedFinanceID,
 		); err != nil {
 			return nil, err
@@ -564,7 +574,7 @@ func (q *Queries) ListTransactionsByAccount(ctx context.Context, accountID uuid.
 }
 
 const listTransactionsByCategory = `-- name: ListTransactionsByCategory :many
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, is_recurring, shared_finance_id
 FROM transactions
 WHERE
     category_id = $1
@@ -603,6 +613,7 @@ func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID *uu
 			&i.ExchangeRate,
 			&i.ExchangeRateDate,
 			&i.IsCategorized,
+			&i.IsRecurring,
 			&i.SharedFinanceID,
 		); err != nil {
 			return nil, err
@@ -616,7 +627,7 @@ func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID *uu
 }
 
 const listTransactionsByDateRange = `-- name: ListTransactionsByDateRange :many
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, is_recurring, shared_finance_id
 FROM transactions
 WHERE
     created_by = $1::uuid
@@ -662,6 +673,7 @@ func (q *Queries) ListTransactionsByDateRange(ctx context.Context, arg ListTrans
 			&i.ExchangeRate,
 			&i.ExchangeRateDate,
 			&i.IsCategorized,
+			&i.IsRecurring,
 			&i.SharedFinanceID,
 		); err != nil {
 			return nil, err
@@ -684,11 +696,12 @@ SET
     description = coalesce($5, description),
     transaction_datetime = coalesce($6, transaction_datetime),
     details = coalesce($7, details),
-    updated_by = $8
+    is_recurring = coalesce($8, is_recurring),
+    updated_by = $9
 WHERE
-    id = $9
+    id = $10
     AND deleted_at IS NULL
-RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, is_recurring, shared_finance_id
 `
 
 type UpdateTransactionParams struct {
@@ -699,6 +712,7 @@ type UpdateTransactionParams struct {
 	Description         *string             `json:"description"`
 	TransactionDatetime pgtype.Timestamptz  `json:"transaction_datetime"`
 	Details             *dto.Details        `json:"details"`
+	IsRecurring         *bool               `json:"is_recurring"`
 	UpdatedBy           *uuid.UUID          `json:"updated_by"`
 	ID                  uuid.UUID           `json:"id"`
 }
@@ -712,6 +726,7 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		arg.Description,
 		arg.TransactionDatetime,
 		arg.Details,
+		arg.IsRecurring,
 		arg.UpdatedBy,
 		arg.ID,
 	)
@@ -738,6 +753,7 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		&i.ExchangeRate,
 		&i.ExchangeRateDate,
 		&i.IsCategorized,
+		&i.IsRecurring,
 		&i.SharedFinanceID,
 	)
 	return i, err
