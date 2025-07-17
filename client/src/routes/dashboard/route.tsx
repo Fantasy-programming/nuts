@@ -9,6 +9,7 @@ import { userService } from "@/features/preferences/services/user";
 import { useTheme } from "@/features/preferences/hooks/use-theme";
 import { useShallow } from 'zustand/react/shallow'
 import { useTranslation } from "react-i18next";
+import { isOnboardingRequired } from "@/features/onboarding/services/onboarding";
 import {
   RiSettingsLine,
   RiBankCard2Line,
@@ -110,7 +111,25 @@ export const Route = createFileRoute("/dashboard")({
       });
     }
 
-    const queryClient = context.queryClient
+    const queryClient = context.queryClient;
+    
+    // Check if user needs onboarding
+    try {
+      const user = await queryClient.fetchQuery({
+        queryKey: ["user"],
+        queryFn: userService.getMe,
+      });
+      
+      if (isOnboardingRequired(user)) {
+        throw redirect({
+          to: "/onboarding/name",
+        });
+      }
+    } catch (error) {
+      // If we can't fetch user data, let them through and handle it later
+      console.error("Failed to check onboarding status:", error);
+    }
+    
     const accounts = await queryClient.fetchQuery(getAllAccounts())
 
     return {

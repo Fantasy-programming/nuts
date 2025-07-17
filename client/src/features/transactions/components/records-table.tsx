@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table"
 import { Link } from "@tanstack/react-router"
 
-import { ChevronDown, ChevronRight, Filter, Plus, Minus, Search, Loader2 } from "lucide-react"
+import { ChevronDown, ChevronRight, Plus, Minus, Search, Loader2 } from "lucide-react"
 import { Button } from "@/core/components/ui/button"
 import { Checkbox } from "@/core/components/ui/checkbox"
 import { Input } from "@/core/components/ui/input"
