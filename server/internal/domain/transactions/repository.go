@@ -59,8 +59,8 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 		EndDate:    params.EndDate,
 		Search:     params.Search,
 		IsExternal: params.IsExternal,
-		MinAmount:  params.MinAmount,
-		MaxAmount:  params.MaxAmount,
+		MinAmount:  types.ToPgNumeric(params.MinAmount),
+		MaxAmount:  types.ToPgNumeric(params.MaxAmount),
 		Tags:       params.Tags,
 	})
 	if err != nil {
@@ -80,8 +80,8 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 		EndDate:    params.EndDate,
 		Search:     params.Search,
 		IsExternal: params.IsExternal,
-		MinAmount:  params.MinAmount,
-		MaxAmount:  params.MaxAmount,
+		MinAmount:  types.ToPgNumeric(params.MinAmount),
+		MaxAmount:  types.ToPgNumeric(params.MaxAmount),
 		Tags:       params.Tags,
 	}
 
@@ -372,42 +372,42 @@ func (r *Trsrepo) CreateTransfertTransaction(ctx context.Context, params Transfe
 
 // BulkUpdateManualTransactionsParams holds parameters for bulk updating manual transactions
 type BulkUpdateManualTransactionsParams struct {
-Ids                 []uuid.UUID
-CategoryID          *uuid.UUID
-AccountID           *uuid.UUID
-TransactionDatetime *time.Time
-UserID              uuid.UUID
+	Ids                 []uuid.UUID
+	CategoryID          *uuid.UUID
+	AccountID           *uuid.UUID
+	TransactionDatetime *time.Time
+	UserID              uuid.UUID
 }
 
 // BulkDeleteTransactions deletes multiple transactions
 func (r *Trsrepo) BulkDeleteTransactions(ctx context.Context, ids []uuid.UUID, userID uuid.UUID) error {
-return r.Queries.BulkDeleteTransactions(ctx, repository.BulkDeleteTransactionsParams{
-Ids:    ids,
-UserID: userID,
-})
+	return r.Queries.BulkDeleteTransactions(ctx, repository.BulkDeleteTransactionsParams{
+		Ids:    ids,
+		UserID: &userID,
+	})
 }
 
 // BulkUpdateTransactionCategories updates categories for multiple transactions
 func (r *Trsrepo) BulkUpdateTransactionCategories(ctx context.Context, ids []uuid.UUID, categoryID uuid.UUID, userID uuid.UUID) error {
-return r.Queries.BulkUpdateTransactionCategories(ctx, repository.BulkUpdateTransactionCategoriesParams{
-CategoryID: categoryID,
-UpdatedBy:  userID,
-Ids:        ids,
-})
+	return r.Queries.BulkUpdateTransactionCategories(ctx, repository.BulkUpdateTransactionCategoriesParams{
+		CategoryID: &categoryID,
+		UpdatedBy:  &userID,
+		Ids:        ids,
+	})
 }
 
 // BulkUpdateManualTransactions updates multiple manual transactions (non-external)
 func (r *Trsrepo) BulkUpdateManualTransactions(ctx context.Context, params BulkUpdateManualTransactionsParams) error {
-var transactionDatetime pgtype.Timestamptz
-if params.TransactionDatetime != nil {
-transactionDatetime = pgtype.Timestamptz{Time: *params.TransactionDatetime, Valid: true}
-}
+	var transactionDatetime pgtype.Timestamptz
+	if params.TransactionDatetime != nil {
+		transactionDatetime = pgtype.Timestamptz{Time: *params.TransactionDatetime, Valid: true}
+	}
 
-return r.Queries.BulkUpdateManualTransactions(ctx, repository.BulkUpdateManualTransactionsParams{
-CategoryID:          params.CategoryID,
-AccountID:           params.AccountID,
-TransactionDatetime: transactionDatetime,
-UpdatedBy:           params.UserID,
-Ids:                 params.Ids,
-})
+	return r.Queries.BulkUpdateManualTransactions(ctx, repository.BulkUpdateManualTransactionsParams{
+		CategoryID:          params.CategoryID,
+		AccountID:           params.AccountID,
+		TransactionDatetime: transactionDatetime,
+		UpdatedBy:           &params.UserID,
+		Ids:                 params.Ids,
+	})
 }
