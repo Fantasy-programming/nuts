@@ -48,7 +48,16 @@ func (s *Server) initAccount() {
 }
 
 func (s *Server) initTransaction() {
-	TransactionDomain := transactions.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	// Create queries and transaction repository
+	queries := repository.New(s.db)
+	transRepo := transactions.NewRepository(s.db, queries)
+	
+	// Create rules service
+	rulesRepo := rules.NewRepository(s.db)
+	rulesService := rules.NewService(rulesRepo, transRepo, s.logger)
+	
+	// Create transaction handler with rules integration
+	TransactionDomain := transactions.RegisterHTTPHandlersWithRules(s.db, s.validator, s.jwt, rulesService, s.logger)
 	s.router.Mount("/transactions", TransactionDomain)
 }
 

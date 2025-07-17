@@ -1,6 +1,7 @@
 package transactions
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,13 +21,23 @@ import (
 )
 
 type Handler struct {
-	validator *validation.Validator
-	repo      Repository
-	logger    *zerolog.Logger
+	validator   *validation.Validator
+	repo        Repository
+	rulesService RulesService
+	logger      *zerolog.Logger
+}
+
+// RulesService is an interface for the rules service
+type RulesService interface {
+	AutoApplyRulesToNewTransaction(ctx context.Context, transactionID uuid.UUID, userID uuid.UUID) error
 }
 
 func NewHandler(validator *validation.Validator, repo Repository, logger *zerolog.Logger) *Handler {
-	return &Handler{validator, repo, logger}
+	return &Handler{validator, repo, nil, logger}
+}
+
+func NewHandlerWithRules(validator *validation.Validator, repo Repository, rulesService RulesService, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, repo, rulesService, logger}
 }
 
 func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
@@ -292,6 +303,15 @@ func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Apply rules to the newly created transaction
+	if h.rulesService != nil {
+		err = h.rulesService.AutoApplyRulesToNewTransaction(ctx, transaction.ID, userID)
+		if err != nil {
+			// Log the error but don't fail the transaction creation
+			h.logger.Error().Err(err).Str("transaction_id", transaction.ID.String()).Msg("Failed to apply rules to transaction")
+		}
+	}
+
 	respond.Json(w, http.StatusOK, transaction, h.logger)
 }
 
@@ -446,6 +466,15 @@ func (h *Handler) CreateTransfert(w http.ResponseWriter, r *http.Request) {
 			Details:    req,
 		})
 		return
+	}
+
+	// Apply rules to the newly created transaction
+	if h.rulesService != nil {
+		err = h.rulesService.AutoApplyRulesToNewTransaction(ctx, transaction.ID, userID)
+		if err != nil {
+			// Log the error but don't fail the transaction creation
+			h.logger.Error().Err(err).Str("transaction_id", transaction.ID.String()).Msg("Failed to apply rules to transaction")
+		}
 	}
 
 	respond.Json(w, http.StatusOK, transaction, h.logger)
