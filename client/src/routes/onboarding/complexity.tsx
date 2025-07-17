@@ -40,8 +40,14 @@ function RouteComponent() {
         description: "Your account has been set up successfully.",
       });
       
-      // Navigate to dashboard
-      await navigate({ to: "/dashboard/home" });
+      // Navigate to dashboard with replace to prevent back navigation to onboarding
+      try {
+        await navigate({ to: "/dashboard/home", replace: true });
+      } catch (navError) {
+        console.error("Navigation error, falling back to location change:", navError);
+        // Fallback to direct navigation if router navigation fails
+        window.location.href = "/dashboard/home";
+      }
     } catch (error) {
       toast.error("Something went wrong", {
         description: "We couldn't save your information. Please try again.",

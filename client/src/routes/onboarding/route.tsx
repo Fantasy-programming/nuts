@@ -1,16 +1,39 @@
 import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { userService } from "@/features/preferences/services/user";
+import { isOnboardingRequired } from "@/features/onboarding/services/onboarding";
 
 export const Route = createFileRoute("/onboarding")({
-  // Temporarily disable auth check for testing
-  // beforeLoad: async ({ context, location }) => {
-  //   if (!context.auth.isAuthenticated) {
-  //     throw redirect({
-  //       to: "/login",
-  //       search: { redirect: location.href },
-  //     });
-  //   }
-  // },
+  beforeLoad: async ({ context, location }) => {
+    if (!context.auth.isAuthenticated) {
+      throw redirect({
+        to: "/login",
+        search: { redirect: location.href },
+      });
+    }
+
+    // Check if user has already completed onboarding
+    try {
+      const queryClient = context.queryClient;
+      const user = await queryClient.fetchQuery({
+        queryKey: ["user"],
+        queryFn: userService.getMe,
+      });
+
+      if (!isOnboardingRequired(user)) {
+        throw redirect({
+          to: "/dashboard/home",
+        });
+      }
+    } catch (redirectError) {
+      // Re-throw redirect errors
+      if (redirectError && typeof redirectError === 'object' && 'type' in redirectError) {
+        throw redirectError;
+      }
+      // If we can't fetch user data, let them continue to onboarding
+      console.error("Failed to check onboarding completion status:", redirectError);
+    }
+  },
   component: OnboardingLayout,
 });
 

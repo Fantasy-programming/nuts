@@ -339,7 +339,7 @@ const SideBarMainLinks = memo(() => {
                 className="group/menu-button  font-medium gap-3 h-9 rounded-md text-[#757575] hover:text-secondary-900/45 hover:bg-neutral-200/40 [&>svg]:size-auto"
               >
                 <Link to={item.url} activeProps={{ className: "bg-sidebar-accent shadow-sm hover:bg-sidebar-accent" }}
-                >{({ isActive }) => (
+                >{({ isActive }: { isActive: boolean }) => (
                   <>
                     {isActive ? (
                       <item.activeIcon size={16} aria-hidden="true" className="text-secondary-900/80" />

@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TestOnboardingRouteImport } from './routes/test-onboarding'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -18,7 +17,6 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as TestOnboardingNameRouteImport } from './routes/test-onboarding.name'
 import { Route as OnboardingSocialProofRouteImport } from './routes/onboarding/social-proof'
 import { Route as OnboardingNameRouteImport } from './routes/onboarding/name'
 import { Route as OnboardingGoalsRouteImport } from './routes/onboarding/goals'
@@ -47,11 +45,6 @@ import { Route as DashboardSettingsCategoriesRouteImport } from './routes/dashbo
 import { Route as DashboardSettingsAppearanceRouteImport } from './routes/dashboard_/settings/appearance'
 import { Route as DashboardAccountsIdRouteImport } from './routes/dashboard/accounts.$id'
 
-const TestOnboardingRoute = TestOnboardingRouteImport.update({
-  id: '/test-onboarding',
-  path: '/test-onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -91,11 +84,6 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
-} as any)
-const TestOnboardingNameRoute = TestOnboardingNameRouteImport.update({
-  id: '/name',
-  path: '/name',
-  getParentRoute: () => TestOnboardingRoute,
 } as any)
 const OnboardingSocialProofRoute = OnboardingSocialProofRouteImport.update({
   id: '/social-proof',
@@ -251,7 +239,6 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/test-onboarding': typeof TestOnboardingRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/$': typeof DashboardSplatRoute
   '/dashboard/accounts': typeof DashboardAccountsRouteWithChildren
@@ -264,7 +251,6 @@ export interface FileRoutesByFullPath {
   '/onboarding/goals': typeof OnboardingGoalsRoute
   '/onboarding/name': typeof OnboardingNameRoute
   '/onboarding/social-proof': typeof OnboardingSocialProofRoute
-  '/test-onboarding/name': typeof TestOnboardingNameRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/dashboard/accounts/$id': typeof DashboardAccountsIdRoute
@@ -288,7 +274,6 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/test-onboarding': typeof TestOnboardingRouteWithChildren
   '/dashboard/$': typeof DashboardSplatRoute
   '/dashboard/accounts': typeof DashboardAccountsRouteWithChildren
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
@@ -300,7 +285,6 @@ export interface FileRoutesByTo {
   '/onboarding/goals': typeof OnboardingGoalsRoute
   '/onboarding/name': typeof OnboardingNameRoute
   '/onboarding/social-proof': typeof OnboardingSocialProofRoute
-  '/test-onboarding/name': typeof TestOnboardingNameRoute
   '/dashboard': typeof DashboardIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
   '/dashboard/accounts/$id': typeof DashboardAccountsIdRoute
@@ -327,7 +311,6 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/test-onboarding': typeof TestOnboardingRouteWithChildren
   '/dashboard_/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/$': typeof DashboardSplatRoute
   '/dashboard/accounts': typeof DashboardAccountsRouteWithChildren
@@ -340,7 +323,6 @@ export interface FileRoutesById {
   '/onboarding/goals': typeof OnboardingGoalsRoute
   '/onboarding/name': typeof OnboardingNameRoute
   '/onboarding/social-proof': typeof OnboardingSocialProofRoute
-  '/test-onboarding/name': typeof TestOnboardingNameRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/dashboard/accounts/$id': typeof DashboardAccountsIdRoute
@@ -368,7 +350,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/signup'
-    | '/test-onboarding'
     | '/dashboard/settings'
     | '/dashboard/$'
     | '/dashboard/accounts'
@@ -381,7 +362,6 @@ export interface FileRouteTypes {
     | '/onboarding/goals'
     | '/onboarding/name'
     | '/onboarding/social-proof'
-    | '/test-onboarding/name'
     | '/dashboard/'
     | '/onboarding/'
     | '/dashboard/accounts/$id'
@@ -405,7 +385,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/signup'
-    | '/test-onboarding'
     | '/dashboard/$'
     | '/dashboard/accounts'
     | '/dashboard/analytics'
@@ -417,7 +396,6 @@ export interface FileRouteTypes {
     | '/onboarding/goals'
     | '/onboarding/name'
     | '/onboarding/social-proof'
-    | '/test-onboarding/name'
     | '/dashboard'
     | '/onboarding'
     | '/dashboard/accounts/$id'
@@ -443,7 +421,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/signup'
-    | '/test-onboarding'
     | '/dashboard_/settings'
     | '/dashboard/$'
     | '/dashboard/accounts'
@@ -456,7 +433,6 @@ export interface FileRouteTypes {
     | '/onboarding/goals'
     | '/onboarding/name'
     | '/onboarding/social-proof'
-    | '/test-onboarding/name'
     | '/dashboard/'
     | '/onboarding/'
     | '/dashboard/accounts/$id'
@@ -483,19 +459,11 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
-  TestOnboardingRoute: typeof TestOnboardingRouteWithChildren
   DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/test-onboarding': {
-      id: '/test-onboarding'
-      path: '/test-onboarding'
-      fullPath: '/test-onboarding'
-      preLoaderRoute: typeof TestOnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -551,13 +519,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
-    }
-    '/test-onboarding/name': {
-      id: '/test-onboarding/name'
-      path: '/name'
-      fullPath: '/test-onboarding/name'
-      preLoaderRoute: typeof TestOnboardingNameRouteImport
-      parentRoute: typeof TestOnboardingRoute
     }
     '/onboarding/social-proof': {
       id: '/onboarding/social-proof'
@@ -808,18 +769,6 @@ const OnboardingRouteRouteWithChildren = OnboardingRouteRoute._addFileChildren(
   OnboardingRouteRouteChildren,
 )
 
-interface TestOnboardingRouteChildren {
-  TestOnboardingNameRoute: typeof TestOnboardingNameRoute
-}
-
-const TestOnboardingRouteChildren: TestOnboardingRouteChildren = {
-  TestOnboardingNameRoute: TestOnboardingNameRoute,
-}
-
-const TestOnboardingRouteWithChildren = TestOnboardingRoute._addFileChildren(
-  TestOnboardingRouteChildren,
-)
-
 interface DashboardSettingsRouteRouteChildren {
   DashboardSettingsAppearanceRoute: typeof DashboardSettingsAppearanceRoute
   DashboardSettingsCategoriesRoute: typeof DashboardSettingsCategoriesRoute
@@ -867,7 +816,6 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
-  TestOnboardingRoute: TestOnboardingRouteWithChildren,
   DashboardSettingsRouteRoute: DashboardSettingsRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
