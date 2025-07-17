@@ -1,21 +1,13 @@
-import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { Outlet } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Nuts } from "@/core/assets/icons/Logo";
 
-export const Route = createFileRoute("/onboarding")({
-  // Temporarily disable auth check for testing
-  // beforeLoad: async ({ context, location }) => {
-  //   if (!context.auth.isAuthenticated) {
-  //     throw redirect({
-  //       to: "/login",
-  //       search: { redirect: location.href },
-  //     });
-  //   }
-  // },
-  component: OnboardingLayout,
+export const Route = createFileRoute("/test-onboarding")({
+  component: TestOnboardingLayout,
 });
 
-function OnboardingLayout() {
+function TestOnboardingLayout() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center overflow-hidden p-4 bg-gradient-to-br from-primary-nuts-50 to-primary-nuts-100">
       <motion.div
