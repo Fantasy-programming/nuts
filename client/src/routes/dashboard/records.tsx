@@ -3,15 +3,17 @@ import { z } from 'zod'
 import { RecordsTable } from "@/features/transactions/components/records-table";
 import { Spinner } from "@/core/components/ui/spinner";
 import { Button } from "@/core/components/ui/button";
+import { useState } from "react";
 
 import { RecordsDialog } from "@/features/transactions/components/add-records-dialog";
 import { NeuralRecordsDialog } from "@/features/transactions/components/neural-records-dialog";
 import { getTransactions } from "@/features/transactions/services/transaction"
 import { categoryService } from "@/features/categories/services/category"
 import { accountService } from "@/features/accounts/services/account";
-import { LayoutDashboard, Plus, Sparkles } from "lucide-react";
+import { LayoutDashboard, Plus, Sparkles, List, Calendar, BarChart3 } from "lucide-react";
 import { SidebarTrigger } from "@/core/components/ui/sidebar";
 import { EmptyStateGuide } from "@/core/components/EmptyStateGuide";
+import { Tabs, TabsList, TabsTrigger } from "@/core/components/ui/tabs";
 
 const transactionFilterSchema = z.object({
   page: z.number().catch(1),
@@ -49,8 +51,55 @@ function RouteComponent() {
   const { page } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { hasAccounts } = useRouteContext({ from: "/dashboard" });
+  const [currentView, setCurrentView] = useState<"list" | "calendar" | "analytics">("list");
+  
   const updatePage = (newPage: number) => {
     navigate({ search: { page: newPage }, replace: true });
+  };
+
+  const ViewSwitcher = () => (
+    <Tabs value={currentView} onValueChange={(value) => setCurrentView(value as any)}>
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="list" className="flex items-center gap-2">
+          <List className="h-4 w-4" />
+          List
+        </TabsTrigger>
+        <TabsTrigger value="calendar" className="flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Calendar
+        </TabsTrigger>
+        <TabsTrigger value="analytics" className="flex items-center gap-2">
+          <BarChart3 className="h-4 w-4" />
+          Analytics
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
+
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case "list":
+        return (
+          <RecordsTable
+            initialPage={page}
+            onPageChange={updatePage}
+          />
+        );
+      case "calendar":
+        return (
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
+            Calendar view coming soon...
+          </div>
+        );
+      case "analytics":
+        return (
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
+            Analytics view coming soon...
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -87,13 +136,16 @@ function RouteComponent() {
           </div>
         </div>
       </header>
+      
+      {/* View Switcher */}
+      <div className="mb-4">
+        <ViewSwitcher />
+      </div>
+
       <div className="flex flex-1">
         <div className="h-full w-full space-y-8  py-2">
           <div className="space-y-8">
-            <RecordsTable
-              initialPage={page}
-              onPageChange={updatePage}
-            />
+            {renderCurrentView()}
           </div>
         </div>
       </div>

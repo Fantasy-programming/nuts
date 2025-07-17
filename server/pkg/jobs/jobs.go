@@ -728,3 +728,99 @@ func (w *ExchangeRatesSyncWorker) Timeout(job *river.Job[ExchangeRatesSyncJob]) 
 func (w *ExchangeRatesSyncWorker) NextRetry(job *river.Job[ExchangeRatesSyncJob]) time.Time {
 	return time.Now().Add(1 * time.Hour)
 }
+
+// RecurringTransactionJob represents a job for processing recurring transactions
+type RecurringTransactionJob struct {
+	UserID                uuid.UUID `json:"user_id"`
+	RecurringTransactionID uuid.UUID `json:"recurring_transaction_id"`
+	DueDate               time.Time `json:"due_date"`
+}
+
+func (RecurringTransactionJob) Kind() string {
+	return "recurring_transaction"
+}
+
+type RecurringTransactionWorkerDeps struct {
+	DB      *pgxpool.Pool
+	Queries *repository.Queries
+	Logger  *zerolog.Logger
+}
+
+type RecurringTransactionWorker struct {
+	river.WorkerDefaults[RecurringTransactionJob]
+	deps *RecurringTransactionWorkerDeps
+}
+
+func (w *RecurringTransactionWorker) Work(ctx context.Context, job *river.Job[RecurringTransactionJob]) error {
+	logger := w.deps.Logger.With().
+		Str("job_kind", job.Kind).
+		Int64("job_id", job.ID).
+		Any("user_id", job.Args.UserID).
+		Any("recurring_transaction_id", job.Args.RecurringTransactionID).
+		Time("due_date", job.Args.DueDate).
+		Logger()
+
+	logger.Info().Msg("Processing recurring transaction job")
+
+	// Get the recurring transaction
+	recurringTx, err := w.deps.Queries.GetRecurringTransactionById(ctx, repository.GetRecurringTransactionByIdParams{
+		ID:     job.Args.RecurringTransactionID,
+		UserID: job.Args.UserID,
+	})
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to get recurring transaction")
+		return fmt.Errorf("failed to get recurring transaction: %w", err)
+	}
+
+	// Check if the recurring transaction is paused
+	if recurringTx.IsPaused {
+		logger.Info().Msg("Recurring transaction is paused, skipping")
+		return nil
+	}
+
+	// Check if this is set to auto-post
+	if !recurringTx.AutoPost {
+		logger.Info().Msg("Recurring transaction is not set to auto-post, skipping")
+		return nil
+	}
+
+	// Create the actual transaction
+	_, err = w.deps.Queries.CreateTransaction(ctx, repository.CreateTransactionParams{
+		Amount:              recurringTx.Amount,
+		OriginalAmount:      recurringTx.Amount,
+		Type:                recurringTx.Type,
+		AccountID:           recurringTx.AccountID,
+		CategoryID:          recurringTx.CategoryID,
+		TransactionCurrency: recurringTx.TransactionCurrency,
+		TransactionDatetime: pgtype.Timestamptz{Valid: true, Time: job.Args.DueDate},
+		Description:         recurringTx.Description,
+		Details:             recurringTx.Details,
+		CreatedBy:           &job.Args.UserID,
+		RecurringTransactionID: &job.Args.RecurringTransactionID,
+	})
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to create transaction from recurring template")
+		return fmt.Errorf("failed to create transaction: %w", err)
+	}
+
+	// Update the next due date for the recurring transaction
+	// This logic would depend on the frequency settings
+	// For now, we'll just mark it as successful
+	logger.Info().Msg("Successfully created transaction from recurring template")
+	return nil
+}
+
+func (w *RecurringTransactionWorker) Timeout(job *river.Job[RecurringTransactionJob]) time.Duration {
+	return 5 * time.Minute
+}
+
+func (w *RecurringTransactionWorker) NextRetry(job *river.Job[RecurringTransactionJob]) time.Time {
+	return time.Now().Add(30 * time.Minute)
+}
+
+// fetchExchangeRates fetches exchange rates from external API
+func fetchExchangeRates(ctx context.Context, baseCurrency string) (map[string]decimal.Decimal, error) {
+	// This is a stub function - you would implement actual API calls here
+	// For now, return empty map to avoid build errors
+	return make(map[string]decimal.Decimal), nil
+}

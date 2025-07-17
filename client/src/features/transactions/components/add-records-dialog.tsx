@@ -13,6 +13,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/core/components/ui/tabs";
 import { Input } from "@/core/components/ui/input";
+import { Switch } from "@/core/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/core/components/ui/collapsible";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { accountService } from "@/features/accounts/services/account";
 import { RecordsSubmit, RecordCreateSchema, recordCreateSchema } from "@/features/transactions/services/transaction.types";
 import { categoryService } from "@/features/categories/services/category";
@@ -21,6 +24,7 @@ import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, Resp
 import { createTransaction } from "@/features/transactions/services/transaction"
 import { useMutation } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
+import { RecurringTransactionForm } from "./recurring-transaction-form";
 
 
 export function RecordsDialog({ children }: React.PropsWithChildren) {
@@ -63,6 +67,8 @@ export function RecordsDialog({ children }: React.PropsWithChildren) {
 
 export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
   const [transactionType, setTransactionType] = useState<"expense" | "income" | "transfer">("expense");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringExpanded, setRecurringExpanded] = useState(false);
 
   const form = useForm<RecordCreateSchema>({
     resolver: zodResolver(recordCreateSchema),
@@ -259,8 +265,35 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
               )}
             />
 
+            {/* Recurring Transaction Option */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="recurring"
+                checked={isRecurring}
+                onCheckedChange={setIsRecurring}
+              />
+              <label htmlFor="recurring" className="text-sm font-medium">
+                Make this recurring
+              </label>
+            </div>
+
+            {/* Recurring Options - Collapsible */}
+            {isRecurring && (
+              <Collapsible open={recurringExpanded} onOpenChange={setRecurringExpanded}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between">
+                    <span>Recurring Options</span>
+                    {recurringExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4">
+                  <RecurringTransactionForm />
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
             <Button type="submit" className="w-full">
-              Create Expense
+              Create {isRecurring ? "Recurring " : ""}Expense
             </Button>
           </form>
         </Form>
@@ -362,8 +395,35 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
               )}
             />
 
+            {/* Recurring Transaction Option */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="recurring-income"
+                checked={isRecurring}
+                onCheckedChange={setIsRecurring}
+              />
+              <label htmlFor="recurring-income" className="text-sm font-medium">
+                Make this recurring
+              </label>
+            </div>
+
+            {/* Recurring Options - Collapsible */}
+            {isRecurring && (
+              <Collapsible open={recurringExpanded} onOpenChange={setRecurringExpanded}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between">
+                    <span>Recurring Options</span>
+                    {recurringExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4">
+                  <RecurringTransactionForm />
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
             <Button type="submit" className="w-full">
-              Create Income
+              Create {isRecurring ? "Recurring " : ""}Income
             </Button>
           </form>
         </Form>
@@ -467,8 +527,35 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
               )}
             />
 
+            {/* Recurring Transaction Option */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="recurring-transfer"
+                checked={isRecurring}
+                onCheckedChange={setIsRecurring}
+              />
+              <label htmlFor="recurring-transfer" className="text-sm font-medium">
+                Make this recurring
+              </label>
+            </div>
+
+            {/* Recurring Options - Collapsible */}
+            {isRecurring && (
+              <Collapsible open={recurringExpanded} onOpenChange={setRecurringExpanded}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between">
+                    <span>Recurring Options</span>
+                    {recurringExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4">
+                  <RecurringTransactionForm />
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
             <Button type="submit" className="w-full">
-              Create Transfer
+              Create {isRecurring ? "Recurring " : ""}Transfer
             </Button>
           </form>
         </Form>
