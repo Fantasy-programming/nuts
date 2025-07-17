@@ -11,10 +11,12 @@ import { cn, debounce } from "@/lib/utils"
 import { Button } from "@/core/components/ui/button"
 import { Input } from "@/core/components/ui/input"
 import { Textarea } from "@/core/components/ui/textarea"
+import { Switch } from "@/core/components/ui/switch"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/core/components/ui/collapsible"
 import { Sheet, SheetContent, SheetTitle, SheetClose, SheetHeader, SheetDescription } from "@/core/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/core/components/ui/tabs"
-import { X, ArrowDownLeft, ArrowUpRight, Loader2, Info, Lock } from "lucide-react"
+import { X, ArrowDownLeft, ArrowUpRight, Loader2, Info, Lock, ChevronDown, ChevronRight } from "lucide-react"
 import { RecordUpdateSchema, recordUpdateSchema } from "../services/transaction.types";
 import { Form, FormField, FormItem, FormControl, FormMessage, FormLabel } from "@/core/components/ui/form"
 import { DatetimePicker } from "@/core/components/ui/datetime"
@@ -24,6 +26,7 @@ import { useBrandImage } from "@/features/accounts/hooks/useBrand"
 import { config } from "@/lib/env"
 import { Account } from "@/features/accounts/services/account.types"
 import { toast } from "sonner"
+import { RecurringTransactionForm } from "./recurring-transaction-form"
 import {
   Tooltip,
   TooltipContent,
@@ -52,6 +55,8 @@ export default function EditTransactionSheet({
   transactionId,
 }: EditTransactionSheetProps) {
   const [transactionNature, setTransactionNature] = useState<"expense" | "income">("expense");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringExpanded, setRecurringExpanded] = useState(false);
   const queryClient = useQueryClient();
 
   const {
@@ -383,6 +388,37 @@ export default function EditTransactionSheet({
                   </FormItem>
                 )}
               />
+
+              {/* Recurring Transaction Option - Only show for non-synced transactions */}
+              {!isSyncedTransaction && (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="recurring"
+                      checked={isRecurring}
+                      onCheckedChange={setIsRecurring}
+                    />
+                    <label htmlFor="recurring" className="text-sm font-medium">
+                      Convert to recurring transaction
+                    </label>
+                  </div>
+
+                  {/* Recurring Options - Collapsible */}
+                  {isRecurring && (
+                    <Collapsible open={recurringExpanded} onOpenChange={setRecurringExpanded}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-between">
+                          <span>Recurring Options</span>
+                          {recurringExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-4">
+                        <RecurringTransactionForm />
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </>
+              )}
             </TooltipProvider>
           </form>
         </Form>
