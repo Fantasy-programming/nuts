@@ -4,11 +4,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "motion/react";
 import { User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { useOnboardingStore } from "@/features/onboarding/stores/onboarding.store";
+import { userService } from "@/features/preferences/services/user";
+import { shouldSkipNameStep } from "@/features/onboarding/services/onboarding";
 
 const nameSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50, "First name is too long"),
@@ -24,6 +28,11 @@ export const Route = createFileRoute("/onboarding/name")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { firstName, lastName, setName, setStep } = useOnboardingStore();
+  
+  const { data: user } = useQuery({
+    queryKey: ["user"],
+    queryFn: userService.getMe,
+  });
 
   const form = useForm<NameFormValues>({
     resolver: zodResolver(nameSchema),
@@ -32,6 +41,16 @@ function RouteComponent() {
       lastName: lastName || "",
     },
   });
+
+  // Check if user already has names from OAuth and redirect to next step
+  useEffect(() => {
+    if (user && shouldSkipNameStep(user)) {
+      // Auto-populate the store with their existing names
+      setName(user.first_name || "", user.last_name || "");
+      setStep(1);
+      navigate({ to: "/onboarding/finance-interest" });
+    }
+  }, [user, setName, setStep, navigate]);
 
   const onSubmit = async (values: NameFormValues) => {
     setName(values.firstName, values.lastName);

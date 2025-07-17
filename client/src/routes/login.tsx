@@ -10,7 +10,7 @@ import { logger } from "@/lib/logger"
 import { parseApiError } from "@/lib/error";
 import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth.types";
 import { userService } from "@/features/preferences/services/user";
-import { isOnboardingRequired } from "@/features/onboarding/services/onboarding";
+import { isOnboardingRequired, getOnboardingEntryPoint } from "@/features/onboarding/services/onboarding";
 
 import { AtSignIcon, Lock } from "lucide-react"
 import { Button } from "@/core/components/ui/button";
@@ -74,7 +74,8 @@ function RouteComponent() {
       try {
         const user = await userService.getMe();
         if (isOnboardingRequired(user)) {
-          await navigate({ to: "/onboarding/name" });
+          const entryPoint = getOnboardingEntryPoint(user);
+          await navigate({ to: entryPoint });
           return;
         }
       } catch (error) {
