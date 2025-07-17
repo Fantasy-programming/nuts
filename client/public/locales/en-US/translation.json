@@ -129,7 +129,13 @@
     "monthlySpending": "Monthly Spending",
     "categoryBreakdown": "Category Breakdown",
     "accountBalance": "Account Balance",
-    "netWorth": "Net Worth"
+    "netWorth": "Net Worth",
+    "assets": "Assets",
+    "liabilities": "Liabilities",
+    "totalAssets": "Total Assets",
+    "totalLiabilities": "Total Liabilities",
+    "totals": "Totals",
+    "percent": "Percent"
   },
   "dashboard": {
     "title": "Dashboard",

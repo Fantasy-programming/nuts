@@ -129,7 +129,13 @@
     "monthlySpending": "Gastos mensuales",
     "categoryBreakdown": "Desglose por categoría",
     "accountBalance": "Saldo de cuenta",
-    "netWorth": "Patrimonio neto"
+    "netWorth": "Patrimonio neto",
+    "assets": "Activos",
+    "liabilities": "Pasivos",
+    "totalAssets": "Total de activos",
+    "totalLiabilities": "Total de pasivos",
+    "totals": "Totales",
+    "percent": "Porcentaje"
   },
   "dashboard": {
     "title": "Panel",

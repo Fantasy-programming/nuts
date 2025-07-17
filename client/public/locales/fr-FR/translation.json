@@ -129,7 +129,13 @@
     "monthlySpending": "Dépenses mensuelles",
     "categoryBreakdown": "Répartition par catégorie",
     "accountBalance": "Solde du compte",
-    "netWorth": "Valeur nette"
+    "netWorth": "Valeur nette",
+    "assets": "Actifs",
+    "liabilities": "Passifs",
+    "totalAssets": "Total des actifs",
+    "totalLiabilities": "Total des passifs",
+    "totals": "Totaux",
+    "percent": "Pourcentage"
   },
   "dashboard": {
     "title": "Tableau de bord",
