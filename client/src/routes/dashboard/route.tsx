@@ -9,6 +9,7 @@ import { userService } from "@/features/preferences/services/user";
 import { useTheme } from "@/features/preferences/hooks/use-theme";
 import { useShallow } from 'zustand/react/shallow'
 import { useTranslation } from "react-i18next";
+import { isOnboardingRequired, getOnboardingEntryPoint } from "@/features/onboarding/services/onboarding";
 import {
   RiSettingsLine,
   RiBankCard2Line,
@@ -110,7 +111,30 @@ export const Route = createFileRoute("/dashboard")({
       });
     }
 
-    const queryClient = context.queryClient
+    const queryClient = context.queryClient;
+    
+    // Check if user needs onboarding
+    try {
+      const user = await queryClient.fetchQuery({
+        queryKey: ["user"],
+        queryFn: userService.getMe,
+      });
+      
+      if (isOnboardingRequired(user)) {
+        const entryPoint = getOnboardingEntryPoint(user);
+        throw redirect({
+          to: entryPoint,
+        });
+      }
+    } catch (redirectError) {
+      // Re-throw redirect errors
+      if (redirectError && typeof redirectError === 'object' && 'type' in redirectError) {
+        throw redirectError;
+      }
+      // If we can't fetch user data, let them through and handle it later
+      console.error("Failed to check onboarding status:", redirectError);
+    }
+    
     const accounts = await queryClient.fetchQuery(getAllAccounts())
 
     return {
@@ -315,7 +339,7 @@ const SideBarMainLinks = memo(() => {
                 className="group/menu-button  font-medium gap-3 h-9 rounded-md text-[#757575] hover:text-secondary-900/45 hover:bg-neutral-200/40 [&>svg]:size-auto"
               >
                 <Link to={item.url} activeProps={{ className: "bg-sidebar-accent shadow-sm hover:bg-sidebar-accent" }}
-                >{({ isActive }) => (
+                >{({ isActive }: { isActive: boolean }) => (
                   <>
                     {isActive ? (
                       <item.activeIcon size={16} aria-hidden="true" className="text-secondary-900/80" />

@@ -9,6 +9,8 @@ import { config } from "@/lib/env"
 import { logger } from "@/lib/logger"
 import { parseApiError } from "@/lib/error";
 import { type LoginFormValues, loginSchema } from "@/features/auth/services/auth.types";
+import { userService } from "@/features/preferences/services/user";
+import { isOnboardingRequired, getOnboardingEntryPoint } from "@/features/onboarding/services/onboarding";
 
 import { AtSignIcon, Lock } from "lucide-react"
 import { Button } from "@/core/components/ui/button";
@@ -67,6 +69,19 @@ function RouteComponent() {
       toast.success("Welcome to your account 👋");
 
       await router.invalidate();
+      
+      // Check if onboarding is required
+      try {
+        const user = await userService.getMe();
+        if (isOnboardingRequired(user)) {
+          const entryPoint = getOnboardingEntryPoint(user);
+          await navigate({ to: entryPoint });
+          return;
+        }
+      } catch (error) {
+        logger.error("Failed to check onboarding status", { error });
+      }
+      
       await navigate({ to: search.redirect || "/dashboard/home" })
 
     } catch (error) {
