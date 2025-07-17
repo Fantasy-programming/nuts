@@ -741,3 +741,71 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 	)
 	return i, err
 }
+
+// Bulk operations for transactions (manually added until sqlc regeneration)
+
+const bulkDeleteTransactions = `-- name: BulkDeleteTransactions :exec
+UPDATE transactions
+SET deleted_at = current_timestamp
+WHERE id = ANY($1::uuid[])
+    AND created_by = $2`
+
+type BulkDeleteTransactionsParams struct {
+Ids    []uuid.UUID `json:"ids"`
+UserID uuid.UUID   `json:"user_id"`
+}
+
+func (q *Queries) BulkDeleteTransactions(ctx context.Context, arg BulkDeleteTransactionsParams) error {
+_, err := q.db.Exec(ctx, bulkDeleteTransactions, arg.Ids, arg.UserID)
+return err
+}
+
+const bulkUpdateTransactionCategories = `-- name: BulkUpdateTransactionCategories :exec
+UPDATE transactions
+SET 
+    category_id = $1,
+    updated_by = $2
+WHERE id = ANY($3::uuid[])
+    AND created_by = $2
+    AND deleted_at IS NULL`
+
+type BulkUpdateTransactionCategoriesParams struct {
+CategoryID uuid.UUID   `json:"category_id"`
+UpdatedBy  uuid.UUID   `json:"updated_by"`
+Ids        []uuid.UUID `json:"ids"`
+}
+
+func (q *Queries) BulkUpdateTransactionCategories(ctx context.Context, arg BulkUpdateTransactionCategoriesParams) error {
+_, err := q.db.Exec(ctx, bulkUpdateTransactionCategories, arg.CategoryID, arg.UpdatedBy, arg.Ids)
+return err
+}
+
+const bulkUpdateManualTransactions = `-- name: BulkUpdateManualTransactions :exec
+UPDATE transactions
+SET 
+    category_id = coalesce($1, category_id),
+    account_id = coalesce($2, account_id),
+    transaction_datetime = coalesce($3, transaction_datetime),
+    updated_by = $4
+WHERE id = ANY($5::uuid[])
+    AND created_by = $4
+    AND is_external = false
+    AND deleted_at IS NULL`
+
+type BulkUpdateManualTransactionsParams struct {
+CategoryID          *uuid.UUID         `json:"category_id"`
+AccountID           *uuid.UUID         `json:"account_id"`
+TransactionDatetime pgtype.Timestamptz `json:"transaction_datetime"`
+UpdatedBy           uuid.UUID          `json:"updated_by"`
+Ids                 []uuid.UUID        `json:"ids"`
+}
+
+func (q *Queries) BulkUpdateManualTransactions(ctx context.Context, arg BulkUpdateManualTransactionsParams) error {
+_, err := q.db.Exec(ctx, bulkUpdateManualTransactions, 
+arg.CategoryID, 
+arg.AccountID, 
+arg.TransactionDatetime, 
+arg.UpdatedBy, 
+arg.Ids)
+return err
+}

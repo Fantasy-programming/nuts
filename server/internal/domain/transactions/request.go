@@ -74,4 +74,21 @@ type UpdateTransactionRequest struct {
 	OriginalAmount      *float64     `json:"original_amount"`
 }
 
+// Bulk operation request types
+type BulkDeleteTransactionsRequest struct {
+	TransactionIDs []string `json:"transaction_ids" validate:"required,min=1"`
+}
+
+type BulkUpdateCategoriesRequest struct {
+	TransactionIDs []string `json:"transaction_ids" validate:"required,min=1"`
+	CategoryID     string   `json:"category_id" validate:"required"`
+}
+
+type BulkUpdateManualTransactionsRequest struct {
+	TransactionIDs      []string   `json:"transaction_ids" validate:"required,min=1"`
+	CategoryID          *string    `json:"category_id,omitempty"`
+	AccountID           *string    `json:"account_id,omitempty"`
+	TransactionDatetime *time.Time `json:"transaction_datetime,omitempty"`
+}
+
 // location, note, medium -> details
