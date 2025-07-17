@@ -22,18 +22,18 @@ export function formatDate(date: Date | string, preferences?: {
 
   try {
     switch (date_format) {
-      case 'dd/mm/yyyy':
-        return actualDate.toLocaleDateString(locale || 'en-US', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
-      case 'mm/dd/yyyy':
-        return actualDate.toLocaleDateString(locale || 'en-US', {
-          month: '2-digit',
-          day: '2-digit',
-          year: 'numeric'
-        });
+      case 'dd/mm/yyyy': {
+        const day = actualDate.getDate().toString().padStart(2, '0');
+        const month = (actualDate.getMonth() + 1).toString().padStart(2, '0');
+        const year = actualDate.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+      case 'mm/dd/yyyy': {
+        const day = actualDate.getDate().toString().padStart(2, '0');
+        const month = (actualDate.getMonth() + 1).toString().padStart(2, '0');
+        const year = actualDate.getFullYear();
+        return `${month}/${day}/${year}`;
+      }
       case 'yyyy-mm-dd':
         return actualDate.toISOString().split('T')[0];
       default:
