@@ -8,10 +8,12 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/categories"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/meta"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/preferences"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/rules"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/tags"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/user"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/webhooks"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
 )
 
@@ -25,6 +27,7 @@ func (s *Server) RegisterDomain() {
 	s.initTags()
 	s.initMeta()
 	s.initWebHooks()
+	s.initRules()
 	s.initVersion()
 	s.initHealth()
 }
@@ -67,6 +70,15 @@ func (s *Server) initTags() {
 func (s *Server) initWebHooks() {
 	hooksDomain := webhooks.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
 	s.router.Mount("/webhooks", hooksDomain)
+}
+
+func (s *Server) initRules() {
+	// Create transaction repository to pass to rules service
+	queries := repository.New(s.db)
+	transRepo := transactions.NewRepository(s.db, queries)
+	
+	RulesDomain := rules.RegisterHTTPHandlers(s.db, s.validator, s.jwt, transRepo, s.logger)
+	s.router.Mount("/rules", RulesDomain)
 }
 
 func (s *Server) initMeta() {
