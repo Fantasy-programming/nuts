@@ -12,24 +12,25 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
 )
 
 type BatchCreateTransactionParams struct {
-	Amount                 pgtype.Numeric `json:"amount"`
-	Type                   string         `json:"type"`
-	AccountID              uuid.UUID      `json:"account_id"`
-	DestinationAccountID   *uuid.UUID     `json:"destination_account_id"`
-	CategoryID             *uuid.UUID     `json:"category_id"`
-	Description            *string        `json:"description"`
-	TransactionDatetime    time.Time      `json:"transaction_datetime"`
-	TransactionCurrency    string         `json:"transaction_currency"`
-	OriginalAmount         pgtype.Numeric `json:"original_amount"`
-	Details                *dto.Details   `json:"details"`
-	ProviderTransactionID  *string        `json:"provider_transaction_id"`
-	IsExternal             *bool          `json:"is_external"`
-	CreatedBy              *uuid.UUID     `json:"created_by"`
-	RecurringTransactionID *uuid.UUID     `json:"recurring_transaction_id"`
-	RecurringInstanceDate  *time.Time     `json:"recurring_instance_date"`
+	Amount                 decimal.Decimal    `json:"amount"`
+	Type                   string             `json:"type"`
+	AccountID              uuid.UUID          `json:"account_id"`
+	DestinationAccountID   *uuid.UUID         `json:"destination_account_id"`
+	CategoryID             *uuid.UUID         `json:"category_id"`
+	Description            *string            `json:"description"`
+	TransactionDatetime    pgtype.Timestamptz `json:"transaction_datetime"`
+	TransactionCurrency    string             `json:"transaction_currency"`
+	OriginalAmount         decimal.Decimal    `json:"original_amount"`
+	Details                *dto.Details       `json:"details"`
+	ProviderTransactionID  *string            `json:"provider_transaction_id"`
+	IsExternal             *bool              `json:"is_external"`
+	CreatedBy              *uuid.UUID         `json:"created_by"`
+	RecurringTransactionID *uuid.UUID         `json:"recurring_transaction_id"`
+	RecurringInstanceDate  pgtype.Timestamptz `json:"recurring_instance_date"`
 }
 
 const bulkDeleteTransactions = `-- name: BulkDeleteTransactions :exec
@@ -63,12 +64,12 @@ WHERE id = ANY($5::uuid[])
 `
 
 type BulkUpdateManualTransactionsParams struct {
-	CategoryID          *uuid.UUID  `json:"category_id"`
-	AccountID           *uuid.UUID  `json:"account_id"`
-	TransactionDatetime *time.Time  `json:"transaction_datetime"`
-	UpdatedBy           *uuid.UUID  `json:"updated_by"`
-	Ids                 []uuid.UUID `json:"ids"`
-	UserID              *uuid.UUID  `json:"user_id"`
+	CategoryID          *uuid.UUID         `json:"category_id"`
+	AccountID           *uuid.UUID         `json:"account_id"`
+	TransactionDatetime pgtype.Timestamptz `json:"transaction_datetime"`
+	UpdatedBy           *uuid.UUID         `json:"updated_by"`
+	Ids                 []uuid.UUID        `json:"ids"`
+	UserID              *uuid.UUID         `json:"user_id"`
 }
 
 func (q *Queries) BulkUpdateManualTransactions(ctx context.Context, arg BulkUpdateManualTransactionsParams) error {
@@ -205,21 +206,21 @@ INSERT INTO transactions (
 `
 
 type CreateTransactionParams struct {
-	Amount                 pgtype.Numeric `json:"amount"`
-	Type                   string         `json:"type"`
-	AccountID              uuid.UUID      `json:"account_id"`
-	DestinationAccountID   *uuid.UUID     `json:"destination_account_id"`
-	CategoryID             *uuid.UUID     `json:"category_id"`
-	Description            *string        `json:"description"`
-	TransactionDatetime    time.Time      `json:"transaction_datetime"`
-	TransactionCurrency    string         `json:"transaction_currency"`
-	OriginalAmount         pgtype.Numeric `json:"original_amount"`
-	Details                *dto.Details   `json:"details"`
-	ProviderTransactionID  *string        `json:"provider_transaction_id"`
-	IsExternal             *bool          `json:"is_external"`
-	CreatedBy              *uuid.UUID     `json:"created_by"`
-	RecurringTransactionID *uuid.UUID     `json:"recurring_transaction_id"`
-	RecurringInstanceDate  *time.Time     `json:"recurring_instance_date"`
+	Amount                 decimal.Decimal    `json:"amount"`
+	Type                   string             `json:"type"`
+	AccountID              uuid.UUID          `json:"account_id"`
+	DestinationAccountID   *uuid.UUID         `json:"destination_account_id"`
+	CategoryID             *uuid.UUID         `json:"category_id"`
+	Description            *string            `json:"description"`
+	TransactionDatetime    pgtype.Timestamptz `json:"transaction_datetime"`
+	TransactionCurrency    string             `json:"transaction_currency"`
+	OriginalAmount         decimal.Decimal    `json:"original_amount"`
+	Details                *dto.Details       `json:"details"`
+	ProviderTransactionID  *string            `json:"provider_transaction_id"`
+	IsExternal             *bool              `json:"is_external"`
+	CreatedBy              *uuid.UUID         `json:"created_by"`
+	RecurringTransactionID *uuid.UUID         `json:"recurring_transaction_id"`
+	RecurringInstanceDate  pgtype.Timestamptz `json:"recurring_instance_date"`
 }
 
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
@@ -300,15 +301,15 @@ ORDER BY total_amount DESC
 `
 
 type GetCategorySpendingParams struct {
-	UserID    *uuid.UUID `json:"user_id"`
-	StartDate time.Time  `json:"start_date"`
-	EndDate   time.Time  `json:"end_date"`
+	UserID    *uuid.UUID         `json:"user_id"`
+	StartDate pgtype.Timestamptz `json:"start_date"`
+	EndDate   pgtype.Timestamptz `json:"end_date"`
 }
 
 type GetCategorySpendingRow struct {
-	CategoryName     string `json:"category_name"`
-	TotalAmount      int64  `json:"total_amount"`
-	TransactionCount int64  `json:"transaction_count"`
+	CategoryName     string          `json:"category_name"`
+	TotalAmount      decimal.Decimal `json:"total_amount"`
+	TransactionCount int64           `json:"transaction_count"`
 }
 
 func (q *Queries) GetCategorySpending(ctx context.Context, arg GetCategorySpendingParams) ([]GetCategorySpendingRow, error) {
@@ -392,10 +393,10 @@ type GetTransactionStatsParams struct {
 }
 
 type GetTransactionStatsRow struct {
-	TotalCount     int64 `json:"total_count"`
-	TotalIncome    int64 `json:"total_income"`
-	TotalExpenses  int64 `json:"total_expenses"`
-	TotalTransfers int64 `json:"total_transfers"`
+	TotalCount     int64           `json:"total_count"`
+	TotalIncome    decimal.Decimal `json:"total_income"`
+	TotalExpenses  decimal.Decimal `json:"total_expenses"`
+	TotalTransfers decimal.Decimal `json:"total_transfers"`
 }
 
 func (q *Queries) GetTransactionStats(ctx context.Context, arg GetTransactionStatsParams) (GetTransactionStatsRow, error) {
@@ -485,8 +486,8 @@ type ListTransactionsParams struct {
 	MaxAmount  pgtype.Numeric `json:"max_amount"`
 	Search     *string        `json:"search"`
 	Tags       []string       `json:"tags"`
-	Offset     int32          `json:"offset"`
-	Limit      int32          `json:"limit"`
+	Offset     int64          `json:"offset"`
+	Limit      int64          `json:"limit"`
 }
 
 type ListTransactionsRow struct {
@@ -787,15 +788,15 @@ RETURNING id, amount, type, account_id, category_id, destination_account_id, tra
 `
 
 type UpdateTransactionParams struct {
-	Amount              pgtype.Numeric `json:"amount"`
-	Type                *string        `json:"type"`
-	AccountID           *uuid.UUID     `json:"account_id"`
-	CategoryID          *uuid.UUID     `json:"category_id"`
-	Description         *string        `json:"description"`
-	TransactionDatetime *time.Time     `json:"transaction_datetime"`
-	Details             *dto.Details   `json:"details"`
-	UpdatedBy           *uuid.UUID     `json:"updated_by"`
-	ID                  uuid.UUID      `json:"id"`
+	Amount              decimal.NullDecimal `json:"amount"`
+	Type                *string             `json:"type"`
+	AccountID           *uuid.UUID          `json:"account_id"`
+	CategoryID          *uuid.UUID          `json:"category_id"`
+	Description         *string             `json:"description"`
+	TransactionDatetime pgtype.Timestamptz  `json:"transaction_datetime"`
+	Details             *dto.Details        `json:"details"`
+	UpdatedBy           *uuid.UUID          `json:"updated_by"`
+	ID                  uuid.UUID           `json:"id"`
 }
 
 func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionParams) (Transaction, error) {

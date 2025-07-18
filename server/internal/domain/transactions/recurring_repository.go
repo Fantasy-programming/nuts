@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 )
 
 // Helper function to convert *int to *int32
@@ -80,22 +81,28 @@ func (r *RecurringTransactionRepo) CreateRecurringTransaction(ctx context.Contex
 		}
 	}
 
+	endDate := pgtype.Timestamptz{Valid: false}
+
+	if req.EndDate != nil {
+		endDate = pgtype.Timestamptz{Valid: true, Time: *req.EndDate}
+	}
+
 	// Create the recurring transaction
 	dbRecurring, err := r.queries.CreateRecurringTransaction(ctx, repository.CreateRecurringTransactionParams{
 		UserID:               userID,
 		AccountID:            accountID,
 		CategoryID:           categoryID,
 		DestinationAccountID: destinationAccountID,
-		Amount:               types.DecimalToPgtypeNumeric(req.Amount),
+		Amount:               req.Amount,
 		Type:                 req.Type,
 		Description:          req.Description,
 		Details:              req.Details,
 		Frequency:            req.Frequency,
 		FrequencyInterval:    int32(req.FrequencyInterval),
 		FrequencyData:        frequencyDataJSON,
-		StartDate:            req.StartDate,
-		EndDate:              req.EndDate,
-		NextDueDate:          req.StartDate, // Initially set to start date
+		StartDate:            pgtype.Timestamptz{Valid: true, Time: req.StartDate},
+		EndDate:              endDate,
+		NextDueDate:          pgtype.Timestamptz{Valid: true, Time: req.StartDate}, // Initially set to start date
 		AutoPost:             req.AutoPost,
 		IsPaused:             false,
 		MaxOccurrences:       convertIntToInt32Ptr(req.MaxOccurrences),
@@ -217,13 +224,18 @@ func (r *RecurringTransactionRepo) UpdateRecurringTransaction(ctx context.Contex
 		}
 	}
 
-	// Handle nullable amount
-	var amount pgtype.Numeric
-	if req.Amount != nil {
-		amount = types.DecimalToPgtypeNumeric(*req.Amount)
-	} else {
-		amount = pgtype.Numeric{Valid: false}
+	startDate := pgtype.Timestamptz{Valid: false}
+	endDate := pgtype.Timestamptz{Valid: false}
+
+	if req.StartDate != nil {
+		startDate = pgtype.Timestamptz{Valid: true, Time: *req.StartDate}
 	}
+
+	if req.EndDate != nil {
+		endDate = pgtype.Timestamptz{Valid: true, Time: *req.EndDate}
+	}
+
+	amount := decimal.NewNullDecimal(*req.Amount)
 
 	// Update the recurring transaction
 	dbRecurring, err := r.queries.UpdateRecurringTransaction(ctx, repository.UpdateRecurringTransactionParams{
@@ -239,9 +251,9 @@ func (r *RecurringTransactionRepo) UpdateRecurringTransaction(ctx context.Contex
 		Frequency:            req.Frequency,
 		FrequencyInterval:    convertIntToInt32Ptr(req.FrequencyInterval),
 		FrequencyData:        frequencyDataJSON,
-		StartDate:            req.StartDate,
-		EndDate:              req.EndDate,
-		NextDueDate:          nil, // Will be calculated by service
+		StartDate:            startDate,
+		EndDate:              endDate,
+		NextDueDate:          pgtype.Timestamptz{Valid: false}, // Will be calculated by service
 		AutoPost:             req.AutoPost,
 		IsPaused:             req.IsPaused,
 		MaxOccurrences:       convertIntToInt32Ptr(req.MaxOccurrences),
@@ -279,7 +291,7 @@ func (r *RecurringTransactionRepo) PauseRecurringTransaction(ctx context.Context
 
 // GetDueRecurringTransactions retrieves all due recurring transactions
 func (r *RecurringTransactionRepo) GetDueRecurringTransactions(ctx context.Context, dueDate time.Time) ([]RecurringTransaction, error) {
-	dbRecurrings, err := r.queries.GetDueRecurringTransactions(ctx, dueDate)
+	dbRecurrings, err := r.queries.GetDueRecurringTransactions(ctx, pgtype.Timestamptz{Valid: true, Time: dueDate})
 	if err != nil {
 		return nil, err
 	}
@@ -311,8 +323,8 @@ func (r *RecurringTransactionRepo) GetRecurringTransactionStats(ctx context.Cont
 func (r *RecurringTransactionRepo) GetUpcomingRecurringTransactions(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) ([]RecurringTransaction, error) {
 	dbRecurrings, err := r.queries.GetUpcomingRecurringTransactions(ctx, repository.GetUpcomingRecurringTransactionsParams{
 		UserID:        userID,
-		NextDueDate:   startDate,
-		NextDueDate_2: endDate,
+		NextDueDate:   pgtype.Timestamptz{Valid: true, Time: startDate},
+		NextDueDate_2: pgtype.Timestamptz{Valid: true, Time: endDate},
 	})
 	if err != nil {
 		return nil, err
@@ -422,4 +434,3 @@ func convertDBRecurringToModel(dbRecurring repository.RecurringTransaction) *Rec
 
 	return rt
 }
-

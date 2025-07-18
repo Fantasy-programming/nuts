@@ -136,8 +136,8 @@ LIMIT
 `
 
 type ListTagsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
 }
 
 type ListTagsRow struct {

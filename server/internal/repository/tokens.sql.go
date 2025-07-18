@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const deleteExpiredTokens = `-- name: DeleteExpiredTokens :exec
@@ -142,15 +143,15 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type SaveUserTokenParams struct {
-	UserID       uuid.UUID `json:"user_id"`
-	RefreshToken string    `json:"refresh_token"`
-	ExpiresAt    time.Time `json:"expires_at"`
-	UserAgent    *string   `json:"user_agent"`
-	IpAddress    *string   `json:"ip_address"`
-	Location     *string   `json:"location"`
-	BrowserName  *string   `json:"browser_name"`
-	DeviceName   *string   `json:"device_name"`
-	OsName       *string   `json:"os_name"`
+	UserID       uuid.UUID          `json:"user_id"`
+	RefreshToken string             `json:"refresh_token"`
+	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
+	UserAgent    *string            `json:"user_agent"`
+	IpAddress    *string            `json:"ip_address"`
+	Location     *string            `json:"location"`
+	BrowserName  *string            `json:"browser_name"`
+	DeviceName   *string            `json:"device_name"`
+	OsName       *string            `json:"os_name"`
 }
 
 func (q *Queries) SaveUserToken(ctx context.Context, arg SaveUserTokenParams) error {

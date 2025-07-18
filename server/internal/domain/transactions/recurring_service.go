@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
-	"github.com/Fantasy-Programming/nuts/server/internal/utils/types"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -83,7 +83,7 @@ func (s *RecurringTransactionService) generateCustomFrequencyDate(rt *RecurringT
 	}
 
 	// Handle specific dates (e.g., 1st and 15th of month)
-	if rt.FrequencyData.SpecificDates != nil && len(rt.FrequencyData.SpecificDates) > 0 {
+	if len(rt.FrequencyData.SpecificDates) > 0 {
 		return s.findNextSpecificDate(baseDate, rt.FrequencyData.SpecificDates)
 	}
 
@@ -139,17 +139,17 @@ func (s *RecurringTransactionService) findNextSpecificDate(baseDate time.Time, s
 // GenerateRecurringInstance creates a transaction instance from a recurring template
 func (s *RecurringTransactionService) GenerateRecurringInstance(ctx context.Context, rt *RecurringTransaction) (*repository.Transaction, error) {
 	isExternal := false
-	
+
 	transactionParams := repository.CreateTransactionParams{
-		Amount:                types.DecimalToPgtypeNumeric(rt.Amount),
+		Amount:                rt.Amount,
 		Type:                  rt.Type,
 		AccountID:             rt.AccountID,
 		CategoryID:            rt.CategoryID,
 		DestinationAccountID:  rt.DestinationAccountID,
 		Description:           rt.Description,
-		TransactionDatetime:   rt.NextDueDate,
+		TransactionDatetime:   pgtype.Timestamptz{Valid: true, Time: rt.NextDueDate},
 		TransactionCurrency:   "", // Will be populated from account
-		OriginalAmount:        types.DecimalToPgtypeNumeric(rt.Amount),
+		OriginalAmount:        rt.Amount,
 		Details:               nil, // TODO: Convert domain Details to dto.Details
 		ProviderTransactionID: nil,
 		IsExternal:            &isExternal,
@@ -220,7 +220,7 @@ func (s *RecurringTransactionService) GetRecurringInstances(ctx context.Context,
 				totalAmount = totalAmount.Add(rt.Amount)
 				pendingCount++
 			}
-			
+
 			// Calculate next date
 			rt.NextDueDate = currentDate
 			currentDate = s.GenerateNextDueDate(&rt)
@@ -265,3 +265,4 @@ func (s *RecurringTransactionService) ValidateRecurringTransaction(req CreateRec
 
 	return nil
 }
+

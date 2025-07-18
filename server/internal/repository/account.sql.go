@@ -12,20 +12,21 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
 )
 
 type BatchCreateAccountParams struct {
-	CreatedBy         *uuid.UUID      `json:"created_by"`
-	Name              string          `json:"name"`
-	Type              ACCOUNTTYPE     `json:"type"`
-	Subtype           *string         `json:"subtype"`
-	Balance           pgtype.Numeric  `json:"balance"`
-	Currency          string          `json:"currency"`
-	Meta              dto.AccountMeta `json:"meta"`
-	ConnectionID      *uuid.UUID      `json:"connection_id"`
-	IsExternal        *bool           `json:"is_external"`
-	ProviderAccountID *string         `json:"provider_account_id"`
-	ProviderName      *string         `json:"provider_name"`
+	CreatedBy         *uuid.UUID          `json:"created_by"`
+	Name              string              `json:"name"`
+	Type              interface{}         `json:"type"`
+	Subtype           *string             `json:"subtype"`
+	Balance           decimal.NullDecimal `json:"balance"`
+	Currency          string              `json:"currency"`
+	Meta              dto.AccountMeta     `json:"meta"`
+	ConnectionID      *uuid.UUID          `json:"connection_id"`
+	IsExternal        *bool               `json:"is_external"`
+	ProviderAccountID *string             `json:"provider_account_id"`
+	ProviderName      *string             `json:"provider_name"`
 }
 
 const createAccount = `-- name: CreateAccount :one
@@ -47,17 +48,17 @@ INSERT INTO accounts (
 `
 
 type CreateAccountParams struct {
-	CreatedBy         *uuid.UUID      `json:"created_by"`
-	Name              string          `json:"name"`
-	Type              ACCOUNTTYPE     `json:"type"`
-	Subtype           *string         `json:"subtype"`
-	Balance           pgtype.Numeric  `json:"balance"`
-	Currency          string          `json:"currency"`
-	Meta              dto.AccountMeta `json:"meta"`
-	ConnectionID      *uuid.UUID      `json:"connection_id"`
-	IsExternal        *bool           `json:"is_external"`
-	ProviderAccountID *string         `json:"provider_account_id"`
-	ProviderName      *string         `json:"provider_name"`
+	CreatedBy         *uuid.UUID          `json:"created_by"`
+	Name              string              `json:"name"`
+	Type              interface{}         `json:"type"`
+	Subtype           *string             `json:"subtype"`
+	Balance           decimal.NullDecimal `json:"balance"`
+	Currency          string              `json:"currency"`
+	Meta              dto.AccountMeta     `json:"meta"`
+	ConnectionID      *uuid.UUID          `json:"connection_id"`
+	IsExternal        *bool               `json:"is_external"`
+	ProviderAccountID *string             `json:"provider_account_id"`
+	ProviderName      *string             `json:"provider_name"`
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
@@ -906,14 +907,14 @@ RETURNING id, name, type, balance, currency, meta, created_by, updated_by, creat
 `
 
 type UpdateAccountParams struct {
-	Name      *string         `json:"name"`
-	Type      NullACCOUNTTYPE `json:"type"`
-	Subtype   *string         `json:"subtype"`
-	Balance   pgtype.Numeric  `json:"balance"`
-	Currency  *string         `json:"currency"`
-	Meta      dto.AccountMeta `json:"meta"`
-	UpdatedBy *uuid.UUID      `json:"updated_by"`
-	ID        uuid.UUID       `json:"id"`
+	Name      *string             `json:"name"`
+	Type      interface{}         `json:"type"`
+	Subtype   *string             `json:"subtype"`
+	Balance   decimal.NullDecimal `json:"balance"`
+	Currency  *string             `json:"currency"`
+	Meta      dto.AccountMeta     `json:"meta"`
+	UpdatedBy *uuid.UUID          `json:"updated_by"`
+	ID        uuid.UUID           `json:"id"`
 }
 
 func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (Account, error) {
@@ -959,8 +960,8 @@ WHERE id = $1
 `
 
 type UpdateAccountBalanceParams struct {
-	ID      uuid.UUID      `json:"id"`
-	Balance pgtype.Numeric `json:"balance"`
+	ID      uuid.UUID           `json:"id"`
+	Balance decimal.NullDecimal `json:"balance"`
 }
 
 func (q *Queries) UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) error {

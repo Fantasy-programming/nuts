@@ -636,6 +636,7 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 	status := "active"
 	providerName := provider.GetProviderName()
 	isExternal := true
+	syncAt := time.Now()
 
 	connParams := repository.CreateConnectionParams{
 		UserID:               userID,
@@ -644,9 +645,9 @@ func (h *Handler) TellerConnect(w http.ResponseWriter, r *http.Request) {
 		ItemID:               nil, // Teller itemId is the accessID
 		InstitutionID:        institutionID,
 		InstitutionName:      institutionName,
-		Status:               &status,                                           // Default status
-		LastSyncAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true}, // Set initial sync time
-		ExpiresAt:            pgtype.Timestamptz{Valid: false},
+		Status:               &status, // Default status
+		LastSyncAt:           pgtype.Timestamptz{Valid: true, Time: syncAt},
+		ExpiresAt:            pgtype.Timestamptz{Valid: false}, // Set if Mono provides expiration
 	}
 
 	connection, err := h.repo.CreateConnection(ctx, connParams)
@@ -814,6 +815,8 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	syncAt := time.Now()
+
 	connParams := repository.CreateConnectionParams{
 		UserID:               userID,
 		ProviderName:         providerName,
@@ -822,7 +825,7 @@ func (h *Handler) MonoConnect(w http.ResponseWriter, r *http.Request) {
 		InstitutionID:        &req.InstitutionID,
 		InstitutionName:      &req.Institution,
 		Status:               &status, // Or "active" if data sync is immediate, "pending_auth" if webhooks are primary
-		LastSyncAt:           pgtype.Timestamptz{Valid: false},
+		LastSyncAt:           pgtype.Timestamptz{Valid: true, Time: syncAt},
 		ExpiresAt:            pgtype.Timestamptz{Valid: false}, // Set if Mono provides expiration
 	}
 

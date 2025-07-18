@@ -131,7 +131,7 @@ func (w *BankSyncWorker) Work(ctx context.Context, job *river.Job[BankSyncJob]) 
 	if _, err := qtx.SetConnectionSyncStatus(ctx, repository.SetConnectionSyncStatusParams{
 		ID:         job.Args.ConnectionID,
 		UserID:     job.Args.UserID,
-		LastSyncAt: &now,
+		LastSyncAt: pgtype.Timestamptz{Valid: true, Time: now},
 	}); err != nil {
 		return fmt.Errorf("failed to update last sync time: %w", err)
 	}
@@ -195,7 +195,7 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 			accountsToUpdate = append(accountsToUpdate, repository.UpdateAccountParams{
 				ID:      existingAccount.ID,
 				Name:    &account.Name,
-				Balance: types.NullDecimalToPgtypeNumeric(newBalance),
+				Balance: newBalance,
 				Meta: dto.AccountMeta{
 					InstitutionName: *connection.InstitutionName,
 				},
@@ -204,7 +204,7 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 			// Account doesn't exist, prepare for creation
 			accountsToCreate = append(accountsToCreate, repository.BatchCreateAccountParams{
 				Name:    account.Name,
-				Balance: types.NullDecimalToPgtypeNumeric(newBalance),
+				Balance: newBalance,
 				Type:    repository.ACCOUNTTYPE(account.Type),
 				Meta: dto.AccountMeta{
 					InstitutionName: *connection.InstitutionName,
@@ -325,13 +325,13 @@ func (w *BankSyncWorker) syncAccountTransactions(ctx context.Context, qtx *repos
 		isExternal := true
 
 		transactionsToCreate = append(transactionsToCreate, repository.BatchCreateTransactionParams{
-			Amount:                types.DecimalToPgtypeNumeric(amount),
-			OriginalAmount:        types.DecimalToPgtypeNumeric(amount),
+			Amount:                amount,
+			OriginalAmount:        amount,
 			Type:                  transaction.Type,
 			AccountID:             account.ID,
 			CategoryID:            &categoryID,
 			TransactionCurrency:   transaction.Currency,
-			TransactionDatetime:   transaction.Date,
+			TransactionDatetime:   pgtype.Timestamptz{Valid: true, Time: transaction.Date},
 			Description:           &transaction.Description,
 			ProviderTransactionID: &transaction.ProviderTransactionID,
 			Details:               &dto.Details{},
@@ -732,9 +732,9 @@ func (w *ExchangeRatesSyncWorker) NextRetry(job *river.Job[ExchangeRatesSyncJob]
 
 // RecurringTransactionJob represents a job for processing recurring transactions
 type RecurringTransactionJob struct {
-	UserID                uuid.UUID `json:"user_id"`
+	UserID                 uuid.UUID `json:"user_id"`
 	RecurringTransactionID uuid.UUID `json:"recurring_transaction_id"`
-	DueDate               time.Time `json:"due_date"`
+	DueDate                time.Time `json:"due_date"`
 }
 
 func (RecurringTransactionJob) Kind() string {
@@ -787,18 +787,18 @@ func (w *RecurringTransactionWorker) Work(ctx context.Context, job *river.Job[Re
 
 	// Create the actual transaction
 	_, err = w.deps.Queries.CreateTransaction(ctx, repository.CreateTransactionParams{
-		Amount:                 recurringTx.Amount,
-		OriginalAmount:         recurringTx.Amount,
+		Amount:                 types.PgtypeNumericToDecimal(recurringTx.Amount),
+		OriginalAmount:         types.PgtypeNumericToDecimal(recurringTx.Amount),
 		Type:                   recurringTx.Type,
 		AccountID:              recurringTx.AccountID,
 		CategoryID:             recurringTx.CategoryID,
 		TransactionCurrency:    "USD", // TODO: Get from account currency
-		TransactionDatetime:    job.Args.DueDate,
+		TransactionDatetime:    pgtype.Timestamptz{Valid: true, Time: job.Args.DueDate},
 		Description:            recurringTx.Description,
 		Details:                recurringTx.Details,
 		CreatedBy:              &job.Args.UserID,
 		RecurringTransactionID: &job.Args.RecurringTransactionID,
-		RecurringInstanceDate:  &job.Args.DueDate,
+		RecurringInstanceDate:  pgtype.Timestamptz{Valid: true, Time: job.Args.DueDate},
 	})
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to create transaction from recurring template")
@@ -819,5 +819,3 @@ func (w *RecurringTransactionWorker) Timeout(job *river.Job[RecurringTransaction
 func (w *RecurringTransactionWorker) NextRetry(job *river.Job[RecurringTransactionJob]) time.Time {
 	return time.Now().Add(30 * time.Minute)
 }
-
-

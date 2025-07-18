@@ -7,9 +7,9 @@ package repository
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createConnection = `-- name: CreateConnection :one
@@ -37,15 +37,15 @@ INSERT INTO user_financial_connections (
 `
 
 type CreateConnectionParams struct {
-	UserID               uuid.UUID  `json:"user_id"`
-	ProviderName         string     `json:"provider_name"`
-	AccessTokenEncrypted []byte     `json:"access_token_encrypted"`
-	ItemID               *string    `json:"item_id"`
-	InstitutionID        *string    `json:"institution_id"`
-	InstitutionName      *string    `json:"institution_name"`
-	Status               *string    `json:"status"`
-	LastSyncAt           *time.Time `json:"last_sync_at"`
-	ExpiresAt            *time.Time `json:"expires_at"`
+	UserID               uuid.UUID          `json:"user_id"`
+	ProviderName         string             `json:"provider_name"`
+	AccessTokenEncrypted []byte             `json:"access_token_encrypted"`
+	ItemID               *string            `json:"item_id"`
+	InstitutionID        *string            `json:"institution_id"`
+	InstitutionName      *string            `json:"institution_name"`
+	Status               *string            `json:"status"`
+	LastSyncAt           pgtype.Timestamptz `json:"last_sync_at"`
+	ExpiresAt            pgtype.Timestamptz `json:"expires_at"`
 }
 
 func (q *Queries) CreateConnection(ctx context.Context, arg CreateConnectionParams) (UserFinancialConnection, error) {
@@ -198,8 +198,8 @@ LIMIT $1 OFFSET $2
 `
 
 type ListConnectionsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
 }
 
 func (q *Queries) ListConnections(ctx context.Context, arg ListConnectionsParams) ([]UserFinancialConnection, error) {
@@ -281,10 +281,10 @@ RETURNING id, user_id, provider_name, access_token_encrypted, item_id, instituti
 `
 
 type SetConnectionSyncStatusParams struct {
-	ID         uuid.UUID  `json:"id"`
-	Status     *string    `json:"status"`
-	LastSyncAt *time.Time `json:"last_sync_at"`
-	UserID     uuid.UUID  `json:"user_id"`
+	ID         uuid.UUID          `json:"id"`
+	Status     *string            `json:"status"`
+	LastSyncAt pgtype.Timestamptz `json:"last_sync_at"`
+	UserID     uuid.UUID          `json:"user_id"`
 }
 
 func (q *Queries) SetConnectionSyncStatus(ctx context.Context, arg SetConnectionSyncStatusParams) (UserFinancialConnection, error) {
@@ -328,15 +328,15 @@ RETURNING id, user_id, provider_name, access_token_encrypted, item_id, instituti
 `
 
 type UpdateConnectionParams struct {
-	AccessTokenEncrypted []byte     `json:"access_token_encrypted"`
-	ItemID               *string    `json:"item_id"`
-	InstitutionID        *string    `json:"institution_id"`
-	InstitutionName      *string    `json:"institution_name"`
-	Status               *string    `json:"status"`
-	LastSyncAt           *time.Time `json:"last_sync_at"`
-	ExpiresAt            *time.Time `json:"expires_at"`
-	ID                   uuid.UUID  `json:"id"`
-	UserID               uuid.UUID  `json:"user_id"`
+	AccessTokenEncrypted []byte             `json:"access_token_encrypted"`
+	ItemID               *string            `json:"item_id"`
+	InstitutionID        *string            `json:"institution_id"`
+	InstitutionName      *string            `json:"institution_name"`
+	Status               *string            `json:"status"`
+	LastSyncAt           pgtype.Timestamptz `json:"last_sync_at"`
+	ExpiresAt            pgtype.Timestamptz `json:"expires_at"`
+	ID                   uuid.UUID          `json:"id"`
+	UserID               uuid.UUID          `json:"user_id"`
 }
 
 func (q *Queries) UpdateConnection(ctx context.Context, arg UpdateConnectionParams) (UserFinancialConnection, error) {
