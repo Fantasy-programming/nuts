@@ -936,300 +936,300 @@ func (h *Handler) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
 
 // BulkDeleteTransactions handles bulk deletion of transactions
 func (h *Handler) BulkDeleteTransactions(w http.ResponseWriter, r *http.Request) {
-ctx := r.Context()
-var req BulkDeleteTransactionsRequest
+	ctx := r.Context()
+	var req BulkDeleteTransactionsRequest
 
-valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrBadRequest,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    r.Body,
-})
-return
-}
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
 
-if valErr != nil {
-respond.Errors(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrValidation,
-ActualErr:  valErr,
-Logger:     h.logger,
-Details:    req,
-})
-return
-}
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
 
-userID, err := jwt.GetUserID(r)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusUnauthorized,
-ClientErr:  message.ErrUnauthorized,
-ActualErr:  err,
-Logger:     h.logger,
-})
-return
-}
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusUnauthorized,
+			ClientErr:  message.ErrUnauthorized,
+			ActualErr:  err,
+			Logger:     h.logger,
+		})
+		return
+	}
 
-// Parse transaction IDs
-ids := make([]uuid.UUID, len(req.TransactionIDs))
-for i, idStr := range req.TransactionIDs {
-id, err := uuid.Parse(idStr)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrBadRequest,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    idStr,
-})
-return
-}
-ids[i] = id
-}
+	// Parse transaction IDs
+	ids := make([]uuid.UUID, len(req.TransactionIDs))
+	for i, idStr := range req.TransactionIDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusBadRequest,
+				ClientErr:  message.ErrBadRequest,
+				ActualErr:  err,
+				Logger:     h.logger,
+				Details:    idStr,
+			})
+			return
+		}
+		ids[i] = id
+	}
 
-err = h.repo.BulkDeleteTransactions(ctx, ids, userID)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusInternalServerError,
-ClientErr:  message.ErrInternalError,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    ids,
-})
-return
-}
+	err = h.repo.BulkDeleteTransactions(ctx, ids, userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    ids,
+		})
+		return
+	}
 
-respond.Status(w, http.StatusOK)
+	respond.Status(w, http.StatusOK)
 }
 
 // BulkUpdateCategories handles bulk category updates for transactions
 func (h *Handler) BulkUpdateCategories(w http.ResponseWriter, r *http.Request) {
-ctx := r.Context()
-var req BulkUpdateCategoriesRequest
+	ctx := r.Context()
+	var req BulkUpdateCategoriesRequest
 
-valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrBadRequest,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    r.Body,
-})
-return
-}
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
 
-if valErr != nil {
-respond.Errors(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrValidation,
-ActualErr:  valErr,
-Logger:     h.logger,
-Details:    req,
-})
-return
-}
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
 
-userID, err := jwt.GetUserID(r)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusUnauthorized,
-ClientErr:  message.ErrUnauthorized,
-ActualErr:  err,
-Logger:     h.logger,
-})
-return
-}
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusUnauthorized,
+			ClientErr:  message.ErrUnauthorized,
+			ActualErr:  err,
+			Logger:     h.logger,
+		})
+		return
+	}
 
-// Parse transaction IDs
-ids := make([]uuid.UUID, len(req.TransactionIDs))
-for i, idStr := range req.TransactionIDs {
-id, err := uuid.Parse(idStr)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrBadRequest,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    idStr,
-})
-return
-}
-ids[i] = id
-}
+	// Parse transaction IDs
+	ids := make([]uuid.UUID, len(req.TransactionIDs))
+	for i, idStr := range req.TransactionIDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusBadRequest,
+				ClientErr:  message.ErrBadRequest,
+				ActualErr:  err,
+				Logger:     h.logger,
+				Details:    idStr,
+			})
+			return
+		}
+		ids[i] = id
+	}
 
-// Parse category ID
-categoryID, err := uuid.Parse(req.CategoryID)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrBadRequest,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    req.CategoryID,
-})
-return
-}
+	// Parse category ID
+	categoryID, err := uuid.Parse(req.CategoryID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req.CategoryID,
+		})
+		return
+	}
 
-err = h.repo.BulkUpdateTransactionCategories(ctx, ids, categoryID, userID)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusInternalServerError,
-ClientErr:  message.ErrInternalError,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    req,
-})
-return
-}
+	err = h.repo.BulkUpdateTransactionCategories(ctx, ids, categoryID, userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
 
-respond.Status(w, http.StatusOK)
+	respond.Status(w, http.StatusOK)
 }
 
 // BulkUpdateManualTransactions handles bulk updates for manual transactions
 func (h *Handler) BulkUpdateManualTransactions(w http.ResponseWriter, r *http.Request) {
-ctx := r.Context()
-var req BulkUpdateManualTransactionsRequest
+	ctx := r.Context()
+	var req BulkUpdateManualTransactionsRequest
 
-valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrBadRequest,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    r.Body,
-})
-return
-}
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
 
-if valErr != nil {
-respond.Errors(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrValidation,
-ActualErr:  valErr,
-Logger:     h.logger,
-Details:    req,
-})
-return
-}
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
 
-userID, err := jwt.GetUserID(r)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusUnauthorized,
-ClientErr:  message.ErrUnauthorized,
-ActualErr:  err,
-Logger:     h.logger,
-})
-return
-}
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusUnauthorized,
+			ClientErr:  message.ErrUnauthorized,
+			ActualErr:  err,
+			Logger:     h.logger,
+		})
+		return
+	}
 
-// Parse transaction IDs
-ids := make([]uuid.UUID, len(req.TransactionIDs))
-for i, idStr := range req.TransactionIDs {
-id, err := uuid.Parse(idStr)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrBadRequest,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    idStr,
-})
-return
-}
-ids[i] = id
-}
+	// Parse transaction IDs
+	ids := make([]uuid.UUID, len(req.TransactionIDs))
+	for i, idStr := range req.TransactionIDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusBadRequest,
+				ClientErr:  message.ErrBadRequest,
+				ActualErr:  err,
+				Logger:     h.logger,
+				Details:    idStr,
+			})
+			return
+		}
+		ids[i] = id
+	}
 
-params := BulkUpdateManualTransactionsParams{
-Ids:                 ids,
-TransactionDatetime: req.TransactionDatetime,
-UserID:              userID,
-}
+	params := BulkUpdateManualTransactionsParams{
+		Ids:                 ids,
+		TransactionDatetime: req.TransactionDatetime,
+		UserID:              userID,
+	}
 
-// Parse optional category ID
-if req.CategoryID != nil {
-categoryID, err := uuid.Parse(*req.CategoryID)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrBadRequest,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    *req.CategoryID,
-})
-return
-}
-params.CategoryID = &categoryID
-}
+	// Parse optional category ID
+	if req.CategoryID != nil {
+		categoryID, err := uuid.Parse(*req.CategoryID)
+		if err != nil {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusBadRequest,
+				ClientErr:  message.ErrBadRequest,
+				ActualErr:  err,
+				Logger:     h.logger,
+				Details:    *req.CategoryID,
+			})
+			return
+		}
+		params.CategoryID = &categoryID
+	}
 
-// Parse optional account ID
-if req.AccountID != nil {
-accountID, err := uuid.Parse(*req.AccountID)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusBadRequest,
-ClientErr:  message.ErrBadRequest,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    *req.AccountID,
-})
-return
-}
-params.AccountID = &accountID
-}
+	// Parse optional account ID
+	if req.AccountID != nil {
+		accountID, err := uuid.Parse(*req.AccountID)
+		if err != nil {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusBadRequest,
+				ClientErr:  message.ErrBadRequest,
+				ActualErr:  err,
+				Logger:     h.logger,
+				Details:    *req.AccountID,
+			})
+			return
+		}
+		params.AccountID = &accountID
+	}
 
-err = h.repo.BulkUpdateManualTransactions(ctx, params)
-if err != nil {
-respond.Error(respond.ErrorOptions{
-W:          w,
-R:          r,
-StatusCode: http.StatusInternalServerError,
-ClientErr:  message.ErrInternalError,
-ActualErr:  err,
-Logger:     h.logger,
-Details:    req,
-})
-return
-}
+	err = h.repo.BulkUpdateManualTransactions(ctx, params)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
 
-respond.Status(w, http.StatusOK)
+	respond.Status(w, http.StatusOK)
 }

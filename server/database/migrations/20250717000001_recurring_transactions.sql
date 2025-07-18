@@ -6,13 +6,13 @@ CREATE TABLE recurring_transactions (
     account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
     destination_account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
-    
+
     -- Basic transaction details
     amount NUMERIC NOT NULL,
     type VARCHAR(10) NOT NULL CHECK (type IN ('transfer', 'income', 'expense')),
     description TEXT,
     details JSONB,
-    
+
     -- Recurrence pattern
     frequency VARCHAR(20) NOT NULL CHECK (frequency IN ('daily', 'weekly', 'biweekly', 'monthly', 'yearly', 'custom')),
     frequency_interval INTEGER NOT NULL DEFAULT 1, -- Every X days/weeks/months

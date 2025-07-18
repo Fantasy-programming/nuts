@@ -173,7 +173,7 @@ func (q *Queries) GetLatestExchangeRate(ctx context.Context, arg GetLatestExchan
 
 const getTransactionWithCurrency = `-- name: GetTransactionWithCurrency :one
 SELECT 
-    t.id, t.amount, t.type, t.account_id, t.category_id, t.destination_account_id, t.transaction_datetime, t.description, t.details, t.created_by, t.updated_by, t.created_at, t.updated_at, t.deleted_at, t.is_external, t.provider_transaction_id, t.transaction_currency, t.original_amount, t.exchange_rate, t.exchange_rate_date, t.is_categorized, t.shared_finance_id,
+    t.id, t.amount, t.type, t.account_id, t.category_id, t.destination_account_id, t.transaction_datetime, t.description, t.details, t.created_by, t.updated_by, t.created_at, t.updated_at, t.deleted_at, t.is_external, t.provider_transaction_id, t.transaction_currency, t.original_amount, t.exchange_rate, t.exchange_rate_date, t.is_categorized, t.shared_finance_id, t.recurring_transaction_id, t.recurring_instance_date,
     a.currency as account_currency,
     CASE 
         WHEN t.transaction_currency = a.currency THEN t.amount
@@ -185,30 +185,32 @@ WHERE t.id = $1
 `
 
 type GetTransactionWithCurrencyRow struct {
-	ID                    uuid.UUID           `json:"id"`
-	Amount                pgtype.Numeric      `json:"amount"`
-	Type                  string              `json:"type"`
-	AccountID             uuid.UUID           `json:"account_id"`
-	CategoryID            *uuid.UUID          `json:"category_id"`
-	DestinationAccountID  *uuid.UUID          `json:"destination_account_id"`
-	TransactionDatetime   time.Time           `json:"transaction_datetime"`
-	Description           *string             `json:"description"`
-	Details               *dto.Details        `json:"details"`
-	CreatedBy             *uuid.UUID          `json:"created_by"`
-	UpdatedBy             *uuid.UUID          `json:"updated_by"`
-	CreatedAt             time.Time           `json:"created_at"`
-	UpdatedAt             time.Time           `json:"updated_at"`
-	DeletedAt             *time.Time          `json:"deleted_at"`
-	IsExternal            *bool               `json:"is_external"`
-	ProviderTransactionID *string             `json:"provider_transaction_id"`
-	TransactionCurrency   string              `json:"transaction_currency"`
-	OriginalAmount        pgtype.Numeric      `json:"original_amount"`
-	ExchangeRate          pgtype.Numeric      `json:"exchange_rate"`
-	ExchangeRateDate      pgtype.Date         `json:"exchange_rate_date"`
-	IsCategorized         *bool               `json:"is_categorized"`
-	SharedFinanceID       *uuid.UUID          `json:"shared_finance_id"`
-	AccountCurrency       string              `json:"account_currency"`
-	DisplayAmount         decimal.NullDecimal `json:"display_amount"`
+	ID                     uuid.UUID           `json:"id"`
+	Amount                 pgtype.Numeric      `json:"amount"`
+	Type                   string              `json:"type"`
+	AccountID              uuid.UUID           `json:"account_id"`
+	CategoryID             *uuid.UUID          `json:"category_id"`
+	DestinationAccountID   *uuid.UUID          `json:"destination_account_id"`
+	TransactionDatetime    time.Time           `json:"transaction_datetime"`
+	Description            *string             `json:"description"`
+	Details                *dto.Details        `json:"details"`
+	CreatedBy              *uuid.UUID          `json:"created_by"`
+	UpdatedBy              *uuid.UUID          `json:"updated_by"`
+	CreatedAt              time.Time           `json:"created_at"`
+	UpdatedAt              time.Time           `json:"updated_at"`
+	DeletedAt              *time.Time          `json:"deleted_at"`
+	IsExternal             *bool               `json:"is_external"`
+	ProviderTransactionID  *string             `json:"provider_transaction_id"`
+	TransactionCurrency    string              `json:"transaction_currency"`
+	OriginalAmount         pgtype.Numeric      `json:"original_amount"`
+	ExchangeRate           pgtype.Numeric      `json:"exchange_rate"`
+	ExchangeRateDate       pgtype.Date         `json:"exchange_rate_date"`
+	IsCategorized          *bool               `json:"is_categorized"`
+	SharedFinanceID        *uuid.UUID          `json:"shared_finance_id"`
+	RecurringTransactionID *uuid.UUID          `json:"recurring_transaction_id"`
+	RecurringInstanceDate  *time.Time          `json:"recurring_instance_date"`
+	AccountCurrency        string              `json:"account_currency"`
+	DisplayAmount          decimal.NullDecimal `json:"display_amount"`
 }
 
 func (q *Queries) GetTransactionWithCurrency(ctx context.Context, id uuid.UUID) (GetTransactionWithCurrencyRow, error) {
@@ -237,6 +239,8 @@ func (q *Queries) GetTransactionWithCurrency(ctx context.Context, id uuid.UUID) 
 		&i.ExchangeRateDate,
 		&i.IsCategorized,
 		&i.SharedFinanceID,
+		&i.RecurringTransactionID,
+		&i.RecurringInstanceDate,
 		&i.AccountCurrency,
 		&i.DisplayAmount,
 	)

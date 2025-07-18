@@ -50,6 +50,11 @@ sql:
               import: "github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
               type: "Details"
               pointer: true
+          - column: "recurring_transactions.details"
+            go_type:
+              import: "github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
+              type: "Details"
+              pointer: true
           - column: "accounts.meta"
             go_type:
               import: "github.com/Fantasy-Programming/nuts/server/internal/repository/dto"

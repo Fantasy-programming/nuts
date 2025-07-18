@@ -3,7 +3,6 @@ package transactions
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/message"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
@@ -138,3 +137,4 @@ func RegisterRecurringTransactionRoutes(r chi.Router, handlers *RecurringTransac
 		r.Get("/{id}", handlers.GetRecurringTransaction)
 	})
 }
+

@@ -114,8 +114,7 @@ ORDER BY next_due_date ASC;
 SELECT 
     t.*,
     rt.template_name,
-    rt.frequency,
-    rt.recurring_instance_date
+    rt.frequency
 FROM transactions t
 JOIN recurring_transactions rt ON t.recurring_transaction_id = rt.id
 WHERE rt.user_id = $1 AND rt.id = $2 AND t.deleted_at IS NULL
