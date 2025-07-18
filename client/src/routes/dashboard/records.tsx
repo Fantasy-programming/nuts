@@ -10,10 +10,10 @@ import { NeuralRecordsDialog } from "@/features/transactions/components/neural-r
 import { getTransactions } from "@/features/transactions/services/transaction"
 import { categoryService } from "@/features/categories/services/category"
 import { accountService } from "@/features/accounts/services/account";
-import { LayoutDashboard, Plus, Sparkles, List, Calendar, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Plus, Sparkles, List, Calendar, BarChart3, ChevronDown } from "lucide-react";
 import { SidebarTrigger } from "@/core/components/ui/sidebar";
 import { EmptyStateGuide } from "@/core/components/EmptyStateGuide";
-import { Tabs, TabsList, TabsTrigger } from "@/core/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/core/components/ui/dropdown-menu";
 
 const transactionFilterSchema = z.object({
   page: z.number().catch(1),
@@ -58,22 +58,33 @@ function RouteComponent() {
   };
 
   const ViewSwitcher = () => (
-    <Tabs value={currentView} onValueChange={(value) => setCurrentView(value as any)}>
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="list" className="flex items-center gap-2">
-          <List className="h-4 w-4" />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="flex items-center gap-2">
+          {currentView === "list" && <List className="h-4 w-4" />}
+          {currentView === "calendar" && <Calendar className="h-4 w-4" />}
+          {currentView === "analytics" && <BarChart3 className="h-4 w-4" />}
+          {currentView === "list" && "List"}
+          {currentView === "calendar" && "Calendar"}
+          {currentView === "analytics" && "Analytics"}
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onClick={() => setCurrentView("list")}>
+          <List className="h-4 w-4 mr-2" />
           List
-        </TabsTrigger>
-        <TabsTrigger value="calendar" className="flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setCurrentView("calendar")}>
+          <Calendar className="h-4 w-4 mr-2" />
           Calendar
-        </TabsTrigger>
-        <TabsTrigger value="analytics" className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4" />
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setCurrentView("analytics")}>
+          <BarChart3 className="h-4 w-4 mr-2" />
           Analytics
-        </TabsTrigger>
-      </TabsList>
-    </Tabs>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   const renderCurrentView = () => {
@@ -121,6 +132,7 @@ function RouteComponent() {
         <div className="flex w-full items-center justify-between gap-2">
           <h2 className="text-2xl font-bold tracking-tight">Transactions</h2>
           <div className="flex items-center gap-2">
+            <ViewSwitcher />
             <RecordsDialog>
               <Button className="hidden items-center gap-2 sm:flex">
                 <Plus className="size-4" />
@@ -137,11 +149,6 @@ function RouteComponent() {
         </div>
       </header>
       
-      {/* View Switcher */}
-      <div className="mb-4">
-        <ViewSwitcher />
-      </div>
-
       <div className="flex flex-1">
         <div className="h-full w-full space-y-8  py-2">
           <div className="space-y-8">
