@@ -264,7 +264,7 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
             {/* Recurring Transaction Option */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                Récurrence
+                Recurrence
               </label>
               <RecurringSelect
                 value={recurringType}
@@ -382,7 +382,7 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
             {/* Recurring Transaction Option */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                Récurrence
+                Recurrence
               </label>
               <RecurringSelect
                 value={recurringType}
@@ -502,7 +502,7 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
             {/* Recurring Transaction Option */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                Récurrence
+                Recurrence
               </label>
               <RecurringSelect
                 value={recurringType}

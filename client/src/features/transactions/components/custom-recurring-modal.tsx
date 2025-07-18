@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/core/components/ui/form";
 import { DatePicker } from "@/core/components/ui/date-picker";
+import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
+import { useMemo } from "react";
 
 const customRecurringSchema = z.object({
   interval: z.number().min(1).max(365),
@@ -48,6 +50,32 @@ export function CustomRecurringModal({
   const period = form.watch("period");
   const endType = form.watch("endType");
   const interval = form.watch("interval");
+  const dayOfWeek = form.watch("dayOfWeek");
+  const endDate = form.watch("endDate");
+  const maxOccurrences = form.watch("maxOccurrences");
+
+  const previewText = useMemo(() => {
+    let text = `Repeats every ${interval} ${period}`;
+    if (interval > 1) {
+      text = `Repeats every ${interval} ${period}s`;
+    } else {
+      text = `Repeats every ${period}`;
+    }
+    
+    if (period === "week" && dayOfWeek && dayOfWeek.length > 0) {
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const selectedDays = dayOfWeek.map(day => dayNames[day]).join(", ");
+      text += ` on ${selectedDays}`;
+    }
+    
+    if (endType === "date" && endDate) {
+      text += ` until ${endDate.toLocaleDateString()}`;
+    } else if (endType === "occurrences" && maxOccurrences) {
+      text += ` for ${maxOccurrences} occurrences`;
+    }
+    
+    return text;
+  }, [interval, period, dayOfWeek, endType, endDate, maxOccurrences]);
 
   const handleSave = (data: CustomRecurringData) => {
     onSave(data);
@@ -60,7 +88,7 @@ export function CustomRecurringModal({
   };
 
   const getDayName = (day: number) => {
-    const days = ["D", "L", "M", "M", "J", "V", "S"]; // French abbreviations
+    const days = ["S", "M", "T", "W", "T", "F", "S"]; // English abbreviations
     return days[day];
   };
 
@@ -68,14 +96,14 @@ export function CustomRecurringModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Récurrence personnalisée</DialogTitle>
+          <DialogTitle>Custom Recurrence</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
             {/* Repeat Every */}
             <div className="space-y-2">
-              <Label>Répéter tout(e) les</Label>
+              <Label>Repeat every</Label>
               <div className="flex items-center space-x-2">
                 <FormField
                   control={form.control}
@@ -108,10 +136,10 @@ export function CustomRecurringModal({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="day">jour{interval > 1 ? "s" : ""}</SelectItem>
-                          <SelectItem value="week">semaine{interval > 1 ? "s" : ""}</SelectItem>
-                          <SelectItem value="month">mois</SelectItem>
-                          <SelectItem value="year">année{interval > 1 ? "s" : ""}</SelectItem>
+                          <SelectItem value="day">day{interval > 1 ? "s" : ""}</SelectItem>
+                          <SelectItem value="week">week{interval > 1 ? "s" : ""}</SelectItem>
+                          <SelectItem value="month">month{interval > 1 ? "s" : ""}</SelectItem>
+                          <SelectItem value="year">year{interval > 1 ? "s" : ""}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -124,7 +152,7 @@ export function CustomRecurringModal({
             {/* Days of Week (only for weekly) */}
             {period === "week" && (
               <div className="space-y-2">
-                <Label>Répéter le</Label>
+                <Label>Repeat on</Label>
                 <FormField
                   control={form.control}
                   name="dayOfWeek"
@@ -161,7 +189,7 @@ export function CustomRecurringModal({
 
             {/* End Condition */}
             <div className="space-y-3">
-              <Label>Se termine</Label>
+              <Label>Ends</Label>
               <FormField
                 control={form.control}
                 name="endType"
@@ -175,11 +203,11 @@ export function CustomRecurringModal({
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="never" id="never" />
-                          <Label htmlFor="never">Jamais</Label>
+                          <Label htmlFor="never">Never</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="date" id="date" />
-                          <Label htmlFor="date">Le</Label>
+                          <Label htmlFor="date">On date</Label>
                           {endType === "date" && (
                             <FormField
                               control={form.control}
@@ -190,7 +218,7 @@ export function CustomRecurringModal({
                                     <DatePicker
                                       date={field.value}
                                       onDateChange={field.onChange}
-                                      placeholder="17 oct. 2025"
+                                      placeholder="Oct 17, 2025"
                                     />
                                   </FormControl>
                                 </FormItem>
@@ -200,7 +228,7 @@ export function CustomRecurringModal({
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="occurrences" id="occurrences" />
-                          <Label htmlFor="occurrences">Après</Label>
+                          <Label htmlFor="occurrences">After</Label>
                           {endType === "occurrences" && (
                             <FormField
                               control={form.control}
@@ -233,12 +261,22 @@ export function CustomRecurringModal({
               />
             </div>
 
+            {/* Preview Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{previewText}</p>
+              </CardContent>
+            </Card>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleCancel}>
-                Annuler
+                Cancel
               </Button>
               <Button type="submit">
-                Terminé
+                Done
               </Button>
             </DialogFooter>
           </form>

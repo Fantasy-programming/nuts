@@ -17,23 +17,23 @@ export function RecurringSelect({ value, onChange, onCustomSave }: RecurringSele
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
 
   const recurringOptions: RecurringOption[] = [
-    { value: "one-time", label: "Une seule fois" },
-    { value: "daily", label: "Tous les jours" },
-    { value: "weekly-monday", label: "Toutes les semaines le lundi" },
-    { value: "weekly-tuesday", label: "Toutes les semaines le mardi" },
-    { value: "weekly-wednesday", label: "Toutes les semaines le mercredi" },
-    { value: "weekly-thursday", label: "Toutes les semaines le jeudi" },
-    { value: "weekly-friday", label: "Toutes les semaines le vendredi" },
-    { value: "weekly-saturday", label: "Toutes les semaines le samedi" },
-    { value: "weekly-sunday", label: "Toutes les semaines le dimanche" },
-    { value: "monthly-1st", label: "Tous les mois le premier" },
-    { value: "monthly-15th", label: "Tous les mois le quinze" },
-    { value: "monthly-last", label: "Tous les mois le dernier jour" },
-    { value: "monthly-first-monday", label: "Tous les mois le premier lundi" },
-    { value: "monthly-third-friday", label: "Tous les mois le troisième vendredi" },
-    { value: "yearly-birthday", label: "Tous les ans le 18 juillet" },
-    { value: "weekdays", label: "Tous les jours de la semaine (du lundi au vendredi)" },
-    { value: "custom", label: "Personnaliser..." },
+    { value: "one-time", label: "One time" },
+    { value: "daily", label: "Daily" },
+    { value: "weekly-monday", label: "Weekly on Monday" },
+    { value: "weekly-tuesday", label: "Weekly on Tuesday" },
+    { value: "weekly-wednesday", label: "Weekly on Wednesday" },
+    { value: "weekly-thursday", label: "Weekly on Thursday" },
+    { value: "weekly-friday", label: "Weekly on Friday" },
+    { value: "weekly-saturday", label: "Weekly on Saturday" },
+    { value: "weekly-sunday", label: "Weekly on Sunday" },
+    { value: "monthly-1st", label: "Monthly on 1st" },
+    { value: "monthly-15th", label: "Monthly on 15th" },
+    { value: "monthly-last", label: "Monthly on last day" },
+    { value: "monthly-first-monday", label: "Monthly on first Monday" },
+    { value: "monthly-third-friday", label: "Monthly on third Friday" },
+    { value: "yearly-birthday", label: "Yearly on July 18th" },
+    { value: "weekdays", label: "Weekdays (Monday to Friday)" },
+    { value: "custom", label: "Custom..." },
   ];
 
   const handleValueChange = (newValue: string) => {
@@ -53,7 +53,7 @@ export function RecurringSelect({ value, onChange, onCustomSave }: RecurringSele
     <>
       <Select value={value} onValueChange={handleValueChange}>
         <SelectTrigger>
-          <SelectValue placeholder="Une seule fois" />
+          <SelectValue placeholder="One time" />
         </SelectTrigger>
         <SelectContent>
           {recurringOptions.map((option) => (

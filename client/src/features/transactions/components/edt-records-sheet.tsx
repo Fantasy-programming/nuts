@@ -390,7 +390,7 @@ export default function EditTransactionSheet({
               {!isSyncedTransaction && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Récurrence
+                    Recurrence
                   </label>
                   <RecurringSelect
                     value={recurringType}
