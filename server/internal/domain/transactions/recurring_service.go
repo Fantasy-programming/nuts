@@ -41,6 +41,17 @@ func NewRecurringTransactionService(repo RecurringTransactionRepository, queries
 	}
 }
 
+// CreateRecurringTransaction creates a new recurring transaction template
+func (s *RecurringTransactionService) CreateRecurringTransaction(ctx context.Context, userID uuid.UUID, req CreateRecurringTransactionRequest) (*RecurringTransaction, error) {
+	// Validate the request
+	if err := s.ValidateRecurringTransaction(req); err != nil {
+		return nil, err
+	}
+
+	// Create the recurring transaction
+	return s.repo.CreateRecurringTransaction(ctx, req, userID)
+}
+
 // GenerateNextDueDate calculates the next due date based on frequency and pattern
 func (s *RecurringTransactionService) GenerateNextDueDate(rt *RecurringTransaction) time.Time {
 	baseDate := rt.NextDueDate

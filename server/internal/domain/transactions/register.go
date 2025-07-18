@@ -14,7 +14,12 @@ import (
 func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
 	repo := NewRepository(db, queries)
-	h := NewHandler(validate, repo, logger)
+	
+	// Create recurring transaction dependencies
+	recurringRepo := NewRecurringTransactionRepository(db, queries)
+	recurringService := NewRecurringTransactionService(recurringRepo, queries, repo)
+	
+	h := NewHandler(validate, repo, recurringService, logger)
 
 	// Create the auth verify middleware
 	middleware := jwt.NewMiddleware(tkn)

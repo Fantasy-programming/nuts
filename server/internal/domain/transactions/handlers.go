@@ -20,13 +20,14 @@ import (
 )
 
 type Handler struct {
-	validator *validation.Validator
-	repo      Repository
-	logger    *zerolog.Logger
+	validator       *validation.Validator
+	repo            Repository
+	recurringService *RecurringTransactionService
+	logger          *zerolog.Logger
 }
 
-func NewHandler(validator *validation.Validator, repo Repository, logger *zerolog.Logger) *Handler {
-	return &Handler{validator, repo, logger}
+func NewHandler(validator *validation.Validator, repo Repository, recurringService *RecurringTransactionService, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, repo, recurringService, logger}
 }
 
 func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
@@ -290,6 +291,49 @@ func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 			Details:    req,
 		})
 		return
+	}
+
+	// If this is a recurring transaction, create the recurring template
+	if req.IsRecurring != nil && *req.IsRecurring && req.RecurringConfig != nil {
+		recurringReq := CreateRecurringTransactionRequest{
+			AccountID:         req.AccountID,
+			CategoryID:        &req.CategoryID,
+			Amount:            amount,
+			Type:              req.Type,
+			Description:       req.Description,
+			Details:           &req.Details,
+			Frequency:         req.RecurringConfig.Frequency,
+			FrequencyInterval: req.RecurringConfig.FrequencyInterval,
+			FrequencyData:     req.RecurringConfig.FrequencyData,
+			StartDate:         req.RecurringConfig.StartDate,
+			EndDate:           req.RecurringConfig.EndDate,
+			AutoPost:          req.RecurringConfig.AutoPost,
+			MaxOccurrences:    req.RecurringConfig.MaxOccurrences,
+			TemplateName:      req.RecurringConfig.TemplateName,
+			Tags:              req.RecurringConfig.Tags,
+		}
+
+		// Validate the recurring transaction
+		if err := h.recurringService.ValidateRecurringTransaction(recurringReq); err != nil {
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusBadRequest,
+				ClientErr:  message.ErrValidation,
+				ActualErr:  err,
+				Logger:     h.logger,
+				Details:    recurringReq,
+			})
+			return
+		}
+
+		// Create the recurring transaction template
+		_, err := h.recurringService.CreateRecurringTransaction(ctx, userID, recurringReq)
+		if err != nil {
+			h.logger.Error().Err(err).Msg("Failed to create recurring transaction template")
+			// Note: We don't return an error here since the main transaction was created successfully
+			// We could add a warning to the response instead
+		}
 	}
 
 	respond.Json(w, http.StatusOK, transaction, h.logger)

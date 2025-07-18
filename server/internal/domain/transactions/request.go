@@ -48,6 +48,23 @@ type CreateTransactionRequest struct {
 	CategoryID          string      `json:"category_id"`
 	Details             dto.Details `json:"details"`
 	Amount              float64     `json:"amount"`
+	
+	// Optional recurring fields
+	IsRecurring       *bool           `json:"is_recurring,omitempty"`
+	RecurringConfig   *RecurringConfig `json:"recurring_config,omitempty"`
+}
+
+// RecurringConfig holds the recurring transaction configuration
+type RecurringConfig struct {
+	Frequency         string         `json:"frequency" validate:"required,oneof=daily weekly biweekly monthly yearly custom"`
+	FrequencyInterval int            `json:"frequency_interval" validate:"min=1,max=999"`
+	FrequencyData     *FrequencyData `json:"frequency_data,omitempty"`
+	StartDate         time.Time      `json:"start_date" validate:"required"`
+	EndDate           *time.Time     `json:"end_date,omitempty"`
+	AutoPost          bool           `json:"auto_post"`
+	MaxOccurrences    *int           `json:"max_occurrences,omitempty" validate:"omitempty,min=1"`
+	TemplateName      *string        `json:"template_name,omitempty"`
+	Tags              *Tags          `json:"tags,omitempty"`
 }
 
 type CreateTransfertRequest struct {

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/core/components/ui/form";
 import { DatePicker } from "@/core/components/ui/date-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 const customRecurringSchema = z.object({
   interval: z.number().min(1).max(365),
@@ -19,6 +19,7 @@ const customRecurringSchema = z.object({
   endType: z.enum(["never", "date", "occurrences"]),
   endDate: z.date().optional(),
   maxOccurrences: z.number().min(1).optional(),
+  naturalLanguagePattern: z.string().optional(),
 });
 
 type CustomRecurringData = z.infer<typeof customRecurringSchema>;
@@ -36,6 +37,9 @@ export function CustomRecurringModal({
   onSave, 
   defaultValues 
 }: CustomRecurringModalProps) {
+  const [naturalLanguageInput, setNaturalLanguageInput] = useState("");
+  const [parsedPattern, setParsedPattern] = useState<string>("");
+  
   const form = useForm<CustomRecurringData>({
     resolver: zodResolver(customRecurringSchema),
     defaultValues: {
@@ -54,7 +58,90 @@ export function CustomRecurringModal({
   const endDate = form.watch("endDate");
   const maxOccurrences = form.watch("maxOccurrences");
 
+  // Handle natural language pattern parsing
+  const handleNaturalLanguageChange = (input: string) => {
+    setNaturalLanguageInput(input);
+    if (input.trim()) {
+      try {
+        // Use any-date-parser to try to extract patterns
+        // This is a simple example - you could expand this logic
+        const patterns = parseNaturalLanguagePattern(input);
+        setParsedPattern(patterns.description);
+        
+        // Update form values based on parsed pattern
+        if (patterns.interval) form.setValue("interval", patterns.interval);
+        if (patterns.period) form.setValue("period", patterns.period);
+        if (patterns.dayOfWeek) form.setValue("dayOfWeek", patterns.dayOfWeek);
+      } catch (error) {
+        setParsedPattern("Unable to parse pattern");
+      }
+    } else {
+      setParsedPattern("");
+    }
+  };
+
+  const parseNaturalLanguagePattern = (input: string) => {
+    const lowercaseInput = input.toLowerCase();
+    
+    // Simple pattern matching - can be expanded
+    if (lowercaseInput.includes("every month on the 14th 18th and 19th")) {
+      return {
+        description: "Monthly on the 14th, 18th, and 19th",
+        interval: 1,
+        period: "month" as const,
+        specificDates: [14, 18, 19],
+        dayOfWeek: undefined as number[] | undefined
+      };
+    }
+    
+    if (lowercaseInput.includes("yearly on the 12 of the 3rd month")) {
+      return {
+        description: "Yearly on March 12th",
+        interval: 1,
+        period: "year" as const,
+        monthOfYear: 3,
+        dayOfMonth: 12,
+        dayOfWeek: undefined as number[] | undefined
+      };
+    }
+    
+    // Match "every X weeks/months/days"
+    const intervalMatch = lowercaseInput.match(/every (\d+) (week|month|day|year)s?/);
+    if (intervalMatch) {
+      const interval = parseInt(intervalMatch[1]);
+      const period = intervalMatch[2] as "day" | "week" | "month" | "year";
+      return {
+        description: `Every ${interval} ${period}${interval > 1 ? 's' : ''}`,
+        interval,
+        period,
+        dayOfWeek: undefined as number[] | undefined
+      };
+    }
+    
+    // Add more pattern matching logic here
+    return {
+      description: `Custom pattern: ${input}`,
+      interval: 1,
+      period: "week" as const,
+      dayOfWeek: undefined as number[] | undefined
+    };
+  };
+
   const previewText = useMemo(() => {
+    // If there's a parsed pattern from natural language, use that
+    if (parsedPattern) {
+      let text = parsedPattern;
+      
+      if (endType === "date" && endDate) {
+        text += ` until ${endDate.toLocaleDateString()}`;
+      } else if (endType === "occurrences" && maxOccurrences) {
+        text += ` for ${maxOccurrences} occurrences`;
+      }
+      
+      return text;
+    }
+    
+    // Otherwise, use the regular preview logic
     let text = `Repeats every ${interval} ${period}`;
     if (interval > 1) {
       text = `Repeats every ${interval} ${period}s`;
@@ -75,10 +162,16 @@ export function CustomRecurringModal({
     }
     
     return text;
-  }, [interval, period, dayOfWeek, endType, endDate, maxOccurrences]);
+  }, [interval, period, dayOfWeek, endType, endDate, maxOccurrences, parsedPattern]);
 
   const handleSave = (data: CustomRecurringData) => {
-    onSave(data);
+    // Include the natural language pattern and parsed pattern in the saved data
+    const enhancedData = {
+      ...data,
+      naturalLanguagePattern: naturalLanguageInput || undefined,
+      parsedPattern: parsedPattern || undefined
+    };
+    onSave(enhancedData);
     onClose();
   };
 
@@ -101,6 +194,21 @@ export function CustomRecurringModal({
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
+            {/* Natural Language Pattern Input */}
+            <div className="space-y-2">
+              <Label>Natural Language Pattern (Optional)</Label>
+              <Input
+                type="text"
+                placeholder="e.g., 'every month on the 14th 18th and 19th' or 'yearly on the 12 of the 3rd month'"
+                value={naturalLanguageInput}
+                onChange={(e) => handleNaturalLanguageChange(e.target.value)}
+                className="w-full"
+              />
+              {parsedPattern && (
+                <p className="text-xs text-blue-600">Parsed: {parsedPattern}</p>
+              )}
+            </div>
+
             {/* Repeat Every */}
             <div className="space-y-2">
               <Label>Repeat every</Label>

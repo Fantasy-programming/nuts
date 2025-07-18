@@ -15,6 +15,7 @@ interface RecurringSelectProps {
 
 export function RecurringSelect({ value, onChange, onCustomSave }: RecurringSelectProps) {
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [customPattern, setCustomPattern] = useState<string>("");
 
   const recurringOptions: RecurringOption[] = [
     { value: "one-time", label: "One time" },
@@ -33,7 +34,7 @@ export function RecurringSelect({ value, onChange, onCustomSave }: RecurringSele
     { value: "monthly-third-friday", label: "Monthly on third Friday" },
     { value: "yearly-birthday", label: "Yearly on July 18th" },
     { value: "weekdays", label: "Weekdays (Monday to Friday)" },
-    { value: "custom", label: "Custom..." },
+    { value: "custom", label: customPattern || "Custom..." },
   ];
 
   const handleValueChange = (newValue: string) => {
@@ -45,8 +46,35 @@ export function RecurringSelect({ value, onChange, onCustomSave }: RecurringSele
   };
 
   const handleCustomSave = (data: any) => {
+    // Generate preview text from the custom data
+    const previewText = generatePreviewText(data);
+    setCustomPattern(previewText);
+    
+    // Set the value to "custom" and store the preview text
+    onChange("custom");
     onCustomSave?.(data);
     setIsCustomModalOpen(false);
+  };
+
+  const generatePreviewText = (data: any) => {
+    if (data.parsedPattern) {
+      return data.parsedPattern;
+    }
+    
+    let text = `Every ${data.interval} ${data.period}`;
+    if (data.interval > 1) {
+      text = `Every ${data.interval} ${data.period}s`;
+    } else {
+      text = `Every ${data.period}`;
+    }
+    
+    if (data.period === "week" && data.dayOfWeek && data.dayOfWeek.length > 0) {
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const selectedDays = data.dayOfWeek.map((day: number) => dayNames[day]).join(", ");
+      text += ` on ${selectedDays}`;
+    }
+    
+    return text;
   };
 
   return (
