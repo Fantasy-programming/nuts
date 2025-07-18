@@ -12,7 +12,6 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/shopspring/decimal"
 )
 
 const countRecurringTransactionsWithFilters = `-- name: CountRecurringTransactionsWithFilters :one
@@ -79,25 +78,25 @@ INSERT INTO recurring_transactions (
 `
 
 type CreateRecurringTransactionParams struct {
-	UserID               uuid.UUID          `json:"user_id"`
-	AccountID            uuid.UUID          `json:"account_id"`
-	CategoryID           *uuid.UUID         `json:"category_id"`
-	DestinationAccountID *uuid.UUID         `json:"destination_account_id"`
-	Amount               decimal.Decimal    `json:"amount"`
-	Type                 string             `json:"type"`
-	Description          *string            `json:"description"`
-	Details              *dto.Details       `json:"details"`
-	Frequency            string             `json:"frequency"`
-	FrequencyInterval    int32              `json:"frequency_interval"`
-	FrequencyData        []byte             `json:"frequency_data"`
-	StartDate            pgtype.Timestamptz `json:"start_date"`
-	EndDate              pgtype.Timestamptz `json:"end_date"`
-	NextDueDate          pgtype.Timestamptz `json:"next_due_date"`
-	AutoPost             bool               `json:"auto_post"`
-	IsPaused             bool               `json:"is_paused"`
-	MaxOccurrences       *int32             `json:"max_occurrences"`
-	TemplateName         *string            `json:"template_name"`
-	Tags                 []byte             `json:"tags"`
+	UserID               uuid.UUID      `json:"user_id"`
+	AccountID            uuid.UUID      `json:"account_id"`
+	CategoryID           *uuid.UUID     `json:"category_id"`
+	DestinationAccountID *uuid.UUID     `json:"destination_account_id"`
+	Amount               pgtype.Numeric `json:"amount"`
+	Type                 string         `json:"type"`
+	Description          *string        `json:"description"`
+	Details              *dto.Details   `json:"details"`
+	Frequency            string         `json:"frequency"`
+	FrequencyInterval    int32          `json:"frequency_interval"`
+	FrequencyData        []byte         `json:"frequency_data"`
+	StartDate            time.Time      `json:"start_date"`
+	EndDate              *time.Time     `json:"end_date"`
+	NextDueDate          time.Time      `json:"next_due_date"`
+	AutoPost             bool           `json:"auto_post"`
+	IsPaused             bool           `json:"is_paused"`
+	MaxOccurrences       *int32         `json:"max_occurrences"`
+	TemplateName         *string        `json:"template_name"`
+	Tags                 []byte         `json:"tags"`
 }
 
 func (q *Queries) CreateRecurringTransaction(ctx context.Context, arg CreateRecurringTransactionParams) (RecurringTransaction, error) {
@@ -179,7 +178,7 @@ WHERE deleted_at IS NULL
 ORDER BY next_due_date ASC
 `
 
-func (q *Queries) GetDueRecurringTransactions(ctx context.Context, nextDueDate pgtype.Timestamptz) ([]RecurringTransaction, error) {
+func (q *Queries) GetDueRecurringTransactions(ctx context.Context, nextDueDate time.Time) ([]RecurringTransaction, error) {
 	rows, err := q.db.Query(ctx, getDueRecurringTransactions, nextDueDate)
 	if err != nil {
 		return nil, err
@@ -401,9 +400,9 @@ ORDER BY next_due_date ASC
 `
 
 type GetUpcomingRecurringTransactionsParams struct {
-	UserID        uuid.UUID          `json:"user_id"`
-	NextDueDate   pgtype.Timestamptz `json:"next_due_date"`
-	NextDueDate_2 pgtype.Timestamptz `json:"next_due_date_2"`
+	UserID        uuid.UUID `json:"user_id"`
+	NextDueDate   time.Time `json:"next_due_date"`
+	NextDueDate_2 time.Time `json:"next_due_date_2"`
 }
 
 func (q *Queries) GetUpcomingRecurringTransactions(ctx context.Context, arg GetUpcomingRecurringTransactionsParams) ([]RecurringTransaction, error) {
@@ -583,8 +582,8 @@ type ListRecurringTransactionsWithFiltersParams struct {
 	IsPaused     *bool      `json:"is_paused"`
 	AutoPost     *bool      `json:"auto_post"`
 	TemplateName *string    `json:"template_name"`
-	Offset       int64      `json:"offset"`
-	Limit        int64      `json:"limit"`
+	Offset       int32      `json:"offset"`
+	Limit        int32      `json:"limit"`
 }
 
 func (q *Queries) ListRecurringTransactionsWithFilters(ctx context.Context, arg ListRecurringTransactionsWithFiltersParams) ([]RecurringTransaction, error) {
@@ -716,26 +715,26 @@ RETURNING id, user_id, account_id, category_id, destination_account_id, amount, 
 `
 
 type UpdateRecurringTransactionParams struct {
-	ID                   uuid.UUID           `json:"id"`
-	UserID               uuid.UUID           `json:"user_id"`
-	AccountID            *uuid.UUID          `json:"account_id"`
-	CategoryID           *uuid.UUID          `json:"category_id"`
-	DestinationAccountID *uuid.UUID          `json:"destination_account_id"`
-	Amount               decimal.NullDecimal `json:"amount"`
-	Type                 *string             `json:"type"`
-	Description          *string             `json:"description"`
-	Details              *dto.Details        `json:"details"`
-	Frequency            *string             `json:"frequency"`
-	FrequencyInterval    *int32              `json:"frequency_interval"`
-	FrequencyData        []byte              `json:"frequency_data"`
-	StartDate            pgtype.Timestamptz  `json:"start_date"`
-	EndDate              pgtype.Timestamptz  `json:"end_date"`
-	NextDueDate          pgtype.Timestamptz  `json:"next_due_date"`
-	AutoPost             *bool               `json:"auto_post"`
-	IsPaused             *bool               `json:"is_paused"`
-	MaxOccurrences       *int32              `json:"max_occurrences"`
-	TemplateName         *string             `json:"template_name"`
-	Tags                 []byte              `json:"tags"`
+	ID                   uuid.UUID      `json:"id"`
+	UserID               uuid.UUID      `json:"user_id"`
+	AccountID            *uuid.UUID     `json:"account_id"`
+	CategoryID           *uuid.UUID     `json:"category_id"`
+	DestinationAccountID *uuid.UUID     `json:"destination_account_id"`
+	Amount               pgtype.Numeric `json:"amount"`
+	Type                 *string        `json:"type"`
+	Description          *string        `json:"description"`
+	Details              *dto.Details   `json:"details"`
+	Frequency            *string        `json:"frequency"`
+	FrequencyInterval    *int32         `json:"frequency_interval"`
+	FrequencyData        []byte         `json:"frequency_data"`
+	StartDate            *time.Time     `json:"start_date"`
+	EndDate              *time.Time     `json:"end_date"`
+	NextDueDate          *time.Time     `json:"next_due_date"`
+	AutoPost             *bool          `json:"auto_post"`
+	IsPaused             *bool          `json:"is_paused"`
+	MaxOccurrences       *int32         `json:"max_occurrences"`
+	TemplateName         *string        `json:"template_name"`
+	Tags                 []byte         `json:"tags"`
 }
 
 func (q *Queries) UpdateRecurringTransaction(ctx context.Context, arg UpdateRecurringTransactionParams) (RecurringTransaction, error) {
@@ -803,9 +802,9 @@ WHERE id = $1
 `
 
 type UpdateRecurringTransactionAfterGenerationParams struct {
-	ID                uuid.UUID          `json:"id"`
-	LastGeneratedDate pgtype.Timestamptz `json:"last_generated_date"`
-	NextDueDate       pgtype.Timestamptz `json:"next_due_date"`
+	ID                uuid.UUID  `json:"id"`
+	LastGeneratedDate *time.Time `json:"last_generated_date"`
+	NextDueDate       time.Time  `json:"next_due_date"`
 }
 
 func (q *Queries) UpdateRecurringTransactionAfterGeneration(ctx context.Context, arg UpdateRecurringTransactionAfterGenerationParams) error {

@@ -38,3 +38,25 @@ func PgtypeNumericToDecimal(n pgtype.Numeric) decimal.Decimal {
 	// For example, for 123.45, n.Int would be 12345 and n.Exp would be -2.
 	return decimal.NewFromBigInt(n.Int, n.Exp)
 }
+
+// DecimalToPgtypeNumeric converts a decimal.Decimal to pgtype.Numeric
+func DecimalToPgtypeNumeric(d decimal.Decimal) pgtype.Numeric {
+	// Extract coefficient and exponent from the decimal
+	coeff := d.Coefficient()
+	exp := d.Exponent()
+	
+	return pgtype.Numeric{
+		Int:   coeff,
+		Exp:   exp,
+		Valid: true,
+	}
+}
+
+// NullDecimalToPgtypeNumeric converts a decimal.NullDecimal to pgtype.Numeric
+func NullDecimalToPgtypeNumeric(nd decimal.NullDecimal) pgtype.Numeric {
+	if !nd.Valid {
+		return pgtype.Numeric{Valid: false}
+	}
+	
+	return DecimalToPgtypeNumeric(nd.Decimal)
+}

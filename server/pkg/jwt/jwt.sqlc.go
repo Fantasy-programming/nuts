@@ -8,7 +8,6 @@ import (
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // SQLCTokenRepository adapts the sqlc-generated queries to implement the TokenRepository interface
@@ -34,7 +33,7 @@ func (r *SQLCTokenRepository) SaveToken(ctx context.Context, session SessionInfo
 		BrowserName:  session.BrowserName,
 		DeviceName:   session.DeviceName,
 		RefreshToken: refreshToken,
-		ExpiresAt:    pgtype.Timestamptz{Time: expiresAt, Valid: true},
+		ExpiresAt:    expiresAt,
 	})
 	if err != nil {
 		return err

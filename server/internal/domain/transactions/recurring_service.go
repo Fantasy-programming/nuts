@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/utils/types"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -137,8 +138,10 @@ func (s *RecurringTransactionService) findNextSpecificDate(baseDate time.Time, s
 
 // GenerateRecurringInstance creates a transaction instance from a recurring template
 func (s *RecurringTransactionService) GenerateRecurringInstance(ctx context.Context, rt *RecurringTransaction) (*repository.Transaction, error) {
+	isExternal := false
+	
 	transactionParams := repository.CreateTransactionParams{
-		Amount:                decimal.NewFromFloat(rt.Amount.InexactFloat64()),
+		Amount:                types.DecimalToPgtypeNumeric(rt.Amount),
 		Type:                  rt.Type,
 		AccountID:             rt.AccountID,
 		CategoryID:            rt.CategoryID,
@@ -146,10 +149,10 @@ func (s *RecurringTransactionService) GenerateRecurringInstance(ctx context.Cont
 		Description:           rt.Description,
 		TransactionDatetime:   rt.NextDueDate,
 		TransactionCurrency:   "", // Will be populated from account
-		OriginalAmount:        decimal.NewFromFloat(rt.Amount.InexactFloat64()),
-		Details:               (*repository.Details)(rt.Details),
+		OriginalAmount:        types.DecimalToPgtypeNumeric(rt.Amount),
+		Details:               nil, // TODO: Convert domain Details to dto.Details
 		ProviderTransactionID: nil,
-		IsExternal:            false,
+		IsExternal:            &isExternal,
 		CreatedBy:             &rt.UserID,
 	}
 

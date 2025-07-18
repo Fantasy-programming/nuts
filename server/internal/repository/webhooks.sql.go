@@ -150,7 +150,7 @@ ORDER BY created_at
 LIMIT $1
 `
 
-func (q *Queries) GetPendingWebhookEvents(ctx context.Context, limit int64) ([]WebhookEvent, error) {
+func (q *Queries) GetPendingWebhookEvents(ctx context.Context, limit int32) ([]WebhookEvent, error) {
 	rows, err := q.db.Query(ctx, getPendingWebhookEvents, limit)
 	if err != nil {
 		return nil, err
@@ -295,7 +295,7 @@ WHERE $1 = ANY(event)
 ORDER BY created_at
 `
 
-func (q *Queries) GetWebhookSubscriptionsByEvent(ctx context.Context, event string) ([]WebhookSubscription, error) {
+func (q *Queries) GetWebhookSubscriptionsByEvent(ctx context.Context, event []string) ([]WebhookSubscription, error) {
 	rows, err := q.db.Query(ctx, getWebhookSubscriptionsByEvent, event)
 	if err != nil {
 		return nil, err
@@ -382,8 +382,8 @@ LIMIT
 `
 
 type ListWebhookSubscriptionsParams struct {
-	Limit  int64 `json:"limit"`
-	Offset int64 `json:"offset"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
 }
 
 type ListWebhookSubscriptionsRow struct {

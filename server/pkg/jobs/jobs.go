@@ -127,10 +127,11 @@ func (w *BankSyncWorker) Work(ctx context.Context, job *river.Job[BankSyncJob]) 
 	}
 
 	// Update last sync time
+	now := time.Now()
 	if _, err := qtx.SetConnectionSyncStatus(ctx, repository.SetConnectionSyncStatusParams{
 		ID:         job.Args.ConnectionID,
 		UserID:     job.Args.UserID,
-		LastSyncAt: pgtype.Timestamptz{Valid: true, Time: time.Now()},
+		LastSyncAt: &now,
 	}); err != nil {
 		return fmt.Errorf("failed to update last sync time: %w", err)
 	}
@@ -194,7 +195,7 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 			accountsToUpdate = append(accountsToUpdate, repository.UpdateAccountParams{
 				ID:      existingAccount.ID,
 				Name:    &account.Name,
-				Balance: newBalance,
+				Balance: types.NullDecimalToPgtypeNumeric(newBalance),
 				Meta: dto.AccountMeta{
 					InstitutionName: *connection.InstitutionName,
 				},
@@ -203,8 +204,8 @@ func (w *BankSyncWorker) syncAccounts(ctx context.Context, qtx *repository.Queri
 			// Account doesn't exist, prepare for creation
 			accountsToCreate = append(accountsToCreate, repository.BatchCreateAccountParams{
 				Name:    account.Name,
-				Balance: newBalance,
-				Type:    account.Type,
+				Balance: types.NullDecimalToPgtypeNumeric(newBalance),
+				Type:    repository.ACCOUNTTYPE(account.Type),
 				Meta: dto.AccountMeta{
 					InstitutionName: *connection.InstitutionName,
 				},
@@ -324,13 +325,13 @@ func (w *BankSyncWorker) syncAccountTransactions(ctx context.Context, qtx *repos
 		isExternal := true
 
 		transactionsToCreate = append(transactionsToCreate, repository.BatchCreateTransactionParams{
-			Amount:                amount,
-			OriginalAmount:        amount,
+			Amount:                types.DecimalToPgtypeNumeric(amount),
+			OriginalAmount:        types.DecimalToPgtypeNumeric(amount),
 			Type:                  transaction.Type,
 			AccountID:             account.ID,
 			CategoryID:            &categoryID,
 			TransactionCurrency:   transaction.Currency,
-			TransactionDatetime:   pgtype.Timestamptz{Valid: true, Time: transaction.Date},
+			TransactionDatetime:   transaction.Date,
 			Description:           &transaction.Description,
 			ProviderTransactionID: &transaction.ProviderTransactionID,
 			Details:               &dto.Details{},
@@ -786,17 +787,18 @@ func (w *RecurringTransactionWorker) Work(ctx context.Context, job *river.Job[Re
 
 	// Create the actual transaction
 	_, err = w.deps.Queries.CreateTransaction(ctx, repository.CreateTransactionParams{
-		Amount:              recurringTx.Amount,
-		OriginalAmount:      recurringTx.Amount,
-		Type:                recurringTx.Type,
-		AccountID:           recurringTx.AccountID,
-		CategoryID:          recurringTx.CategoryID,
-		TransactionCurrency: recurringTx.TransactionCurrency,
-		TransactionDatetime: pgtype.Timestamptz{Valid: true, Time: job.Args.DueDate},
-		Description:         recurringTx.Description,
-		Details:             recurringTx.Details,
-		CreatedBy:           &job.Args.UserID,
+		Amount:                 recurringTx.Amount,
+		OriginalAmount:         recurringTx.Amount,
+		Type:                   recurringTx.Type,
+		AccountID:              recurringTx.AccountID,
+		CategoryID:             recurringTx.CategoryID,
+		TransactionCurrency:    "USD", // TODO: Get from account currency
+		TransactionDatetime:    job.Args.DueDate,
+		Description:            recurringTx.Description,
+		Details:                recurringTx.Details,
+		CreatedBy:              &job.Args.UserID,
 		RecurringTransactionID: &job.Args.RecurringTransactionID,
+		RecurringInstanceDate:  &job.Args.DueDate,
 	})
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to create transaction from recurring template")
@@ -818,9 +820,4 @@ func (w *RecurringTransactionWorker) NextRetry(job *river.Job[RecurringTransacti
 	return time.Now().Add(30 * time.Minute)
 }
 
-// fetchExchangeRates fetches exchange rates from external API
-func fetchExchangeRates(ctx context.Context, baseCurrency string) (map[string]decimal.Decimal, error) {
-	// This is a stub function - you would implement actual API calls here
-	// For now, return empty map to avoid build errors
-	return make(map[string]decimal.Decimal), nil
-}
+

@@ -84,6 +84,8 @@ func (r iteratorForBatchCreateTransaction) Values() ([]interface{}, error) {
 		r.rows[0].ProviderTransactionID,
 		r.rows[0].IsExternal,
 		r.rows[0].CreatedBy,
+		r.rows[0].RecurringTransactionID,
+		r.rows[0].RecurringInstanceDate,
 	}, nil
 }
 
@@ -92,5 +94,5 @@ func (r iteratorForBatchCreateTransaction) Err() error {
 }
 
 func (q *Queries) BatchCreateTransaction(ctx context.Context, arg []BatchCreateTransactionParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"transactions"}, []string{"amount", "type", "account_id", "destination_account_id", "category_id", "description", "transaction_datetime", "transaction_currency", "original_amount", "details", "provider_transaction_id", "is_external", "created_by"}, &iteratorForBatchCreateTransaction{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"transactions"}, []string{"amount", "type", "account_id", "destination_account_id", "category_id", "description", "transaction_datetime", "transaction_currency", "original_amount", "details", "provider_transaction_id", "is_external", "created_by", "recurring_transaction_id", "recurring_instance_date"}, &iteratorForBatchCreateTransaction{rows: arg})
 }

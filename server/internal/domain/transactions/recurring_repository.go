@@ -12,6 +12,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Helper function to convert *int to *int32
+func convertIntToInt32Ptr(i *int) *int32 {
+	if i == nil {
+		return nil
+	}
+	val := int32(*i)
+	return &val
+}
+
 // RecurringTransactionRepo implements the RecurringTransactionRepository interface
 type RecurringTransactionRepo struct {
 	db      *pgxpool.Pool
@@ -77,19 +86,19 @@ func (r *RecurringTransactionRepo) CreateRecurringTransaction(ctx context.Contex
 		AccountID:            accountID,
 		CategoryID:           categoryID,
 		DestinationAccountID: destinationAccountID,
-		Amount:               req.Amount,
+		Amount:               types.DecimalToPgtypeNumeric(req.Amount),
 		Type:                 req.Type,
 		Description:          req.Description,
 		Details:              req.Details,
 		Frequency:            req.Frequency,
 		FrequencyInterval:    int32(req.FrequencyInterval),
 		FrequencyData:        frequencyDataJSON,
-		StartDate:            pgtype.Timestamptz{Valid: true, Time: req.StartDate},
-		EndDate:              pgtype.Timestamptz{Valid: true, Time: req.EndDate},
-		NextDueDate:          pgtype.Timestamptz{Valid: true, Time: req.StartDate}, // Initially set to start date
+		StartDate:            req.StartDate,
+		EndDate:              req.EndDate,
+		NextDueDate:          req.StartDate, // Initially set to start date
 		AutoPost:             req.AutoPost,
 		IsPaused:             false,
-		MaxOccurrences:       (*int32)(req.MaxOccurrences),
+		MaxOccurrences:       convertIntToInt32Ptr(req.MaxOccurrences),
 		TemplateName:         req.TemplateName,
 		Tags:                 tagsJSON,
 	})
@@ -208,6 +217,14 @@ func (r *RecurringTransactionRepo) UpdateRecurringTransaction(ctx context.Contex
 		}
 	}
 
+	// Handle nullable amount
+	var amount pgtype.Numeric
+	if req.Amount != nil {
+		amount = types.DecimalToPgtypeNumeric(*req.Amount)
+	} else {
+		amount = pgtype.Numeric{Valid: false}
+	}
+
 	// Update the recurring transaction
 	dbRecurring, err := r.queries.UpdateRecurringTransaction(ctx, repository.UpdateRecurringTransactionParams{
 		ID:                   id,
@@ -215,19 +232,19 @@ func (r *RecurringTransactionRepo) UpdateRecurringTransaction(ctx context.Contex
 		AccountID:            accountID,
 		CategoryID:           categoryID,
 		DestinationAccountID: destinationAccountID,
-		Amount:               types.FloatToNullDecimal(req.Amount),
+		Amount:               amount,
 		Type:                 req.Type,
 		Description:          req.Description,
 		Details:              req.Details,
 		Frequency:            req.Frequency,
-		FrequencyInterval:    (*int32)(req.FrequencyInterval),
+		FrequencyInterval:    convertIntToInt32Ptr(req.FrequencyInterval),
 		FrequencyData:        frequencyDataJSON,
 		StartDate:            req.StartDate,
 		EndDate:              req.EndDate,
 		NextDueDate:          nil, // Will be calculated by service
 		AutoPost:             req.AutoPost,
 		IsPaused:             req.IsPaused,
-		MaxOccurrences:       (*int32)(req.MaxOccurrences),
+		MaxOccurrences:       convertIntToInt32Ptr(req.MaxOccurrences),
 		TemplateName:         req.TemplateName,
 		Tags:                 tagsJSON,
 	})
@@ -262,7 +279,7 @@ func (r *RecurringTransactionRepo) PauseRecurringTransaction(ctx context.Context
 
 // GetDueRecurringTransactions retrieves all due recurring transactions
 func (r *RecurringTransactionRepo) GetDueRecurringTransactions(ctx context.Context, dueDate time.Time) ([]RecurringTransaction, error) {
-	dbRecurrings, err := r.queries.GetDueRecurringTransactions(ctx, pgtype.Timestamptz{Valid: true, Time: dueDate})
+	dbRecurrings, err := r.queries.GetDueRecurringTransactions(ctx, dueDate)
 	if err != nil {
 		return nil, err
 	}
@@ -293,9 +310,9 @@ func (r *RecurringTransactionRepo) GetRecurringTransactionStats(ctx context.Cont
 // GetUpcomingRecurringTransactions retrieves upcoming recurring transactions within a date range
 func (r *RecurringTransactionRepo) GetUpcomingRecurringTransactions(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) ([]RecurringTransaction, error) {
 	dbRecurrings, err := r.queries.GetUpcomingRecurringTransactions(ctx, repository.GetUpcomingRecurringTransactionsParams{
-		UserID:    userID,
-		StartDate: startDate,
-		EndDate:   endDate,
+		UserID:        userID,
+		NextDueDate:   startDate,
+		NextDueDate_2: endDate,
 	})
 	if err != nil {
 		return nil, err
@@ -311,10 +328,47 @@ func (r *RecurringTransactionRepo) GetUpcomingRecurringTransactions(ctx context.
 
 // GetRecurringTransactionInstances retrieves all instances of a recurring transaction
 func (r *RecurringTransactionRepo) GetRecurringTransactionInstances(ctx context.Context, userID uuid.UUID, recurringID uuid.UUID) ([]repository.Transaction, error) {
-	return r.queries.GetRecurringTransactionInstances(ctx, repository.GetRecurringTransactionInstancesParams{
-		UserID:      userID,
-		RecurringID: recurringID,
+	rows, err := r.queries.GetRecurringTransactionInstances(ctx, repository.GetRecurringTransactionInstancesParams{
+		UserID: userID,
+		ID:     recurringID,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert from GetRecurringTransactionInstancesRow to Transaction
+	var transactions []repository.Transaction
+	for _, row := range rows {
+		transaction := repository.Transaction{
+			ID:                     row.ID,
+			Amount:                 row.Amount,
+			Type:                   row.Type,
+			AccountID:              row.AccountID,
+			CategoryID:             row.CategoryID,
+			DestinationAccountID:   row.DestinationAccountID,
+			TransactionDatetime:    row.TransactionDatetime,
+			Description:            row.Description,
+			Details:                row.Details,
+			CreatedBy:              row.CreatedBy,
+			UpdatedBy:              row.UpdatedBy,
+			CreatedAt:              row.CreatedAt,
+			UpdatedAt:              row.UpdatedAt,
+			DeletedAt:              row.DeletedAt,
+			IsExternal:             row.IsExternal,
+			ProviderTransactionID:  row.ProviderTransactionID,
+			TransactionCurrency:    row.TransactionCurrency,
+			OriginalAmount:         row.OriginalAmount,
+			ExchangeRate:           row.ExchangeRate,
+			ExchangeRateDate:       row.ExchangeRateDate,
+			IsCategorized:          row.IsCategorized,
+			SharedFinanceID:        row.SharedFinanceID,
+			RecurringTransactionID: row.RecurringTransactionID,
+			RecurringInstanceDate:  row.RecurringInstanceDate,
+		}
+		transactions = append(transactions, transaction)
+	}
+
+	return transactions, nil
 }
 
 // convertDBRecurringToModel converts a database recurring transaction to the domain model
@@ -325,10 +379,10 @@ func convertDBRecurringToModel(dbRecurring repository.RecurringTransaction) *Rec
 		AccountID:            dbRecurring.AccountID,
 		CategoryID:           dbRecurring.CategoryID,
 		DestinationAccountID: dbRecurring.DestinationAccountID,
-		Amount:               dbRecurring.Amount,
+		Amount:               types.PgtypeNumericToDecimal(dbRecurring.Amount),
 		Type:                 dbRecurring.Type,
 		Description:          dbRecurring.Description,
-		Details:              (*Details)(dbRecurring.Details),
+		Details:              nil, // TODO: Convert dto.Details to domain Details
 		Frequency:            dbRecurring.Frequency,
 		FrequencyInterval:    int(dbRecurring.FrequencyInterval),
 		StartDate:            dbRecurring.StartDate,

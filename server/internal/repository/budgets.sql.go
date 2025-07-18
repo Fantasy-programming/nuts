@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/shopspring/decimal"
 )
 
 const createBudget = `-- name: CreateBudget :one
@@ -31,14 +30,14 @@ INSERT INTO budgets (
 `
 
 type CreateBudgetParams struct {
-	SharedFinanceID *uuid.UUID      `json:"shared_finance_id"`
-	CategoryID      uuid.UUID       `json:"category_id"`
-	Amount          decimal.Decimal `json:"amount"`
-	Name            *string         `json:"name"`
-	StartDate       pgtype.Date     `json:"start_date"`
-	EndDate         pgtype.Date     `json:"end_date"`
-	Frequency       string          `json:"frequency"`
-	UserID          uuid.UUID       `json:"user_id"`
+	SharedFinanceID *uuid.UUID     `json:"shared_finance_id"`
+	CategoryID      uuid.UUID      `json:"category_id"`
+	Amount          pgtype.Numeric `json:"amount"`
+	Name            *string        `json:"name"`
+	StartDate       pgtype.Date    `json:"start_date"`
+	EndDate         pgtype.Date    `json:"end_date"`
+	Frequency       string         `json:"frequency"`
+	UserID          uuid.UUID      `json:"user_id"`
 }
 
 type CreateBudgetRow struct {
@@ -78,14 +77,14 @@ WHERE id = $8
 `
 
 type UpdateBudgetParams struct {
-	CategoryID uuid.UUID          `json:"category_id"`
-	Amount     decimal.Decimal    `json:"amount"`
-	Name       *string            `json:"name"`
-	StartDate  pgtype.Date        `json:"start_date"`
-	EndDate    pgtype.Date        `json:"end_date"`
-	Frequency  string             `json:"frequency"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
-	ID         uuid.UUID          `json:"id"`
+	CategoryID uuid.UUID      `json:"category_id"`
+	Amount     pgtype.Numeric `json:"amount"`
+	Name       *string        `json:"name"`
+	StartDate  pgtype.Date    `json:"start_date"`
+	EndDate    pgtype.Date    `json:"end_date"`
+	Frequency  string         `json:"frequency"`
+	UpdatedAt  *time.Time     `json:"updated_at"`
+	ID         uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateBudget(ctx context.Context, arg UpdateBudgetParams) error {

@@ -299,6 +299,7 @@ type UpdateRecurringTransactionRequest struct {
 	StartDate            *time.Time       `json:"start_date,omitempty"`
 	EndDate              *time.Time       `json:"end_date,omitempty"`
 	AutoPost             *bool            `json:"auto_post,omitempty"`
+	IsPaused             *bool            `json:"is_paused,omitempty"`
 	MaxOccurrences       *int             `json:"max_occurrences,omitempty" validate:"omitempty,min=1"`
 	TemplateName         *string          `json:"template_name,omitempty"`
 	Tags                 *Tags            `json:"tags,omitempty"`
