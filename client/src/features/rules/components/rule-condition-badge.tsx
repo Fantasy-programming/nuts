@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/core/components/ui/badge";
 import { RuleCondition, CONDITION_TYPE_LABELS, CONDITION_OPERATOR_LABELS } from "../services/rule.types";
 
 interface RuleConditionBadgeProps {

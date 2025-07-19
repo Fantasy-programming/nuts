@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/core/components/ui/badge";
 import { RuleAction, ACTION_TYPE_LABELS } from "../services/rule.types";
 
 interface RuleActionBadgeProps {

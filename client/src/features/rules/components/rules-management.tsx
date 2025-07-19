@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Plus, Edit2, Trash2, Power, PowerOff, Move } from "lucide-react";
 import { useRules, useDeleteRule, useToggleRule } from "../services/rule.service";
 import { TransactionRule } from "../services/rule.types";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/core/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
+import { Badge } from "@/core/components/ui/badge";
+import { Switch } from "@/core/components/ui/switch";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -16,13 +16,13 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle, 
   AlertDialogTrigger 
-} from "@/components/ui/alert-dialog";
+} from "@/core/components/ui/alert-dialog";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
+} from "@/core/components/ui/dropdown-menu";
 import { CreateRuleDialog } from "./create-rule-dialog";
 import { EditRuleDialog } from "./edit-rule-dialog";
 import { RuleConditionBadge } from "./rule-condition-badge";

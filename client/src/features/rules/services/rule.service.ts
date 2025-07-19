@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { client } from "@/lib/client";
+import { api } from "@/lib/axios";
 import { 
   TransactionRule, 
   CreateTransactionRule, 
@@ -22,42 +22,42 @@ export const rulesQueryKeys = {
 export const rulesApi = {
   // List all rules
   async list(): Promise<TransactionRule[]> {
-    const response = await client.get("/api/rules");
+    const response = await api.get("/api/rules");
     return z.array(transactionRuleSchema).parse(response.data);
   },
 
   // Get a single rule
   async get(id: string): Promise<TransactionRule> {
-    const response = await client.get(`/api/rules/${id}`);
+    const response = await api.get(`/api/rules/${id}`);
     return transactionRuleSchema.parse(response.data);
   },
 
   // Create a new rule
   async create(data: CreateTransactionRule): Promise<TransactionRule> {
-    const response = await client.post("/api/rules", data);
+    const response = await api.post("/api/rules", data);
     return transactionRuleSchema.parse(response.data);
   },
 
   // Update a rule
   async update(id: string, data: UpdateTransactionRule): Promise<TransactionRule> {
-    const response = await client.put(`/api/rules/${id}`, data);
+    const response = await api.put(`/api/rules/${id}`, data);
     return transactionRuleSchema.parse(response.data);
   },
 
   // Delete a rule
   async delete(id: string): Promise<void> {
-    await client.delete(`/api/rules/${id}`);
+    await api.delete(`/api/rules/${id}`);
   },
 
   // Toggle rule active status
   async toggle(id: string): Promise<TransactionRule> {
-    const response = await client.post(`/api/rules/${id}/toggle`);
+    const response = await api.post(`/api/rules/${id}/toggle`);
     return transactionRuleSchema.parse(response.data);
   },
 
   // Apply rules to a transaction
   async applyToTransaction(transactionId: string): Promise<RuleMatch[]> {
-    const response = await client.post(`/api/rules/apply/${transactionId}`);
+    const response = await api.post(`/api/rules/apply/${transactionId}`);
     return z.array(ruleMatchSchema).parse(response.data);
   },
 };
