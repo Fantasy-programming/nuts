@@ -392,6 +392,7 @@ func (r *Trsrepo) BulkUpdateTransactionCategories(ctx context.Context, ids []uui
 	return r.Queries.BulkUpdateTransactionCategories(ctx, repository.BulkUpdateTransactionCategoriesParams{
 		CategoryID: &categoryID,
 		UpdatedBy:  &userID,
+		UserID:     &userID,
 		Ids:        ids,
 	})
 }
