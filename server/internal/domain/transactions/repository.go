@@ -17,6 +17,18 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Helper function to convert *float64 to pgtype.Numeric
+func float64ToPgNumeric(f *float64) pgtype.Numeric {
+	var numeric pgtype.Numeric
+	if f == nil {
+		return numeric // returns invalid numeric
+	}
+	if err := numeric.Scan(fmt.Sprintf("%.2f", *f)); err != nil {
+		return numeric // returns invalid numeric on error
+	}
+	return numeric
+}
+
 type Repository interface {
 	// Transaction operations
 	GetTransactions(ctx context.Context, params ListTransactionsParams, groupByDate bool) (*PaginatedTransactionsResponse, error)
@@ -82,6 +94,7 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 		IsExternal: params.IsExternal,
 		MinAmount:  types.ToPgNumeric(params.MinAmount),
 		MaxAmount:  types.ToPgNumeric(params.MaxAmount),
+
 		Tags:       params.Tags,
 	}
 
