@@ -14,7 +14,7 @@ import { Textarea } from "@/core/components/ui/textarea"
 import { Sheet, SheetContent, SheetTitle, SheetClose, SheetHeader, SheetDescription } from "@/core/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/core/components/ui/tabs"
-import { X, ArrowDownLeft, ArrowUpRight, Loader2, Info, Lock } from "lucide-react"
+import { X, ArrowDownLeft, ArrowUpRight, Loader2, Info, Lock, Wand2 } from "lucide-react"
 import { RecordUpdateSchema, recordUpdateSchema } from "../services/transaction.types";
 import { Form, FormField, FormItem, FormControl, FormMessage, FormLabel } from "@/core/components/ui/form"
 import { DatetimePicker } from "@/core/components/ui/datetime"
@@ -30,6 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/core/components/ui/tooltip"
+import { CreateEditRuleDialog } from "./create-edit-rule-dialog"
 
 
 interface EditTransactionSheetProps {
@@ -52,6 +53,7 @@ export default function EditTransactionSheet({
   transactionId,
 }: EditTransactionSheetProps) {
   const [transactionNature, setTransactionNature] = useState<"expense" | "income">("expense");
+  const [showCreateRuleDialog, setShowCreateRuleDialog] = useState(false);
   const queryClient = useQueryClient();
 
   const {
@@ -383,9 +385,47 @@ export default function EditTransactionSheet({
                   </FormItem>
                 )}
               />
+
+              {/* Create Rule Section */}
+              <div className="mt-6 p-4 border rounded-lg bg-muted/20">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="size-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Automation</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Create a rule to automatically categorize similar transactions in the future.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCreateRuleDialog(true)}
+                  className="w-full"
+                >
+                  <Wand2 className="size-4 mr-2" />
+                  Create Rule from Transaction
+                </Button>
+              </div>
             </TooltipProvider>
           </form>
         </Form>
+
+        {/* Create Rule Dialog */}
+        {transaction && (
+          <CreateEditRuleDialog
+            open={showCreateRuleDialog}
+            onOpenChange={setShowCreateRuleDialog}
+            rule={null}
+            prefillData={{
+              description: transaction.description,
+              amount: transaction.amount,
+              account_id: transaction.account_id?.toString(),
+              category_id: transaction.category_id || undefined,
+            }}
+          />
+        )}
       </SheetContent>
     </Sheet>
   )
