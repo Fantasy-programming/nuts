@@ -10,6 +10,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+func ToPgNumeric(v *float64) pgtype.Numeric {
+	var n pgtype.Numeric
+	if v == nil {
+		n = NumericNull()
+	} else {
+		n = Numeric(*v)
+	}
+	return n
+}
+
 // Convert a float64 into a postgres numeric type
 func Numeric(number float64) (value pgtype.Numeric) {
 	parse := strconv.FormatFloat(number, 'f', -1, 64)
@@ -43,38 +53,6 @@ func TimePtrToNullTime(t *time.Time) sql.NullTime {
 func NullTimeToTimePtr(t sql.NullTime) *time.Time {
 	if t.Valid {
 		return &t.Time
-	}
-	return nil
-}
-
-func uuidPtrToNullString(id *uuid.UUID) sql.NullString {
-	if id != nil {
-		return sql.NullString{String: id.String(), Valid: true}
-	}
-	return sql.NullString{Valid: false}
-}
-
-// Helper to convert sql.NullString to UUID pointer
-func nullStringToUUIDPtr(s sql.NullString) *uuid.UUID {
-	if s.Valid {
-		parsedID := uuid.MustParse(s.String)
-		return &parsedID
-	}
-	return nil
-}
-
-// Helper to convert String pointer to sql.NullString for DB operations
-func stringPtrToNullString(s *string) sql.NullString {
-	if s != nil {
-		return sql.NullString{String: *s, Valid: true}
-	}
-	return sql.NullString{Valid: false}
-}
-
-// Helper to convert sql.NullString to String pointer
-func nullStringToStringPtr(s sql.NullString) *string {
-	if s.Valid {
-		return &s.String
 	}
 	return nil
 }
