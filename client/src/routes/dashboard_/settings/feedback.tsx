@@ -3,9 +3,10 @@ import { Button } from "@/core/components/ui/button";
 import { Github, MessageCircle, Mail } from "lucide-react";
 import { Textarea } from "@/core/components/ui/textarea";
 import { Label } from "@/core/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { useState } from "react";
-import { toast } from "sonner";
 import { createFileRoute } from "@tanstack/react-router";
+import { useFeedbackMutation } from "@/features/preferences/services/feedback.queries";
 
 export const Route = createFileRoute("/dashboard_/settings/feedback")({
   component: RouteComponent,
@@ -13,25 +14,21 @@ export const Route = createFileRoute("/dashboard_/settings/feedback")({
 
 function RouteComponent() {
   const [feedback, setFeedback] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<"bug" | "feature" | "general">("general");
+  const feedbackMutation = useFeedbackMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (feedback.trim()) {
-      setIsSubmitting(true);
       try {
-        // TODO: Replace with actual API call when backend is ready
-        // await submitFeedback(feedback);
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        toast.success("Feedback submitted successfully");
+        await feedbackMutation.mutateAsync({
+          type: feedbackType,
+          message: feedback.trim(),
+        });
         setFeedback("");
+        setFeedbackType("general");
       } catch (error) {
-        toast.error("Failed to submit feedback. Please try again.");
-      } finally {
-        setIsSubmitting(false);
+        // Error is handled by the mutation
       }
     }
   };
@@ -45,6 +42,19 @@ function RouteComponent() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="feedback-type">Feedback Type</Label>
+              <Select value={feedbackType} onValueChange={(value: "bug" | "feature" | "general") => setFeedbackType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select feedback type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General Feedback</SelectItem>
+                  <SelectItem value="feature">Feature Request</SelectItem>
+                  <SelectItem value="bug">Bug Report</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="feedback">Your Feedback</Label>
               <Textarea
                 id="feedback"
@@ -52,10 +62,11 @@ function RouteComponent() {
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 className="min-h-[150px]"
+                required
               />
             </div>
-            <Button type="submit" disabled={!feedback.trim() || isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit Feedback"}
+            <Button type="submit" disabled={!feedback.trim() || feedbackMutation.isPending}>
+              {feedbackMutation.isPending ? "Submitting..." : "Submit Feedback"}
             </Button>
           </form>
         </CardContent>
