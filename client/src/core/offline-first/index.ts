@@ -13,6 +13,9 @@ export { featureFlagsService } from './services/feature-flags.service';
 export { adaptiveTransactionService } from './services/adaptive-transaction.service';
 export { offlineFirstTransactionService } from './services/offline-transaction.service';
 
+// Test utilities
+export { testOfflineFirstInfrastructure } from './test/infrastructure.test';
+
 // Types
 export type { 
   CRDTDocument,

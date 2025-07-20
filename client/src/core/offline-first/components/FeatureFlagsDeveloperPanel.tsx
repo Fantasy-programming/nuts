@@ -85,7 +85,7 @@ export const FeatureFlagsDeveloperPanel: React.FC = () => {
     <div style={{
       position: 'fixed',
       bottom: '20px',
-      right: '20px',
+      left: '20px', // Changed from right to left to avoid TanStack DevTools
       zIndex: 9999,
       backgroundColor: '#fff',
       border: '1px solid #ccc',
