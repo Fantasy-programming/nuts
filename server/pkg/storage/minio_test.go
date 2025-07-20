@@ -175,7 +175,7 @@ func TestBrokenMinioConnection(t *testing.T) {
 
 	// Test with invalid endpoint
 	t.Run("InvalidEndpoint", func(t *testing.T) {
-		_, err := NewMinio(ctx, "invalid-endpoint:9000", "us-east-1", "test", "test", false)
+		_, err := NewMinio(ctx, "127.0.0.1:99999", "us-east-1", "test", "test", false)
 		assert.Error(t, err)
 	})
 
