@@ -1,5 +1,7 @@
 package config
 
+import "github.com/Fantasy-Programming/nuts/server/pkg/llm"
+
 type Config struct {
 	Auth
 	Cors
@@ -8,6 +10,7 @@ type Config struct {
 	Storage
 	Cache
 	Integrations
+	LLM llm.Config
 }
 
 func New() *Config {
@@ -19,5 +22,6 @@ func New() *Config {
 		Cache:        NewCache(),
 		DB:           DataStore(),
 		Integrations: INTEGRATIONS(),
+		LLM:          llm.NewConfig(),
 	}
 }

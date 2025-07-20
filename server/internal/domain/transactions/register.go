@@ -6,6 +6,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/llm"
 	"github.com/Fantasy-Programming/nuts/server/pkg/router"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
@@ -69,5 +70,35 @@ func RegisterHTTPHandlersWithRules(db *pgxpool.Pool, validate *validation.Valida
 	// // (Add Update/Delete recurring transactions as needed)
 	// protectedRoutes.HandleFunc("/recurring_transactions/generate_pending", handlers.GeneratePendingRecurringTransactions).Methods("POST")
 	// protectedRoutes.HandleFunc("/transactions/automated_import", handlers.AutomatedImportTransaction).Methods("POST")
+	return router
+}
+
+// RegisterHTTPHandlersWithLLM is a version that includes LLM neural input support
+func RegisterHTTPHandlersWithLLM(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, rulesService RulesService, llmService llm.Service, logger *zerolog.Logger) http.Handler {
+	queries := repository.New(db)
+	repo := NewRepository(db, queries)
+	h := NewHandlerWithRules(validate, repo, rulesService, logger)
+	neuralHandler := NewNeuralInputHandler(validate, llmService, logger)
+
+	// Create the auth verify middleware
+	middleware := jwt.NewMiddleware(tkn)
+
+	router := router.NewRouter()
+	router.Use(middleware.Verify)
+	router.Get("/", h.GetTransactions)
+	router.Post("/", h.CreateTransaction)
+	router.Post("/transfert", h.CreateTransfert)
+	router.Get("/{id}", h.GetTransaction)
+	router.Put("/{id}", h.UpdateTransaction)
+	router.Delete("/{id}", h.DeleteTransaction)
+	
+	// Bulk operations
+	router.Delete("/", h.BulkDeleteTransactions)
+	router.Put("/bulk/categories", h.BulkUpdateCategories)
+	router.Put("/bulk/manual", h.BulkUpdateManualTransactions)
+
+	// Neural input endpoint
+	router.Post("/neural-input", neuralHandler.ParseTransactions)
+
 	return router
 }
