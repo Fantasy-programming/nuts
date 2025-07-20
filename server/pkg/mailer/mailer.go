@@ -123,7 +123,21 @@ func (s *service) SendEmail(ctx context.Context, email *Email) error {
 	return s.dialer.DialAndSend(m)
 }
 
-// generateTemplate calls the mail generator service to get HTML content
+// Service implementation for testing purposes
+type ServiceImpl struct {
+	*service
+}
+
+// NewServiceForTesting creates a service with access to internal methods for testing
+func NewServiceForTesting(config Config) *ServiceImpl {
+	s := NewService(config).(*service)
+	return &ServiceImpl{s}
+}
+
+// GenerateTemplate exposes the internal generateTemplate method for testing
+func (s *ServiceImpl) GenerateTemplate(ctx context.Context, template string, data TemplateRequest) (*TemplateResponse, error) {
+	return s.generateTemplate(ctx, template, data)
+}
 func (s *service) generateTemplate(ctx context.Context, template string, data TemplateRequest) (*TemplateResponse, error) {
 	url := fmt.Sprintf("%s/templates/%s", s.config.MailGeneratorURL, template)
 	
