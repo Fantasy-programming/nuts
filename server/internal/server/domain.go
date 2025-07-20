@@ -6,6 +6,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/accounts"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/auth"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/categories"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/mail"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/meta"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/preferences"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/rules"
@@ -28,6 +29,7 @@ func (s *Server) RegisterDomain() {
 	s.initMeta()
 	s.initWebHooks()
 	s.initRules()
+	s.initMail()
 	s.initVersion()
 	s.initHealth()
 }
@@ -88,6 +90,11 @@ func (s *Server) initRules() {
 	
 	RulesDomain := rules.RegisterHTTPHandlers(s.db, s.validator, s.jwt, transRepo, s.logger)
 	s.router.Mount("/rules", RulesDomain)
+}
+
+func (s *Server) initMail() {
+	MailDomain := mail.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.mailer, s.logger)
+	s.router.Mount("/mail", MailDomain)
 }
 
 func (s *Server) initMeta() {
