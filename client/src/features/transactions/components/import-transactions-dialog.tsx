@@ -27,9 +27,9 @@ interface ColumnMapping {
   date: string;
   amount: string;
   description: string;
-  category: string;
-  account: string;
-  type: string;
+  category?: string;
+  account?: string;
+  type?: string;
 }
 
 interface ParsedTransaction {
@@ -48,9 +48,9 @@ const columnMappingSchema = z.object({
   date: z.string().min(1, "Date column is required"),
   amount: z.string().min(1, "Amount column is required"),
   description: z.string().min(1, "Description column is required"),
-  category: z.string(),
-  account: z.string(),
-  type: z.string(),
+  category: z.string().optional(),
+  account: z.string().optional(),
+  type: z.string().optional(),
 });
 
 export function ImportTransactionsDialog({ children }: React.PropsWithChildren) {
@@ -69,9 +69,9 @@ export function ImportTransactionsDialog({ children }: React.PropsWithChildren) 
       date: "",
       amount: "",
       description: "",
-      category: "",
-      account: "",
-      type: "",
+      category: undefined,
+      account: undefined,
+      type: undefined,
     },
   });
 
@@ -140,9 +140,9 @@ export function ImportTransactionsDialog({ children }: React.PropsWithChildren) 
       date: "",
       amount: "",
       description: "",
-      category: "",
-      account: "",
-      type: "",
+      category: undefined,
+      account: undefined,
+      type: undefined,
     };
 
     const lowercaseHeaders = headers.map(h => h.toLowerCase());
@@ -169,13 +169,13 @@ export function ImportTransactionsDialog({ children }: React.PropsWithChildren) 
     const categoryKeywords = ['category', 'type', 'class', 'group'];
     mapping.category = headers.find((_, i) => 
       categoryKeywords.some(keyword => lowercaseHeaders[i].includes(keyword))
-    ) || "";
+    ) || undefined;
 
     // Account detection
     const accountKeywords = ['account', 'bank', 'card'];
     mapping.account = headers.find((_, i) => 
       accountKeywords.some(keyword => lowercaseHeaders[i].includes(keyword))
-    ) || "";
+    ) || undefined;
 
     return mapping;
   };
@@ -209,7 +209,7 @@ export function ImportTransactionsDialog({ children }: React.PropsWithChildren) 
 
       // Determine transaction type
       let type: "expense" | "income" = "expense";
-      if (mapping.type && row[mapping.type]) {
+      if (mapping.type && mapping.type !== "__none__" && row[mapping.type]) {
         const typeStr = row[mapping.type].toLowerCase();
         if (typeStr.includes("income") || typeStr.includes("credit") || typeStr.includes("deposit")) {
           type = "income";
@@ -224,8 +224,8 @@ export function ImportTransactionsDialog({ children }: React.PropsWithChildren) 
         date: dateStr,
         amount: Math.abs(amount),
         description: description.trim(),
-        category: mapping.category ? row[mapping.category] : undefined,
-        account: mapping.account ? row[mapping.account] : undefined,
+        category: mapping.category && mapping.category !== "__none__" ? row[mapping.category] : undefined,
+        account: mapping.account && mapping.account !== "__none__" ? row[mapping.account] : undefined,
         type,
         errors,
         isValid,
@@ -473,14 +473,14 @@ export function ImportTransactionsDialog({ children }: React.PropsWithChildren) 
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Category Column</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select category column (optional)" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="__none__">None</SelectItem>
                                 {csvHeaders.map((header) => (
                                   <SelectItem key={header} value={header}>
                                     {header}
@@ -499,14 +499,14 @@ export function ImportTransactionsDialog({ children }: React.PropsWithChildren) 
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Transaction Type Column</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select type column (optional)" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="__none__">None</SelectItem>
                                 {csvHeaders.map((header) => (
                                   <SelectItem key={header} value={header}>
                                     {header}
