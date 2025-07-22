@@ -232,3 +232,108 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		"avatar_url": url,
 	}, h.logger)
 }
+
+func (h *Handler) GetPreferences(w http.ResponseWriter, r *http.Request) {
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusUnauthorized,
+			ClientErr:  message.ErrUnauthorized,
+			ActualErr:  err,
+			Logger:     h.logger,
+		})
+		return
+	}
+
+	prefs, err := h.service.GetUserPreferences(r.Context(), userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, prefs, h.logger)
+}
+
+func (h *Handler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusUnauthorized,
+			ClientErr:  message.ErrUnauthorized,
+			ActualErr:  err,
+			Logger:     h.logger,
+		})
+		return
+	}
+
+	// Parse request body
+	var req user.UpdateUserPreferencesReq
+
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
+
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	// Update preferences in database
+	params := repository.UpdatePreferencesParams{
+		UserID:            userID,
+		Currency:          req.Currency,
+		Locale:            req.Locale,
+		Theme:             req.Theme,
+		Timezone:          req.Timezone,
+		TimeFormat:        req.TimeFormat,
+		DateFormat:        req.DateFormat,
+		StartWeekOnMonday: req.StartWeekOnMonday,
+		DarkSidebar:       req.DarkSidebar,
+	}
+
+	updatedPrefs, err := h.service.UpdatePreferences(ctx, params)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, updatedPrefs, h.logger)
+}

@@ -27,6 +27,9 @@ type Users interface {
 	CreateUserWithDefaults(ctx context.Context, params repository.CreateUserParams) (repository.User, error)
 	UpdateUserAvatar(ctx context.Context, userID uuid.UUID, originalFilename string, size int64, file io.Reader) (string, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+
+	GetUserPreferences(ctx context.Context, userID uuid.UUID) (repository.GetPreferencesByUserIdRow, error)
+	UpdatePreferences(ctx context.Context, params repository.UpdatePreferencesParams) (repository.Preference, error)
 }
 
 type UserService struct {
@@ -180,4 +183,12 @@ func (s *UserService) CreateUserWithDefaults(ctx context.Context, params reposit
 	}
 
 	return user, nil
+}
+
+func (r *UserService) GetUserPreferences(ctx context.Context, userID uuid.UUID) (repository.GetPreferencesByUserIdRow, error) {
+	return r.userRepo.GetUserPreferences(ctx, userID)
+}
+
+func (r *UserService) UpdatePreferences(ctx context.Context, params repository.UpdatePreferencesParams) (repository.Preference, error) {
+	return r.userRepo.UpdatePreferences(ctx, params)
 }

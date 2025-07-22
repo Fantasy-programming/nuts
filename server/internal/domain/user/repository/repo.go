@@ -20,6 +20,10 @@ type Users interface {
 
 	CreateDefaultPreferences(ctx context.Context, userID uuid.UUID) error
 	// UpdateUserPassword(ctx context.Context, params repository.UpdateUserPasswordParams) error
+
+	// Preferences
+	GetUserPreferences(ctx context.Context, userID uuid.UUID) (repository.GetPreferencesByUserIdRow, error)
+	UpdatePreferences(ctx context.Context, params repository.UpdatePreferencesParams) (repository.Preference, error)
 }
 
 type repo struct {
@@ -69,4 +73,12 @@ func (r *repo) DeleteUser(ctx context.Context, id uuid.UUID) error {
 
 func (r *repo) CreateDefaultPreferences(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.CreateDefaultPreferences(ctx, userID)
+}
+
+func (r *repo) GetUserPreferences(ctx context.Context, userID uuid.UUID) (repository.GetPreferencesByUserIdRow, error) {
+	return r.queries.GetPreferencesByUserId(ctx, userID)
+}
+
+func (r *repo) UpdatePreferences(ctx context.Context, params repository.UpdatePreferencesParams) (repository.Preference, error) {
+	return r.queries.UpdatePreferences(ctx, params)
 }

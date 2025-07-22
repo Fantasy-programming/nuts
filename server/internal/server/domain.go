@@ -9,7 +9,6 @@ import (
 	athRepo "github.com/Fantasy-Programming/nuts/server/internal/domain/auth/repository"
 	athService "github.com/Fantasy-Programming/nuts/server/internal/domain/auth/service"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/meta"
-	"github.com/Fantasy-Programming/nuts/server/internal/domain/preferences"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/tags"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/webhooks"
 
@@ -35,7 +34,6 @@ func (s *Server) RegisterDomain() {
 	s.initAccount()
 	s.initTransaction()
 	s.initCategory()
-	s.initPreferences()
 	s.initTags()
 	s.initMeta()
 	s.initWebHooks()
@@ -99,11 +97,6 @@ func (s *Server) initCategory() {
 	categoriesService := ctgService.New(s.db, categoriesRepo)
 	CategoryDomain := ctgHandler.RegisterHTTPHandlers(categoriesService, s.jwt, s.validator, s.logger)
 	s.router.Mount("/categories", CategoryDomain)
-}
-
-func (s *Server) initPreferences() {
-	Preferences := preferences.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
-	s.router.Mount("/preferences", Preferences)
 }
 
 func (s *Server) initTags() {
