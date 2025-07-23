@@ -143,7 +143,6 @@ export async function testOfflineFirstInfrastructure() {
     // 6. Test data persistence
     console.log('6. Testing data persistence...');
     
-    const docData = crdtService.getDocument();
     const binaryDoc = crdtService.getBinaryDocument();
     
     console.log(`✅ Document persisted: ${binaryDoc ? 'Yes' : 'No'}`);
@@ -167,7 +166,7 @@ export async function testOfflineFirstInfrastructure() {
     console.error('❌ Test failed:', error);
     return {
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
