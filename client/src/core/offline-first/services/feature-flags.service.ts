@@ -34,6 +34,20 @@ class FeatureFlagsService {
   
   constructor() {
     this.loadFromStorage();
+    this.initializeDefaultsForDevelopment();
+  }
+  
+  /**
+   * Initialize development defaults if in development mode
+   */
+  private initializeDefaultsForDevelopment(): void {
+    if (process.env.NODE_ENV === 'development') {
+      // Enable offline-first by default in development
+      const hasStoredFlags = localStorage.getItem(this.storageKey);
+      if (!hasStoredFlags) {
+        this.enableDevelopmentMode();
+      }
+    }
   }
   
   /**

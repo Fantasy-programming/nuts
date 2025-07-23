@@ -3,6 +3,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { router, queryClient } from "./router";
 import { FeatureFlagsDeveloperPanel } from "@/core/offline-first/components/FeatureFlagsDeveloperPanel";
+import { OfflineStatusIndicator } from "@/core/offline-first/components/OfflineStatusIndicator";
+import { OfflineFirstInitializer } from "@/core/offline-first/components/OfflineFirstInitializer";
 
 function RouterWrapper() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -23,8 +25,11 @@ function RouterWrapper() {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterWrapper />
-      <FeatureFlagsDeveloperPanel />
+      <OfflineFirstInitializer>
+        <RouterWrapper />
+        <FeatureFlagsDeveloperPanel />
+        <OfflineStatusIndicator />
+      </OfflineFirstInitializer>
     </QueryClientProvider>
   );
 }
