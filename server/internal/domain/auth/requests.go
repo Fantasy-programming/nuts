@@ -24,3 +24,12 @@ type LoginResponse struct {
 	Token         string `json:"token"`
 	TwoFARequired bool   `json:"two_fa_required"` // Indicate if 2FA is required for next step
 }
+
+type UserAgentInfo struct {
+	UserAgent string
+	IPAddress string
+	Browser   string
+	Device    string
+	OS        string
+	Location  string
+}

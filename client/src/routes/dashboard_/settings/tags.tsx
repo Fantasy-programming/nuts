@@ -6,24 +6,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import IconPicker from "@/core/components/icon-picker";
-import { useSettingsStore } from "@/features/preferences/stores/settings.store";
 import { TagList } from "@/routes/dashboard_/settings/-components/tag-list";
+import { useCreateTagMutation } from "@/features/preferences/services/settings.queries";
 
 export const Route = createFileRoute("/dashboard_/settings/tags")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { addTag } = useSettingsStore();
+  const createTagMutation = useCreateTagMutation();
   const [isOpen, setIsOpen] = useState(false);
   const [newTag, setNewTag] = useState({ name: "", icon: "" });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newTag.name && newTag.icon) {
-      addTag(newTag);
-      setNewTag({ name: "", icon: "" });
-      setIsOpen(false);
+      try {
+        await createTagMutation.mutateAsync(newTag);
+        setNewTag({ name: "", icon: "" });
+        setIsOpen(false);
+      } catch (error) {
+        // Error is handled by the mutation
+      }
     }
   };
 
@@ -45,14 +49,26 @@ function RouteComponent() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" value={newTag.name} onChange={(e) => setNewTag({ ...newTag, name: e.target.value })} />
+                <Input 
+                  id="name" 
+                  value={newTag.name} 
+                  onChange={(e) => setNewTag({ ...newTag, name: e.target.value })} 
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label>Icon</Label>
-                <IconPicker value={newTag.icon} onChange={(icon) => setNewTag({ ...newTag, icon })} />
+                <IconPicker 
+                  value={newTag.icon} 
+                  onChange={(icon) => setNewTag({ ...newTag, icon })} 
+                />
               </div>
-              <Button type="submit" className="w-full">
-                Create Tag
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={!newTag.name || !newTag.icon || createTagMutation.isPending}
+              >
+                {createTagMutation.isPending ? "Creating..." : "Create Tag"}
               </Button>
             </form>
           </DialogContent>
