@@ -366,7 +366,7 @@ func (rc *RuleCondition) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, aux)
 }
 
-// Custom JSON marshaling for RuleAction to handle interface{} values
+// Custom JSON marshaling for transactions.RuleAction to handle interface{} values
 func (ra *RuleAction) MarshalJSON() ([]byte, error) {
 	type Alias RuleAction
 	return json.Marshal(&struct {
@@ -376,7 +376,7 @@ func (ra *RuleAction) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// Custom JSON unmarshaling for RuleAction to handle interface{} values
+// Custom JSON unmarshaling for transactions.RuleAction to handle interface{} values
 func (ra *RuleAction) UnmarshalJSON(data []byte) error {
 	type Alias RuleAction
 	aux := &struct {

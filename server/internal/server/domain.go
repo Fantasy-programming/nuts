@@ -26,6 +26,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/encrypt"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
+	"github.com/Fantasy-Programming/nuts/server/pkg/llm"
 )
 
 func (s *Server) RegisterDomain() {
@@ -86,8 +87,12 @@ func (s *Server) initAccount() {
 func (s *Server) initTransaction() {
 	transactionsRepo := trcRepo.NewRepository(s.db)
 	accountsRepo := accRepo.NewRepository(s.db)
-	transactionsService := trcService.New(s.db, transactionsRepo, accountsRepo, s.logger)
 
+	llmService, err := llm.NewService(s.cfg.LLM, s.logger)
+	if err != nil {
+		s.logger.Panic().Err(err).Msg("Failed to setup llm service")
+	}
+	transactionsService := trcService.New(s.db, transactionsRepo, accountsRepo, llmService, s.logger)
 	TransactionDomain := trcHandler.RegisterHTTPHandlers(transactionsService, s.jwt, s.validator, s.logger)
 	s.router.Mount("/transactions", TransactionDomain)
 }

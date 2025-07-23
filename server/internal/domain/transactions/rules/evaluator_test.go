@@ -3,7 +3,8 @@ package rules_test
 import (
 	"testing"
 
-	"github.com/Fantasy-Programming/nuts/server/internal/domain/rules"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions/rules"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -13,7 +14,7 @@ func TestRuleEvaluator_EvaluateRule(t *testing.T) {
 
 	// Test description contains condition
 	description := "Amazon payment"
-	transactionData := &rules.TransactionData{
+	transactionData := &transactions.TransactionData{
 		ID:          uuid.New(),
 		Amount:      decimal.NewFromFloat(25.99),
 		Type:        "expense",
@@ -22,21 +23,21 @@ func TestRuleEvaluator_EvaluateRule(t *testing.T) {
 		Description: &description,
 	}
 
-	rule := &rules.TransactionRule{
+	rule := &transactions.TransactionRule{
 		ID:       uuid.New(),
 		Name:     "Amazon Rule",
 		IsActive: true,
 		Priority: 1,
-		Conditions: []rules.RuleCondition{
+		Conditions: []transactions.RuleCondition{
 			{
-				Type:     rules.ConditionTypeDescription,
-				Operator: rules.OperatorContains,
+				Type:     transactions.ConditionTypeDescription,
+				Operator: transactions.OperatorContains,
 				Value:    "amazon",
 			},
 		},
-		Actions: []rules.RuleAction{
+		Actions: []transactions.RuleAction{
 			{
-				Type:  rules.ActionTypeSetCategory,
+				Type:  transactions.ActionTypeSetCategory,
 				Value: "shopping",
 			},
 		},
@@ -59,7 +60,7 @@ func TestRuleEvaluator_EvaluateRule(t *testing.T) {
 func TestRuleEvaluator_EvaluateAmountCondition(t *testing.T) {
 	evaluator := rules.NewRuleEvaluator()
 
-	transactionData := &rules.TransactionData{
+	transactionData := &transactions.TransactionData{
 		ID:          uuid.New(),
 		Amount:      decimal.NewFromFloat(100.00),
 		Type:        "expense",
@@ -67,21 +68,21 @@ func TestRuleEvaluator_EvaluateAmountCondition(t *testing.T) {
 		AccountName: "Checking",
 	}
 
-	rule := &rules.TransactionRule{
+	rule := &transactions.TransactionRule{
 		ID:       uuid.New(),
 		Name:     "Large Amount Rule",
 		IsActive: true,
 		Priority: 1,
-		Conditions: []rules.RuleCondition{
+		Conditions: []transactions.RuleCondition{
 			{
-				Type:     rules.ConditionTypeAmount,
-				Operator: rules.OperatorGreaterThan,
+				Type:     transactions.ConditionTypeAmount,
+				Operator: transactions.OperatorGreaterThan,
 				Value:    50.0,
 			},
 		},
-		Actions: []RuleAction{
+		Actions: []transactions.RuleAction{
 			{
-				Type:  ActionTypeSetCategory,
+				Type:  transactions.ActionTypeSetCategory,
 				Value: "large-expense",
 			},
 		},
@@ -98,10 +99,10 @@ func TestRuleEvaluator_EvaluateAmountCondition(t *testing.T) {
 }
 
 func TestRuleEvaluator_EvaluateMultipleConditions(t *testing.T) {
-	evaluator := NewRuleEvaluator()
+	evaluator := rules.NewRuleEvaluator()
 
 	description := "Grocery Store"
-	transactionData := &TransactionData{
+	transactionData := &transactions.TransactionData{
 		ID:          uuid.New(),
 		Amount:      decimal.NewFromFloat(75.00),
 		Type:        "expense",
@@ -110,27 +111,27 @@ func TestRuleEvaluator_EvaluateMultipleConditions(t *testing.T) {
 		Description: &description,
 	}
 
-	rule := &TransactionRule{
+	rule := &transactions.TransactionRule{
 		ID:       uuid.New(),
 		Name:     "Grocery Rule",
 		IsActive: true,
 		Priority: 1,
-		Conditions: []RuleCondition{
+		Conditions: []transactions.RuleCondition{
 			{
-				Type:      ConditionTypeDescription,
-				Operator:  OperatorContains,
+				Type:      transactions.ConditionTypeDescription,
+				Operator:  transactions.OperatorContains,
 				Value:     "grocery",
 				LogicGate: "AND",
 			},
 			{
-				Type:     ConditionTypeAmount,
-				Operator: OperatorGreaterThan,
+				Type:     transactions.ConditionTypeAmount,
+				Operator: transactions.OperatorGreaterThan,
 				Value:    30.0,
 			},
 		},
-		Actions: []RuleAction{
+		Actions: []transactions.RuleAction{
 			{
-				Type:  ActionTypeSetCategory,
+				Type:  transactions.ActionTypeSetCategory,
 				Value: "groceries",
 			},
 		},
@@ -147,10 +148,10 @@ func TestRuleEvaluator_EvaluateMultipleConditions(t *testing.T) {
 }
 
 func TestRuleEvaluator_InactiveRule(t *testing.T) {
-	evaluator := NewRuleEvaluator()
+	evaluator := rules.NewRuleEvaluator()
 
 	description := "Test transaction"
-	transactionData := &TransactionData{
+	transactionData := &transactions.TransactionData{
 		ID:          uuid.New(),
 		Amount:      decimal.NewFromFloat(25.99),
 		Type:        "expense",
@@ -159,21 +160,21 @@ func TestRuleEvaluator_InactiveRule(t *testing.T) {
 		Description: &description,
 	}
 
-	rule := &TransactionRule{
+	rule := &transactions.TransactionRule{
 		ID:       uuid.New(),
 		Name:     "Inactive Rule",
 		IsActive: false, // Inactive rule
 		Priority: 1,
-		Conditions: []RuleCondition{
+		Conditions: []transactions.RuleCondition{
 			{
-				Type:     ConditionTypeDescription,
-				Operator: OperatorContains,
+				Type:     transactions.ConditionTypeDescription,
+				Operator: transactions.OperatorContains,
 				Value:    "test",
 			},
 		},
-		Actions: []RuleAction{
+		Actions: []transactions.RuleAction{
 			{
-				Type:  ActionTypeSetCategory,
+				Type:  transactions.ActionTypeSetCategory,
 				Value: "test",
 			},
 		},

@@ -12,6 +12,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions/rules"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/types"
+	"github.com/Fantasy-Programming/nuts/server/pkg/llm"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -42,23 +43,29 @@ type Transactions interface {
 	DeleteRule(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
 	ToggleRuleActive(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*transactions.TransactionRule, error)
 	ApplyRulesToTransaction(ctx context.Context, transactionID uuid.UUID, userID uuid.UUID) ([]transactions.RuleMatch, error)
+
+	// AI
+
+	ParseTransactions(ctx context.Context, req llm.NeuralInputRequest) (*llm.NeuralInputResponse, error)
 }
 
 type TransactionService struct {
-	trscRepo  trscRepo.Transactions
-	accRepo   accRepo.Account
-	db        *pgxpool.Pool
-	evaluator *rules.RuleEvaluator
-	logger    *zerolog.Logger
+	trscRepo   trscRepo.Transactions
+	accRepo    accRepo.Account
+	llmService llm.Service
+	db         *pgxpool.Pool
+	evaluator  *rules.RuleEvaluator
+	logger     *zerolog.Logger
 }
 
-func New(db *pgxpool.Pool, trscRepo trscRepo.Transactions, accRepo accRepo.Account, logger *zerolog.Logger) *TransactionService {
+func New(db *pgxpool.Pool, trscRepo trscRepo.Transactions, accRepo accRepo.Account, llm llm.Service, logger *zerolog.Logger) *TransactionService {
 	return &TransactionService{
-		trscRepo:  trscRepo,
-		accRepo:   accRepo,
-		db:        db,
-		evaluator: rules.NewRuleEvaluator(),
-		logger:    logger,
+		trscRepo:   trscRepo,
+		accRepo:    accRepo,
+		llmService: llm,
+		db:         db,
+		evaluator:  rules.NewRuleEvaluator(),
+		logger:     logger,
 	}
 }
 
@@ -399,4 +406,8 @@ func (r *TransactionService) BulkUpdateManualTransactions(ctx context.Context, p
 		UpdatedBy:           &params.UserID,
 		Ids:                 params.Ids,
 	})
+}
+
+func (r *TransactionService) ParseTransactions(ctx context.Context, req llm.NeuralInputRequest) (*llm.NeuralInputResponse, error) {
+	return r.llmService.ParseTransactions(ctx, req)
 }

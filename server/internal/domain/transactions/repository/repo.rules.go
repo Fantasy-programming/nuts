@@ -18,7 +18,7 @@ type CreateRuleParams struct {
 	IsActive   bool                         `json:"is_active"`
 	Priority   int                          `json:"priority"`
 	Conditions []transactions.RuleCondition `json:"conditions"`
-	Actions    []transactions.RuleAction    `json:"actions"`
+	Actions    []transactions.transactions.RuleAction    `json:"actions"`
 	CreatedBy  uuid.UUID                    `json:"created_by"`
 }
 
@@ -29,7 +29,7 @@ type UpdateRuleParams struct {
 	IsActive   *bool                         `json:"is_active,omitempty"`
 	Priority   *int                          `json:"priority,omitempty"`
 	Conditions *[]transactions.RuleCondition `json:"conditions,omitempty"`
-	Actions    *[]transactions.RuleAction    `json:"actions,omitempty"`
+	Actions    *[]transactions.transactions.RuleAction    `json:"actions,omitempty"`
 	UpdatedBy  uuid.UUID                     `json:"updated_by"`
 }
 
@@ -55,7 +55,7 @@ func (c *ConditionsJSON) Scan(value interface{}) error {
 }
 
 // ActionsJSON is a helper type for JSON marshaling/unmarshaling
-type ActionsJSON []transactions.RuleAction
+type ActionsJSON []transactions.transactions.RuleAction
 
 func (a ActionsJSON) Value() (driver.Value, error) {
 	return json.Marshal(a)

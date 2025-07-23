@@ -40,5 +40,8 @@ func RegisterHTTPHandlers(service service.Transactions, tkn *jwt.Service, valida
 	router.Post("/rules/toggle/{id}", h.ToggleRule)             // POST /rules/{id}/toggle
 	router.Post("/rules/apply/{id}", h.ApplyRulesToTransaction) // POST /rules/apply/{transactionId}
 
+	// ai
+	router.Post("/neural-input", h.ParseTransactions)
+
 	return router
 }
