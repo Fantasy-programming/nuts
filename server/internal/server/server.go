@@ -18,6 +18,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/mailer"
 	"github.com/Fantasy-Programming/nuts/server/pkg/router"
 	"github.com/Fantasy-Programming/nuts/server/pkg/storage"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -34,6 +35,7 @@ type Server struct {
 
 	db      *pgxpool.Pool
 	storage storage.Storage
+	mailer  mailer.Service
 
 	cors        *cors.Cors
 	router      router.Router
@@ -80,6 +82,7 @@ func (s *Server) Init() {
 	s.NewLogger()
 	s.NewDatabase()
 	s.NewStorage()
+	s.NewMailer()
 	s.NewOPFinanceManager()
 	// s.SetupPaymentProcessors()
 
@@ -299,6 +302,21 @@ func (s *Server) NewJobService() {
 		s.logger.Fatal().Err(err).Msg("Failed to setup job service")
 	}
 	s.jobsManager = jobService
+}
+
+func (s *Server) NewMailer() {
+	mailerConfig := mailer.Config{
+		Host:      s.cfg.SMTP.Host,
+		Port:      s.cfg.SMTP.Port,
+		Username:  s.cfg.SMTP.Username,
+		Password:  s.cfg.SMTP.Password,
+		FromEmail: s.cfg.SMTP.FromEmail,
+		FromName:  s.cfg.SMTP.FromName,
+		MailGeneratorURL: "http://localhost:3001", // TODO: Make this configurable
+	}
+	
+	s.mailer = mailer.NewService(mailerConfig)
+	s.logger.Info().Msg("Mailer service initialized")
 }
 
 func (s *Server) Config() *config.Config {

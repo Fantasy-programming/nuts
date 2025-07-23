@@ -10,6 +10,7 @@ type Config struct {
 	Storage
 	Cache
 	Integrations
+	SMTP
 	LLM llm.Config
 }
 
@@ -22,6 +23,7 @@ func New() *Config {
 		Cache:        NewCache(),
 		DB:           DataStore(),
 		Integrations: INTEGRATIONS(),
+		SMTP:         NewSMTP(),
 		LLM:          llm.NewConfig(),
 	}
 }
