@@ -20,6 +20,7 @@ export { useOfflineFirst, useAdaptiveTransactions } from './hooks/useOfflineFirs
 
 // Test utilities
 export { testOfflineFirstInfrastructure } from './test/infrastructure.test';
+export { validatePhase2Implementation } from './test/phase2-validation.test';
 
 // Components
 export { FeatureFlagsDeveloperPanel } from './components/FeatureFlagsDeveloperPanel';
