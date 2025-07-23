@@ -4,6 +4,7 @@ export interface Category {
   id: string;
   name: string;
   icon: string;
+  color?: string;
   subcategories: Array<{
     id: string;
     name: string;
@@ -13,11 +14,13 @@ export interface Category {
 export interface CreateCategoryRequest {
   name: string;
   icon: string;
+  color?: string;
 }
 
 export interface UpdateCategoryRequest {
   name?: string;
   icon?: string;
+  color?: string;
 }
 
 export interface CreateSubcategoryRequest {
