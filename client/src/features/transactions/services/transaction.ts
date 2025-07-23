@@ -93,3 +93,15 @@ export const bulkUpdateManualTransactions = async (params: {
   
   await axios.put(`${BASEURI}/bulk/manual`, body);
 };
+
+export const bulkCreateTransactions = async (params: {
+  accountId: string;
+  transactions: RecordCreateSchema[];
+}): Promise<{ created_count: number; error_count: number; total_requested: number; errors?: string[] }> => {
+  const { data } = await axios.post(`${BASEURI}/bulk`, {
+    account_id: params.accountId,
+    transactions: params.transactions,
+  });
+  
+  return data;
+};

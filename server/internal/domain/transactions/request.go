@@ -93,6 +93,11 @@ type BulkUpdateManualTransactionsRequest struct {
 	TransactionDatetime *time.Time `json:"transaction_datetime,omitempty"`
 }
 
+type BulkCreateTransactionsRequest struct {
+	AccountID    string                     `json:"account_id" validate:"required"`
+	Transactions []CreateTransactionRequest `json:"transactions" validate:"required,min=1"`
+}
+
 type TransfertParams struct {
 	Amount               decimal.Decimal
 	Type                 string

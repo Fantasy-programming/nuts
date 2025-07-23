@@ -151,7 +151,7 @@ func (s *TransactionService) convertToTransactionData(transaction internalRepo.T
 }
 
 // applyActionsToTransaction applies rule actions to a transaction
-func (s *TransactionService) applyActionsToTransaction(ctx context.Context, transactionID uuid.UUID, userID uuid.UUID, actions []transactions.transactions.RuleAction) error {
+func (s *TransactionService) applyActionsToTransaction(ctx context.Context, transactionID uuid.UUID, userID uuid.UUID, actions []transactions.RuleAction) error {
 	updateParams := internalRepo.UpdateTransactionParams{
 		ID:        transactionID,
 		UpdatedBy: &userID,

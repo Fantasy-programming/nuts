@@ -27,6 +27,7 @@ func RegisterHTTPHandlers(service service.Transactions, tkn *jwt.Service, valida
 	router.Delete("/{id}", h.Delete)
 
 	// Bulk operations
+	router.Post("/bulk", h.BulkCreateTransactions)
 	router.Delete("/bulk", h.BulkDelete)
 	router.Put("/bulk/categories", h.BulkUpdateCategories)
 	router.Put("/bulk/manual", h.BulkUpdateManualTransactions)
