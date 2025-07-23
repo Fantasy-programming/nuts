@@ -91,11 +91,11 @@ func (s *Server) initAccount() {
 func (s *Server) initTransaction() {
 	transactionsRepo := trcRepo.NewRepository(s.db)
 	accountsRepo := accRepo.NewRepository(s.db)
-
 	llmService, err := llm.NewService(s.cfg.LLM, s.logger)
 	if err != nil {
 		s.logger.Panic().Err(err).Msg("Failed to setup llm service")
 	}
+
 	transactionsService := trcService.New(s.db, transactionsRepo, accountsRepo, llmService, s.logger)
 	TransactionDomain := trcHandler.RegisterHTTPHandlers(transactionsService, s.jwt, s.validator, s.logger)
 	s.router.Mount("/transactions", TransactionDomain)
