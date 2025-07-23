@@ -22,7 +22,9 @@ import {
   RiLogoutBoxLine,
   type RemixiconComponentType,
   RiDashboardLine,
-  RiDashboardFill
+  RiDashboardFill,
+  RiWalletLine,
+  RiWalletFill
 } from "@remixicon/react";
 import LogoWTXT from "@/core/assets/icons/ICWLG"
 import { Nuts } from "@/core/assets/icons/Logo"
@@ -86,6 +88,12 @@ const navMain: navStuff[] = [
     url: "/dashboard/accounts",
     icon: RiStackLine,
     activeIcon: RiStackFill,
+  },
+  {
+    title: "navigation.budgets",
+    url: "/dashboard/budgets",
+    icon: RiWalletLine,
+    activeIcon: RiWalletFill,
   },
   {
     title: "navigation.transactions",
@@ -168,6 +176,14 @@ function DashboardWrapper() {
     "g+c",
     () => {
       navigate({ to: "/dashboard/accounts" });
+    },
+    []
+  );
+
+  useHotkeys(
+    "g+b",
+    () => {
+      navigate({ to: "/dashboard/budgets" });
     },
     []
   );
