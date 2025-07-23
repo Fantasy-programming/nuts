@@ -42,4 +42,8 @@
   services.redis = {
     enable = true;
   };
+
+   services.mailpit = {
+    enable = true;
+  };
 }
