@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -1261,4 +1262,134 @@ func (h *Handler) BulkUpdateManualTransactions(w http.ResponseWriter, r *http.Re
 	}
 
 	respond.Status(w, http.StatusOK)
+}
+
+// BulkCreateTransactions handles bulk creation of transactions
+func (h *Handler) BulkCreateTransactions(w http.ResponseWriter, r *http.Request) {
+ctx := r.Context()
+var req BulkCreateTransactionsRequest
+
+valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+if err != nil {
+respond.Error(respond.ErrorOptions{
+W:          w,
+R:          r,
+StatusCode: http.StatusBadRequest,
+ClientErr:  message.ErrBadRequest,
+ActualErr:  err,
+Logger:     h.logger,
+Details:    r.Body,
+})
+return
+}
+
+if valErr != nil {
+respond.Errors(respond.ErrorOptions{
+W:          w,
+R:          r,
+StatusCode: http.StatusBadRequest,
+ClientErr:  message.ErrValidation,
+ActualErr:  valErr,
+Logger:     h.logger,
+Details:    req,
+})
+return
+}
+
+userID, err := jwt.GetUserID(r)
+if err != nil {
+respond.Error(respond.ErrorOptions{
+W:          w,
+R:          r,
+StatusCode: http.StatusUnauthorized,
+ClientErr:  message.ErrUnauthorized,
+ActualErr:  err,
+Logger:     h.logger,
+})
+return
+}
+
+// Parse account ID
+accountID, err := uuid.Parse(req.AccountID)
+if err != nil {
+respond.Error(respond.ErrorOptions{
+W:          w,
+R:          r,
+StatusCode: http.StatusBadRequest,
+ClientErr:  message.ErrBadRequest,
+ActualErr:  err,
+Logger:     h.logger,
+Details:    req.AccountID,
+})
+return
+}
+
+// Prepare transactions for bulk creation
+var createdTransactions []repository.Transaction
+var errors []string
+
+for i, txnReq := range req.Transactions {
+amount := decimal.NewFromFloat(txnReq.Amount)
+
+categoryID, err := uuid.Parse(txnReq.CategoryID)
+if err != nil {
+errors = append(errors, fmt.Sprintf("Transaction %d: invalid category ID", i+1))
+continue
+}
+
+isExternal := false
+
+// Create individual transaction
+transaction, err := h.repo.CreateTransaction(ctx, repository.CreateTransactionParams{
+Amount:              amount,
+Type:                txnReq.Type,
+AccountID:           accountID,
+CategoryID:          &categoryID,
+Description:         txnReq.Description,
+TransactionDatetime: pgtype.Timestamptz{Time: txnReq.TransactionDatetime, Valid: true},
+TransactionCurrency: "USD", // Default to USD for now
+IsExternal:          &isExternal,
+OriginalAmount:      amount,
+Details:             &txnReq.Details,
+CreatedBy:           &userID,
+})
+
+if err != nil {
+h.logger.Error().Err(err).Int("transaction_index", i).Msg("Failed to create transaction in bulk")
+errors = append(errors, fmt.Sprintf("Transaction %d: %v", i+1, err))
+continue
+}
+
+// Apply rules to the newly created transaction
+if h.rulesService != nil {
+err = h.rulesService.AutoApplyRulesToNewTransaction(ctx, transaction.ID, userID)
+if err != nil {
+// Log the error but don't fail the transaction creation
+h.logger.Error().Err(err).Str("transaction_id", transaction.ID.String()).Msg("Failed to apply rules to transaction")
+}
+}
+
+createdTransactions = append(createdTransactions, transaction)
+}
+
+// Return results
+result := map[string]interface{}{
+"created_count":    len(createdTransactions),
+"error_count":      len(errors),
+"total_requested":  len(req.Transactions),
+"created_transactions": createdTransactions,
+}
+
+if len(errors) > 0 {
+result["errors"] = errors
+}
+
+statusCode := http.StatusOK
+if len(createdTransactions) == 0 {
+statusCode = http.StatusBadRequest
+} else if len(errors) > 0 {
+statusCode = http.StatusPartialContent // 206 for partial success
+}
+
+respond.Json(w, statusCode, result, h.logger)
 }

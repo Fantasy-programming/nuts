@@ -7,11 +7,10 @@ import { Button } from "@/core/components/ui/button";
 import { RecordsDialog } from "@/features/transactions/components/add-records-dialog";
 import { NeuralRecordsDialog } from "@/features/transactions/components/neural-records-dialog";
 import { RulesDialog } from "@/features/transactions/components/rules-dialog";
-import { ImportTransactionsDialog } from "@/features/transactions/components/import-transactions-dialog";
 import { getTransactions } from "@/features/transactions/services/transaction"
 import { categoryService } from "@/features/categories/services/category"
 import { accountService } from "@/features/accounts/services/account";
-import { LayoutDashboard, Plus, Sparkles, Settings, Upload } from "lucide-react";
+import { LayoutDashboard, Plus, Sparkles, Settings } from "lucide-react";
 import { SidebarTrigger } from "@/core/components/ui/sidebar";
 import { EmptyStateGuide } from "@/core/components/EmptyStateGuide";
 
@@ -80,12 +79,6 @@ function RouteComponent() {
                 <span>Rules</span>
               </Button>
             </RulesDialog>
-            <ImportTransactionsDialog>
-              <Button variant="outline" className="hidden items-center gap-2 sm:flex">
-                <Upload className="size-4" />
-                <span>Import</span>
-              </Button>
-            </ImportTransactionsDialog>
             <RecordsDialog>
               <Button className="hidden items-center gap-2 sm:flex">
                 <Plus className="size-4" />

@@ -32,6 +32,7 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 	router.Delete("/", h.BulkDeleteTransactions)
 	router.Put("/bulk/categories", h.BulkUpdateCategories)
 	router.Put("/bulk/manual", h.BulkUpdateManualTransactions)
+	router.Post("/bulk", h.BulkCreateTransactions)
 
 	// protectedRoutes.HandleFunc("/recurring_transactions", handlers.CreateRecurringTransaction).Methods("POST")
 	// protectedRoutes.HandleFunc("/recurring_transactions", handlers.GetRecurringTransactions).Methods("GET")
@@ -63,6 +64,7 @@ func RegisterHTTPHandlersWithRules(db *pgxpool.Pool, validate *validation.Valida
 	router.Delete("/", h.BulkDeleteTransactions)
 	router.Put("/bulk/categories", h.BulkUpdateCategories)
 	router.Put("/bulk/manual", h.BulkUpdateManualTransactions)
+	router.Post("/bulk", h.BulkCreateTransactions)
 
 	// protectedRoutes.HandleFunc("/recurring_transactions", handlers.CreateRecurringTransaction).Methods("POST")
 	// protectedRoutes.HandleFunc("/recurring_transactions", handlers.GetRecurringTransactions).Methods("GET")
