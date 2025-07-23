@@ -24,3 +24,14 @@ type UpdateUserRequest struct {
 	LastName  *string `json:"last_name"`
 	Password  *string `json:"password"`
 }
+
+type UpdateUserPreferencesReq struct {
+	Currency          *string `json:"currency"`
+	Locale            *string `json:"locale"`
+	Theme             *string `json:"theme"`
+	Timezone          *string `json:"timezone"`
+	TimeFormat        *string `json:"time_format"`
+	DateFormat        *string `json:"date_format"`
+	StartWeekOnMonday *bool   `json:"start_week_on_monday"`
+	DarkSidebar       *bool   `json:"dark_sidebar"`
+}

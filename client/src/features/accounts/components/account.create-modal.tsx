@@ -15,6 +15,7 @@ import { SearchableSelect, SearchableSelectOption } from "@/core/components/ui/s
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs"
 import { Button } from "@/core/components/ui/button"
 import { Input } from "@/core/components/ui/input"
+import { CSVImportDialog } from "./csv-import-dialog";
 
 import { useTellerConnect } from 'teller-connect-react';
 // import { usePlaidLink } from 'react-plaid-link';
@@ -152,9 +153,10 @@ export function AddAccountModal({
             <ResponsiveDialogTitle className="text-center md:text-start mb-2">Add New Account</ResponsiveDialogTitle>
           </ResponsiveDialogHeader>
           <Tabs defaultValue="linked" value={activeTab} onValueChange={setActiveTab} className="mt-4 px-4 md:px-1">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="linked">Bank Linked</TabsTrigger>
               <TabsTrigger value="manual">Manual Account</TabsTrigger>
+              <TabsTrigger value="import">Import CSV</TabsTrigger>
             </TabsList>
 
             <TabsContent value="linked" className="space-y-4 mt-4">
@@ -270,6 +272,21 @@ export function AddAccountModal({
                   <button type="submit" style={{ display: "none" }} aria-hidden="true"></button>
                 </form>
               </Form>
+            </TabsContent>
+            <TabsContent value="import" className="space-y-4 mt-4">
+              <div className="flex flex-col gap-3">
+                <div className="text-center py-8">
+                  <h3 className="text-lg font-medium mb-2">Import Transactions from CSV</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Upload a CSV file and we'll create a new account with all your transactions imported automatically.
+                  </p>
+                  <CSVImportDialog>
+                    <Button size="lg" className="w-full">
+                      Upload CSV File
+                    </Button>
+                  </CSVImportDialog>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
 

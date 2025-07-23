@@ -2,6 +2,7 @@ package types
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -117,3 +118,15 @@ func NullFloat64ToFloat64Ptr(f sql.NullFloat64) *float64 {
 //     }
 //     return false
 // }
+
+// numericToFloat64 converts a pgtype.Numeric to a float64 using Float64Value().
+func NumericToFloat64(n pgtype.Numeric) (float64, error) {
+	f8, err := n.Float64Value()
+	if err != nil {
+		return 0, fmt.Errorf("error converting pgtype.Numeric to float64: %w", err)
+	}
+	if !f8.Valid {
+		return 0, fmt.Errorf("numeric value is not valid")
+	}
+	return f8.Float64, nil
+}
