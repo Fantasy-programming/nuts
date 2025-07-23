@@ -15,6 +15,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/webhooks"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
+	"github.com/Fantasy-Programming/nuts/server/pkg/llm"
 )
 
 func (s *Server) RegisterDomain() {
@@ -51,13 +52,17 @@ func (s *Server) initTransaction() {
 	// Create queries and transaction repository
 	queries := repository.New(s.db)
 	transRepo := transactions.NewRepository(s.db, queries)
-	
+
 	// Create rules service
 	rulesRepo := rules.NewRepository(s.db)
 	rulesService := rules.NewService(rulesRepo, transRepo, s.logger)
-	
+	llmService, err := llm.NewService(s.cfg.LLM, s.logger)
+	if err != nil {
+		s.logger.Panic().Err(err).Msg("Failed to setup llm service")
+	}
+
 	// Create transaction handler with rules integration
-	TransactionDomain := transactions.RegisterHTTPHandlersWithRules(s.db, s.validator, s.jwt, rulesService, s.logger)
+	TransactionDomain := transactions.RegisterHTTPHandlersWithLLM(s.db, s.validator, s.jwt, rulesService, llmService, s.logger)
 	s.router.Mount("/transactions", TransactionDomain)
 }
 
@@ -85,7 +90,7 @@ func (s *Server) initRules() {
 	// Create transaction repository to pass to rules service
 	queries := repository.New(s.db)
 	transRepo := transactions.NewRepository(s.db, queries)
-	
+
 	RulesDomain := rules.RegisterHTTPHandlers(s.db, s.validator, s.jwt, transRepo, s.logger)
 	s.router.Mount("/rules", RulesDomain)
 }

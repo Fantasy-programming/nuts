@@ -21,7 +21,7 @@ type NeuralInputService struct {
 // NewNeuralInputService creates a new neural input service
 func NewNeuralInputService(config Config, logger *zerolog.Logger) (*NeuralInputService, error) {
 	var provider Provider
-	
+
 	switch strings.ToLower(config.Provider) {
 	case "local":
 		provider = NewLocalProvider(config, logger)
@@ -41,7 +41,7 @@ func NewNeuralInputService(config Config, logger *zerolog.Logger) (*NeuralInputS
 // ParseTransactions converts ambiguous text input into structured transaction data
 func (s *NeuralInputService) ParseTransactions(ctx context.Context, req NeuralInputRequest) (*NeuralInputResponse, error) {
 	prompt := s.buildTransactionPrompt(req)
-	
+
 	s.logger.Debug().
 		Str("input", req.Input).
 		Str("provider", s.config.Provider).
@@ -62,7 +62,7 @@ func (s *NeuralInputService) ParseTransactions(ctx context.Context, req NeuralIn
 	}
 
 	modelInfo := s.provider.GetModelInfo()
-	
+
 	return &NeuralInputResponse{
 		Transactions: transactions,
 		ParsedAt:     time.Now(),
@@ -114,7 +114,9 @@ INSTRUCTIONS:
    - If no date is specified, use null
    - If transaction type is unclear, use "expense" as default
    - Provide confidence scores based on clarity of input
-
+   - If relative dates are mentioned ("yesterday", "last week"), calculate based on current date/time
+   - For unclear amounts, set confidence below 0.7
+   - If multiple interpretations exist, choose the most conservative
 4. Parse multiple transactions if mentioned
 5. Be conservative with amounts - don't guess wildly
 
@@ -136,9 +138,9 @@ Return ONLY a valid JSON array with this exact structure:
   }
 ]
 
-Important: Respond with ONLY the JSON array, no other text or formatting.`, 
-		baseCurrency, 
-		userTimezone, 
+Important: Respond with ONLY the JSON array, no other text or formatting.`,
+		baseCurrency,
+		userTimezone,
 		time.Now().Format(time.RFC3339),
 		s.formatAccountContext(req.AccountContext),
 		req.Input,
@@ -160,7 +162,7 @@ func (s *NeuralInputService) formatAccountContext(accountContext *string) string
 func (s *NeuralInputService) parseTransactionResponse(response string) ([]TransactionData, error) {
 	// Clean the response - remove any markdown or extra formatting
 	response = strings.TrimSpace(response)
-	
+
 	// Remove markdown code blocks if present
 	if strings.HasPrefix(response, "```json") {
 		response = strings.TrimPrefix(response, "```json")
@@ -179,7 +181,7 @@ func (s *NeuralInputService) parseTransactionResponse(response string) ([]Transa
 	}
 
 	transactions := make([]TransactionData, 0, len(rawTransactions))
-	
+
 	for i, raw := range rawTransactions {
 		transaction, err := s.convertRawTransaction(raw)
 		if err != nil {
@@ -208,7 +210,7 @@ func (s *NeuralInputService) convertRawTransaction(raw map[string]interface{}) (
 	if !ok {
 		return transaction, fmt.Errorf("amount is required and must be a string")
 	}
-	
+
 	amount, err := decimal.NewFromString(amountStr)
 	if err != nil {
 		return transaction, fmt.Errorf("invalid amount format: %s", amountStr)
@@ -220,7 +222,7 @@ func (s *NeuralInputService) convertRawTransaction(raw map[string]interface{}) (
 	if !ok {
 		return transaction, fmt.Errorf("type is required")
 	}
-	
+
 	// Validate transaction type
 	switch transactionType {
 	case "income", "expense", "transfer":
@@ -241,23 +243,23 @@ func (s *NeuralInputService) convertRawTransaction(raw map[string]interface{}) (
 	if desc, ok := raw["description"].(string); ok && desc != "" {
 		transaction.Description = &desc
 	}
-	
+
 	if category, ok := raw["category_hint"].(string); ok && category != "" {
 		transaction.CategoryHint = &category
 	}
-	
+
 	if merchant, ok := raw["merchant_name"].(string); ok && merchant != "" {
 		transaction.MerchantName = &merchant
 	}
-	
+
 	if medium, ok := raw["payment_medium"].(string); ok && medium != "" {
 		transaction.PaymentMedium = &medium
 	}
-	
+
 	if location, ok := raw["location"].(string); ok && location != "" {
 		transaction.Location = &location
 	}
-	
+
 	if note, ok := raw["note"].(string); ok && note != "" {
 		transaction.Note = &note
 	}
@@ -282,3 +284,4 @@ func (s *NeuralInputService) convertRawTransaction(raw map[string]interface{}) (
 
 	return transaction, nil
 }
+
