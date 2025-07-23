@@ -52,6 +52,11 @@ type Service interface {
 	SendWelcomeEmail(ctx context.Context, name, email string) error
 	SendResetPasswordEmail(ctx context.Context, name, email, resetLink string) error
 	SendNotificationEmail(ctx context.Context, name, email, title, message string) error
+	SendOTPEmail(ctx context.Context, name, email, otpCode string, expiresIn string) error
+	SendWhatsNewEmail(ctx context.Context, name, email string, features []map[string]interface{}, version string) error
+	SendSecurityEmail(ctx context.Context, name, email string, deviceInfo map[string]interface{}, location string, timestamp string) error
+	SendDailyDigestEmail(ctx context.Context, name, email, date string, balanceSummary, transactions, insights map[string]interface{}) error
+	SendLowBalanceAlertEmail(ctx context.Context, name, email, accountName string, currentBalance, threshold float64, currency string) error
 }
 
 // Config holds the configuration for the mailer service
@@ -235,4 +240,70 @@ func (s *service) SendNotificationEmail(ctx context.Context, name, email, title,
 		"message": message,
 	}
 	return s.SendTemplateEmail(ctx, []string{email}, "notification", data)
+}
+
+// SendOTPEmail sends an OTP verification email
+func (s *service) SendOTPEmail(ctx context.Context, name, email, otpCode string, expiresIn string) error {
+	if expiresIn == "" {
+		expiresIn = "10 minutes"
+	}
+	data := map[string]interface{}{
+		"name":      name,
+		"email":     email,
+		"otpCode":   otpCode,
+		"expiresIn": expiresIn,
+	}
+	return s.SendTemplateEmail(ctx, []string{email}, "otp", data)
+}
+
+// SendWhatsNewEmail sends a what's new features email
+func (s *service) SendWhatsNewEmail(ctx context.Context, name, email string, features []map[string]interface{}, version string) error {
+	data := map[string]interface{}{
+		"name":     name,
+		"email":    email,
+		"features": features,
+		"version":  version,
+	}
+	return s.SendTemplateEmail(ctx, []string{email}, "whats-new", data)
+}
+
+// SendSecurityEmail sends a security alert email for new device access
+func (s *service) SendSecurityEmail(ctx context.Context, name, email string, deviceInfo map[string]interface{}, location string, timestamp string) error {
+	data := map[string]interface{}{
+		"name":       name,
+		"email":      email,
+		"deviceInfo": deviceInfo,
+		"location":   location,
+		"timestamp":  timestamp,
+	}
+	return s.SendTemplateEmail(ctx, []string{email}, "security", data)
+}
+
+// SendDailyDigestEmail sends a daily financial digest email
+func (s *service) SendDailyDigestEmail(ctx context.Context, name, email, date string, balanceSummary, transactions, insights map[string]interface{}) error {
+	data := map[string]interface{}{
+		"name":           name,
+		"email":          email,
+		"date":           date,
+		"balanceSummary": balanceSummary,
+		"transactions":   transactions,
+		"insights":       insights,
+	}
+	return s.SendTemplateEmail(ctx, []string{email}, "daily-digest", data)
+}
+
+// SendLowBalanceAlertEmail sends a low balance alert email
+func (s *service) SendLowBalanceAlertEmail(ctx context.Context, name, email, accountName string, currentBalance, threshold float64, currency string) error {
+	if currency == "" {
+		currency = "USD"
+	}
+	data := map[string]interface{}{
+		"name":           name,
+		"email":          email,
+		"accountName":    accountName,
+		"currentBalance": currentBalance,
+		"threshold":      threshold,
+		"currency":       currency,
+	}
+	return s.SendTemplateEmail(ctx, []string{email}, "low-balance-alert", data)
 }

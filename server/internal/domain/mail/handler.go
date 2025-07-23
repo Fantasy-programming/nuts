@@ -52,6 +52,46 @@ type SendNotificationRequest struct {
 	Message string `json:"message" validate:"required"`
 }
 
+type SendOTPRequest struct {
+	Name      string `json:"name" validate:"required"`
+	Email     string `json:"email" validate:"required,email"`
+	OTPCode   string `json:"otpCode" validate:"required"`
+	ExpiresIn string `json:"expiresIn"`
+}
+
+type SendWhatsNewRequest struct {
+	Name     string                   `json:"name" validate:"required"`
+	Email    string                   `json:"email" validate:"required,email"`
+	Features []map[string]interface{} `json:"features" validate:"required"`
+	Version  string                   `json:"version"`
+}
+
+type SendSecurityRequest struct {
+	Name       string                 `json:"name" validate:"required"`
+	Email      string                 `json:"email" validate:"required,email"`
+	DeviceInfo map[string]interface{} `json:"deviceInfo" validate:"required"`
+	Location   string                 `json:"location"`
+	Timestamp  string                 `json:"timestamp" validate:"required"`
+}
+
+type SendDailyDigestRequest struct {
+	Name           string                 `json:"name" validate:"required"`
+	Email          string                 `json:"email" validate:"required,email"`
+	Date           string                 `json:"date" validate:"required"`
+	BalanceSummary map[string]interface{} `json:"balanceSummary" validate:"required"`
+	Transactions   map[string]interface{} `json:"transactions" validate:"required"`
+	Insights       map[string]interface{} `json:"insights" validate:"required"`
+}
+
+type SendLowBalanceAlertRequest struct {
+	Name           string  `json:"name" validate:"required"`
+	Email          string  `json:"email" validate:"required,email"`
+	AccountName    string  `json:"accountName" validate:"required"`
+	CurrentBalance float64 `json:"currentBalance" validate:"required"`
+	Threshold      float64 `json:"threshold" validate:"required"`
+	Currency       string  `json:"currency"`
+}
+
 func RegisterHTTPHandlers(db *pgxpool.Pool, validator *validation.Validator, jwt *jwt.Service, mailer mailer.Service, logger *zerolog.Logger) router.Router {
 	h := &Handler{
 		db:        db,
@@ -69,6 +109,11 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validator *validation.Validator, jwt
 	r.Post("/send-welcome", h.sendWelcomeEmail)
 	r.Post("/send-reset-password", h.sendResetPasswordEmail)
 	r.Post("/send-notification", h.sendNotificationEmail)
+	r.Post("/send-otp", h.sendOTPEmail)
+	r.Post("/send-whats-new", h.sendWhatsNewEmail)
+	r.Post("/send-security", h.sendSecurityEmail)
+	r.Post("/send-daily-digest", h.sendDailyDigestEmail)
+	r.Post("/send-low-balance-alert", h.sendLowBalanceAlertEmail)
 
 	// Health check for mailer service
 	r.Get("/health", h.health)
@@ -321,6 +366,246 @@ func (h *Handler) sendNotificationEmail(w http.ResponseWriter, r *http.Request) 
 	}
 
 	respond.Json(w, http.StatusOK, map[string]string{"message": "Notification email sent successfully"}, h.logger)
+}
+
+func (h *Handler) sendOTPEmail(w http.ResponseWriter, r *http.Request) {
+	var req SendOTPRequest
+	ctx := r.Context()
+
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
+
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	if err := h.mailer.SendOTPEmail(r.Context(), req.Name, req.Email, req.OTPCode, req.ExpiresIn); err != nil {
+		h.logger.Error().Err(err).Msg("Failed to send OTP email")
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, map[string]string{"message": "OTP email sent successfully"}, h.logger)
+}
+
+func (h *Handler) sendWhatsNewEmail(w http.ResponseWriter, r *http.Request) {
+	var req SendWhatsNewRequest
+	ctx := r.Context()
+
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
+
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	if err := h.mailer.SendWhatsNewEmail(r.Context(), req.Name, req.Email, req.Features, req.Version); err != nil {
+		h.logger.Error().Err(err).Msg("Failed to send what's new email")
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, map[string]string{"message": "What's new email sent successfully"}, h.logger)
+}
+
+func (h *Handler) sendSecurityEmail(w http.ResponseWriter, r *http.Request) {
+	var req SendSecurityRequest
+	ctx := r.Context()
+
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
+
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	if err := h.mailer.SendSecurityEmail(r.Context(), req.Name, req.Email, req.DeviceInfo, req.Location, req.Timestamp); err != nil {
+		h.logger.Error().Err(err).Msg("Failed to send security email")
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, map[string]string{"message": "Security email sent successfully"}, h.logger)
+}
+
+func (h *Handler) sendDailyDigestEmail(w http.ResponseWriter, r *http.Request) {
+	var req SendDailyDigestRequest
+	ctx := r.Context()
+
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
+
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	if err := h.mailer.SendDailyDigestEmail(r.Context(), req.Name, req.Email, req.Date, req.BalanceSummary, req.Transactions, req.Insights); err != nil {
+		h.logger.Error().Err(err).Msg("Failed to send daily digest email")
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, map[string]string{"message": "Daily digest email sent successfully"}, h.logger)
+}
+
+func (h *Handler) sendLowBalanceAlertEmail(w http.ResponseWriter, r *http.Request) {
+	var req SendLowBalanceAlertRequest
+	ctx := r.Context()
+
+	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
+
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	if err := h.mailer.SendLowBalanceAlertEmail(r.Context(), req.Name, req.Email, req.AccountName, req.CurrentBalance, req.Threshold, req.Currency); err != nil {
+		h.logger.Error().Err(err).Msg("Failed to send low balance alert email")
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, map[string]string{"message": "Low balance alert email sent successfully"}, h.logger)
 }
 
 func (h *Handler) health(w http.ResponseWriter, r *http.Request) {
