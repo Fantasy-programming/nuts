@@ -45,7 +45,7 @@ func (s *Server) initAccount() {
 }
 
 func (s *Server) initTransaction() {
-	TransactionDomain := transactions.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
+	TransactionDomain := transactions.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.jobsManager, s.logger)
 	s.router.Mount("/transactions", TransactionDomain)
 }
 

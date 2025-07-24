@@ -143,3 +143,26 @@ WHERE user_id = $1
     AND (sqlc.narg('is_paused')::boolean IS NULL OR is_paused = sqlc.narg('is_paused'))
     AND (sqlc.narg('auto_post')::boolean IS NULL OR auto_post = sqlc.narg('auto_post'))
     AND (sqlc.narg('template_name')::text IS NULL OR template_name ILIKE '%' || sqlc.narg('template_name') || '%');
+
+-- name: GetActiveRecurringTransactions :many
+SELECT * FROM recurring_transactions
+WHERE deleted_at IS NULL 
+    AND is_paused = FALSE
+    AND (max_occurrences IS NULL OR occurrences_count < max_occurrences)
+    AND (end_date IS NULL OR $1 <= end_date)
+ORDER BY next_due_date ASC;
+
+-- name: UpdateRecurringTransactionNextDueDate :one
+UPDATE recurring_transactions
+SET
+    next_due_date = $2,
+    updated_at = current_timestamp
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: GetTransactionByRecurringAndDate :one
+SELECT * FROM transactions
+WHERE recurring_transaction_id = $1
+    AND DATE(transaction_datetime) = DATE($2)
+    AND deleted_at IS NULL
+LIMIT 1;

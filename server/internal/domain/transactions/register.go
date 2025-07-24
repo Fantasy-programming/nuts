@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, logger *zerolog.Logger) http.Handler {
+func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn *jwt.Service, jobService JobService, logger *zerolog.Logger) http.Handler {
 	queries := repository.New(db)
 	repo := NewRepository(db, queries)
 	
@@ -19,7 +19,7 @@ func RegisterHTTPHandlers(db *pgxpool.Pool, validate *validation.Validator, tkn 
 	recurringRepo := NewRecurringTransactionRepository(db, queries)
 	recurringService := NewRecurringTransactionService(recurringRepo, queries, repo)
 	
-	h := NewHandler(validate, repo, recurringService, logger)
+	h := NewHandler(validate, repo, recurringService, jobService, logger)
 
 	// Create the auth verify middleware
 	middleware := jwt.NewMiddleware(tkn)

@@ -40,11 +40,21 @@ func NewService(db *pgxpool.Pool, logger *zerolog.Logger, openfinance *finance.P
 
 	river.AddWorker(workers, &ExchangeRatesSyncWorker{deps: &ExchangeRatesWorkerDeps{DB: db, Queries: queries, Logger: logger}})
 	river.AddWorker(workers, &HistoricalExchangeRateWorker{deps: &ExchangeRatesWorkerDeps{DB: db, Queries: queries, Logger: logger}})
+	
+	// Add recurring transaction workers
+	river.AddWorker(workers, &RecurringTransactionWorker{deps: &RecurringTransactionWorkerDeps{DB: db, Queries: queries, Logger: logger}})
+	river.AddWorker(workers, &DailyRecurringProcessorWorker{deps: &RecurringTransactionWorkerDeps{DB: db, Queries: queries, Logger: logger}})
 
 	// Parse cron schedule for 6 AM UTC daily
 	schedule, err := cron.ParseStandard("0 6 * * *")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse cron schedule: %w", err)
+	}
+
+	// Parse cron schedule for daily recurring transaction processing at 2 AM UTC
+	recurringSchedule, err := cron.ParseStandard("0 2 * * *")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse recurring transaction cron schedule: %w", err)
 	}
 
 	periodicJobs := []*river.PeriodicJob{
@@ -65,6 +75,23 @@ func NewService(db *pgxpool.Pool, logger *zerolog.Logger, openfinance *finance.P
 				RunOnStart: true,
 			},
 		),
+		river.NewPeriodicJob(
+			recurringSchedule,
+			func() (river.JobArgs, *river.InsertOpts) {
+				return DailyRecurringProcessorJob{
+						ProcessDate: time.Now().UTC().Truncate(24 * time.Hour),
+					}, &river.InsertOpts{
+						Queue: "recurring",
+						UniqueOpts: river.UniqueOpts{
+							ByArgs:   true,
+							ByPeriod: 24 * time.Hour,
+						},
+					}
+			},
+			&river.PeriodicJobOpts{
+				RunOnStart: false, // Don't run on startup
+			},
+		),
 	}
 
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
@@ -74,6 +101,7 @@ func NewService(db *pgxpool.Pool, logger *zerolog.Logger, openfinance *finance.P
 			"sync":             {MaxWorkers: 3},
 			"exports":          {MaxWorkers: 2},
 			"exchange_rates":   {MaxWorkers: 1},
+			"recurring":        {MaxWorkers: 5}, // Queue for recurring transaction jobs
 		},
 		PeriodicJobs: periodicJobs,
 		Workers:      workers,
@@ -166,4 +194,30 @@ func (s *Service) EnqueueExchangeRatesSync(ctx context.Context, jobDate time.Tim
 func (s *Service) UpdateAllExchangeRates(ctx context.Context) error {
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 	return s.EnqueueExchangeRatesSync(ctx, today)
+}
+
+// Enqueue recurring transaction job
+func (s *Service) EnqueueRecurringTransaction(ctx context.Context, userID, recurringTransactionID uuid.UUID, dueDate time.Time) error {
+	_, err := s.client.Insert(ctx, RecurringTransactionJob{
+		UserID:                 userID,
+		RecurringTransactionID: recurringTransactionID,
+		DueDate:                dueDate,
+	}, &river.InsertOpts{
+		Queue: "recurring",
+	})
+	return err
+}
+
+// Enqueue daily recurring processor job (can be triggered manually)
+func (s *Service) EnqueueDailyRecurringProcessor(ctx context.Context, processDate time.Time) error {
+	_, err := s.client.Insert(ctx, DailyRecurringProcessorJob{
+		ProcessDate: processDate,
+	}, &river.InsertOpts{
+		Queue: "recurring",
+		UniqueOpts: river.UniqueOpts{
+			ByArgs:   true,
+			ByPeriod: 24 * time.Hour,
+		},
+	})
+	return err
 }

@@ -812,3 +812,150 @@ func (q *Queries) UpdateRecurringTransactionAfterGeneration(ctx context.Context,
 	_, err := q.db.Exec(ctx, updateRecurringTransactionAfterGeneration, arg.ID, arg.LastGeneratedDate, arg.NextDueDate)
 	return err
 }
+
+// Additional queries manually added for job workers
+
+const getActiveRecurringTransactions = `
+SELECT * FROM recurring_transactions
+WHERE deleted_at IS NULL 
+    AND is_paused = FALSE
+    AND (max_occurrences IS NULL OR occurrences_count < max_occurrences)
+    AND (end_date IS NULL OR $1 <= end_date)
+ORDER BY next_due_date ASC
+`
+
+type GetActiveRecurringTransactionsRow RecurringTransaction
+
+func (q *Queries) GetActiveRecurringTransactions(ctx context.Context, processDate time.Time) ([]GetActiveRecurringTransactionsRow, error) {
+	rows, err := q.db.Query(ctx, getActiveRecurringTransactions, processDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetActiveRecurringTransactionsRow
+	for rows.Next() {
+		var i GetActiveRecurringTransactionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.AccountID,
+			&i.CategoryID,
+			&i.DestinationAccountID,
+			&i.Amount,
+			&i.Type,
+			&i.Description,
+			&i.Details,
+			&i.Frequency,
+			&i.FrequencyInterval,
+			&i.FrequencyData,
+			&i.StartDate,
+			&i.EndDate,
+			&i.LastGeneratedDate,
+			&i.NextDueDate,
+			&i.AutoPost,
+			&i.IsPaused,
+			&i.MaxOccurrences,
+			&i.OccurrencesCount,
+			&i.TemplateName,
+			&i.Tags,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateRecurringTransactionNextDueDate = `
+UPDATE recurring_transactions
+SET
+    next_due_date = $2,
+    updated_at = current_timestamp
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *
+`
+
+type UpdateRecurringTransactionNextDueDateParams struct {
+	ID          uuid.UUID          `json:"id"`
+	NextDueDate pgtype.Timestamptz `json:"next_due_date"`
+}
+
+func (q *Queries) UpdateRecurringTransactionNextDueDate(ctx context.Context, arg UpdateRecurringTransactionNextDueDateParams) (RecurringTransaction, error) {
+	row := q.db.QueryRow(ctx, updateRecurringTransactionNextDueDate, arg.ID, arg.NextDueDate)
+	var i RecurringTransaction
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccountID,
+		&i.CategoryID,
+		&i.DestinationAccountID,
+		&i.Amount,
+		&i.Type,
+		&i.Description,
+		&i.Details,
+		&i.Frequency,
+		&i.FrequencyInterval,
+		&i.FrequencyData,
+		&i.StartDate,
+		&i.EndDate,
+		&i.LastGeneratedDate,
+		&i.NextDueDate,
+		&i.AutoPost,
+		&i.IsPaused,
+		&i.MaxOccurrences,
+		&i.OccurrencesCount,
+		&i.TemplateName,
+		&i.Tags,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getTransactionByRecurringAndDate = `
+SELECT * FROM transactions
+WHERE recurring_transaction_id = $1
+    AND DATE(transaction_datetime) = DATE($2)
+    AND deleted_at IS NULL
+LIMIT 1
+`
+
+type GetTransactionByRecurringAndDateParams struct {
+	RecurringTransactionID *uuid.UUID `json:"recurring_transaction_id"`
+	TransactionDate        time.Time  `json:"transaction_date"`
+}
+
+func (q *Queries) GetTransactionByRecurringAndDate(ctx context.Context, arg GetTransactionByRecurringAndDateParams) (Transaction, error) {
+	row := q.db.QueryRow(ctx, getTransactionByRecurringAndDate, arg.RecurringTransactionID, arg.TransactionDate)
+	var i Transaction
+	err := row.Scan(
+		&i.ID,
+		&i.Amount,
+		&i.OriginalAmount,
+		&i.Type,
+		&i.AccountID,
+		&i.CategoryID,
+		&i.DestinationAccountID,
+		&i.TransactionCurrency,
+		&i.TransactionDatetime,
+		&i.Description,
+		&i.Details,
+		&i.RecurringTransactionID,
+		&i.RecurringInstanceDate,
+		&i.ProviderTransactionID,
+		&i.IsExternal,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}

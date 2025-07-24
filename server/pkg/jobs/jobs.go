@@ -819,3 +819,132 @@ func (w *RecurringTransactionWorker) Timeout(job *river.Job[RecurringTransaction
 func (w *RecurringTransactionWorker) NextRetry(job *river.Job[RecurringTransactionJob]) time.Time {
 	return time.Now().Add(30 * time.Minute)
 }
+
+// DailyRecurringProcessorJob represents a job for processing all active recurring transactions
+type DailyRecurringProcessorJob struct {
+	ProcessDate time.Time `json:"process_date"`
+}
+
+func (DailyRecurringProcessorJob) Kind() string {
+	return "daily_recurring_processor"
+}
+
+type DailyRecurringProcessorWorker struct {
+	river.WorkerDefaults[DailyRecurringProcessorJob]
+	deps *RecurringTransactionWorkerDeps
+}
+
+func (w *DailyRecurringProcessorWorker) Work(ctx context.Context, job *river.Job[DailyRecurringProcessorJob]) error {
+	logger := w.deps.Logger.With().
+		Str("job_kind", job.Kind).
+		Int64("job_id", job.ID).
+		Time("process_date", job.Args.ProcessDate).
+		Logger()
+
+	logger.Info().Msg("Starting daily recurring transaction processor")
+
+	// Get all active recurring transactions that are due for processing
+	recurringTransactions, err := w.deps.Queries.GetActiveRecurringTransactions(ctx, job.Args.ProcessDate)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to get active recurring transactions")
+		return fmt.Errorf("failed to get active recurring transactions: %w", err)
+	}
+
+	logger.Info().Int("count", len(recurringTransactions)).Msg("Found active recurring transactions to process")
+
+	var processedCount int
+	var errorCount int
+
+	for _, recurringTx := range recurringTransactions {
+		// Check if this recurring transaction is due
+		if job.Args.ProcessDate.Before(recurringTx.NextDueDate.Truncate(24 * time.Hour)) {
+			continue
+		}
+
+		// Check if we already processed this for today
+		existingTx, err := w.deps.Queries.GetTransactionByRecurringAndDate(ctx, repository.GetTransactionByRecurringAndDateParams{
+			RecurringTransactionID: &recurringTx.ID,
+			TransactionDate:        job.Args.ProcessDate,
+		})
+		if err == nil && existingTx.ID != uuid.Nil {
+			logger.Debug().
+				Any("recurring_id", recurringTx.ID).
+				Time("date", job.Args.ProcessDate).
+				Msg("Transaction already exists for this recurring transaction and date")
+			continue
+		}
+
+		// Process this recurring transaction
+		if recurringTx.AutoPost {
+			// Create the transaction directly
+			_, err = w.deps.Queries.CreateTransaction(ctx, repository.CreateTransactionParams{
+				Amount:                 types.PgtypeNumericToDecimal(recurringTx.Amount),
+				OriginalAmount:         types.PgtypeNumericToDecimal(recurringTx.Amount),
+				Type:                   recurringTx.Type,
+				AccountID:              recurringTx.AccountID,
+				CategoryID:             recurringTx.CategoryID,
+				TransactionCurrency:    "USD", // TODO: Get from account currency
+				TransactionDatetime:    pgtype.Timestamptz{Valid: true, Time: job.Args.ProcessDate},
+				Description:            recurringTx.Description,
+				Details:                recurringTx.Details,
+				CreatedBy:              &recurringTx.UserID,
+				RecurringTransactionID: &recurringTx.ID,
+				RecurringInstanceDate:  pgtype.Timestamptz{Valid: true, Time: job.Args.ProcessDate},
+			})
+			if err != nil {
+				logger.Error().Err(err).
+					Any("recurring_id", recurringTx.ID).
+					Msg("Failed to create transaction from recurring template")
+				errorCount++
+				continue
+			}
+			processedCount++
+		}
+
+		// Update the next due date for the recurring transaction
+		nextDueDate := w.calculateNextDueDate(recurringTx, job.Args.ProcessDate)
+		_, err = w.deps.Queries.UpdateRecurringTransactionNextDueDate(ctx, repository.UpdateRecurringTransactionNextDueDateParams{
+			ID:          recurringTx.ID,
+			NextDueDate: pgtype.Timestamptz{Valid: true, Time: nextDueDate},
+		})
+		if err != nil {
+			logger.Error().Err(err).
+				Any("recurring_id", recurringTx.ID).
+				Msg("Failed to update next due date for recurring transaction")
+		}
+	}
+
+	logger.Info().
+		Int("processed", processedCount).
+		Int("errors", errorCount).
+		Msg("Completed daily recurring transaction processing")
+
+	return nil
+}
+
+// calculateNextDueDate calculates the next due date based on frequency
+func (w *DailyRecurringProcessorWorker) calculateNextDueDate(rt repository.GetActiveRecurringTransactionsRow, currentDate time.Time) time.Time {
+	switch rt.Frequency {
+	case "daily":
+		return currentDate.AddDate(0, 0, int(rt.FrequencyInterval))
+	case "weekly":
+		return currentDate.AddDate(0, 0, 7*int(rt.FrequencyInterval))
+	case "biweekly":
+		return currentDate.AddDate(0, 0, 14*int(rt.FrequencyInterval))
+	case "monthly":
+		return currentDate.AddDate(0, int(rt.FrequencyInterval), 0)
+	case "yearly":
+		return currentDate.AddDate(int(rt.FrequencyInterval), 0, 0)
+	default:
+		// For custom frequencies, default to monthly
+		return currentDate.AddDate(0, 1, 0)
+	}
+}
+
+func (w *DailyRecurringProcessorWorker) Timeout(job *river.Job[DailyRecurringProcessorJob]) time.Duration {
+	return 15 * time.Minute
+}
+
+func (w *DailyRecurringProcessorWorker) NextRetry(job *river.Job[DailyRecurringProcessorJob]) time.Time {
+	return time.Now().Add(1 * time.Hour)
+}

@@ -1,6 +1,7 @@
 package transactions
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,15 +20,21 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type Handler struct {
-	validator       *validation.Validator
-	repo            Repository
-	recurringService *RecurringTransactionService
-	logger          *zerolog.Logger
+// JobService interface to avoid circular dependencies
+type JobService interface {
+	EnqueueRecurringTransaction(ctx context.Context, userID, recurringTransactionID uuid.UUID, dueDate time.Time) error
 }
 
-func NewHandler(validator *validation.Validator, repo Repository, recurringService *RecurringTransactionService, logger *zerolog.Logger) *Handler {
-	return &Handler{validator, repo, recurringService, logger}
+type Handler struct {
+	validator        *validation.Validator
+	repo             Repository
+	recurringService *RecurringTransactionService
+	jobService       JobService
+	logger           *zerolog.Logger
+}
+
+func NewHandler(validator *validation.Validator, repo Repository, recurringService *RecurringTransactionService, jobService JobService, logger *zerolog.Logger) *Handler {
+	return &Handler{validator, repo, recurringService, jobService, logger}
 }
 
 func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
@@ -293,7 +300,7 @@ func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If this is a recurring transaction, create the recurring template
+	// If this is a recurring transaction, create the recurring template and enqueue job
 	if req.IsRecurring != nil && *req.IsRecurring && req.RecurringConfig != nil {
 		recurringReq := CreateRecurringTransactionRequest{
 			AccountID:         req.AccountID,
@@ -328,11 +335,34 @@ func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Create the recurring transaction template
-		_, err := h.recurringService.CreateRecurringTransaction(ctx, userID, recurringReq)
+		recurringTransaction, err := h.recurringService.CreateRecurringTransaction(ctx, userID, recurringReq)
 		if err != nil {
-			h.logger.Error().Err(err).Msg("Failed to create recurring transaction template")
-			// Note: We don't return an error here since the main transaction was created successfully
-			// We could add a warning to the response instead
+			respond.Error(respond.ErrorOptions{
+				W:          w,
+				R:          r,
+				StatusCode: http.StatusInternalServerError,
+				ClientErr:  message.ErrInternalError,
+				ActualErr:  err,
+				Logger:     h.logger,
+				Details:    recurringReq,
+			})
+			return
+		}
+
+		// Calculate the next due date after the start date
+		nextDueDate := h.calculateNextDueDate(req.RecurringConfig.Frequency, req.RecurringConfig.FrequencyInterval, req.RecurringConfig.StartDate)
+		
+		// Enqueue job for the next occurrence
+		if h.jobService != nil {
+			if err := h.jobService.EnqueueRecurringTransaction(ctx, userID, recurringTransaction.ID, nextDueDate); err != nil {
+				h.logger.Error().Err(err).Msg("Failed to enqueue recurring transaction job")
+				// Don't return error since the main transaction and template were created successfully
+			} else {
+				h.logger.Info().
+					Any("recurring_id", recurringTransaction.ID).
+					Time("next_due", nextDueDate).
+					Msg("Enqueued recurring transaction job")
+			}
 		}
 	}
 
@@ -1276,4 +1306,23 @@ func (h *Handler) BulkUpdateManualTransactions(w http.ResponseWriter, r *http.Re
 	}
 
 	respond.Status(w, http.StatusOK)
+}
+
+// calculateNextDueDate calculates the next due date based on frequency and interval
+func (h *Handler) calculateNextDueDate(frequency string, interval int, startDate time.Time) time.Time {
+	switch frequency {
+	case "daily":
+		return startDate.AddDate(0, 0, interval)
+	case "weekly":
+		return startDate.AddDate(0, 0, 7*interval)
+	case "biweekly":
+		return startDate.AddDate(0, 0, 14*interval)
+	case "monthly":
+		return startDate.AddDate(0, interval, 0)
+	case "yearly":
+		return startDate.AddDate(interval, 0, 0)
+	default:
+		// For custom frequencies, default to monthly
+		return startDate.AddDate(0, 1, 0)
+	}
 }
