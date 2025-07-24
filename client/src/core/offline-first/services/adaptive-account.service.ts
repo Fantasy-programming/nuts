@@ -17,7 +17,7 @@ class AdaptiveAccountService {
   /**
    * Determine if we should use offline-first based on feature flags and connectivity
    */
-  private shouldUseOfflineFirst(): boolean {
+  private shouldUseOfflineFirst = (): boolean => {
     try {
       // If fully offline mode is enabled, always use offline
       if (featureFlagsService?.isFullyOfflineModeEnabled?.()) {
@@ -41,98 +41,99 @@ class AdaptiveAccountService {
       return false;
     }
   }
+
   /**
    * Get all accounts using the appropriate service based on feature flags
    */
-  async getAccounts(): Promise<Account[]> {
+  getAccounts = async (): Promise<Account[]> => {
     if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.getAccounts();
     } else {
       return serverAccountService.accountService.getAccounts();
     }
   }
-  
+
   /**
    * Get accounts with trends
    */
-  async getAccountsWTrends(): Promise<AccountWTrend[]> {
+  getAccountsWTrends = async (): Promise<AccountWTrend[]> => {
     if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.getAccountsWTrends();
     } else {
       return serverAccountService.accountService.getAccountsWTrends();
     }
   }
-  
+
   /**
    * Get account balance timeline
    */
-  async getAccountsBalanceTimeline(): Promise<AccountBalanceTimeline[]> {
+  getAccountsBalanceTimeline = async (): Promise<AccountBalanceTimeline[]> => {
     if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.getAccountsBalanceTimeline();
     } else {
       return serverAccountService.accountService.getAccountsBalanceTimeline();
     }
   }
-  
+
   /**
    * Create a new account
    */
-  async createAccount(account: AccountCreate): Promise<Account> {
+  createAccount = async (account: AccountCreate): Promise<Account> => {
     if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.createAccount(account);
     } else {
       return serverAccountService.accountService.createAccount(account);
     }
   }
-  
+
   /**
    * Update an existing account
    */
-  async updateAccount(params: { id: string; account: AccountCreate }): Promise<Account> {
+  updateAccount = async (params: { id: string; account: AccountCreate }): Promise<Account> => {
     if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.updateAccount(params.id, params.account);
     } else {
       return serverAccountService.accountService.updateAccount(params);
     }
   }
-  
+
   /**
    * Delete an account
    */
-  async deleteAccount(id: string): Promise<void> {
+  deleteAccount = async (id: string): Promise<void> => {
     if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.deleteAccount(id);
     } else {
       return serverAccountService.accountService.deleteAccount(id);
     }
   }
-  
+
   /**
    * Link Teller account (only available in server mode)
    */
-  async linkTellerAccount(payload: TellerConnectEnrollment): Promise<void> {
+  linkTellerAccount = async (payload: TellerConnectEnrollment): Promise<void> => {
     if (this.shouldUseOfflineFirst()) {
       throw new Error('External account linking not available in offline mode');
     } else {
       return serverAccountService.accountService.linkTellerAccount(payload);
     }
   }
-  
+
   /**
    * Link Mono account (only available in server mode)
    */
-  async linkMonoAccount(payload: { code: string; institution: string; institutionID: string }): Promise<void> {
+  linkMonoAccount = async (payload: { code: string; institution: string; institutionID: string }): Promise<void> => {
     if (this.shouldUseOfflineFirst()) {
       throw new Error('External account linking not available in offline mode');
     } else {
       return serverAccountService.accountService.linkMonoAccount(payload);
     }
   }
-  
+
   /**
    * Initialize the appropriate service
    */
-  async initialize(): Promise<void> {
+  initialize = async (): Promise<void> => {
     if (this.shouldUseOfflineFirst()) {
       await offlineFirstAccountService.initialize();
       console.log('✅ Adaptive account service initialized with offline-first mode');
@@ -144,7 +145,7 @@ class AdaptiveAccountService {
   /**
    * Check if the service is using offline-first mode
    */
-  isUsingOfflineFirst(): boolean {
+  isUsingOfflineFirst = (): boolean => {
     return this.shouldUseOfflineFirst();
   }
 }
