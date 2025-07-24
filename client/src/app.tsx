@@ -5,6 +5,7 @@ import { router, queryClient } from "./router";
 import { FeatureFlagsDeveloperPanel } from "@/core/offline-first/components/FeatureFlagsDeveloperPanel";
 import { OfflineStatusIndicator } from "@/core/offline-first/components/OfflineStatusIndicator";
 import { OfflineFirstInitializer } from "@/core/offline-first/components/OfflineFirstInitializer";
+import { ConflictResolutionIndicator } from "@/core/offline-first/components/ConflictResolutionUI";
 
 function RouterWrapper() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -29,6 +30,7 @@ export function App() {
         <RouterWrapper />
         <FeatureFlagsDeveloperPanel />
         <OfflineStatusIndicator />
+        <ConflictResolutionIndicator />
       </OfflineFirstInitializer>
     </QueryClientProvider>
   );

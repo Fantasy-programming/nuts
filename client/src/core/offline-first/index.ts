@@ -13,19 +13,25 @@ export { offlineFirstInitService } from './services/offline-first-init.service';
 
 // Adaptive services
 export { adaptiveTransactionService } from './services/adaptive-transaction.service';
+export { adaptiveAccountService } from './services/adaptive-account.service';
+export { adaptiveCategoryService } from './services/adaptive-category.service';
 export { offlineFirstTransactionService } from './services/offline-transaction.service';
+export { offlineFirstAccountService } from './services/offline-account.service';
+export { offlineFirstCategoryService } from './services/offline-category.service';
 
 // Hooks
-export { useOfflineFirst, useAdaptiveTransactions } from './hooks/useOfflineFirst';
+export { useOfflineFirst, useAdaptiveTransactions, useAdaptiveAccounts, useAdaptiveCategories } from './hooks/useOfflineFirst';
 
 // Test utilities
 export { testOfflineFirstInfrastructure } from './test/infrastructure.test';
 export { validatePhase2Implementation } from './test/phase2-validation.test';
+export { testOfflineFirstPhase3, validatePhase3Implementation } from './test/phase3-validation.test';
 
 // Components
 export { FeatureFlagsDeveloperPanel } from './components/FeatureFlagsDeveloperPanel';
 export { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
 export { OfflineFirstInitializer } from './components/OfflineFirstInitializer';
+export { ConflictResolutionIndicator, ConflictResolutionDialog } from './components/ConflictResolutionUI';
 
 // Types
 export type { 

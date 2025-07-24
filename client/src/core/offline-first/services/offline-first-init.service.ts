@@ -9,6 +9,8 @@ import { sqliteIndexService } from './sqlite-index.service';
 import { syncService } from './sync.service';
 import { featureFlagsService } from './feature-flags.service';
 import { adaptiveTransactionService } from './adaptive-transaction.service';
+import { adaptiveAccountService } from './adaptive-account.service';
+import { adaptiveCategoryService } from './adaptive-category.service';
 
 class OfflineFirstInitService {
   private isInitialized = false;
@@ -45,12 +47,18 @@ class OfflineFirstInitService {
       console.log('3. Initializing adaptive transaction service...');
       await adaptiveTransactionService.initialize();
 
+      console.log('4. Initializing adaptive account service...');
+      await adaptiveAccountService.initialize();
+
+      console.log('5. Initializing adaptive category service...');
+      await adaptiveCategoryService.initialize();
+
       // Initialize sync service if sync is enabled
       if (featureFlagsService.isEnabled('offline-first-sync')) {
-        console.log('4. Initializing sync service...');
+        console.log('6. Initializing sync service...');
         await syncService.initialize();
       } else {
-        console.log('4. Sync service disabled via feature flags');
+        console.log('6. Sync service disabled via feature flags');
       }
 
       this.isInitialized = true;
@@ -91,7 +99,9 @@ class OfflineFirstInitService {
     services: {
       crdt: boolean;
       sqlite: boolean;
-      adaptive: boolean;
+      adaptiveTransaction: boolean;
+      adaptiveAccount: boolean;
+      adaptiveCategory: boolean;
       sync: boolean;
     };
   } {
@@ -102,7 +112,9 @@ class OfflineFirstInitService {
       services: {
         crdt: this.isInitialized,
         sqlite: this.isInitialized,
-        adaptive: this.isInitialized,
+        adaptiveTransaction: this.isInitialized,
+        adaptiveAccount: this.isInitialized,
+        adaptiveCategory: this.isInitialized,
         sync: featureFlagsService.isEnabled('offline-first-sync') && this.isInitialized,
       }
     };
