@@ -90,6 +90,10 @@ class CRDTService {
     });
     
     await this.persist();
+    
+    // Notify sync service about the change
+    this.notifySyncService('create', 'transaction', transactionWithTimestamps);
+    
     return transaction.id;
   }
   
@@ -109,6 +113,12 @@ class CRDTService {
     });
     
     await this.persist();
+    
+    // Notify sync service about the change
+    const updatedTransaction = this.getTransaction(id);
+    if (updatedTransaction) {
+      this.notifySyncService('update', 'transaction', updatedTransaction);
+    }
   }
   
   /**
@@ -127,6 +137,12 @@ class CRDTService {
     });
     
     await this.persist();
+    
+    // Notify sync service about the deletion
+    const deletedTransaction = this.getTransaction(id);
+    if (deletedTransaction) {
+      this.notifySyncService('delete', 'transaction', { id, deleted_at: timestamp });
+    }
   }
   
   /**
@@ -282,6 +298,18 @@ class CRDTService {
   async clear(): Promise<void> {
     localStorage.removeItem(this.storageKey);
     this.doc = null;
+  }
+  
+  /**
+   * Notify sync service about changes (lazy import to avoid circular dependency)
+   */
+  private notifySyncService(operation: 'create' | 'update' | 'delete', type: 'transaction' | 'account' | 'category', data: any): void {
+    // Use dynamic import to avoid circular dependency
+    import('./sync.service').then(({ syncService }) => {
+      syncService.addToSyncQueue({ operation, type, data });
+    }).catch(error => {
+      console.warn('Failed to notify sync service:', error);
+    });
   }
 }
 

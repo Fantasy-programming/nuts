@@ -114,8 +114,17 @@ class AdaptiveTransactionService {
   async initialize(): Promise<void> {
     if (featureFlagsService.useOfflineFirstTransactions()) {
       await offlineFirstTransactionService.initialize();
+      console.log('✅ Adaptive transaction service initialized with offline-first mode');
+    } else {
+      console.log('✅ Adaptive transaction service initialized with server mode');
     }
-    // Server service doesn't need initialization
+  }
+
+  /**
+   * Check if the service is using offline-first mode
+   */
+  isUsingOfflineFirst(): boolean {
+    return featureFlagsService.useOfflineFirstTransactions();
   }
 }
 
