@@ -28,6 +28,13 @@ export { useOfflineFirst, useAdaptiveTransactions, useAdaptiveAccounts, useAdapt
 export { testOfflineFirstInfrastructure } from './test/infrastructure.test';
 export { validatePhase2Implementation } from './test/phase2-validation.test';
 export { testOfflineFirstPhase3, validatePhase3Implementation } from './test/phase3-validation.test';
+export { 
+  testOfflineFunctionality, 
+  simulateOfflineMode, 
+  restoreOnlineMode, 
+  testOfflineAuth, 
+  validateOfflineFeatures 
+} from './test/offline-validation.test';
 
 // Components
 export { FeatureFlagsDeveloperPanel } from './components/FeatureFlagsDeveloperPanel';
