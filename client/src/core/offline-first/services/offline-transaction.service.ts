@@ -77,7 +77,7 @@ class OfflineFirstTransactionService {
       // Group transactions by date
       const groupedData: Record<string, any> = {};
       
-      result.transactions.forEach(tx => {
+      result.transactions.forEach((tx) => {
         const date = tx.date_only || tx.transaction_datetime.split('T')[0];
         
         if (!groupedData[date]) {

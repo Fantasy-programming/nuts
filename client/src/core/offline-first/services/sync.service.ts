@@ -258,17 +258,26 @@ class SyncService {
         axios.get('/categories')
       ]);
 
+      // Extract data from server responses - handle both paginated and array formats
+      const extractData = (response: any) => {
+        if (response.data?.data && Array.isArray(response.data.data)) {
+          // Paginated format: {data: [...], pagination: {...}}
+          return response.data.data;
+        } else if (Array.isArray(response.data)) {
+          // Direct array format: [...]
+          return response.data;
+        } else {
+          // Fallback to empty array
+          console.warn('Unexpected server response format:', response.data);
+          return [];
+        }
+      };
+
       // Extract and convert server data to CRDT format
       const serverData = {
-        transactions: this.convertServerDataToCRDT(
-          transactionsResponse.data?.data || transactionsResponse.data || []
-        ),
-        accounts: this.convertServerDataToCRDT(
-          accountsResponse.data?.data || accountsResponse.data || []
-        ),
-        categories: this.convertServerDataToCRDT(
-          categoriesResponse.data?.data || categoriesResponse.data || []
-        )
+        transactions: this.convertServerDataToCRDT(extractData(transactionsResponse)),
+        accounts: this.convertServerDataToCRDT(extractData(accountsResponse)),
+        categories: this.convertServerDataToCRDT(extractData(categoriesResponse))
       };
 
       await this.mergeServerChanges(serverData);

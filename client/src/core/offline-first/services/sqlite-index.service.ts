@@ -362,7 +362,9 @@ class SQLiteIndexService {
     const offset = (page - 1) * limit;
     const dataQuery = `
       SELECT 
-        t.*,
+        t.id, t.amount, t.transaction_datetime, t.description, t.category_id, t.account_id,
+        t.type, t.destination_account_id, t.transaction_currency, t.original_amount,
+        t.is_external, t.created_at, t.updated_at, t.deleted_at, t.date_only, t.year_month, t.year, t.month,
         a.name as account_name,
         a.currency as account_currency,
         c.name as category_name,
