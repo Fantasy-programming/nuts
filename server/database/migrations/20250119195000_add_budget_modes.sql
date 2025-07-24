@@ -6,8 +6,7 @@ CREATE TYPE budget_mode AS ENUM (
     'flex_bucket',          -- Single flexible spending pool  
     'global_limit',         -- Simple total spending cap
     'zero_based',          -- Every dollar must be assigned
-    'percentage_based',     -- 50/30/20 rule and similar frameworks
-    'tracking_only'        -- Pure expense tracking without limits
+    'percentage_based'      -- 50/30/20 rule and similar frameworks
 );
 
 -- Add budget mode to user preferences
