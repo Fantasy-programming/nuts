@@ -72,16 +72,16 @@ class SyncService {
         console.log('Sync service initialized with background sync enabled');
       } else {
         console.log('Sync service initialized in offline mode - background sync disabled');
-        this.updateSyncState({ 
-          status: 'offline', 
-          error: 'No server connectivity - sync will resume when online' 
+        this.updateSyncState({
+          status: 'offline',
+          error: 'No server connectivity - sync will resume when online'
         });
       }
     } catch (error) {
       console.error('Failed to initialize sync service:', error);
-      this.updateSyncState({ 
-        status: 'error', 
-        error: 'Failed to initialize sync - will retry when connectivity is restored' 
+      this.updateSyncState({
+        status: 'error',
+        error: 'Failed to initialize sync - will retry when connectivity is restored'
       });
     }
   }
@@ -535,12 +535,12 @@ class SyncService {
       if (item.transaction_datetime || item.transactionDatetime) {
         converted.transaction_datetime = item.transaction_datetime || item.transactionDatetime;
       }
-      
+
       // Handle numeric fields that might come as objects from PostgreSQL
       if (item.amount && typeof item.amount === 'object') {
         converted.amount = parseFloat(item.amount.String || item.amount.value || item.amount) || 0;
       }
-      
+
       if (item.original_amount && typeof item.original_amount === 'object') {
         converted.original_amount = parseFloat(item.original_amount.String || item.original_amount.value || item.original_amount) || 0;
       }
