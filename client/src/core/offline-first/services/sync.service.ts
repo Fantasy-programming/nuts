@@ -8,6 +8,7 @@
 import { crdtService } from './crdt.service';
 import { sqliteIndexService } from './sqlite-index.service';
 import { featureFlagsService } from './feature-flags.service';
+import { connectivityService } from './connectivity.service';
 import { api as axios } from '@/lib/axios';
 
 export type SyncStatus = 'synced' | 'syncing' | 'offline' | 'error' | 'conflict';
@@ -65,11 +66,23 @@ class SyncService {
     }
 
     try {
-      await this.startBackgroundSync();
-      console.log('Sync service initialized');
+      // Check connectivity before attempting sync
+      if (connectivityService.hasServerAccess()) {
+        await this.startBackgroundSync();
+        console.log('Sync service initialized with background sync enabled');
+      } else {
+        console.log('Sync service initialized in offline mode - background sync disabled');
+        this.updateSyncState({ 
+          status: 'offline', 
+          error: 'No server connectivity - sync will resume when online' 
+        });
+      }
     } catch (error) {
       console.error('Failed to initialize sync service:', error);
-      this.updateSyncState({ status: 'error', error: 'Failed to initialize sync' });
+      this.updateSyncState({ 
+        status: 'error', 
+        error: 'Failed to initialize sync - will retry when connectivity is restored' 
+      });
     }
   }
 
@@ -86,7 +99,7 @@ class SyncService {
 
     // Schedule periodic sync every 30 seconds
     this.syncInterval = setInterval(async () => {
-      if (this.syncState.isOnline && featureFlagsService.useSyncEnabled()) {
+      if (connectivityService.hasServerAccess() && featureFlagsService.useSyncEnabled()) {
         await this.performSync();
       }
     }, 30000);
@@ -106,7 +119,11 @@ class SyncService {
    * Perform a complete sync cycle
    */
   async performSync(): Promise<void> {
-    if (!this.syncState.isOnline) return;
+    // Check connectivity before attempting sync
+    if (!connectivityService.hasServerAccess()) {
+      this.updateSyncState({ status: 'offline' });
+      return;
+    }
 
     this.updateSyncState({ status: 'syncing' });
 
@@ -357,7 +374,6 @@ class SyncService {
       console.error('Error merging server changes:', error);
       throw error;
     }
-  }
   }
 
   /**

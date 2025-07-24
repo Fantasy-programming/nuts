@@ -7,6 +7,7 @@
  */
 
 import { featureFlagsService } from './feature-flags.service';
+import { connectivityService } from './connectivity.service';
 import { offlineFirstAccountService } from './offline-account.service';
 import * as serverAccountService from '@/features/accounts/services/account';
 import { Account, AccountCreate, AccountWTrend, AccountBalanceTimeline } from '@/features/accounts/services/account.types';
@@ -14,10 +15,32 @@ import { TellerConnectEnrollment } from 'teller-connect-react';
 
 class AdaptiveAccountService {
   /**
+   * Determine if we should use offline-first based on feature flags and connectivity
+   */
+  private shouldUseOfflineFirst(): boolean {
+    // If fully offline mode is enabled, always use offline
+    if (featureFlagsService.isFullyOfflineModeEnabled()) {
+      return true;
+    }
+
+    // If offline-first is disabled, never use offline
+    if (!featureFlagsService.useOfflineFirstAccounts()) {
+      return false;
+    }
+
+    // If we're in fully offline mode (no server access), use offline
+    if (connectivityService.isFullyOffline() || !connectivityService.hasServerAccess()) {
+      return true;
+    }
+
+    // Default to offline-first when feature flag is enabled and we have connectivity
+    return true;
+  }
+  /**
    * Get all accounts using the appropriate service based on feature flags
    */
   async getAccounts(): Promise<Account[]> {
-    if (featureFlagsService.useOfflineFirstAccounts()) {
+    if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.getAccounts();
     } else {
       return serverAccountService.accountService.getAccounts();
@@ -28,7 +51,7 @@ class AdaptiveAccountService {
    * Get accounts with trends
    */
   async getAccountsWTrends(): Promise<AccountWTrend[]> {
-    if (featureFlagsService.useOfflineFirstAccounts()) {
+    if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.getAccountsWTrends();
     } else {
       return serverAccountService.accountService.getAccountsWTrends();
@@ -39,7 +62,7 @@ class AdaptiveAccountService {
    * Get account balance timeline
    */
   async getAccountsBalanceTimeline(): Promise<AccountBalanceTimeline[]> {
-    if (featureFlagsService.useOfflineFirstAccounts()) {
+    if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.getAccountsBalanceTimeline();
     } else {
       return serverAccountService.accountService.getAccountsBalanceTimeline();
@@ -50,7 +73,7 @@ class AdaptiveAccountService {
    * Create a new account
    */
   async createAccount(account: AccountCreate): Promise<Account> {
-    if (featureFlagsService.useOfflineFirstAccounts()) {
+    if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.createAccount(account);
     } else {
       return serverAccountService.accountService.createAccount(account);
@@ -61,7 +84,7 @@ class AdaptiveAccountService {
    * Update an existing account
    */
   async updateAccount(params: { id: string; account: AccountCreate }): Promise<Account> {
-    if (featureFlagsService.useOfflineFirstAccounts()) {
+    if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.updateAccount(params.id, params.account);
     } else {
       return serverAccountService.accountService.updateAccount(params);
@@ -72,7 +95,7 @@ class AdaptiveAccountService {
    * Delete an account
    */
   async deleteAccount(id: string): Promise<void> {
-    if (featureFlagsService.useOfflineFirstAccounts()) {
+    if (this.shouldUseOfflineFirst()) {
       return offlineFirstAccountService.deleteAccount(id);
     } else {
       return serverAccountService.accountService.deleteAccount(id);
@@ -83,7 +106,7 @@ class AdaptiveAccountService {
    * Link Teller account (only available in server mode)
    */
   async linkTellerAccount(payload: TellerConnectEnrollment): Promise<void> {
-    if (featureFlagsService.useOfflineFirstAccounts()) {
+    if (this.shouldUseOfflineFirst()) {
       throw new Error('External account linking not available in offline mode');
     } else {
       return serverAccountService.accountService.linkTellerAccount(payload);
@@ -94,7 +117,7 @@ class AdaptiveAccountService {
    * Link Mono account (only available in server mode)
    */
   async linkMonoAccount(payload: { code: string; institution: string; institutionID: string }): Promise<void> {
-    if (featureFlagsService.useOfflineFirstAccounts()) {
+    if (this.shouldUseOfflineFirst()) {
       throw new Error('External account linking not available in offline mode');
     } else {
       return serverAccountService.accountService.linkMonoAccount(payload);
@@ -105,7 +128,7 @@ class AdaptiveAccountService {
    * Initialize the appropriate service
    */
   async initialize(): Promise<void> {
-    if (featureFlagsService.useOfflineFirstAccounts()) {
+    if (this.shouldUseOfflineFirst()) {
       await offlineFirstAccountService.initialize();
       console.log('✅ Adaptive account service initialized with offline-first mode');
     } else {
@@ -117,7 +140,7 @@ class AdaptiveAccountService {
    * Check if the service is using offline-first mode
    */
   isUsingOfflineFirst(): boolean {
-    return featureFlagsService.useOfflineFirstAccounts();
+    return this.shouldUseOfflineFirst();
   }
 }
 

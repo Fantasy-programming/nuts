@@ -38,6 +38,11 @@ const FEATURE_FLAGS: Array<{ key: FeatureFlag; label: string; description: strin
     key: 'offline-first-sync',
     label: 'Offline-First Sync',
     description: 'Enable background sync with server'
+  },
+  {
+    key: 'fully-offline-mode',
+    label: 'Fully Offline Mode',
+    description: 'Force app to work completely offline (no network calls)'
   }
 ];
 

@@ -10,6 +10,8 @@ export { sqliteIndexService } from './services/sqlite-index.service';
 export { featureFlagsService } from './services/feature-flags.service';
 export { syncService } from './services/sync.service';
 export { offlineFirstInitService } from './services/offline-first-init.service';
+export { connectivityService } from './services/connectivity.service';
+export { offlineAuthService } from './services/offline-auth.service';
 
 // Adaptive services
 export { adaptiveTransactionService } from './services/adaptive-transaction.service';
@@ -44,3 +46,5 @@ export type {
 
 export type { FeatureFlag } from './services/feature-flags.service';
 export type { SyncStatus, SyncState, SyncConflict } from './services/sync.service';
+export type { ConnectivityStatus, ConnectivityState } from './services/connectivity.service';
+export type { CachedAuthState } from './services/offline-auth.service';

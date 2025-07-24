@@ -8,6 +8,8 @@ import { crdtService } from './crdt.service';
 import { sqliteIndexService } from './sqlite-index.service';
 import { syncService } from './sync.service';
 import { featureFlagsService } from './feature-flags.service';
+import { connectivityService } from './connectivity.service';
+import { offlineAuthService } from './offline-auth.service';
 import { adaptiveTransactionService } from './adaptive-transaction.service';
 import { adaptiveAccountService } from './adaptive-account.service';
 import { adaptiveCategoryService } from './adaptive-category.service';
@@ -37,35 +39,44 @@ class OfflineFirstInitService {
         return;
       }
 
-      // Initialize services in order
-      console.log('1. Initializing CRDT service...');
+      // Initialize connectivity service first
+      console.log('1. Initializing connectivity service...');
+      // Connectivity service initializes automatically in constructor
+
+      // Initialize offline auth service
+      console.log('2. Initializing offline auth service...');
+      await offlineAuthService.initialize();
+
+      // Initialize core CRDT services
+      console.log('3. Initializing CRDT service...');
       await crdtService.initialize();
 
-      console.log('2. Initializing SQLite index service...');
+      console.log('4. Initializing SQLite index service...');
       await sqliteIndexService.initialize();
 
-      console.log('3. Initializing adaptive transaction service...');
+      // Initialize adaptive services
+      console.log('5. Initializing adaptive transaction service...');
       await adaptiveTransactionService.initialize();
 
-      console.log('4. Initializing adaptive account service...');
+      console.log('6. Initializing adaptive account service...');
       await adaptiveAccountService.initialize();
 
-      console.log('5. Initializing adaptive category service...');
+      console.log('7. Initializing adaptive category service...');
       await adaptiveCategoryService.initialize();
 
-      // Initialize sync service if sync is enabled
+      // Initialize sync service if sync is enabled and we have connectivity
       if (featureFlagsService.isEnabled('offline-first-sync')) {
-        console.log('6. Initializing sync service...');
+        console.log('8. Initializing sync service...');
         await syncService.initialize();
       } else {
-        console.log('6. Sync service disabled via feature flags');
+        console.log('8. Sync service disabled via feature flags');
       }
 
       this.isInitialized = true;
       console.log('✅ Offline-first services initialized successfully');
 
-      // Trigger initial data sync if we have existing CRDT data
-      if (featureFlagsService.isEnabled('offline-first-sync')) {
+      // Trigger initial data sync if we have existing CRDT data and connectivity
+      if (featureFlagsService.isEnabled('offline-first-sync') && connectivityService.hasServerAccess()) {
         const transactions = crdtService.getTransactions();
         const accounts = crdtService.getAccounts();
         const categories = crdtService.getCategories();
@@ -78,7 +89,8 @@ class OfflineFirstInitService {
 
     } catch (error) {
       console.error('❌ Failed to initialize offline-first services:', error);
-      throw error;
+      // Don't throw error - allow app to continue with offline-first disabled
+      this.isInitialized = false;
     }
   }
 
@@ -139,7 +151,8 @@ class OfflineFirstInitService {
       await Promise.all([
         crdtService.clear(),
         sqliteIndexService.clear(),
-        syncService.clear()
+        syncService.clear(),
+        offlineAuthService.clear()
       ]);
 
       this.isInitialized = false;
