@@ -203,22 +203,40 @@ class SyncService {
 
       // Try to fetch incremental changes from sync endpoints
       const transactionsResponse = await axios.get('/transactions/sync', {
-        params: { since: lastSync }
+        params: { since: lastSync },
+        validateStatus: (status) => status < 400 // Only treat status < 400 as success
       });
 
       const accountsResponse = await axios.get('/accounts/sync', {
-        params: { since: lastSync }
+        params: { since: lastSync },
+        validateStatus: (status) => status < 400
       });
 
       const categoriesResponse = await axios.get('/categories/sync', {
-        params: { since: lastSync }
+        params: { since: lastSync },
+        validateStatus: (status) => status < 400
       });
+
+      // Validate response data before processing
+      const transactionsData = Array.isArray(transactionsResponse.data) ? transactionsResponse.data : [];
+      const accountsData = Array.isArray(accountsResponse.data) ? accountsResponse.data : [];
+      const categoriesData = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
+
+      if (!Array.isArray(transactionsResponse.data)) {
+        console.warn('Transactions sync response is not an array:', transactionsResponse.data);
+      }
+      if (!Array.isArray(accountsResponse.data)) {
+        console.warn('Accounts sync response is not an array:', accountsResponse.data);
+      }
+      if (!Array.isArray(categoriesResponse.data)) {
+        console.warn('Categories sync response is not an array:', categoriesResponse.data);
+      }
 
       // Merge changes into local CRDT
       await this.mergeServerChanges({
-        transactions: transactionsResponse.data,
-        accounts: accountsResponse.data,
-        categories: categoriesResponse.data
+        transactions: transactionsData,
+        accounts: accountsData,
+        categories: categoriesData
       });
 
     } catch (error) {
@@ -269,6 +287,20 @@ class SyncService {
     categories: any[];
   }): Promise<void> {
     try {
+      // Validate that all serverData properties are arrays
+      if (!Array.isArray(serverData.transactions)) {
+        console.error('Server transactions data is not an array:', serverData.transactions);
+        serverData.transactions = [];
+      }
+      if (!Array.isArray(serverData.accounts)) {
+        console.error('Server accounts data is not an array:', serverData.accounts);
+        serverData.accounts = [];
+      }
+      if (!Array.isArray(serverData.categories)) {
+        console.error('Server categories data is not an array:', serverData.categories);
+        serverData.categories = [];
+      }
+
       // Get current local data
       const localTransactions = crdtService.getTransactions();
       const localAccounts = crdtService.getAccounts();

@@ -18,23 +18,28 @@ class AdaptiveAccountService {
    * Determine if we should use offline-first based on feature flags and connectivity
    */
   private shouldUseOfflineFirst(): boolean {
-    // If fully offline mode is enabled, always use offline
-    if (featureFlagsService.isFullyOfflineModeEnabled()) {
-      return true;
-    }
+    try {
+      // If fully offline mode is enabled, always use offline
+      if (featureFlagsService?.isFullyOfflineModeEnabled?.()) {
+        return true;
+      }
 
-    // If offline-first is disabled, never use offline
-    if (!featureFlagsService.useOfflineFirstAccounts()) {
+      // If offline-first is disabled, never use offline
+      if (!featureFlagsService?.useOfflineFirstAccounts?.()) {
+        return false;
+      }
+
+      // If we're in fully offline mode (no server access), use offline
+      if (connectivityService?.isFullyOffline?.() || !connectivityService?.hasServerAccess?.()) {
+        return true;
+      }
+
+      // Default to offline-first when feature flag is enabled and we have connectivity
+      return true;
+    } catch (error) {
+      console.warn('Error in shouldUseOfflineFirst, defaulting to false:', error);
       return false;
     }
-
-    // If we're in fully offline mode (no server access), use offline
-    if (connectivityService.isFullyOffline() || !connectivityService.hasServerAccess()) {
-      return true;
-    }
-
-    // Default to offline-first when feature flag is enabled and we have connectivity
-    return true;
   }
   /**
    * Get all accounts using the appropriate service based on feature flags
