@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/core/components/ui/card';
 import { Button } from '@/core/components/ui/button';
@@ -10,6 +10,7 @@ import { Settings, Plus, TrendingUp, Target, Calculator, Layers, DollarSign, Pie
 import { BudgetModeSelector } from './budget-mode-selector';
 import { BudgetTemplateSelector } from './budget-template-selector';
 import { BudgetMode } from '../types';
+import { useBudgetStore } from '../stores/budget.store';
 
 interface BudgetDashboardProps {
   currentBudgetMode?: BudgetMode;
@@ -27,18 +28,27 @@ const mockCategories = [
 export const BudgetDashboard: React.FC<BudgetDashboardProps> = ({ 
   currentBudgetMode 
 }) => {
-  const [selectedMode, setSelectedMode] = useState<BudgetMode>(currentBudgetMode || 'traditional_category');
-  const [hasSelectedMode, setHasSelectedMode] = useState(!!currentBudgetMode);
-  const [showModeChange, setShowModeChange] = useState(false);
+  const { 
+    currentMode, 
+    isFirstTimeUser, 
+    setCurrentMode, 
+    setFirstTimeUser,
+    switchMode 
+  } = useBudgetStore();
+  
+  const [showModeChange, setShowModeChange] = React.useState(false);
+  
+  // Use Zustand state or fallback to prop
+  const selectedMode = currentMode || currentBudgetMode || 'traditional_category';
+  const hasSelectedMode = !isFirstTimeUser && !!currentMode;
 
-  const handleModeChange = (newMode: BudgetMode) => {
-    setSelectedMode(newMode);
-    setHasSelectedMode(true);
+  const handleModeChange = async (newMode: BudgetMode) => {
+    setCurrentMode(newMode);
+    setFirstTimeUser(false);
   };
 
-  const handleModeSwitch = (newMode: BudgetMode) => {
-    // This would trigger budget clearing logic
-    setSelectedMode(newMode);
+  const handleModeSwitch = async (newMode: BudgetMode) => {
+    await switchMode(newMode);
   };
 
   // First-time user experience - show mode selection

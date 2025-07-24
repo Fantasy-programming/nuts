@@ -8,6 +8,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog"
 	"github.com/shopspring/decimal"
@@ -97,8 +98,49 @@ func (h *Handler) CreateBudget(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetBudgetsByMode(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement when repository methods are available
-	respond.Json(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented yet"}, h.logger)
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.RequestURI,
+		})
+		return
+	}
+
+	mode := r.URL.Query().Get("mode")
+	if mode == "" {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    "mode parameter is required",
+		})
+		return
+	}
+
+	budgets, err := h.repo.GetBudgetsByMode(r.Context(), userID, BudgetMode(mode))
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    mode,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, budgets, h.logger)
 }
 
 func (h *Handler) GetBudgetModes(w http.ResponseWriter, r *http.Request) {
@@ -139,18 +181,161 @@ func (h *Handler) GetBudgetModes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateBudgetMode(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement when repository methods are available
-	respond.Json(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented yet"}, h.logger)
+	userID, err := jwt.GetUserID(r)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.RequestURI,
+		})
+		return
+	}
+
+	var req UpdateBudgetModeRequest
+	valErr, err := h.v.ParseAndValidate(r.Context(), r, &req)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.Body,
+		})
+		return
+	}
+
+	if valErr != nil {
+		respond.Errors(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrValidation,
+			ActualErr:  valErr,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	err = h.repo.UpdateUserBudgetMode(r.Context(), userID, req.BudgetMode)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	// Also create or update user budget settings
+	settings, err := h.repo.CreateOrUpdateUserBudgetSettings(r.Context(), userID, req.BudgetMode, req.Settings)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    req,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, settings, h.logger)
 }
 
 func (h *Handler) GetBudgetTemplates(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement when repository methods are available
-	respond.Json(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented yet"}, h.logger)
+	templates, err := h.repo.GetBudgetTemplates(r.Context())
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.RequestURI,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, templates, h.logger)
 }
 
 func (h *Handler) GetBudgetTemplate(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement when repository methods are available
-	respond.Json(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented yet"}, h.logger)
+	templateIDStr := r.PathValue("id")
+	if templateIDStr == "" {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  nil,
+			Logger:     h.logger,
+			Details:    "template ID is required",
+		})
+		return
+	}
+
+	templateID, err := uuid.Parse(templateIDStr)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusBadRequest,
+			ClientErr:  message.ErrBadRequest,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    templateIDStr,
+		})
+		return
+	}
+
+	template, err := h.repo.GetBudgetTemplate(r.Context(), templateID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    templateID,
+		})
+		return
+	}
+
+	categories, err := h.repo.GetBudgetTemplateCategories(r.Context(), templateID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    templateID,
+		})
+		return
+	}
+
+	response := map[string]interface{}{
+		"template":   template,
+		"categories": categories,
+	}
+
+	respond.Json(w, http.StatusOK, response, h.logger)
 }
 
 func (h *Handler) UpdateBudget(w http.ResponseWriter, r *http.Request)       {}

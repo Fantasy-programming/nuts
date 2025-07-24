@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/cor
 import { Button } from '@/core/components/ui/button';
 import { Badge } from '@/core/components/ui/badge';
 import { Check, Settings, TrendingUp, Target, Calculator, Layers, ArrowRight } from 'lucide-react';
-import { useBudgetModes, useUpdateBudgetMode } from '../services/budget-api';
 import { BudgetMode, BudgetModeInfo } from '../types';
+import { useBudgetStore } from '../stores/budget.store';
 import { toast } from 'sonner';
 
 const budgetModeIcons: Record<BudgetMode, React.ReactNode> = {
@@ -169,9 +169,17 @@ export const BudgetModeSelector: React.FC<BudgetModeSelectorProps> = ({
   onModeChange,
   isFirstTime = false
 }) => {
-  const [selectedMode, setSelectedMode] = useState<BudgetMode>(currentMode || 'traditional_category');
-  const { data: modes, isLoading } = useBudgetModes();
-  const updateBudgetMode = useUpdateBudgetMode();
+  const { 
+    availableModes, 
+    currentMode: storeCurrentMode, 
+    isLoading, 
+    setCurrentMode, 
+    setFirstTimeUser 
+  } = useBudgetStore();
+  
+  const [selectedMode, setSelectedMode] = useState<BudgetMode>(
+    currentMode || storeCurrentMode || 'traditional_category'
+  );
 
   const handleModeSelect = (mode: BudgetMode) => {
     setSelectedMode(mode);
@@ -179,7 +187,8 @@ export const BudgetModeSelector: React.FC<BudgetModeSelectorProps> = ({
 
   const handleSaveMode = async () => {
     try {
-      await updateBudgetMode.mutateAsync({ budgetMode: selectedMode });
+      setCurrentMode(selectedMode);
+      setFirstTimeUser(false);
       onModeChange?.(selectedMode);
       toast.success('Budget mode updated successfully!');
     } catch (error) {
@@ -207,7 +216,8 @@ export const BudgetModeSelector: React.FC<BudgetModeSelectorProps> = ({
     );
   }
 
-  const hasChanges = selectedMode !== currentMode;
+  const effectiveCurrentMode = currentMode || storeCurrentMode;
+  const hasChanges = selectedMode !== effectiveCurrentMode;
 
   return (
     <div className="space-y-6">
@@ -230,7 +240,7 @@ export const BudgetModeSelector: React.FC<BudgetModeSelectorProps> = ({
         )}
 
         <div className="grid gap-6 lg:grid-cols-1">
-          {modes?.map((mode) => (
+          {availableModes?.map((mode) => (
             <BudgetModeCard
               key={mode.mode}
               mode={mode}
@@ -261,7 +271,7 @@ export const BudgetModeSelector: React.FC<BudgetModeSelectorProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedMode(currentMode || 'traditional_category')}
+                  onClick={() => setSelectedMode(effectiveCurrentMode || 'traditional_category')}
                 >
                   Cancel
                 </Button>
@@ -269,10 +279,10 @@ export const BudgetModeSelector: React.FC<BudgetModeSelectorProps> = ({
               <Button
                 size="sm"
                 onClick={handleSaveMode}
-                disabled={updateBudgetMode.isPending}
+                disabled={false}
                 className="px-6"
               >
-                {updateBudgetMode.isPending ? 'Setting up...' : isFirstTime ? 'Continue' : 'Save Changes'}
+                {isFirstTime ? 'Continue' : 'Save Changes'}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>

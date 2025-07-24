@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/core/components/ui/card';
 import { Badge } from '@/core/components/ui/badge';
 import { Progress } from '@/core/components/ui/progress';
-import { useBudgetTemplates } from '../services/budget-api';
+import { useBudgetStore } from '../stores/budget.store';
 import { BudgetTemplate } from '../types';
 
 interface BudgetTemplateCardProps {
@@ -65,7 +65,43 @@ const PercentageRuleVisualizer: React.FC<PercentageRuleVisualizerProps> = ({ cat
 };
 
 export const BudgetTemplateSelector: React.FC = () => {
-  const { data: templates, isLoading } = useBudgetTemplates();
+  const { templates, isLoading, setSelectedTemplate, setTemplates } = useBudgetStore();
+
+  // Initialize mock templates if none exist
+  React.useEffect(() => {
+    if (templates.length === 0) {
+      setTemplates([
+        {
+          id: '1',
+          name: '50/30/20 Rule',
+          description: 'Allocate 50% to needs, 30% to wants, 20% to savings',
+          isDefault: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: '2',
+          name: '60/20/20 Rule',
+          description: 'Allocate 60% to needs, 20% to wants, 20% to savings',
+          isDefault: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: '3',
+          name: '70/20/10 Rule',
+          description: 'Allocate 70% to needs, 20% to wants, 10% to savings',
+          isDefault: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]);
+    }
+  }, [templates.length, setTemplates]);
+
+  const handleTemplateSelect = (template: BudgetTemplate) => {
+    setSelectedTemplate(template);
+  };
 
   if (isLoading) {
     return (
@@ -115,7 +151,10 @@ export const BudgetTemplateSelector: React.FC = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {templates?.map((template) => (
           <div key={template.id} className="space-y-4">
-            <BudgetTemplateCard template={template} />
+            <BudgetTemplateCard 
+              template={template} 
+              onSelect={handleTemplateSelect}
+            />
             {sampleBreakdowns[template.name as keyof typeof sampleBreakdowns] && (
               <Card className="bg-gray-50">
                 <CardContent className="pt-6">
