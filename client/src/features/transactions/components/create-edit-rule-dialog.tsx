@@ -27,8 +27,7 @@ import {
   TRANSACTION_TYPE_OPTIONS
 } from "@/features/rules/services/rule.types";
 import { useCreateRule, useUpdateRule } from "@/features/rules/services/rule.service";
-import { categoryService } from "@/features/categories/services/category";
-import { accountService } from "@/features/accounts/services/account";
+import { adaptiveCategoryService, adaptiveAccountService } from "@/core/offline-first";
 import { toast } from "sonner";
 
 interface CreateEditRuleDialogProps {
@@ -52,12 +51,12 @@ export function CreateEditRuleDialog({ open, onOpenChange, rule, prefillData }: 
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
-    queryFn: categoryService.getCategories,
+    queryFn: adaptiveCategoryService.getCategories,
   });
 
   const { data: accounts } = useQuery({
     queryKey: ["accounts"],
-    queryFn: accountService.getAccounts,
+    queryFn: adaptiveAccountService.getAccounts,
   });
 
   const form = useForm<CreateTransactionRule>({

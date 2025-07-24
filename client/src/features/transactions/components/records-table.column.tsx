@@ -9,8 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/core/components/ui/popover";
 import { SearchableSelect, SearchableSelectOption } from "@/core/components/ui/search-select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { categoryService } from "@/features/categories/services/category";
-import { bulkUpdateCategories } from "../services/transaction";
+import { adaptiveCategoryService, adaptiveTransactionService } from "@/core/offline-first";
 import { toast } from "sonner";
 import { useMemo } from "react";
 
@@ -62,7 +61,7 @@ const CategoryCell = memo(({ transaction }: { transaction: TableRecordSchema }) 
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
-    queryFn: categoryService.getCategories,
+    queryFn: adaptiveCategoryService.getCategories,
     gcTime: 1000 * 60 * 5,
     staleTime: 1000 * 60 * 2,
     refetchOnMount: false,
@@ -71,7 +70,7 @@ const CategoryCell = memo(({ transaction }: { transaction: TableRecordSchema }) 
 
   const updateCategoryMutation = useMutation({
     mutationFn: async (categoryId: string) => {
-      await bulkUpdateCategories([transaction.id], categoryId);
+      await adaptiveTransactionService.bulkUpdateCategories([transaction.id], categoryId);
     },
     onSuccess: () => {
       toast.success("Category updated successfully!");

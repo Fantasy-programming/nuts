@@ -3,9 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { logger } from "@/lib/logger"
-import { categoryService } from "@/features/categories/services/category"
-import { accountService } from "@/features/accounts/services/account";
-import { getTransaction, updateTransaction } from "../services/transaction"
+import { adaptiveCategoryService, adaptiveAccountService, adaptiveTransactionService } from "@/core/offline-first"
 import { cn, debounce } from "@/lib/utils"
 
 import { Button } from "@/core/components/ui/button"
@@ -61,7 +59,7 @@ export default function EditTransactionSheet({
     isFetching: detailFetching,
   } = useQuery({
     queryKey: ["transaction", transactionId],
-    queryFn: () => getTransaction(transactionId!),
+    queryFn: () => adaptiveTransactionService.getTransaction(transactionId!),
     enabled: !!transactionId,
     initialData: () => queryClient.getQueryData(["transaction", transactionId]),
     staleTime: 0,
@@ -70,7 +68,7 @@ export default function EditTransactionSheet({
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
-    queryFn: categoryService.getCategories,
+    queryFn: adaptiveCategoryService.getCategories,
     gcTime: 1000 * 60 * 5,
     staleTime: 1000 * 60 * 2,
     refetchOnMount: false,
@@ -79,7 +77,7 @@ export default function EditTransactionSheet({
 
   const { data: accounts, isLoading: accountsLoading } = useQuery({
     queryKey: ["accounts"],
-    queryFn: accountService.getAccounts,
+    queryFn: adaptiveAccountService.getAccounts,
     gcTime: 1000 * 60 * 5,
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
@@ -104,7 +102,7 @@ export default function EditTransactionSheet({
 
   const updateMutation = useMutation({
     mutationFn: (params: { id: string; data: RecordUpdateSchema }) =>
-      updateTransaction(params.id, params.data),
+      adaptiveTransactionService.updateTransaction(params.id, params.data),
     onSuccess: () => {
       toast.success("Transaction updated successfully!");
       // Invalidate queries to refresh the data

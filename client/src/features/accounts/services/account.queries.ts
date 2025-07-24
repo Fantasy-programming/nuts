@@ -1,17 +1,17 @@
 import { queryOptions } from "@tanstack/react-query";
-import { accountService } from "./account.ts"
+import { adaptiveAccountService } from "@/core/offline-first";
 
 export const getAllAccounts = () => queryOptions({
   queryKey: ["accounts"],
-  queryFn: accountService.getAccounts
+  queryFn: adaptiveAccountService.getAccounts
 })
 
 export const getAllAccountsWithTrends = () => queryOptions({
   queryKey: ["accounts", "trends"],
-  queryFn: accountService.getAccountsWTrends
+  queryFn: adaptiveAccountService.getAccountsWTrends
 })
 
 export const getAllAccountsBalanceTimeline = () => queryOptions({
   queryKey: ["accounts", "timeline"],
-  queryFn: accountService.getAccountsBalanceTimeline
+  queryFn: adaptiveAccountService.getAccountsBalanceTimeline
 })
