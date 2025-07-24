@@ -639,6 +639,70 @@ func (h *Handler) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle recurring transaction conversion
+	if req.IsRecurring != nil {
+		if *req.IsRecurring && req.RecurringConfig != nil {
+			// Convert transaction to recurring - create recurring template
+			amount := decimal.NewFromFloat(*req.Amount)
+			if req.Amount == nil {
+				// Get the current amount from the updated transaction
+				amount = types.PgtypeNumericToDecimal(transaction.Amount)
+			}
+
+			categoryIDStr := transaction.CategoryID.String()
+			recurringReq := CreateRecurringTransactionRequest{
+				AccountID:         transaction.AccountID.String(),
+				CategoryID:        &categoryIDStr,
+				Amount:            amount,
+				Type:              transaction.Type,
+				Description:       transaction.Description,
+				Details:           transaction.Details,
+				Frequency:         req.RecurringConfig.Frequency,
+				FrequencyInterval: req.RecurringConfig.FrequencyInterval,
+				FrequencyData:     req.RecurringConfig.FrequencyData,
+				StartDate:         req.RecurringConfig.StartDate,
+				EndDate:           req.RecurringConfig.EndDate,
+				AutoPost:          req.RecurringConfig.AutoPost,
+				MaxOccurrences:    req.RecurringConfig.MaxOccurrences,
+				TemplateName:      req.RecurringConfig.TemplateName,
+				Tags:              req.RecurringConfig.Tags,
+			}
+
+			// Validate the recurring transaction
+			if err := h.recurringService.ValidateRecurringTransaction(recurringReq); err != nil {
+				h.logger.Error().Err(err).Msg("Failed to validate recurring transaction in update")
+				// Don't return error since the main transaction was updated successfully
+			} else {
+				// Create the recurring transaction template
+				recurringTransaction, err := h.recurringService.CreateRecurringTransaction(ctx, userID, recurringReq)
+				if err != nil {
+					h.logger.Error().Err(err).Msg("Failed to create recurring transaction template in update")
+					// Don't return error since the main transaction was updated successfully
+				} else {
+					// Calculate the next due date after the start date
+					nextDueDate := h.calculateNextDueDate(req.RecurringConfig.Frequency, req.RecurringConfig.FrequencyInterval, req.RecurringConfig.StartDate)
+					
+					// Enqueue job for the next occurrence
+					if h.jobService != nil {
+						if err := h.jobService.EnqueueRecurringTransaction(ctx, userID, recurringTransaction.ID, nextDueDate); err != nil {
+							h.logger.Error().Err(err).Msg("Failed to enqueue recurring transaction job in update")
+							// Don't return error since the main transaction and template were created successfully
+						} else {
+							h.logger.Info().
+								Any("recurring_id", recurringTransaction.ID).
+								Time("next_due", nextDueDate).
+								Msg("Enqueued recurring transaction job from update")
+						}
+					}
+				}
+			}
+		} else if !*req.IsRecurring {
+			// Convert from recurring to one-time - would need additional logic to remove recurring template
+			// This is more complex and might require additional considerations
+			h.logger.Info().Msg("Converting from recurring to one-time transaction - feature not yet implemented")
+		}
+	}
+
 	respond.Json(w, http.StatusOK, transaction, h.logger)
 }
 

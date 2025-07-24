@@ -89,6 +89,10 @@ type UpdateTransactionRequest struct {
 	Details             *dto.Details `json:"details"`
 	TransactionCurrency *string      `json:"transaction_currency"`
 	OriginalAmount      *float64     `json:"original_amount"`
+	
+	// Optional recurring fields for converting to/from recurring
+	IsRecurring       *bool           `json:"is_recurring,omitempty"`
+	RecurringConfig   *RecurringConfig `json:"recurring_config,omitempty"`
 }
 
 // Bulk operation request types
