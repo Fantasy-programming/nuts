@@ -141,17 +141,35 @@ class SQLiteIndexService {
       `);
       
       for (const account of Object.values(accounts)) {
-        insertAccount.run([
-          account.id,
-          account.name,
-          account.type,
-          account.currency,
-          account.balance,
-          account.is_active ? 1 : 0,
-          account.created_at,
-          account.updated_at,
-          account.deleted_at || null
-        ]);
+        // Validate all required fields before binding to SQLite
+        const validatedAccount = {
+          id: account.id || crypto.randomUUID(),
+          name: account.name || '',
+          type: account.type || 'checking',
+          currency: account.currency || 'USD',
+          balance: account.balance || 0,
+          is_active: Boolean(account.is_active !== false), // Default to true
+          created_at: account.created_at || new Date().toISOString(),
+          updated_at: account.updated_at || new Date().toISOString(),
+          deleted_at: account.deleted_at || null
+        };
+
+        try {
+          insertAccount.run([
+            validatedAccount.id,
+            validatedAccount.name,
+            validatedAccount.type,
+            validatedAccount.currency,
+            validatedAccount.balance,
+            validatedAccount.is_active ? 1 : 0,
+            validatedAccount.created_at,
+            validatedAccount.updated_at,
+            validatedAccount.deleted_at
+          ]);
+        } catch (bindError) {
+          console.error('Error binding account to SQLite:', bindError, validatedAccount);
+          throw bindError;
+        }
       }
       insertAccount.free();
       
@@ -162,17 +180,35 @@ class SQLiteIndexService {
       `);
       
       for (const category of Object.values(categories)) {
-        insertCategory.run([
-          category.id,
-          category.name,
-          category.color,
-          category.icon || null,
-          category.parent_id || null,
-          category.is_active ? 1 : 0,
-          category.created_at,
-          category.updated_at,
-          category.deleted_at || null
-        ]);
+        // Validate all required fields before binding to SQLite
+        const validatedCategory = {
+          id: category.id || crypto.randomUUID(),
+          name: category.name || '',
+          color: category.color || '#000000',
+          icon: category.icon || null,
+          parent_id: category.parent_id || null,
+          is_active: Boolean(category.is_active !== false), // Default to true
+          created_at: category.created_at || new Date().toISOString(),
+          updated_at: category.updated_at || new Date().toISOString(),
+          deleted_at: category.deleted_at || null
+        };
+
+        try {
+          insertCategory.run([
+            validatedCategory.id,
+            validatedCategory.name,
+            validatedCategory.color,
+            validatedCategory.icon,
+            validatedCategory.parent_id,
+            validatedCategory.is_active ? 1 : 0,
+            validatedCategory.created_at,
+            validatedCategory.updated_at,
+            validatedCategory.deleted_at
+          ]);
+        } catch (bindError) {
+          console.error('Error binding category to SQLite:', bindError, validatedCategory);
+          throw bindError;
+        }
       }
       insertCategory.free();
       
@@ -186,22 +222,45 @@ class SQLiteIndexService {
       `);
       
       for (const transaction of Object.values(transactions)) {
-        insertTransaction.run([
-          transaction.id,
-          transaction.amount,
-          transaction.transaction_datetime,
-          transaction.description,
-          transaction.category_id || null,
-          transaction.account_id,
-          transaction.type,
-          transaction.destination_account_id || null,
-          transaction.transaction_currency,
-          transaction.original_amount,
-          transaction.is_external ? 1 : 0,
-          transaction.created_at,
-          transaction.updated_at,
-          transaction.deleted_at || null
-        ]);
+        // Validate all required fields before binding to SQLite
+        const validatedTransaction = {
+          id: transaction.id || crypto.randomUUID(),
+          amount: transaction.amount || 0,
+          transaction_datetime: transaction.transaction_datetime || new Date().toISOString(),
+          description: transaction.description || '',
+          category_id: transaction.category_id || null,
+          account_id: transaction.account_id || '',
+          type: transaction.type || 'expense',
+          destination_account_id: transaction.destination_account_id || null,
+          transaction_currency: transaction.transaction_currency || 'USD',
+          original_amount: transaction.original_amount || transaction.amount || 0,
+          is_external: Boolean(transaction.is_external),
+          created_at: transaction.created_at || new Date().toISOString(),
+          updated_at: transaction.updated_at || new Date().toISOString(),
+          deleted_at: transaction.deleted_at || null
+        };
+
+        try {
+          insertTransaction.run([
+            validatedTransaction.id,
+            validatedTransaction.amount,
+            validatedTransaction.transaction_datetime,
+            validatedTransaction.description,
+            validatedTransaction.category_id,
+            validatedTransaction.account_id,
+            validatedTransaction.type,
+            validatedTransaction.destination_account_id,
+            validatedTransaction.transaction_currency,
+            validatedTransaction.original_amount,
+            validatedTransaction.is_external ? 1 : 0,
+            validatedTransaction.created_at,
+            validatedTransaction.updated_at,
+            validatedTransaction.deleted_at
+          ]);
+        } catch (bindError) {
+          console.error('Error binding transaction to SQLite:', bindError, validatedTransaction);
+          throw bindError;
+        }
       }
       insertTransaction.free();
       

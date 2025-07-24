@@ -184,17 +184,15 @@ class SyncService {
       // Get the last sync timestamp to fetch only new changes
       const lastSync = this.syncState.lastSyncAt?.toISOString() || new Date(0).toISOString();
 
-      // Fetch transactions changes
+      // Try to fetch incremental changes from sync endpoints
       const transactionsResponse = await axios.get('/transactions/sync', {
         params: { since: lastSync }
       });
 
-      // Fetch accounts changes
       const accountsResponse = await axios.get('/accounts/sync', {
         params: { since: lastSync }
       });
 
-      // Fetch categories changes
       const categoriesResponse = await axios.get('/categories/sync', {
         params: { since: lastSync }
       });
@@ -207,8 +205,8 @@ class SyncService {
       });
 
     } catch (error) {
-      // If sync endpoints don't exist yet, do a full data fetch
-      console.warn('Sync endpoints not available, performing full sync:', error);
+      // Sync endpoints don't exist yet, perform full sync fallback
+      console.warn('Sync endpoints not available, performing full sync fallback:', error);
       await this.performFullSync();
     }
   }
@@ -225,11 +223,17 @@ class SyncService {
         axios.get('/categories')
       ]);
 
-      // Convert server data to CRDT format and merge
+      // Extract and convert server data to CRDT format
       const serverData = {
-        transactions: this.convertServerDataToCRDT(transactionsResponse.data.data),
-        accounts: this.convertServerDataToCRDT(accountsResponse.data),
-        categories: this.convertServerDataToCRDT(categoriesResponse.data)
+        transactions: this.convertServerDataToCRDT(
+          transactionsResponse.data?.data || transactionsResponse.data || []
+        ),
+        accounts: this.convertServerDataToCRDT(
+          accountsResponse.data?.data || accountsResponse.data || []
+        ),
+        categories: this.convertServerDataToCRDT(
+          categoriesResponse.data?.data || categoriesResponse.data || []
+        )
       };
 
       await this.mergeServerChanges(serverData);
@@ -247,43 +251,113 @@ class SyncService {
     accounts: any[];
     categories: any[];
   }): Promise<void> {
-    // Get current local data
-    const localTransactions = crdtService.getTransactions();
+    try {
+      // Get current local data
+      const localTransactions = crdtService.getTransactions();
+      const localAccounts = crdtService.getAccounts();
+      const localCategories = crdtService.getCategories();
 
-    // Merge transactions
-    for (const serverTx of serverData.transactions) {
-      const localTx = localTransactions[serverTx.id];
+      // Merge transactions
+      for (const serverTx of serverData.transactions) {
+        if (!serverTx.id) {
+          console.warn('Skipping transaction without ID:', serverTx);
+          continue;
+        }
 
-      if (!localTx) {
-        // New transaction from server
-        await crdtService.createTransaction(serverTx);
-      } else if (new Date(serverTx.updated_at) > new Date(localTx.updated_at)) {
-        // Server version is newer
-        if (this.hasLocalModifications(localTx, serverTx)) {
-          // Conflict detected
-          this.addConflict({
-            id: serverTx.id,
-            type: 'transaction',
-            localVersion: localTx,
-            serverVersion: serverTx,
-            timestamp: new Date()
-          });
-        } else {
-          // Safe to update
-          await crdtService.updateTransaction(serverTx.id, serverTx);
+        const localTx = localTransactions[serverTx.id];
+
+        if (!localTx) {
+          // New transaction from server
+          await crdtService.createTransaction(serverTx);
+        } else if (new Date(serverTx.updated_at) > new Date(localTx.updated_at)) {
+          // Server version is newer
+          if (this.hasLocalModifications(localTx, serverTx)) {
+            // Conflict detected
+            this.addConflict({
+              id: serverTx.id,
+              type: 'transaction',
+              localVersion: localTx,
+              serverVersion: serverTx,
+              timestamp: new Date()
+            });
+          } else {
+            // Safe to update
+            await crdtService.updateTransaction(serverTx.id, serverTx);
+          }
         }
       }
+
+      // Merge accounts
+      for (const serverAccount of serverData.accounts) {
+        if (!serverAccount.id) {
+          console.warn('Skipping account without ID:', serverAccount);
+          continue;
+        }
+
+        const localAccount = localAccounts[serverAccount.id];
+
+        if (!localAccount) {
+          // New account from server
+          await crdtService.createAccount(serverAccount);
+        } else if (new Date(serverAccount.updated_at) > new Date(localAccount.updated_at)) {
+          // Server version is newer
+          if (this.hasLocalModifications(localAccount, serverAccount)) {
+            // Conflict detected
+            this.addConflict({
+              id: serverAccount.id,
+              type: 'account',
+              localVersion: localAccount,
+              serverVersion: serverAccount,
+              timestamp: new Date()
+            });
+          } else {
+            // Safe to update
+            await crdtService.updateAccount(serverAccount.id, serverAccount);
+          }
+        }
+      }
+
+      // Merge categories
+      for (const serverCategory of serverData.categories) {
+        if (!serverCategory.id) {
+          console.warn('Skipping category without ID:', serverCategory);
+          continue;
+        }
+
+        const localCategory = localCategories[serverCategory.id];
+
+        if (!localCategory) {
+          // New category from server
+          await crdtService.createCategory(serverCategory);
+        } else if (new Date(serverCategory.updated_at) > new Date(localCategory.updated_at)) {
+          // Server version is newer
+          if (this.hasLocalModifications(localCategory, serverCategory)) {
+            // Conflict detected
+            this.addConflict({
+              id: serverCategory.id,
+              type: 'category',
+              localVersion: localCategory,
+              serverVersion: serverCategory,
+              timestamp: new Date()
+            });
+          } else {
+            // Safe to update
+            await crdtService.updateCategory(serverCategory.id, serverCategory);
+          }
+        }
+      }
+
+      // Rebuild SQLite indices after merging
+      await sqliteIndexService.rebuildIndices(
+        crdtService.getTransactions(),
+        crdtService.getAccounts(),
+        crdtService.getCategories()
+      );
+    } catch (error) {
+      console.error('Error merging server changes:', error);
+      throw error;
     }
-
-    // Similar logic for accounts and categories would go here
-    // ... (simplified for brevity)
-
-    // Rebuild SQLite indices after merging
-    await sqliteIndexService.rebuildIndices(
-      crdtService.getTransactions(),
-      crdtService.getAccounts(),
-      crdtService.getCategories()
-    );
+  }
   }
 
   /**
@@ -426,13 +500,54 @@ class SyncService {
   }
 
   private convertServerDataToCRDT(data: any[]): any[] {
-    // Convert server response format to CRDT format
-    // This would need to be implemented based on the actual server structure
-    return data.map(item => ({
-      ...item,
-      created_at: item.created_at || new Date().toISOString(),
-      updated_at: item.updated_at || new Date().toISOString()
-    }));
+    if (!Array.isArray(data)) {
+      console.warn('Expected array data for CRDT conversion, got:', typeof data);
+      return [];
+    }
+
+    return data.map(item => {
+      // Ensure all required CRDT fields are present with proper fallbacks
+      const converted = {
+        ...item,
+        id: item.id || crypto.randomUUID(),
+        created_at: item.created_at || item.createdAt || new Date().toISOString(),
+        updated_at: item.updated_at || item.updatedAt || new Date().toISOString(),
+        deleted_at: item.deleted_at || item.deletedAt || null,
+      };
+
+      // Handle transaction-specific fields
+      if (item.transaction_datetime || item.transactionDatetime) {
+        converted.transaction_datetime = item.transaction_datetime || item.transactionDatetime;
+      }
+      
+      // Handle numeric fields that might come as objects from PostgreSQL
+      if (item.amount && typeof item.amount === 'object') {
+        converted.amount = parseFloat(item.amount.String || item.amount.value || item.amount) || 0;
+      }
+      
+      if (item.original_amount && typeof item.original_amount === 'object') {
+        converted.original_amount = parseFloat(item.original_amount.String || item.original_amount.value || item.original_amount) || 0;
+      }
+
+      // Ensure boolean fields are properly converted
+      converted.is_external = Boolean(item.is_external);
+      converted.is_active = Boolean(item.is_active !== false); // Default to true if not specified
+
+      // Handle optional UUID fields
+      converted.category_id = item.category_id || null;
+      converted.destination_account_id = item.destination_account_id || null;
+      converted.parent_id = item.parent_id || null;
+
+      // Ensure required string fields have fallback values
+      converted.type = item.type || 'expense';
+      converted.description = item.description || '';
+      converted.transaction_currency = item.transaction_currency || 'USD';
+      converted.name = item.name || '';
+      converted.currency = item.currency || 'USD';
+      converted.color = item.color || '#000000';
+
+      return converted;
+    });
   }
 
   private addConflict(conflict: SyncConflict): void {
