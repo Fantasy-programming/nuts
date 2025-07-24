@@ -133,12 +133,6 @@ func (h *Handler) GetBudgetModes(w http.ResponseWriter, r *http.Request) {
 			Description: "Support for 50/30/20 rule and similar frameworks",
 			IsEnabled:   true,
 		},
-		{
-			Mode:        BudgetModeTrackingOnly,
-			Name:        "No-Budget Tracking",
-			Description: "Pure expense tracking without limits or restrictions",
-			IsEnabled:   true,
-		},
 	}
 
 	respond.Json(w, http.StatusOK, modes, h.logger)

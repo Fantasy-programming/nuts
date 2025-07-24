@@ -3,8 +3,7 @@ export type BudgetMode =
   | 'flex_bucket'
   | 'global_limit'
   | 'zero_based'
-  | 'percentage_based'
-  | 'tracking_only';
+  | 'percentage_based';
 
 export interface BudgetModeInfo {
   mode: BudgetMode;

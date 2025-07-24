@@ -18,7 +18,6 @@ func TestBudgetModeConstants(t *testing.T) {
 		{BudgetModeGlobalLimit, "global_limit"},
 		{BudgetModeZeroBased, "zero_based"},
 		{BudgetModePercentageBased, "percentage_based"},
-		{BudgetModeTrackingOnly, "tracking_only"},
 	}
 
 	for _, tt := range tests {

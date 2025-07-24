@@ -15,7 +15,6 @@ const (
 	BudgetModeGlobalLimit        BudgetMode = "global_limit"         // Simple total spending cap
 	BudgetModeZeroBased          BudgetMode = "zero_based"           // Every dollar must be assigned
 	BudgetModePercentageBased    BudgetMode = "percentage_based"     // 50/30/20 rule and similar frameworks
-	BudgetModeTrackingOnly       BudgetMode = "tracking_only"        // Pure expense tracking without limits
 )
 
 type Budget struct {
