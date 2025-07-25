@@ -20,6 +20,10 @@ const customRecurringSchema = z.object({
   endDate: z.date().optional(),
   maxOccurrences: z.number().min(1).optional(),
   naturalLanguagePattern: z.string().optional(),
+  // Enhanced auto-posting controls
+  autoPostMode: z.enum(["always", "review", "smart", "preview"]).default("review"),
+  smartThreshold: z.number().min(0).optional(),
+  previewDays: z.number().min(1).max(30).optional(),
 });
 
 type CustomRecurringData = z.infer<typeof customRecurringSchema>;
@@ -47,6 +51,9 @@ export function CustomRecurringModal({
       period: "week",
       dayOfWeek: [5], // Default to Friday
       endType: "never",
+      autoPostMode: "review",
+      smartThreshold: 50,
+      previewDays: 7,
       ...defaultValues,
     },
   });
@@ -57,6 +64,9 @@ export function CustomRecurringModal({
   const dayOfWeek = form.watch("dayOfWeek");
   const endDate = form.watch("endDate");
   const maxOccurrences = form.watch("maxOccurrences");
+  const autoPostMode = form.watch("autoPostMode");
+  const smartThreshold = form.watch("smartThreshold");
+  const previewDays = form.watch("previewDays");
 
   // Handle natural language pattern parsing
   const handleNaturalLanguageChange = (input: string) => {
@@ -359,6 +369,113 @@ export function CustomRecurringModal({
                           )}
                           {endType === "occurrences" && (
                             <span className="text-sm text-muted-foreground">occurrences</span>
+                          )}
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Auto-posting Controls */}
+            <div className="space-y-3">
+              <Label>Auto-posting Behavior</Label>
+              <FormField
+                control={form.control}
+                name="autoPostMode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <RadioGroup
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        className="space-y-3"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="always" id="always" />
+                          <div className="flex flex-col">
+                            <Label htmlFor="always">Always auto-post</Label>
+                            <span className="text-xs text-muted-foreground">
+                              Transactions are created automatically without review
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="review" id="review" />
+                          <div className="flex flex-col">
+                            <Label htmlFor="review">Require manual approval</Label>
+                            <span className="text-xs text-muted-foreground">
+                              All transactions need review before posting
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="smart" id="smart" />
+                          <div className="flex flex-col">
+                            <Label htmlFor="smart">Smart auto-posting</Label>
+                            <span className="text-xs text-muted-foreground">
+                              Auto-post small amounts, review large amounts
+                            </span>
+                          </div>
+                          {field.value === "smart" && (
+                            <div className="ml-4 flex items-center space-x-2">
+                              <Label htmlFor="threshold" className="text-xs">Threshold:</Label>
+                              <FormField
+                                control={form.control}
+                                name="smartThreshold"
+                                render={({ field: thresholdField }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input
+                                        id="threshold"
+                                        type="number"
+                                        min={0}
+                                        className="w-20"
+                                        placeholder="50"
+                                        {...thresholdField}
+                                        onChange={(e) => thresholdField.onChange(parseFloat(e.target.value) || 0)}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <span className="text-xs text-muted-foreground">USD</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="preview" id="preview" />
+                          <div className="flex flex-col">
+                            <Label htmlFor="preview">Preview period</Label>
+                            <span className="text-xs text-muted-foreground">
+                              Show upcoming transactions for review
+                            </span>
+                          </div>
+                          {field.value === "preview" && (
+                            <div className="ml-4 flex items-center space-x-2">
+                              <FormField
+                                control={form.control}
+                                name="previewDays"
+                                render={({ field: previewField }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min={1}
+                                        max={30}
+                                        className="w-20"
+                                        placeholder="7"
+                                        {...previewField}
+                                        onChange={(e) => previewField.onChange(parseInt(e.target.value) || 7)}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <span className="text-xs text-muted-foreground">days early</span>
+                            </div>
                           )}
                         </div>
                       </RadioGroup>
