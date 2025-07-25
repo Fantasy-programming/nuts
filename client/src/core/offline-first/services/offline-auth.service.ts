@@ -10,7 +10,7 @@ import { featureFlagsService } from './feature-flags.service';
 import { authService } from '@/features/auth/services/auth';
 import { userService } from '@/features/preferences/services/user';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
-import type { AuthNullable } from '@/features/auth/services/auth.types';
+import type { AuthNullable, RefreshAuthRes } from '@/features/auth/services/auth.types';
 
 export interface CachedAuthState {
   user: AuthNullable;
@@ -103,19 +103,24 @@ class OfflineAuthService {
         
         // Cache successful auth state
         const user = await userService.getMe();
+        
+        // Extract tokens from response body (new backend functionality)
+        const accessToken = response.data?.access_token;
+        const refreshToken = response.data?.refresh_token;
+        
         await this.cacheAuthState({
           user,
           isAuthenticated: true,
           lastValidated: new Date(),
           expiresAt: new Date(Date.now() + this.CACHE_DURATION),
-          accessToken: response.data?.access_token,
-          accessTokenExpiresAt: new Date(Date.now() + this.ACCESS_TOKEN_DURATION)
+          accessToken,
+          accessTokenExpiresAt: accessToken ? new Date(Date.now() + this.ACCESS_TOKEN_DURATION) : undefined
         });
 
-        // Store refresh token securely if provided
-        if (response.data?.refresh_token) {
+        // Store refresh token securely if provided in response body
+        if (refreshToken) {
           await this.storeSecureTokens({
-            refreshToken: response.data.refresh_token,
+            refreshToken,
             refreshTokenExpiresAt: null, // Non-expiring as requested
             deviceId: this.deviceId,
             lastUsed: new Date()
@@ -173,22 +178,33 @@ class OfflineAuthService {
         
         if (this.isAccessTokenExpired(cachedAuth) && secureTokens?.refreshToken) {
           // Use refresh token to get new access token
-          await this.refreshUsingStoredToken(secureTokens);
+          const refreshResponse = await this.refreshUsingStoredToken(secureTokens);
+          
+          // Update cached auth state with new tokens
+          const user = await userService.getMe();
+          await this.cacheAuthState({
+            user,
+            isAuthenticated: true,
+            lastValidated: new Date(),
+            expiresAt: new Date(Date.now() + this.CACHE_DURATION),
+            accessToken: refreshResponse.access_token,
+            accessTokenExpiresAt: new Date(Date.now() + this.ACCESS_TOKEN_DURATION)
+          });
         } else {
           // Use existing auth service refresh
-          await authService.refresh();
+          const refreshResponse = await authService.refresh();
+          
+          // Update cached auth state
+          const user = await userService.getMe();
+          await this.cacheAuthState({
+            user,
+            isAuthenticated: true,
+            lastValidated: new Date(),
+            expiresAt: new Date(Date.now() + this.CACHE_DURATION),
+            accessToken: refreshResponse?.access_token || cachedAuth?.accessToken, // Use new token if provided, otherwise keep existing
+            accessTokenExpiresAt: refreshResponse?.access_token ? new Date(Date.now() + this.ACCESS_TOKEN_DURATION) : cachedAuth?.accessTokenExpiresAt
+          });
         }
-        
-        // Update cached auth state
-        const user = await userService.getMe();
-        await this.cacheAuthState({
-          user,
-          isAuthenticated: true,
-          lastValidated: new Date(),
-          expiresAt: new Date(Date.now() + this.CACHE_DURATION),
-          accessToken: cachedAuth?.accessToken, // Keep existing token if refresh succeeded
-          accessTokenExpiresAt: new Date(Date.now() + this.ACCESS_TOKEN_DURATION)
-        });
       } catch (error) {
         // If refresh fails, check if we have valid cached auth
         const cachedAuth = this.getCachedAuthState();
@@ -341,17 +357,20 @@ class OfflineAuthService {
   /**
    * Refresh authentication using stored refresh token
    */
-  private async refreshUsingStoredToken(tokens: SecureTokenStorage): Promise<void> {
+  private async refreshUsingStoredToken(tokens: SecureTokenStorage): Promise<RefreshAuthRes> {
     try {
-      // This would make a call to the refresh endpoint with the stored refresh token
-      // For now, we'll use the existing refresh method and assume it handles refresh tokens
-      await authService.refresh();
+      // This calls the refresh endpoint which now returns tokens in response body
+      const refreshResponse = await authService.refresh();
       
-      // Update last used timestamp
+      // Update last used timestamp and store new refresh token if provided
       await this.storeSecureTokens({
         ...tokens,
+        refreshToken: refreshResponse.refresh_token || tokens.refreshToken, // Use new token if provided
         lastUsed: new Date()
       });
+      
+      // Return the tokens (backend now includes them in response body)
+      return refreshResponse;
       
     } catch (error) {
       // If refresh token is invalid, clear it
