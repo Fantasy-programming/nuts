@@ -28,7 +28,8 @@ import { FloatingActionBar } from "./floating-records-bar"
 import { BulkEditDialog } from "./bulk-edit-dialog"
 import { useDebounce } from "@/core/hooks/use-debounce";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { getTransactions, bulkDeleteTransactions, type GetTransactionsParams } from "../services/transaction"
+import { adaptiveTransactionService } from "@/core/offline-first"
+import { type GetTransactionsParams } from "../services/transaction"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 import { TransactionFilterDropdown, type TransactionFilterState } from "./transaction-filter-dropdown"
@@ -156,12 +157,12 @@ export const RecordsTable = ({
 
   const { data: transactions, isFetching } = useSuspenseQuery({
     queryKey: ["transactions", queryParams],
-    queryFn: () => getTransactions(queryParams),
+    queryFn: () => adaptiveTransactionService.getTransactions(queryParams),
   });
 
 
   const bulkDeleteMutation = useMutation({
-    mutationFn: (ids: string[]) => bulkDeleteTransactions(ids),
+    mutationFn: (ids: string[]) => adaptiveTransactionService.bulkDeleteTransactions(ids),
     onSuccess: (_, ids) => {
       toast.success(`${ids.length} transaction${ids.length > 1 ? 's' : ''} deleted successfully!`);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });

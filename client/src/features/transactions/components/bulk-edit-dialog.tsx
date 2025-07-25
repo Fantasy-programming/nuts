@@ -12,9 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatetimePicker } from "@/core/components/ui/datetime"
 import { SearchableSelect, SearchableSelectOption } from "@/core/components/ui/search-select"
 import { TableRecordSchema } from "../services/transaction.types"
-import { bulkUpdateCategories, bulkUpdateManualTransactions } from "../services/transaction"
-import { categoryService } from "@/features/categories/services/category"
-import { accountService } from "@/features/accounts/services/account"
+import { adaptiveTransactionService, adaptiveCategoryService, adaptiveAccountService } from "@/core/offline-first"
 import { Account } from "@/features/accounts/services/account.types"
 import { useBrandImage } from "@/features/accounts/hooks/useBrand"
 import { config } from "@/lib/env"
@@ -57,7 +55,7 @@ export function BulkEditDialog({ isOpen, onClose, selectedTransactions }: BulkEd
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
-    queryFn: categoryService.getCategories,
+    queryFn: adaptiveCategoryService.getCategories,
     gcTime: 1000 * 60 * 5,
     staleTime: 1000 * 60 * 2,
     refetchOnMount: false,
@@ -66,7 +64,7 @@ export function BulkEditDialog({ isOpen, onClose, selectedTransactions }: BulkEd
 
   const { data: accounts } = useQuery({
     queryKey: ["accounts"],
-    queryFn: accountService.getAccounts,
+    queryFn: adaptiveAccountService.getAccounts,
     gcTime: 1000 * 60 * 5,
     staleTime: 1000 * 60 * 2,
     refetchOnMount: false,
@@ -90,11 +88,11 @@ export function BulkEditDialog({ isOpen, onClose, selectedTransactions }: BulkEd
       if (editMode === "categories-only") {
         // Only category updates allowed for mixed selections with external transactions
         if (data.category_id) {
-          await bulkUpdateCategories(transactionIds, data.category_id)
+          await adaptiveTransactionService.bulkUpdateCategories(transactionIds, data.category_id)
         }
       } else {
         // Full updates allowed for manual-only selections
-        await bulkUpdateManualTransactions({
+        await adaptiveTransactionService.bulkUpdateManualTransactions({
           transactionIds,
           categoryId: data.category_id || undefined,
           accountId: data.account_id || undefined,

@@ -13,12 +13,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/core/components/ui/tabs";
 import { Input } from "@/core/components/ui/input";
-import { accountService } from "@/features/accounts/services/account";
+import { adaptiveAccountService, adaptiveCategoryService, adaptiveTransactionService } from "@/core/offline-first";
 import { RecordsSubmit, RecordCreateSchema, recordCreateSchema } from "@/features/transactions/services/transaction.types";
-import { categoryService } from "@/features/categories/services/category";
 import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight } from "lucide-react";
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogTrigger } from "@/core/components/ui/dialog-sheet";
-import { createTransaction } from "@/features/transactions/services/transaction"
 import { useMutation } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -29,7 +27,7 @@ export function RecordsDialog({ children }: React.PropsWithChildren) {
 
 
   const createMutation = useMutation({
-    mutationFn: createTransaction,
+    mutationFn: adaptiveTransactionService.createTransaction,
     onSuccess: () => {
       setIsOpen(false);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -86,11 +84,11 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
     queries: [
       {
         queryKey: ["accounts"],
-        queryFn: accountService.getAccounts,
+        queryFn: adaptiveAccountService.getAccounts,
       },
       {
         queryKey: ["categories"],
-        queryFn: categoryService.getCategories,
+        queryFn: adaptiveCategoryService.getCategories,
       },
     ],
   });

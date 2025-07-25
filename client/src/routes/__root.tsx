@@ -4,8 +4,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "@/core/components/ui/sonner";
 import { ThemeProvider } from "@/features/preferences/contexts/theme.provider";
 import type { QueryClient } from "@tanstack/react-query";
-import { AuthInterceptor } from "@/features/auth/components/auth-interceptor";
-import { PreferencesProvider } from "@/features/preferences/components/preferences-provider";
+import { AdaptiveAuthWrapper, AdaptivePreferencesWrapper } from "@/core/offline-first";
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -22,11 +21,11 @@ function RootComponent() {
   return (
     <>
       <ThemeProvider defaultTheme="light" storageKey="finance-theme">
-        <AuthInterceptor>
-          <PreferencesProvider>
+        <AdaptiveAuthWrapper>
+          <AdaptivePreferencesWrapper>
             <Outlet />
-          </PreferencesProvider>
-        </AuthInterceptor>
+          </AdaptivePreferencesWrapper>
+        </AdaptiveAuthWrapper>
         <Toaster />
       </ThemeProvider>
       <ReactQueryDevtools buttonPosition="bottom-left" />

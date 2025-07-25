@@ -69,6 +69,57 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	respond.Json(w, http.StatusOK, accounts, h.logger)
 }
 
+func (h *Handler) Sync(w http.ResponseWriter, r *http.Request) {
+	userID, err := jwt.GetUserID(r)
+	ctx := r.Context()
+
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    nil,
+		})
+		return
+	}
+
+	q := r.URL.Query()
+
+	// Parse the since parameter for incremental sync
+	var sinceTime *time.Time
+	if since := q.Get("since"); since != "" {
+		if parsedTime, parseErr := time.Parse(time.RFC3339, since); parseErr == nil {
+			sinceTime = &parsedTime
+		}
+	}
+
+	// For now, return all accounts (same as List method)
+	// In future, this can be optimized to return only changes since the given timestamp
+	accounts, err := h.service.ListAccounts(ctx, userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details: map[string]any{
+				"requestUrl": r.RequestURI,
+				"operation":  "GetAccountsSync",
+				"userID":     userID,
+				"since":      sinceTime,
+			},
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, accounts, h.logger)
+}
+
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	accountID, err := request.ParseUUID(r, "id")

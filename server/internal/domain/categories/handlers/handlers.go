@@ -59,6 +59,49 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	respond.Json(w, http.StatusOK, categories, h.logger)
 }
 
+func (h *Handler) Sync(w http.ResponseWriter, r *http.Request) {
+	userID, err := jwt.GetUserID(r)
+	ctx := r.Context()
+
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.URL.Path,
+		})
+		return
+	}
+
+	q := r.URL.Query()
+
+	// Parse the since parameter for incremental sync
+	// For now, we'll just return all categories since the categories service
+	// doesn't have a method to filter by timestamp yet
+	_ = q.Get("since") // Parse but ignore for now
+
+	// For now, return all categories (same as List method)
+	// In future, this can be optimized to return only changes since the given timestamp
+	categories, err := h.service.ListCategories(ctx, userID)
+	if err != nil {
+		respond.Error(respond.ErrorOptions{
+			W:          w,
+			R:          r,
+			StatusCode: http.StatusInternalServerError,
+			ClientErr:  message.ErrInternalError,
+			ActualErr:  err,
+			Logger:     h.logger,
+			Details:    r.URL.Path,
+		})
+		return
+	}
+
+	respond.Json(w, http.StatusOK, categories, h.logger)
+}
+
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var req categories.CreateCategoryRequest
 	ctx := r.Context()

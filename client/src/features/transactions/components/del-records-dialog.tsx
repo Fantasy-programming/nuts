@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/core/components/ui/alert-dialog"
 import { useMutation } from "@tanstack/react-query"
-import { deleteTransactions } from "../services/transaction"
+import { adaptiveTransactionService } from "@/core/offline-first"
 import { toast } from "sonner"
 import { logger } from "@/lib/logger"
 
@@ -24,7 +24,7 @@ export function DeleteTransactionDialog({
 }) {
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string | string[]) => deleteTransactions(id),
+    mutationFn: (id: string | string[]) => adaptiveTransactionService.deleteTransactions(id),
     onSuccess: () => {
       toast.success("Transaction deleted successfully!");
     },

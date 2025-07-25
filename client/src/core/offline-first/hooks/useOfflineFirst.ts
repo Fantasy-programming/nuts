@@ -96,3 +96,31 @@ export const useAdaptiveTransactions = () => {
     isUsingOfflineFirst: featureFlagsService.useOfflineFirstTransactions(),
   };
 };
+
+/**
+ * React Hook for Offline-First Account Service
+ * 
+ * Provides access to the adaptive account service with initialization status
+ */
+export const useAdaptiveAccounts = () => {
+  const offlineStatus = useOfflineFirst();
+  
+  return {
+    ...offlineStatus,
+    isUsingOfflineFirst: featureFlagsService.useOfflineFirstAccounts(),
+  };
+};
+
+/**
+ * React Hook for Offline-First Category Service
+ * 
+ * Provides access to the adaptive category service with initialization status
+ */
+export const useAdaptiveCategories = () => {
+  const offlineStatus = useOfflineFirst();
+  
+  return {
+    ...offlineStatus,
+    isUsingOfflineFirst: featureFlagsService.useOfflineFirstCategories(),
+  };
+};

@@ -22,6 +22,7 @@ func RegisterHTTPHandlers(service service.Transactions, tkn *jwt.Service, valida
 	router.Get("/", h.List)
 	router.Post("/", h.Create)
 	router.Post("/transfer", h.CreateTransfert)
+	router.Get("/sync", h.Sync)
 	router.Get("/{id}", h.Get)
 	router.Put("/{id}", h.Update)
 	router.Delete("/{id}", h.Delete)

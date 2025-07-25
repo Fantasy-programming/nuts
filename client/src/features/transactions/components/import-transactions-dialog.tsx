@@ -11,9 +11,7 @@ import { Progress } from "@/core/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Badge } from "@/core/components/ui/badge";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, ArrowRight, ArrowLeft } from "lucide-react";
-import { accountService } from "@/features/accounts/services/account";
-import { categoryService } from "@/features/categories/services/category";
-import { createTransaction } from "@/features/transactions/services/transaction";
+import { adaptiveAccountService, adaptiveCategoryService, adaptiveTransactionService } from "@/core/offline-first";
 import { RecordCreateSchema } from "@/features/transactions/services/transaction.types";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -79,17 +77,17 @@ export function ImportTransactionsDialog({ children }: React.PropsWithChildren) 
     queries: [
       {
         queryKey: ["accounts"],
-        queryFn: accountService.getAccounts,
+        queryFn: adaptiveAccountService.getAccounts,
       },
       {
         queryKey: ["categories"],
-        queryFn: categoryService.getCategories,
+        queryFn: adaptiveCategoryService.getCategories,
       },
     ],
   });
 
   const createMutation = useMutation({
-    mutationFn: createTransaction,
+    mutationFn: adaptiveTransactionService.createTransaction,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });

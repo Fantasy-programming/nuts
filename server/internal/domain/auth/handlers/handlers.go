@@ -148,7 +148,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(7 * 24 * time.Hour),
 	})
 
-	respond.Status(w, http.StatusOK)
+	// Return tokens in response body for offline-first functionality
+	respond.Json(w, http.StatusOK, map[string]interface{}{
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
+	}, h.logger)
 }
 
 func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
@@ -281,7 +285,11 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(7 * 24 * time.Hour),
 	})
 
-	respond.Json(w, http.StatusOK, nil, h.logger)
+	// Return tokens in response body for offline-first functionality
+	respond.Json(w, http.StatusOK, map[string]interface{}{
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
+	}, h.logger)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {

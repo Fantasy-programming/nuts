@@ -11,7 +11,8 @@ type FeatureFlag =
   | 'offline-first-accounts'
   | 'offline-first-categories'
   | 'offline-first-analytics'
-  | 'offline-first-sync';
+  | 'offline-first-sync'
+  | 'fully-offline-mode';
 
 interface FeatureFlagConfig {
   [key: string]: boolean;
@@ -28,6 +29,9 @@ class FeatureFlagsService {
     'offline-first-categories': false,
     'offline-first-analytics': false,
     'offline-first-sync': false,
+    
+    // Fully offline mode (no network calls at all)
+    'fully-offline-mode': false,
   };
   
   private storageKey = 'nuts-feature-flags';
@@ -169,6 +173,13 @@ class FeatureFlagsService {
   }
   
   /**
+   * Check if fully offline mode is enabled
+   */
+  isFullyOfflineModeEnabled(): boolean {
+    return this.isEnabled('fully-offline-mode');
+  }
+  
+  /**
    * Enable offline-first mode for development/testing
    */
   enableDevelopmentMode(): void {
@@ -208,6 +219,7 @@ class FeatureFlagsService {
       'offline-first-categories': false,
       'offline-first-analytics': false,
       'offline-first-sync': false,
+      'fully-offline-mode': false,
     };
     console.log('Feature flags reset to defaults');
   }

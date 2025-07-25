@@ -1,7 +1,7 @@
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 
-import { accountService } from "@/features/accounts/services/account";
+import { adaptiveAccountService } from "@/core/offline-first";
 import { DraggableAccountGroups } from "@/features/accounts/components/account";
 import { AccountsLoading } from "@/features/accounts/components/account.loading";
 import { AccountFormSchema } from "@/features/accounts/services/account.types";
@@ -44,21 +44,21 @@ function RouteComponent() {
 
 
   const createAccount = useMutation({
-    mutationFn: accountService.createAccount,
+    mutationFn: adaptiveAccountService.createAccount,
     onSuccess: () => {
       onCloseModal()
     },
   });
 
   const updateAccount = useMutation({
-    mutationFn: accountService.updateAccount,
+    mutationFn: adaptiveAccountService.updateAccount,
     onSuccess: () => {
       onCloseModal()
     },
   });
 
   const deleteAccount = useMutation({
-    mutationFn: accountService.deleteAccount,
+    mutationFn: adaptiveAccountService.deleteAccount,
     onSuccess: () => {
       onCloseModal()
     },

@@ -51,6 +51,8 @@ export type SessionSchema = z.infer<typeof userSessionSchema>
 
 export interface LoginResponse {
   two_fa_required?: boolean;
+  access_token?: string;
+  refresh_token?: string;
 }
 
 export interface ErrorResponse {
@@ -65,5 +67,6 @@ export type AuthNullable = UserInfo | null;
 
 
 export interface RefreshAuthRes {
-  token: string;
+  access_token: string;
+  refresh_token: string;
 }

@@ -251,6 +251,21 @@ class CRDTService {
     return category.id;
   }
   
+  async updateCategory(id: string, updates: Partial<CRDTCategory>): Promise<void> {
+    if (!this.doc) throw new Error('CRDT document not initialized');
+    
+    const timestamp = new Date().toISOString();
+    
+    this.doc = Automerge.change(this.doc, doc => {
+      if (doc.categories[id]) {
+        Object.assign(doc.categories[id], updates, { updated_at: timestamp });
+        doc.updated_at = timestamp;
+      }
+    });
+    
+    await this.persist();
+  }
+  
   getCategories(): Record<string, CRDTCategory> {
     if (!this.doc) return {};
     

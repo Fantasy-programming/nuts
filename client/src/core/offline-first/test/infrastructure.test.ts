@@ -165,7 +165,6 @@ export async function testOfflineFirstInfrastructure() {
     // 8. Test feature flag switching
     console.log('8. Testing feature flag switching...');
     
-    const originalTransactionFlag = featureFlagsService.useOfflineFirstTransactions();
     featureFlagsService.disable('offline-first-transactions');
     console.log('   Disabled offline-first transactions');
     console.log('   Now using offline-first:', featureFlagsService.useOfflineFirstTransactions());

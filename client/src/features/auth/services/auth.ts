@@ -1,5 +1,5 @@
 import { api as axios } from "@/lib/axios";
-import { InitMFASchema, LoginFormValues, LoginResponse, SessionSchema, SignupFormValues } from "./auth.types";
+import { InitMFASchema, LoginFormValues, LoginResponse, RefreshAuthRes, SessionSchema, SignupFormValues } from "./auth.types";
 import { AxiosResponse } from "axios";
 
 const BASEURI = "/auth";
@@ -18,9 +18,9 @@ const logout = async (): Promise<void> => {
   console.debug(data)
 };
 
-const refresh = async (): Promise<void> => {
-  const data = await axios.post(`${BASEURI}/refresh`)
-  console.debug(data)
+const refresh = async (): Promise<RefreshAuthRes> => {
+  const response = await axios.post(`${BASEURI}/refresh`)
+  return response.data
 }
 
 const initiateMfaSetup = async (): Promise<InitMFASchema> => {

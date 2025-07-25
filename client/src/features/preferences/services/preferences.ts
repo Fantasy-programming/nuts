@@ -1,6 +1,6 @@
 import { api } from "@/lib/axios";
 
-const PREFERENCES_ENDPOINT = "/preferences";
+const PREFERENCES_ENDPOINT = "/users/preferences";
 
 export interface PreferencesResponse {
   locale: string;
