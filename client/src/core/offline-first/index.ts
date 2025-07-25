@@ -23,7 +23,7 @@ export { offlineFirstAccountService } from './services/offline-account.service';
 export { offlineFirstCategoryService } from './services/offline-category.service';
 
 // Auth services
-export { 
+export {
   useAdaptiveAuthQuery,
   useOfflineFirstAuth,
   useOfflineFirstAuthStatus,
@@ -33,23 +33,23 @@ export {
 
 // Hooks
 export { useOfflineFirst, useAdaptiveTransactions, useAdaptiveAccounts, useAdaptiveCategories } from './hooks/useOfflineFirst';
-export { 
-  useOfflineFirstAuthenticatedQuery, 
-  useOfflineFirstAuthenticatedSuspenseQuery, 
-  useOfflineFirstAuth,
-  createOfflineFirstQueryOptions 
+export {
+  useOfflineFirstAuthenticatedQuery,
+  useOfflineFirstAuthenticatedSuspenseQuery,
+  // useOfflineFirstAuth,
+  createOfflineFirstQueryOptions
 } from './hooks/useOfflineFirstAuth';
 
 // Test utilities
 export { testOfflineFirstInfrastructure } from './test/infrastructure.test';
 export { validatePhase2Implementation } from './test/phase2-validation.test';
 export { testOfflineFirstPhase3, validatePhase3Implementation } from './test/phase3-validation.test';
-export { 
-  testOfflineFunctionality, 
-  simulateOfflineMode, 
-  restoreOnlineMode, 
-  testOfflineAuth, 
-  validateOfflineFeatures 
+export {
+  testOfflineFunctionality,
+  simulateOfflineMode,
+  restoreOnlineMode,
+  testOfflineAuth,
+  validateOfflineFeatures
 } from './test/offline-validation.test';
 
 // Components
@@ -63,7 +63,7 @@ export { OfflineFirstAuthInterceptor } from './components/OfflineFirstAuthInterc
 export { OfflineFirstPreferencesProvider } from './components/OfflineFirstPreferencesProvider';
 
 // Types
-export type { 
+export type {
   CRDTDocument,
   CRDTTransaction,
   CRDTAccount,

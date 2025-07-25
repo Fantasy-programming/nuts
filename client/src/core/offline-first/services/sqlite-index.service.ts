@@ -47,6 +47,38 @@ class SQLiteIndexService {
   private createTables = async (): Promise<void> => {
     if (!this.db) throw new Error('Database not initialized');
 
+    // Accounts table
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS accounts (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        currency TEXT NOT NULL,
+        balance REAL NOT NULL,
+        is_active BOOLEAN NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      )
+    `);
+
+    // Categories table
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        color TEXT NOT NULL,
+        icon TEXT,
+        parent_id TEXT,
+        is_active BOOLEAN NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT,
+        FOREIGN KEY (parent_id) REFERENCES categories(id)
+      )
+    `);
+
+
     // Transactions table
     this.db.run(`
       CREATE TABLE IF NOT EXISTS transactions (
@@ -68,40 +100,9 @@ class SQLiteIndexService {
         date_only TEXT GENERATED ALWAYS AS (DATE(transaction_datetime)) STORED,
         year_month TEXT GENERATED ALWAYS AS (strftime('%Y-%m', transaction_datetime)) STORED,
         year TEXT GENERATED ALWAYS AS (strftime('%Y', transaction_datetime)) STORED,
-        month TEXT GENERATED ALWAYS AS (strftime('%m', transaction_datetime)) STORED
-      )
-    `);
-
-
-    // Accounts table
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS accounts (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL,
-        currency TEXT NOT NULL,
-        balance REAL NOT NULL,
-        is_active BOOLEAN NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        deleted_at TEXT
-      )
-    `);
-
-
-    // Categories table
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS categories (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        color TEXT NOT NULL,
-        icon TEXT,
-        parent_id TEXT,
-        is_active BOOLEAN NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        deleted_at TEXT,
-        FOREIGN KEY (parent_id) REFERENCES categories(id)
+        month TEXT GENERATED ALWAYS AS (strftime('%m', transaction_datetime)) STORED,
+        FOREIGN KEY (account_id) REFERENCES accounts(id),
+        FOREIGN KEY (category_id) REFERENCES categories(id)
       )
     `);
 
