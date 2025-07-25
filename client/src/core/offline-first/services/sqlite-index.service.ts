@@ -304,42 +304,42 @@ class SQLiteIndexService {
       currency
     } = params;
     
-    let whereConditions: string[] = ['deleted_at IS NULL'];
+    let whereConditions: string[] = ['t.deleted_at IS NULL'];
     let queryParams: any[] = [];
     
     // Build WHERE conditions
     if (search) {
-      whereConditions.push('description LIKE ?');
+      whereConditions.push('t.description LIKE ?');
       queryParams.push(`%${search}%`);
     }
     
     if (accountId) {
-      whereConditions.push('account_id = ?');
+      whereConditions.push('t.account_id = ?');
       queryParams.push(accountId);
     }
     
     if (categoryId) {
-      whereConditions.push('category_id = ?');
+      whereConditions.push('t.category_id = ?');
       queryParams.push(categoryId);
     }
     
     if (type) {
-      whereConditions.push('type = ?');
+      whereConditions.push('t.type = ?');
       queryParams.push(type);
     }
     
     if (startDate) {
-      whereConditions.push('DATE(transaction_datetime) >= ?');
+      whereConditions.push('DATE(t.transaction_datetime) >= ?');
       queryParams.push(startDate);
     }
     
     if (endDate) {
-      whereConditions.push('DATE(transaction_datetime) <= ?');
+      whereConditions.push('DATE(t.transaction_datetime) <= ?');
       queryParams.push(endDate);
     }
     
     if (currency) {
-      whereConditions.push('transaction_currency = ?');
+      whereConditions.push('t.transaction_currency = ?');
       queryParams.push(currency);
     }
     
@@ -373,7 +373,7 @@ class SQLiteIndexService {
       LEFT JOIN accounts a ON t.account_id = a.id
       LEFT JOIN categories c ON t.category_id = c.id
       ${whereClause}
-      ORDER BY transaction_datetime DESC
+      ORDER BY t.transaction_datetime DESC
       LIMIT ? OFFSET ?
     `;
     
@@ -410,7 +410,7 @@ class SQLiteIndexService {
     
     const { startDate, endDate, accountId, groupBy = 'month' } = params;
     
-    let whereConditions: string[] = ['deleted_at IS NULL', "type != 'transfer'"];
+    let whereConditions: string[] = ['t.deleted_at IS NULL', "t.type != 'transfer'"];
     let queryParams: any[] = [];
     
     if (startDate) {
@@ -424,7 +424,7 @@ class SQLiteIndexService {
     }
     
     if (accountId) {
-      whereConditions.push('account_id = ?');
+      whereConditions.push('t.account_id = ?');
       queryParams.push(accountId);
     }
     
@@ -439,23 +439,23 @@ class SQLiteIndexService {
         groupByClause = 'GROUP BY date_only';
         break;
       case 'year':
-        selectFields = `year as period, year`;
-        groupByClause = 'GROUP BY year';
+        selectFields = `t.year as period, t.year`;
+        groupByClause = 'GROUP BY t.year';
         break;
       case 'category':
-        selectFields = `category_id as period, c.name as category_name, c.color as category_color`;
-        groupByClause = 'GROUP BY category_id';
+        selectFields = `t.category_id as period, c.name as category_name, c.color as category_color`;
+        groupByClause = 'GROUP BY t.category_id';
         break;
       default: // month
-        selectFields = `year_month as period, year_month`;
-        groupByClause = 'GROUP BY year_month';
+        selectFields = `t.year_month as period, t.year_month`;
+        groupByClause = 'GROUP BY t.year_month';
     }
     
     const query = `
       SELECT 
         ${selectFields},
-        SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as total_expenses,
-        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
+        SUM(CASE WHEN t.type = 'expense' THEN ABS(t.amount) ELSE 0 END) as total_expenses,
+        SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END) as total_income,
         COUNT(*) as transaction_count
       FROM transactions t
       ${groupBy === 'category' ? 'LEFT JOIN categories c ON t.category_id = c.id' : ''}

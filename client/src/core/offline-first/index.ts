@@ -12,6 +12,7 @@ export { syncService } from './services/sync.service';
 export { offlineFirstInitService } from './services/offline-first-init.service';
 export { connectivityService } from './services/connectivity.service';
 export { offlineAuthService } from './services/offline-auth.service';
+export { offlinePreferencesService } from './services/offline-preferences.service';
 
 // Adaptive services
 export { adaptiveTransactionService } from './services/adaptive-transaction.service';
@@ -23,6 +24,12 @@ export { offlineFirstCategoryService } from './services/offline-category.service
 
 // Hooks
 export { useOfflineFirst, useAdaptiveTransactions, useAdaptiveAccounts, useAdaptiveCategories } from './hooks/useOfflineFirst';
+export { 
+  useOfflineFirstAuthenticatedQuery, 
+  useOfflineFirstAuthenticatedSuspenseQuery, 
+  useOfflineFirstAuth,
+  createOfflineFirstQueryOptions 
+} from './hooks/useOfflineFirstAuth';
 
 // Test utilities
 export { testOfflineFirstInfrastructure } from './test/infrastructure.test';
@@ -41,6 +48,10 @@ export { FeatureFlagsDeveloperPanel } from './components/FeatureFlagsDeveloperPa
 export { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
 export { OfflineFirstInitializer } from './components/OfflineFirstInitializer';
 export { ConflictResolutionIndicator, ConflictResolutionDialog } from './components/ConflictResolutionUI';
+export { AdaptiveAuthWrapper } from './components/AdaptiveAuthWrapper';
+export { AdaptivePreferencesWrapper } from './components/AdaptivePreferencesWrapper';
+export { OfflineFirstAuthInterceptor } from './components/OfflineFirstAuthInterceptor';
+export { OfflineFirstPreferencesProvider } from './components/OfflineFirstPreferencesProvider';
 
 // Types
 export type { 

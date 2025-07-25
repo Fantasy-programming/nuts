@@ -5,6 +5,8 @@
  * should operate in fully offline mode.
  */
 
+import { featureFlagsService } from './feature-flags.service';
+
 export type ConnectivityStatus = 'online' | 'offline' | 'fully-offline';
 
 export interface ConnectivityState {
@@ -29,6 +31,7 @@ class ConnectivityService {
   constructor() {
     this.setupOnlineStatusListener();
     this.startPeriodicServerCheck();
+    this.setupFeatureFlagListener();
   }
 
   /**
@@ -196,6 +199,36 @@ class ConnectivityService {
   async refreshConnectivity(): Promise<ConnectivityState> {
     await this.checkServerConnectivity();
     return this.getState();
+  }
+
+  /**
+   * Setup feature flag listener for fully offline mode
+   */
+  private setupFeatureFlagListener(): void {
+    // Check initially and when feature flags change
+    this.checkFullyOfflineMode();
+    
+    // Listen for storage events to detect feature flag changes
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'nuts-feature-flags') {
+        this.checkFullyOfflineMode();
+      }
+    });
+  }
+
+  /**
+   * Check if fully offline mode is enabled and update state accordingly
+   */
+  private checkFullyOfflineMode(): void {
+    if (featureFlagsService.isFullyOfflineModeEnabled()) {
+      this.updateState({
+        status: 'fully-offline',
+        hasServerAccess: false
+      });
+    } else if (this.state.status === 'fully-offline') {
+      // When fully offline mode is disabled, re-check connectivity
+      this.checkServerConnectivity();
+    }
   }
 
   /**
