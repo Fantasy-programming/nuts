@@ -134,9 +134,10 @@ class SQLiteIndexService {
     if (!this.db) return;
     
     try {
-      // Check if deleted_at column exists
-      const tableInfo = this.db.prepare("PRAGMA table_info(transactions)").all() as any[];
-      const hasDeletedAt = tableInfo.some(col => col.name === 'deleted_at');
+      // Check if deleted_at column exists using sql.js exec API
+      const result = this.db.exec("PRAGMA table_info(transactions)");
+      const tableInfo = result[0]?.values || [];
+      const hasDeletedAt = tableInfo.some(row => row[1] === 'deleted_at'); // column name is at index 1
       
       if (!hasDeletedAt) {
         console.log('Adding deleted_at column to transactions table');
@@ -155,9 +156,10 @@ class SQLiteIndexService {
     if (!this.db) return;
     
     try {
-      // Check if deleted_at column exists
-      const tableInfo = this.db.prepare("PRAGMA table_info(accounts)").all() as any[];
-      const hasDeletedAt = tableInfo.some(col => col.name === 'deleted_at');
+      // Check if deleted_at column exists using sql.js exec API
+      const result = this.db.exec("PRAGMA table_info(accounts)");
+      const tableInfo = result[0]?.values || [];
+      const hasDeletedAt = tableInfo.some(row => row[1] === 'deleted_at'); // column name is at index 1
       
       if (!hasDeletedAt) {
         console.log('Adding deleted_at column to accounts table');
@@ -176,9 +178,10 @@ class SQLiteIndexService {
     if (!this.db) return;
     
     try {
-      // Check if deleted_at column exists
-      const tableInfo = this.db.prepare("PRAGMA table_info(categories)").all() as any[];
-      const hasDeletedAt = tableInfo.some(col => col.name === 'deleted_at');
+      // Check if deleted_at column exists using sql.js exec API
+      const result = this.db.exec("PRAGMA table_info(categories)");
+      const tableInfo = result[0]?.values || [];
+      const hasDeletedAt = tableInfo.some(row => row[1] === 'deleted_at'); // column name is at index 1
       
       if (!hasDeletedAt) {
         console.log('Adding deleted_at column to categories table');
