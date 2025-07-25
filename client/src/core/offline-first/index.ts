@@ -22,6 +22,15 @@ export { offlineFirstTransactionService } from './services/offline-transaction.s
 export { offlineFirstAccountService } from './services/offline-account.service';
 export { offlineFirstCategoryService } from './services/offline-category.service';
 
+// Auth services
+export { 
+  useAdaptiveAuthQuery,
+  useOfflineFirstAuth,
+  useOfflineFirstAuthStatus,
+  AdaptiveAuthAPI,
+  useAdaptiveAPI
+} from './services/adaptive-auth.service';
+
 // Hooks
 export { useOfflineFirst, useAdaptiveTransactions, useAdaptiveAccounts, useAdaptiveCategories } from './hooks/useOfflineFirst';
 export { 

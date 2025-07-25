@@ -9,6 +9,7 @@ import { crdtService } from './crdt.service';
 import { sqliteIndexService } from './sqlite-index.service';
 import { featureFlagsService } from './feature-flags.service';
 import { connectivityService } from './connectivity.service';
+import { offlineAuthService } from './offline-auth.service';
 import { api as axios } from '@/lib/axios';
 
 export type SyncStatus = 'synced' | 'syncing' | 'offline' | 'error' | 'conflict';
@@ -19,6 +20,7 @@ export interface SyncState {
   pendingOperations: number;
   error: string | null;
   isOnline: boolean;
+  hasValidAuth: boolean;
 }
 
 export interface SyncConflict {
@@ -35,7 +37,8 @@ class SyncService {
     lastSyncAt: null,
     pendingOperations: 0,
     error: null,
-    isOnline: navigator.onLine
+    isOnline: navigator.onLine,
+    hasValidAuth: false
   };
 
   private syncQueue: Array<{
@@ -66,22 +69,29 @@ class SyncService {
     }
 
     try {
-      // Check connectivity before attempting sync
-      if (connectivityService.hasServerAccess()) {
+      // Check if we can sync (requires connectivity AND valid auth)
+      if (offlineAuthService.canSync()) {
         await this.startBackgroundSync();
         console.log('Sync service initialized with background sync enabled');
       } else {
-        console.log('Sync service initialized in offline mode - background sync disabled');
+        const hasConnectivity = connectivityService.hasServerAccess();
+        const hasAuth = offlineAuthService.isAuthenticated();
+        
+        console.log(`Sync service initialized in offline mode - ${!hasConnectivity ? 'no connectivity' : 'no valid auth'}`);
         this.updateSyncState({
           status: 'offline',
-          error: 'No server connectivity - sync will resume when online'
+          isOnline: hasConnectivity,
+          hasValidAuth: hasAuth,
+          error: !hasConnectivity 
+            ? 'No server connectivity - sync will resume when online'
+            : 'No valid authentication - sync requires valid auth tokens'
         });
       }
     } catch (error) {
       console.error('Failed to initialize sync service:', error);
       this.updateSyncState({
         status: 'error',
-        error: 'Failed to initialize sync - will retry when connectivity is restored'
+        error: 'Failed to initialize sync - will retry when connectivity and auth are restored'
       });
     }
   }
@@ -99,7 +109,7 @@ class SyncService {
 
     // Schedule periodic sync every 30 seconds
     this.syncInterval = setInterval(async () => {
-      if (connectivityService.hasServerAccess() && featureFlagsService.useSyncEnabled()) {
+      if (offlineAuthService.canSync() && featureFlagsService.useSyncEnabled()) {
         await this.performSync();
       }
     }, 30000);
@@ -119,15 +129,35 @@ class SyncService {
    * Perform a complete sync cycle
    */
   async performSync(): Promise<void> {
-    // Check connectivity before attempting sync
-    if (!connectivityService.hasServerAccess()) {
-      this.updateSyncState({ status: 'offline' });
+    // Check if we can sync (connectivity AND valid auth)
+    if (!offlineAuthService.canSync()) {
+      const hasConnectivity = connectivityService.hasServerAccess();
+      const hasAuth = offlineAuthService.isAuthenticated();
+      
+      this.updateSyncState({ 
+        status: 'offline',
+        isOnline: hasConnectivity,
+        hasValidAuth: hasAuth,
+        error: !hasConnectivity 
+          ? 'No server connectivity' 
+          : 'No valid authentication for sync'
+      });
       return;
     }
 
     this.updateSyncState({ status: 'syncing' });
 
     try {
+      // Get access token for sync operations
+      const accessToken = await offlineAuthService.getAccessTokenForSync();
+      if (!accessToken) {
+        this.updateSyncState({
+          status: 'error',
+          error: 'Failed to get valid access token for sync'
+        });
+        return;
+      }
+
       // 1. Push local changes to server
       await this.pushLocalChanges();
 
@@ -138,16 +168,28 @@ class SyncService {
       this.updateSyncState({
         status: this.conflicts.length > 0 ? 'conflict' : 'synced',
         lastSyncAt: new Date(),
-        error: null
+        error: null,
+        isOnline: true,
+        hasValidAuth: true
       });
 
       console.log('Sync completed successfully');
     } catch (error) {
       console.error('Sync failed:', error);
-      this.updateSyncState({
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Sync failed'
-      });
+      
+      // Check if it's an auth error
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        this.updateSyncState({
+          status: 'error',
+          error: 'Authentication failed during sync - please re-authenticate',
+          hasValidAuth: false
+        });
+      } else {
+        this.updateSyncState({
+          status: 'error',
+          error: `Sync failed: ${error.message || 'Unknown error'}`
+        });
+      }
     }
   }
 
@@ -443,8 +485,8 @@ class SyncService {
     this.updateSyncState({ pendingOperations: this.syncQueue.length });
     this.persistSyncQueue();
 
-    // Trigger immediate sync if online
-    if (this.syncState.isOnline && featureFlagsService.useSyncEnabled()) {
+    // Trigger immediate sync if we can sync
+    if (offlineAuthService.canSync() && featureFlagsService.useSyncEnabled()) {
       this.performSync().catch(console.error);
     }
   }
@@ -586,14 +628,26 @@ class SyncService {
         converted.original_amount = parseFloat(item.original_amount.String || item.original_amount.value || item.original_amount) || 0;
       }
 
+      if (item.balance && typeof item.balance === 'object') {
+        converted.balance = parseFloat(item.balance.String || item.balance.value || item.balance) || 0;
+      }
+
+      if (item.exchange_rate && typeof item.exchange_rate === 'object') {
+        converted.exchange_rate = parseFloat(item.exchange_rate.String || item.exchange_rate.value || item.exchange_rate) || 1.0;
+      }
+
       // Ensure boolean fields are properly converted
       converted.is_external = Boolean(item.is_external);
       converted.is_active = Boolean(item.is_active !== false); // Default to true if not specified
+      converted.is_categorized = Boolean(item.is_categorized);
 
       // Handle optional UUID fields
       converted.category_id = item.category_id || null;
       converted.destination_account_id = item.destination_account_id || null;
       converted.parent_id = item.parent_id || null;
+      converted.account_id = item.account_id || null;
+      converted.created_by = item.created_by || null;
+      converted.updated_by = item.updated_by || null;
 
       // Ensure required string fields have fallback values
       converted.type = item.type || 'expense';
@@ -602,6 +656,60 @@ class SyncService {
       converted.name = item.name || '';
       converted.currency = item.currency || 'USD';
       converted.color = item.color || '#000000';
+      converted.icon = item.icon || 'Box';
+
+      // Handle account and category embedded data from server joins
+      // For transactions: extract embedded account and category data
+      if (item.account_id && item.account_name) {
+        // This is transaction data with embedded account info
+        converted.account_name = item.account_name;
+        converted.account_type = item.account_type;
+        converted.account_currency = item.account_currency;
+        converted.account_balance = item.account_balance;
+      }
+
+      if (item.category_id && item.category_name) {
+        // This is transaction data with embedded category info
+        converted.category_name = item.category_name;
+        converted.category_color = item.category_color;
+        converted.category_icon = item.category_icon;
+      }
+
+      if (item.destination_account_name) {
+        // This is transaction data with embedded destination account info
+        converted.destination_account_name = item.destination_account_name;
+        converted.destination_account_type = item.destination_account_type;
+        converted.destination_account_currency = item.destination_account_currency;
+      }
+
+      // Handle JSONB fields
+      if (item.details && typeof item.details === 'string') {
+        try {
+          converted.details = JSON.parse(item.details);
+        } catch {
+          converted.details = item.details;
+        }
+      } else {
+        converted.details = item.details || {};
+      }
+
+      if (item.meta && typeof item.meta === 'string') {
+        try {
+          converted.meta = JSON.parse(item.meta);
+        } catch {
+          converted.meta = item.meta;
+        }
+      } else {
+        converted.meta = item.meta || {};
+      }
+
+      // Handle date fields
+      if (item.exchange_rate_date) {
+        converted.exchange_rate_date = item.exchange_rate_date;
+      }
+
+      // Handle provider-specific fields
+      converted.provider_transaction_id = item.provider_transaction_id || null;
 
       return converted;
     });
