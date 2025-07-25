@@ -46,6 +46,11 @@ const baseRecordSchema = z.object({
   // Optional recurring fields
   is_recurring: z.boolean().optional(),
   recurring_config: recurringConfigSchema.optional(),
+  // Additional recurring status fields
+  recurring_transaction_id: z.string().optional(),
+  recurring_instance_date: z.coerce.date().optional(),
+  auto_post: z.boolean().optional(),
+  template_name: z.string().optional(),
 });
 
 const baseExtendedRecordSchema = z.object({
@@ -63,6 +68,11 @@ const baseExtendedRecordSchema = z.object({
   // Optional recurring fields
   is_recurring: z.boolean().optional(),
   recurring_config: recurringConfigSchema.optional(),
+  // Additional recurring status fields
+  recurring_transaction_id: z.string().optional(),
+  recurring_instance_date: z.coerce.date().optional(),
+  auto_post: z.boolean().optional(),
+  template_name: z.string().optional(),
 });
 
 const recordStandardSchema = baseRecordSchema.extend({

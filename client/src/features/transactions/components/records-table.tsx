@@ -16,6 +16,7 @@ import { Button } from "@/core/components/ui/button"
 import { Checkbox } from "@/core/components/ui/checkbox"
 import { Input } from "@/core/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/core/components/ui/table"
+import { Badge } from "@/core/components/ui/badge"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { getRecordsTableColumns } from "./records-table.column"
 import { useIsMobile } from "@/core/hooks/use-mobile"
@@ -32,6 +33,7 @@ import { getTransactions, bulkDeleteTransactions, type GetTransactionsParams } f
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 import { TransactionFilterDropdown, type TransactionFilterState } from "./transaction-filter-dropdown"
+import { getTransactionStatus, getTransactionStyles } from "../utils/transaction-status"
 
 interface RecordsTableProps {
   initialPage: number;
@@ -50,46 +52,65 @@ const MemoizedTransactionCard = memo(({
   row: Row<TableRecordSchema>;
   formatCurrency: (amount: number) => string;
   onEdit: (transaction: TableRecordSchema) => void;
-}) => (
-  <Card key={transaction.id} className={row.getIsSelected() ? "border-primary" : ""}>
-    <CardContent className="p-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 pt-1">
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label={`Select transaction ${transaction.id}`}
-          />
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback>
-                  {transaction.account.name.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <button
-                  onClick={() => onEdit(transaction)}
-                  className="font-medium text-left hover:underline text-md"
-                >
-                  {transaction.description}
-                </button>
-                <Link
-                  to="/dashboard/accounts/$id"
-                  params={{ id: transaction.account.id }}
-                  className="text-sm text-muted-foreground hover:underline"
-                >
-                  {transaction.account.name}
-                </Link>
+}) => {
+  const status = getTransactionStatus(transaction);
+  const styles = getTransactionStyles(transaction);
+  
+  return (
+    <Card key={transaction.id} className={`${row.getIsSelected() ? "border-primary" : ""} ${styles.borderClass}`}>
+      <CardContent className={`p-3 ${styles.containerClass}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 pt-1">
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label={`Select transaction ${transaction.id}`}
+            />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback>
+                    {transaction.account.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onEdit(transaction)}
+                      className={`font-medium text-left hover:underline text-md ${styles.textClass}`}
+                    >
+                      {transaction.description}
+                    </button>
+                    {status.statusLabel && (
+                      <Badge variant={status.badgeVariant} className="text-xs">
+                        {status.statusLabel}
+                      </Badge>
+                    )}
+                  </div>
+                  <Link
+                    to="/dashboard/accounts/$id"
+                    params={{ id: transaction.account.id }}
+                    className={`text-sm hover:underline ${styles.textClass || "text-muted-foreground"}`}
+                  >
+                    {transaction.account.name}
+                  </Link>
+                  {transaction.template_name && (
+                    <span className="text-xs text-muted-foreground">
+                      Template: {transaction.template_name}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
+          <div className={`font-medium ${styles.textClass}`}>
+            {formatCurrency(Number(transaction.amount))}
+          </div>
         </div>
-        <div className="font-medium">{formatCurrency(Number(transaction.amount))}</div>
-      </div>
-    </CardContent>
-  </Card>
-));
+      </CardContent>
+    </Card>
+  );
+});
 
 
 export const RecordsTable = ({
@@ -141,6 +162,14 @@ export const RecordsTable = ({
 
     if (debouncedFilters.currency) {
       params.currency = debouncedFilters.currency;
+    }
+
+    if (debouncedFilters.is_recurring !== undefined) {
+      params.is_recurring = debouncedFilters.is_recurring;
+    }
+
+    if (debouncedFilters.is_pending !== undefined) {
+      params.is_pending = debouncedFilters.is_pending;
     }
 
     if (debouncedFilters.start_date) {

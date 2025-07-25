@@ -65,18 +65,19 @@ func NewRepository(db *pgxpool.Pool, queries *repository.Queries) Repository {
 func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsParams, groupByDate bool) (*PaginatedTransactionsResponse, error) {
 	// 1. Get the total count for pagination metadata
 	totalItems, err := r.Queries.CountTransactions(ctx, repository.CountTransactionsParams{
-		UserID:     &params.UserID,
-		Type:       params.Type,
-		AccountID:  params.AccountID,
-		CategoryID: params.CategoryID,
-		Currency:   params.Currency,
-		StartDate:  params.StartDate,
-		EndDate:    params.EndDate,
-		Search:     params.Search,
-		IsExternal: params.IsExternal,
-		MinAmount:  floatToNumeric(params.MinAmount),
-		MaxAmount:  floatToNumeric(params.MaxAmount),
-		Tags:       params.Tags,
+		UserID:      &params.UserID,
+		Type:        params.Type,
+		AccountID:   params.AccountID,
+		CategoryID:  params.CategoryID,
+		Currency:    params.Currency,
+		StartDate:   params.StartDate,
+		EndDate:     params.EndDate,
+		Search:      params.Search,
+		IsExternal:  params.IsExternal,
+		// Note: IsRecurring and IsPending will need to be handled when sqlc is regenerated
+		MinAmount:   floatToNumeric(params.MinAmount),
+		MaxAmount:   floatToNumeric(params.MaxAmount),
+		Tags:        params.Tags,
 	})
 	if err != nil {
 		return nil, err
@@ -95,6 +96,7 @@ func (r *Trsrepo) GetTransactions(ctx context.Context, params ListTransactionsPa
 		EndDate:    params.EndDate,
 		Search:     params.Search,
 		IsExternal: params.IsExternal,
+		// Note: IsRecurring and IsPending will need to be handled when sqlc is regenerated
 		MinAmount:  floatToNumeric(params.MinAmount),
 		MaxAmount:  floatToNumeric(params.MaxAmount),
 		Tags:       params.Tags,

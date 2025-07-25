@@ -107,6 +107,18 @@ func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if isRecurringStr := q.Get("is_recurring"); isRecurringStr != "" {
+		if isRecurring, err := strconv.ParseBool(isRecurringStr); err == nil {
+			params.IsRecurring = &isRecurring
+		}
+	}
+
+	if isPendingStr := q.Get("is_pending"); isPendingStr != "" {
+		if isPending, err := strconv.ParseBool(isPendingStr); err == nil {
+			params.IsPending = &isPending
+		}
+	}
+
 	if minAmountStr := q.Get("min_amount"); minAmountStr != "" {
 		if minAmount, err := strconv.ParseFloat(minAmountStr, 64); err == nil {
 			params.MinAmount = &minAmount

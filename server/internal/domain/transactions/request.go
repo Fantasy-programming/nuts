@@ -22,6 +22,8 @@ type ListTransactionsParams struct {
 	MaxAmount     *float64
 	Tags          []string
 	IsExternal    *bool
+	IsRecurring   *bool
+	IsPending     *bool
 }
 
 // Pagination represents the metadata for a paginated response.

@@ -29,6 +29,8 @@ export interface GetTransactionsParams {
   start_date?: string;
   end_date?: string;
   currency?: string;
+  is_recurring?: boolean;
+  is_pending?: boolean;
   limit?: number;
 }
 
