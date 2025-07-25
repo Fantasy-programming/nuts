@@ -72,6 +72,9 @@ class SQLiteIndexService {
       )
     `);
     
+    // Migrate existing transactions table to add deleted_at if missing
+    this.migrateTransactionsTable();
+    
     // Accounts table
     this.db.run(`
       CREATE TABLE IF NOT EXISTS accounts (
@@ -86,6 +89,9 @@ class SQLiteIndexService {
         deleted_at TEXT
       )
     `);
+    
+    // Migrate existing accounts table to add deleted_at if missing
+    this.migrateAccountsTable();
     
     // Categories table
     this.db.run(`
@@ -103,6 +109,9 @@ class SQLiteIndexService {
       )
     `);
     
+    // Migrate existing categories table to add deleted_at if missing
+    this.migrateCategoriesTable();
+    
     // Create indices for efficient querying
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_datetime);
@@ -118,6 +127,69 @@ class SQLiteIndexService {
     await this.persist();
   }
   
+  /**
+   * Migrate transactions table to add deleted_at column if missing
+   */
+  private migrateTransactionsTable(): void {
+    if (!this.db) return;
+    
+    try {
+      // Check if deleted_at column exists
+      const tableInfo = this.db.prepare("PRAGMA table_info(transactions)").all() as any[];
+      const hasDeletedAt = tableInfo.some(col => col.name === 'deleted_at');
+      
+      if (!hasDeletedAt) {
+        console.log('Adding deleted_at column to transactions table');
+        this.db.run('ALTER TABLE transactions ADD COLUMN deleted_at TEXT');
+      }
+    } catch (error) {
+      console.error('Error migrating transactions table:', error);
+      // Continue execution - the error might be that the table doesn't exist yet
+    }
+  }
+  
+  /**
+   * Migrate accounts table to add deleted_at column if missing
+   */
+  private migrateAccountsTable(): void {
+    if (!this.db) return;
+    
+    try {
+      // Check if deleted_at column exists
+      const tableInfo = this.db.prepare("PRAGMA table_info(accounts)").all() as any[];
+      const hasDeletedAt = tableInfo.some(col => col.name === 'deleted_at');
+      
+      if (!hasDeletedAt) {
+        console.log('Adding deleted_at column to accounts table');
+        this.db.run('ALTER TABLE accounts ADD COLUMN deleted_at TEXT');
+      }
+    } catch (error) {
+      console.error('Error migrating accounts table:', error);
+      // Continue execution - the error might be that the table doesn't exist yet
+    }
+  }
+  
+  /**
+   * Migrate categories table to add deleted_at column if missing
+   */
+  private migrateCategoriesTable(): void {
+    if (!this.db) return;
+    
+    try {
+      // Check if deleted_at column exists
+      const tableInfo = this.db.prepare("PRAGMA table_info(categories)").all() as any[];
+      const hasDeletedAt = tableInfo.some(col => col.name === 'deleted_at');
+      
+      if (!hasDeletedAt) {
+        console.log('Adding deleted_at column to categories table');
+        this.db.run('ALTER TABLE categories ADD COLUMN deleted_at TEXT');
+      }
+    } catch (error) {
+      console.error('Error migrating categories table:', error);
+      // Continue execution - the error might be that the table doesn't exist yet
+    }
+  }
+
   /**
    * Rebuild all indices from CRDT data
    */
