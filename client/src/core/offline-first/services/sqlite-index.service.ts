@@ -11,28 +11,28 @@ import { CRDTTransaction, CRDTAccount, CRDTCategory } from '../types/crdt-schema
 class SQLiteIndexService {
   private db: Database | null = null;
   private isInitialized = false;
-  
+
   /**
    * Initialize SQLite WASM and create database tables
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
-    
+
     try {
       // Initialize SQL.js
       const SQL = await initSqlJs({
         locateFile: (file: string) => `https://sql.js.org/dist/${file}`
       });
-      
+
       // Create new database or load from storage
       const savedDb = localStorage.getItem('nuts-sqlite-db');
-      this.db = savedDb 
+      this.db = savedDb
         ? new SQL.Database(new Uint8Array(JSON.parse(savedDb)))
         : new SQL.Database();
-      
+
       // Create tables if they don't exist
       await this.createTables();
-      
+
       this.isInitialized = true;
       console.log('SQLite indexing service initialized');
     } catch (error) {
@@ -40,13 +40,13 @@ class SQLiteIndexService {
       throw error;
     }
   }
-  
+
   /**
    * Create database tables for indexing
    */
-  private async createTables(): Promise<void> {
+  private createTables = async (): Promise<void> => {
     if (!this.db) throw new Error('Database not initialized');
-    
+
     // Transactions table
     this.db.run(`
       CREATE TABLE IF NOT EXISTS transactions (
@@ -71,10 +71,8 @@ class SQLiteIndexService {
         month TEXT GENERATED ALWAYS AS (strftime('%m', transaction_datetime)) STORED
       )
     `);
-    
-    // Migrate existing transactions table to add deleted_at if missing
-    this.migrateTransactionsTable();
-    
+
+
     // Accounts table
     this.db.run(`
       CREATE TABLE IF NOT EXISTS accounts (
@@ -89,10 +87,8 @@ class SQLiteIndexService {
         deleted_at TEXT
       )
     `);
-    
-    // Migrate existing accounts table to add deleted_at if missing
-    this.migrateAccountsTable();
-    
+
+
     // Categories table
     this.db.run(`
       CREATE TABLE IF NOT EXISTS categories (
@@ -108,10 +104,8 @@ class SQLiteIndexService {
         FOREIGN KEY (parent_id) REFERENCES categories(id)
       )
     `);
-    
-    // Migrate existing categories table to add deleted_at if missing
-    this.migrateCategoriesTable();
-    
+
+
     // Create indices for efficient querying
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_datetime);
@@ -123,75 +117,10 @@ class SQLiteIndexService {
       CREATE INDEX IF NOT EXISTS idx_transactions_deleted ON transactions(deleted_at);
       CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
     `);
-    
+
     await this.persist();
   }
-  
-  /**
-   * Migrate transactions table to add deleted_at column if missing
-   */
-  private migrateTransactionsTable(): void {
-    if (!this.db) return;
-    
-    try {
-      // Check if deleted_at column exists using sql.js exec API
-      const result = this.db.exec("PRAGMA table_info(transactions)");
-      const tableInfo = result[0]?.values || [];
-      const hasDeletedAt = tableInfo.some(row => row[1] === 'deleted_at'); // column name is at index 1
-      
-      if (!hasDeletedAt) {
-        console.log('Adding deleted_at column to transactions table');
-        this.db.run('ALTER TABLE transactions ADD COLUMN deleted_at TEXT');
-      }
-    } catch (error) {
-      console.error('Error migrating transactions table:', error);
-      // Continue execution - the error might be that the table doesn't exist yet
-    }
-  }
-  
-  /**
-   * Migrate accounts table to add deleted_at column if missing
-   */
-  private migrateAccountsTable(): void {
-    if (!this.db) return;
-    
-    try {
-      // Check if deleted_at column exists using sql.js exec API
-      const result = this.db.exec("PRAGMA table_info(accounts)");
-      const tableInfo = result[0]?.values || [];
-      const hasDeletedAt = tableInfo.some(row => row[1] === 'deleted_at'); // column name is at index 1
-      
-      if (!hasDeletedAt) {
-        console.log('Adding deleted_at column to accounts table');
-        this.db.run('ALTER TABLE accounts ADD COLUMN deleted_at TEXT');
-      }
-    } catch (error) {
-      console.error('Error migrating accounts table:', error);
-      // Continue execution - the error might be that the table doesn't exist yet
-    }
-  }
-  
-  /**
-   * Migrate categories table to add deleted_at column if missing
-   */
-  private migrateCategoriesTable(): void {
-    if (!this.db) return;
-    
-    try {
-      // Check if deleted_at column exists using sql.js exec API
-      const result = this.db.exec("PRAGMA table_info(categories)");
-      const tableInfo = result[0]?.values || [];
-      const hasDeletedAt = tableInfo.some(row => row[1] === 'deleted_at'); // column name is at index 1
-      
-      if (!hasDeletedAt) {
-        console.log('Adding deleted_at column to categories table');
-        this.db.run('ALTER TABLE categories ADD COLUMN deleted_at TEXT');
-      }
-    } catch (error) {
-      console.error('Error migrating categories table:', error);
-      // Continue execution - the error might be that the table doesn't exist yet
-    }
-  }
+
 
   /**
    * Rebuild all indices from CRDT data
@@ -202,19 +131,19 @@ class SQLiteIndexService {
     categories: Record<string, CRDTCategory>
   ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
-    
+
     try {
       // Clear existing data
       this.db.run('DELETE FROM transactions');
-      this.db.run('DELETE FROM accounts');  
+      this.db.run('DELETE FROM accounts');
       this.db.run('DELETE FROM categories');
-      
+
       // Insert accounts
       const insertAccount = this.db.prepare(`
         INSERT INTO accounts (id, name, type, currency, balance, is_active, created_at, updated_at, deleted_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      
+
       for (const account of Object.values(accounts)) {
         // Validate all required fields before binding to SQLite
         const validatedAccount = {
@@ -247,13 +176,13 @@ class SQLiteIndexService {
         }
       }
       insertAccount.free();
-      
+
       // Insert categories
       const insertCategory = this.db.prepare(`
         INSERT INTO categories (id, name, color, icon, parent_id, is_active, created_at, updated_at, deleted_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      
+
       for (const category of Object.values(categories)) {
         // Validate all required fields before binding to SQLite
         const validatedCategory = {
@@ -286,7 +215,7 @@ class SQLiteIndexService {
         }
       }
       insertCategory.free();
-      
+
       // Insert transactions
       const insertTransaction = this.db.prepare(`
         INSERT INTO transactions (
@@ -295,7 +224,7 @@ class SQLiteIndexService {
           is_external, created_at, updated_at, deleted_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      
+
       for (const transaction of Object.values(transactions)) {
         // Validate all required fields before binding to SQLite
         const validatedTransaction = {
@@ -338,7 +267,7 @@ class SQLiteIndexService {
         }
       }
       insertTransaction.free();
-      
+
       await this.persist();
       console.log('SQLite indices rebuilt successfully');
     } catch (error) {
@@ -346,7 +275,7 @@ class SQLiteIndexService {
       throw error;
     }
   }
-  
+
   /**
    * Query transactions with filtering and pagination
    */
@@ -366,7 +295,7 @@ class SQLiteIndexService {
     totalPages: number;
   } {
     if (!this.db) throw new Error('Database not initialized');
-    
+
     const {
       page = 1,
       limit = 25,
@@ -378,61 +307,61 @@ class SQLiteIndexService {
       endDate,
       currency
     } = params;
-    
-    let whereConditions: string[] = ['t.deleted_at IS NULL'];
-    let queryParams: any[] = [];
-    
+
+    const whereConditions: string[] = ['t.deleted_at IS NULL'];
+    const queryParams: any[] = [];
+
     // Build WHERE conditions
     if (search) {
       whereConditions.push('t.description LIKE ?');
       queryParams.push(`%${search}%`);
     }
-    
+
     if (accountId) {
       whereConditions.push('t.account_id = ?');
       queryParams.push(accountId);
     }
-    
+
     if (categoryId) {
       whereConditions.push('t.category_id = ?');
       queryParams.push(categoryId);
     }
-    
+
     if (type) {
       whereConditions.push('t.type = ?');
       queryParams.push(type);
     }
-    
+
     if (startDate) {
       whereConditions.push('DATE(t.transaction_datetime) >= ?');
       queryParams.push(startDate);
     }
-    
+
     if (endDate) {
       whereConditions.push('DATE(t.transaction_datetime) <= ?');
       queryParams.push(endDate);
     }
-    
+
     if (currency) {
       whereConditions.push('t.transaction_currency = ?');
       queryParams.push(currency);
     }
-    
-    const whereClause = whereConditions.length > 0 
+
+    const whereClause = whereConditions.length > 0
       ? `WHERE ${whereConditions.join(' AND ')}`
       : '';
-    
+
     // Get total count
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM transactions
+      FROM transactions as t
       ${whereClause}
     `;
-    
+
     const countResult = this.db.exec(countQuery, queryParams);
     const totalCount = countResult[0]?.values[0]?.[0] as number || 0;
     const totalPages = Math.ceil(totalCount / limit);
-    
+
     // Get paginated results
     const offset = (page - 1) * limit;
     const dataQuery = `
@@ -451,27 +380,29 @@ class SQLiteIndexService {
       ORDER BY t.transaction_datetime DESC
       LIMIT ? OFFSET ?
     `;
-    
+
     const dataResult = this.db.exec(dataQuery, [...queryParams, limit, offset]);
-    
+
+    console.log("result:", dataResult)
+
     const transactions = dataResult[0]?.values.map((row: any[]) => {
       const columns = dataResult[0].columns;
       const transaction: any = {};
-      
+
       row.forEach((value: any, index: number) => {
         transaction[columns[index]] = value;
       });
-      
+
       return transaction;
     }) || [];
-    
+
     return {
       transactions,
       totalCount,
       totalPages
     };
   }
-  
+
   /**
    * Get transaction analytics
    */
@@ -482,32 +413,32 @@ class SQLiteIndexService {
     groupBy?: 'day' | 'month' | 'year' | 'category';
   }): any[] {
     if (!this.db) throw new Error('Database not initialized');
-    
+
     const { startDate, endDate, accountId, groupBy = 'month' } = params;
-    
-    let whereConditions: string[] = ['t.deleted_at IS NULL', "t.type != 'transfer'"];
-    let queryParams: any[] = [];
-    
+
+    const whereConditions: string[] = ['t.deleted_at IS NULL', "t.type != 'transfer'"];
+    const queryParams: any[] = [];
+
     if (startDate) {
       whereConditions.push('DATE(transaction_datetime) >= ?');
       queryParams.push(startDate);
     }
-    
+
     if (endDate) {
       whereConditions.push('DATE(transaction_datetime) <= ?');
       queryParams.push(endDate);
     }
-    
+
     if (accountId) {
       whereConditions.push('t.account_id = ?');
       queryParams.push(accountId);
     }
-    
+
     const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
-    
+
     let groupByClause: string;
     let selectFields: string;
-    
+
     switch (groupBy) {
       case 'day':
         selectFields = `date_only as period, DATE(transaction_datetime) as date`;
@@ -525,7 +456,7 @@ class SQLiteIndexService {
         selectFields = `t.year_month as period, t.year_month`;
         groupByClause = 'GROUP BY t.year_month';
     }
-    
+
     const query = `
       SELECT 
         ${selectFields},
@@ -538,27 +469,27 @@ class SQLiteIndexService {
       ${groupByClause}
       ORDER BY period
     `;
-    
+
     const result = this.db.exec(query, queryParams);
-    
+
     return result[0]?.values.map((row: any[]) => {
       const columns = result[0].columns;
       const analytics: any = {};
-      
+
       row.forEach((value: any, index: number) => {
         analytics[columns[index]] = value;
       });
-      
+
       return analytics;
     }) || [];
   }
-  
+
   /**
    * Persist database to local storage
    */
   async persist(): Promise<void> {
     if (!this.db) return;
-    
+
     try {
       const data = this.db.export();
       localStorage.setItem('nuts-sqlite-db', JSON.stringify(Array.from(data)));
@@ -567,7 +498,7 @@ class SQLiteIndexService {
       throw error;
     }
   }
-  
+
   /**
    * Clear all data
    */

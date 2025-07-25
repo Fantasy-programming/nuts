@@ -218,11 +218,11 @@ class SyncService {
       });
 
       // Validate response data before processing
-      const transactionsData = Array.isArray(transactionsResponse.data) ? transactionsResponse.data : [];
+      const transactionsData = Array.isArray(transactionsResponse.data.data) ? transactionsResponse.data.data : [];
       const accountsData = Array.isArray(accountsResponse.data) ? accountsResponse.data : [];
       const categoriesData = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
 
-      if (!Array.isArray(transactionsResponse.data)) {
+      if (!Array.isArray(transactionsResponse.data.data)) {
         console.warn('Transactions sync response is not an array:', transactionsResponse.data);
       }
       if (!Array.isArray(accountsResponse.data)) {
