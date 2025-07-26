@@ -6,7 +6,7 @@
  */
 
 import { useEffect, ReactNode } from 'react';
-import { usePreferencesStore } from '../stores/preferences.store.ts';
+import { usePreferencesStore } from '@/features/preferences/stores/preferences.store.ts';
 import { adaptivePreferencesService } from '@/core/offline-first/services/adaptive-preferences.service';
 import { featureFlagsService } from '@/core/offline-first/services/feature-flags.service';
 import { connectivityService } from '@/core/offline-first/services/connectivity.service';

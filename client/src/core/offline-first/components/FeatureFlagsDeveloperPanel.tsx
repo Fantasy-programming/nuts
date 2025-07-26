@@ -30,6 +30,11 @@ const FEATURE_FLAGS: Array<{ key: FeatureFlag; label: string; description: strin
     description: 'Use CRDT-based category management'
   },
   {
+    key: 'offline-first-preferences',
+    label: 'Offline-First Preferences',
+    description: 'Use offline-first preferences with cache fallback'
+  },
+  {
     key: 'offline-first-analytics',
     label: 'Offline-First Analytics',
     description: 'Use local SQLite for analytics and reporting'
