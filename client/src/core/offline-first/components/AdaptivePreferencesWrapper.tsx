@@ -7,20 +7,19 @@
 
 import { ReactNode } from 'react';
 import { PreferencesProvider } from '@/features/preferences/components/preferences-provider';
-import { OfflineFirstPreferencesProvider } from './OfflineFirstPreferencesProvider';
+import { AdaptivePreferencesProvider } from './AdaptivePreferencesProvider';
 import { featureFlagsService } from '../services/feature-flags.service';
-import { connectivityService } from '../services/connectivity.service';
 
 interface AdaptivePreferencesWrapperProps {
   children: ReactNode;
 }
 
 export function AdaptivePreferencesWrapper({ children }: AdaptivePreferencesWrapperProps) {
-  // Use offline-first preferences when fully offline mode is enabled or when server is not accessible
-  const shouldUseOfflineFirst = featureFlagsService.isFullyOfflineModeEnabled() || !connectivityService.hasServerAccess();
+  // Use adaptive preferences when offline-first preferences are enabled
+  const shouldUseAdaptivePreferences = featureFlagsService.useOfflineFirstPreferences() || featureFlagsService.isFullyOfflineModeEnabled();
 
-  if (shouldUseOfflineFirst) {
-    return <OfflineFirstPreferencesProvider>{children}</OfflineFirstPreferencesProvider>;
+  if (shouldUseAdaptivePreferences) {
+    return <AdaptivePreferencesProvider>{children}</AdaptivePreferencesProvider>;
   }
 
   return <PreferencesProvider>{children}</PreferencesProvider>;

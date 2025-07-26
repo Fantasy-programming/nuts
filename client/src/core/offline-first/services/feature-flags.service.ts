@@ -10,6 +10,7 @@ type FeatureFlag =
   | 'offline-first-transactions'
   | 'offline-first-accounts'
   | 'offline-first-categories'
+  | 'offline-first-preferences'
   | 'offline-first-analytics'
   | 'offline-first-sync'
   | 'fully-offline-mode';
@@ -27,6 +28,7 @@ class FeatureFlagsService {
     'offline-first-transactions': false,
     'offline-first-accounts': false,
     'offline-first-categories': false,
+    'offline-first-preferences': false,
     'offline-first-analytics': false,
     'offline-first-sync': false,
     
@@ -159,6 +161,13 @@ class FeatureFlagsService {
   }
   
   /**
+   * Check if offline-first is enabled for preferences
+   */
+  useOfflineFirstPreferences(): boolean {
+    return this.isEnabled('offline-first-enabled') && this.isEnabled('offline-first-preferences');
+  }
+
+  /**
    * Check if offline-first analytics is enabled
    */
   useOfflineFirstAnalytics(): boolean {
@@ -188,6 +197,7 @@ class FeatureFlagsService {
       'offline-first-transactions': true,
       'offline-first-accounts': true,
       'offline-first-categories': true,
+      'offline-first-preferences': true,
       'offline-first-analytics': false, // Keep analytics server-based for now
       'offline-first-sync': false, // Keep sync disabled initially
     });
@@ -202,6 +212,7 @@ class FeatureFlagsService {
       'offline-first-transactions': false,
       'offline-first-accounts': false,
       'offline-first-categories': false,
+      'offline-first-preferences': false,
       'offline-first-analytics': false,
       'offline-first-sync': false,
     });
@@ -217,6 +228,7 @@ class FeatureFlagsService {
       'offline-first-transactions': false,
       'offline-first-accounts': false,
       'offline-first-categories': false,
+      'offline-first-preferences': false,
       'offline-first-analytics': false,
       'offline-first-sync': false,
       'fully-offline-mode': false,

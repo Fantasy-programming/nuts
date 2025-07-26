@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { adaptivePreferencesService } from '@/core/offline-first/services/adaptive-preferences.service';
 import { preferencesService, PreferencesResponse } from '../services/preferences';
 import i18n from '@/core/i18n/config.ts';
 import { tryCatch } from '@/lib/trycatch';
@@ -73,7 +74,7 @@ export const usePreferencesStore = create<PreferenceState>()(
 
         set({ isLoading: true, error: null, theme });
 
-        const { error: e2 } = await tryCatch(preferencesService.updatePreferences({ theme }));
+        const { error: e2 } = await tryCatch(adaptivePreferencesService.updatePreferences({ theme }));
         if (e2) {
           const parsed = parseApiError(e2);
           logger.error(e2, { action: 'updateTheme', parsed });

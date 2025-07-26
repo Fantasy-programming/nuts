@@ -13,6 +13,7 @@ import { offlineAuthService } from './offline-auth.service';
 import { adaptiveTransactionService } from './adaptive-transaction.service';
 import { adaptiveAccountService } from './adaptive-account.service';
 import { adaptiveCategoryService } from './adaptive-category.service';
+import { adaptivePreferencesService } from './adaptive-preferences.service';
 
 class OfflineFirstInitService {
   private isInitialized = false;
@@ -64,12 +65,15 @@ class OfflineFirstInitService {
       console.log('7. Initializing adaptive category service...');
       await adaptiveCategoryService.initialize();
 
+      console.log('8. Initializing adaptive preferences service...');
+      await adaptivePreferencesService.initialize();
+
       // Initialize sync service if sync is enabled and we have connectivity
       if (featureFlagsService.isEnabled('offline-first-sync')) {
-        console.log('8. Initializing sync service...');
+        console.log('9. Initializing sync service...');
         await syncService.initialize();
       } else {
-        console.log('8. Sync service disabled via feature flags');
+        console.log('9. Sync service disabled via feature flags');
       }
 
       this.isInitialized = true;

@@ -6,8 +6,7 @@
 
 import { connectivityService } from './connectivity.service';
 import { featureFlagsService } from './feature-flags.service';
-import { preferencesService } from '@/features/preferences/services/preferences';
-import type { UserPreferences } from '@/features/preferences/services/preferences.types';
+import { preferencesService, type PreferencesResponse } from '@/features/preferences/services/preferences';
 
 class OfflinePreferencesService {
   private readonly STORAGE_KEY = 'nuts-offline-preferences';
@@ -16,7 +15,7 @@ class OfflinePreferencesService {
   /**
    * Get preferences with offline fallback
    */
-  async getPreferences(): Promise<UserPreferences> {
+  async getPreferences(): Promise<PreferencesResponse> {
     const shouldUseOfflineFirst = featureFlagsService.isFullyOfflineModeEnabled() || !connectivityService.hasServerAccess();
 
     if (shouldUseOfflineFirst) {
@@ -50,7 +49,7 @@ class OfflinePreferencesService {
   /**
    * Update preferences with offline queueing
    */
-  async updatePreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences> {
+  async updatePreferences(preferences: Partial<PreferencesResponse>): Promise<PreferencesResponse> {
     const shouldUseOfflineFirst = featureFlagsService.isFullyOfflineModeEnabled() || !connectivityService.hasServerAccess();
 
     if (shouldUseOfflineFirst) {
@@ -78,7 +77,7 @@ class OfflinePreferencesService {
   /**
    * Cache preferences data
    */
-  private cachePreferences(preferences: UserPreferences): void {
+  private cachePreferences(preferences: PreferencesResponse): void {
     try {
       const cached = {
         data: preferences,
@@ -94,7 +93,7 @@ class OfflinePreferencesService {
   /**
    * Get cached preferences
    */
-  private getCachedPreferences(): { data: UserPreferences; timestamp: number; expiresAt: number } | null {
+  private getCachedPreferences(): { data: PreferencesResponse; timestamp: number; expiresAt: number } | null {
     try {
       const cached = localStorage.getItem(this.STORAGE_KEY);
       return cached ? JSON.parse(cached) : null;
@@ -114,15 +113,17 @@ class OfflinePreferencesService {
   /**
    * Get default preferences for offline mode
    */
-  private getDefaultPreferences(): UserPreferences {
+  private getDefaultPreferences(): PreferencesResponse {
     return {
-      // Basic defaults that allow the app to function offline
-      currency: 'USD',
-      language: 'en',
-      theme: 'system',
+      locale: 'en',
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-      // Add other default preferences as needed
-    } as UserPreferences;
+      time_format: '24h',
+      date_format: 'yyyy-mm-dd',
+      start_week_on_monday: true,
+      currency: 'USD',
+      theme: 'system',
+      dark_sidebar: false,
+    };
   }
 
   /**

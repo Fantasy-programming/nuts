@@ -18,6 +18,7 @@ export { offlinePreferencesService } from './services/offline-preferences.servic
 export { adaptiveTransactionService } from './services/adaptive-transaction.service';
 export { adaptiveAccountService } from './services/adaptive-account.service';
 export { adaptiveCategoryService } from './services/adaptive-category.service';
+export { adaptivePreferencesService } from './services/adaptive-preferences.service';
 export { offlineFirstTransactionService } from './services/offline-transaction.service';
 export { offlineFirstAccountService } from './services/offline-account.service';
 export { offlineFirstCategoryService } from './services/offline-category.service';
@@ -59,6 +60,7 @@ export { OfflineFirstInitializer } from './components/OfflineFirstInitializer';
 export { ConflictResolutionIndicator, ConflictResolutionDialog } from './components/ConflictResolutionUI';
 export { AdaptiveAuthWrapper } from './components/AdaptiveAuthWrapper';
 export { AdaptivePreferencesWrapper } from './components/AdaptivePreferencesWrapper';
+export { AdaptivePreferencesProvider } from './components/AdaptivePreferencesProvider';
 export { OfflineFirstAuthInterceptor } from './components/OfflineFirstAuthInterceptor';
 export { OfflineFirstPreferencesProvider } from './components/OfflineFirstPreferencesProvider';
 
