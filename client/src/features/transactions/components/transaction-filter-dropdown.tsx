@@ -34,11 +34,11 @@ const TRANSACTION_TYPES = [
   { value: "transfer", label: "Transfer" },
 ]
 
-const STATUS_TYPES = [
-  { value: "recurring", label: "Recurring Transactions" },
-  { value: "pending", label: "Pending Approval" },
-  { value: "auto_posted", label: "Auto-posted" },
-]
+// const STATUS_TYPES = [
+//   { value: "recurring", label: "Recurring Transactions" },
+//   { value: "pending", label: "Pending Approval" },
+//   { value: "auto_posted", label: "Auto-posted" },
+// ]
 
 const CURRENCIES = [
   { value: "USD", label: "USD" },

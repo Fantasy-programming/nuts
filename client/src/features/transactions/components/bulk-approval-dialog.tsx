@@ -25,7 +25,7 @@ export function BulkApprovalDialog({
 }: BulkApprovalDialogProps) {
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
   const [approvalMode, setApprovalMode] = useState<"all" | "small" | "selected">("selected");
-  const [smallAmountThreshold, setSmallAmountThreshold] = useState(50);
+  const [smallAmountThreshold] = useState(50);
   
   const queryClient = useQueryClient();
 
@@ -52,7 +52,7 @@ export function BulkApprovalDialog({
   const pendingOnly = pendingTransactions.filter(t => getTransactionStatus(t).isPending);
   
   const smallTransactions = pendingOnly.filter(t => Math.abs(t.amount) < smallAmountThreshold);
-  const largeTransactions = pendingOnly.filter(t => Math.abs(t.amount) >= smallAmountThreshold);
+  // const largeTransactions = pendingOnly.filter(t => Math.abs(t.amount) >= smallAmountThreshold);
 
   const getTransactionsToApprove = () => {
     switch (approvalMode) {
@@ -205,7 +205,7 @@ export function BulkApprovalDialog({
             
             <div className="max-h-96 overflow-y-auto space-y-2">
               {pendingOnly.map((transaction) => {
-                const status = getTransactionStatus(transaction);
+                // const status = getTransactionStatus(transaction);
                 const isSelected = selectedTransactions.has(transaction.id);
                 const willBeApproved = getTransactionsToApprove().some(t => t.id === transaction.id);
                 

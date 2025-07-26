@@ -64,16 +64,16 @@ export function CustomRecurringModal({
   const dayOfWeek = form.watch("dayOfWeek");
   const endDate = form.watch("endDate");
   const maxOccurrences = form.watch("maxOccurrences");
-  const autoPostMode = form.watch("autoPostMode");
-  const smartThreshold = form.watch("smartThreshold");
-  const previewDays = form.watch("previewDays");
+  // const autoPostMode = form.watch("autoPostMode");
+  // const smartThreshold = form.watch("smartThreshold");
+  // const previewDays = form.watch("previewDays");
 
   // Handle natural language pattern parsing
   const handleNaturalLanguageChange = (input: string) => {
     setNaturalLanguageInput(input);
     if (input.trim()) {
       try {
-        // Use any-date-parser to try to extract patterns
+        // Parse natural language patterns for recurring transactions
         // This is a simple example - you could expand this logic
         const patterns = parseNaturalLanguagePattern(input);
         setParsedPattern(patterns.description);
@@ -187,7 +187,16 @@ export function CustomRecurringModal({
 
   const handleCancel = () => {
     form.reset();
+    setNaturalLanguageInput("");
+    setParsedPattern("");
     onClose();
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      // Only close, don't submit
+      handleCancel();
+    }
   };
 
   const getDayName = (day: number) => {
@@ -196,7 +205,7 @@ export function CustomRecurringModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Custom Recurrence</DialogTitle>

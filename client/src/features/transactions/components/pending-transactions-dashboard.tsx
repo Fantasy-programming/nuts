@@ -113,7 +113,7 @@ export function PendingTransactionsDashboard({ className }: PendingTransactionsD
           <CardContent>
             <div className="space-y-3">
               {pendingList.slice(0, 5).map((transaction) => {
-                const status = getTransactionStatus(transaction);
+                // const status = getTransactionStatus(transaction);
                 return (
                   <div
                     key={transaction.id}

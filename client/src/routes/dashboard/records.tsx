@@ -1,6 +1,7 @@
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { z } from 'zod'
 import { RecordsTable } from "@/features/transactions/components/records-table";
+import { CalendarView } from "@/features/transactions/components/calendar-view";
 import { Spinner } from "@/core/components/ui/spinner";
 import { Button } from "@/core/components/ui/button";
 import { useState } from "react";
@@ -98,9 +99,9 @@ function RouteComponent() {
         );
       case "calendar":
         return (
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            Calendar view coming soon...
-          </div>
+          <CalendarView
+            initialPage={page}
+          />
         );
       case "analytics":
         return (

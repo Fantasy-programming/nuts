@@ -107,14 +107,14 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
       const submitValues = {
         ...values,
         is_recurring: recurringType !== "one-time",
-        recurring_config: recurringType !== "one-time" && recurringConfig ? {
+        recurring_config: recurringType !== "one-time" ? {
           frequency: getFrequencyFromRecurringType(recurringType),
           frequency_interval: getIntervalFromRecurringType(recurringType),
           frequency_data: getFrequencyDataFromRecurringType(recurringType, recurringConfig),
           start_date: values.transaction_datetime,
           auto_post: true, // Default to auto-posting
           template_name: `${values.description} (recurring)`,
-          ...recurringConfig
+          ...(recurringConfig || {}) // Only spread recurringConfig if it exists
         } : undefined,
       };
       
