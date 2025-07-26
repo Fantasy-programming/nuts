@@ -244,6 +244,34 @@ type Preference struct {
 	DarkSidebar       bool       `json:"dark_sidebar"`
 }
 
+type RecurringTransaction struct {
+	ID                   uuid.UUID      `json:"id"`
+	UserID               uuid.UUID      `json:"user_id"`
+	AccountID            uuid.UUID      `json:"account_id"`
+	CategoryID           *uuid.UUID     `json:"category_id"`
+	DestinationAccountID *uuid.UUID     `json:"destination_account_id"`
+	Amount               pgtype.Numeric `json:"amount"`
+	Type                 string         `json:"type"`
+	Description          *string        `json:"description"`
+	Details              *dto.Details   `json:"details"`
+	Frequency            string         `json:"frequency"`
+	FrequencyInterval    int32          `json:"frequency_interval"`
+	FrequencyData        []byte         `json:"frequency_data"`
+	StartDate            time.Time      `json:"start_date"`
+	EndDate              *time.Time     `json:"end_date"`
+	LastGeneratedDate    *time.Time     `json:"last_generated_date"`
+	NextDueDate          time.Time      `json:"next_due_date"`
+	AutoPost             bool           `json:"auto_post"`
+	IsPaused             bool           `json:"is_paused"`
+	MaxOccurrences       *int32         `json:"max_occurrences"`
+	OccurrencesCount     int32          `json:"occurrences_count"`
+	TemplateName         *string        `json:"template_name"`
+	Tags                 []byte         `json:"tags"`
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
+	DeletedAt            *time.Time     `json:"deleted_at"`
+}
+
 type RiverClient struct {
 	ID        string     `json:"id"`
 	CreatedAt time.Time  `json:"created_at"`
@@ -322,28 +350,30 @@ type Tag struct {
 }
 
 type Transaction struct {
-	ID                    uuid.UUID      `json:"id"`
-	Amount                pgtype.Numeric `json:"amount"`
-	Type                  string         `json:"type"`
-	AccountID             uuid.UUID      `json:"account_id"`
-	CategoryID            *uuid.UUID     `json:"category_id"`
-	DestinationAccountID  *uuid.UUID     `json:"destination_account_id"`
-	TransactionDatetime   time.Time      `json:"transaction_datetime"`
-	Description           *string        `json:"description"`
-	Details               *dto.Details   `json:"details"`
-	CreatedBy             *uuid.UUID     `json:"created_by"`
-	UpdatedBy             *uuid.UUID     `json:"updated_by"`
-	CreatedAt             time.Time      `json:"created_at"`
-	UpdatedAt             time.Time      `json:"updated_at"`
-	DeletedAt             *time.Time     `json:"deleted_at"`
-	IsExternal            *bool          `json:"is_external"`
-	ProviderTransactionID *string        `json:"provider_transaction_id"`
-	TransactionCurrency   string         `json:"transaction_currency"`
-	OriginalAmount        pgtype.Numeric `json:"original_amount"`
-	ExchangeRate          pgtype.Numeric `json:"exchange_rate"`
-	ExchangeRateDate      pgtype.Date    `json:"exchange_rate_date"`
-	IsCategorized         *bool          `json:"is_categorized"`
-	SharedFinanceID       *uuid.UUID     `json:"shared_finance_id"`
+	ID                     uuid.UUID      `json:"id"`
+	Amount                 pgtype.Numeric `json:"amount"`
+	Type                   string         `json:"type"`
+	AccountID              uuid.UUID      `json:"account_id"`
+	CategoryID             *uuid.UUID     `json:"category_id"`
+	DestinationAccountID   *uuid.UUID     `json:"destination_account_id"`
+	TransactionDatetime    time.Time      `json:"transaction_datetime"`
+	Description            *string        `json:"description"`
+	Details                *dto.Details   `json:"details"`
+	CreatedBy              *uuid.UUID     `json:"created_by"`
+	UpdatedBy              *uuid.UUID     `json:"updated_by"`
+	CreatedAt              time.Time      `json:"created_at"`
+	UpdatedAt              time.Time      `json:"updated_at"`
+	DeletedAt              *time.Time     `json:"deleted_at"`
+	IsExternal             *bool          `json:"is_external"`
+	ProviderTransactionID  *string        `json:"provider_transaction_id"`
+	TransactionCurrency    string         `json:"transaction_currency"`
+	OriginalAmount         pgtype.Numeric `json:"original_amount"`
+	ExchangeRate           pgtype.Numeric `json:"exchange_rate"`
+	ExchangeRateDate       pgtype.Date    `json:"exchange_rate_date"`
+	IsCategorized          *bool          `json:"is_categorized"`
+	SharedFinanceID        *uuid.UUID     `json:"shared_finance_id"`
+	RecurringTransactionID *uuid.UUID     `json:"recurring_transaction_id"`
+	RecurringInstanceDate  *time.Time     `json:"recurring_instance_date"`
 }
 
 type User struct {

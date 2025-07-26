@@ -2,6 +2,27 @@ import { z } from "zod";
 import { categorySchema } from "@/features/categories/services/category.types";
 import { accountSchema } from "@/features/accounts/services/account.types";
 
+// Recurring transaction schema
+const recurringConfigSchema = z.object({
+  frequency: z.enum(["daily", "weekly", "biweekly", "monthly", "yearly", "custom"]),
+  frequency_interval: z.number().min(1).max(999),
+  frequency_data: z.object({
+    day_of_week: z.number().min(0).max(6).optional(),
+    day_of_month: z.number().min(1).max(31).optional(),
+    week_of_month: z.number().min(-1).max(5).optional(),
+    month_of_year: z.number().min(1).max(12).optional(),
+    week_days: z.array(z.number().min(0).max(6)).optional(),
+    specific_dates: z.array(z.number().min(1).max(31)).optional(),
+    pattern: z.string().optional(),
+  }).optional(),
+  start_date: z.coerce.date(),
+  end_date: z.coerce.date().optional(),
+  auto_post: z.boolean(),
+  max_occurrences: z.number().min(1).optional(),
+  template_name: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
 
 const recordDetailsSchema = z.object({
   payment_medium: z.string().optional(),
@@ -22,6 +43,14 @@ const baseRecordSchema = z.object({
   is_external: z.boolean(),
   transaction_currency: z.string(),
   original_amount: z.number(),
+  // Optional recurring fields
+  is_recurring: z.boolean().optional(),
+  recurring_config: recurringConfigSchema.optional(),
+  // Additional recurring status fields
+  recurring_transaction_id: z.string().optional(),
+  recurring_instance_date: z.coerce.date().optional(),
+  auto_post: z.boolean().optional(),
+  template_name: z.string().optional(),
 });
 
 const baseExtendedRecordSchema = z.object({
@@ -36,6 +65,14 @@ const baseExtendedRecordSchema = z.object({
   is_external: z.boolean(),
   transaction_currency: z.string(),
   original_amount: z.number(),
+  // Optional recurring fields
+  is_recurring: z.boolean().optional(),
+  recurring_config: recurringConfigSchema.optional(),
+  // Additional recurring status fields
+  recurring_transaction_id: z.string().optional(),
+  recurring_instance_date: z.coerce.date().optional(),
+  auto_post: z.boolean().optional(),
+  template_name: z.string().optional(),
 });
 
 const recordStandardSchema = baseRecordSchema.extend({
@@ -167,4 +204,5 @@ export type TransactionsResponse = z.infer<typeof transactionsResponseSchema>;
 
 export type RecordCreateSchema = z.infer<typeof recordCreateSchema>;
 export type RecordUpdateSchema = z.infer<typeof recordUpdateSchema>;
+export type RecurringConfigSchema = z.infer<typeof recurringConfigSchema>;
 export type RecordsSubmit = (values: RecordCreateSchema) => void;

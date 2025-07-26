@@ -12,9 +12,11 @@ INSERT INTO transactions (
     details,
     provider_transaction_id,
     is_external,
-    created_by
+    created_by,
+    recurring_transaction_id,
+    recurring_instance_date
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 ) RETURNING *;
 
 
@@ -32,9 +34,11 @@ INSERT INTO transactions (
     details,
     provider_transaction_id,
     is_external,
-    created_by
+    created_by,
+    recurring_transaction_id,
+    recurring_instance_date
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 );
 
 -- name: GetTransactionById :one
@@ -56,6 +60,8 @@ SELECT
     t.details,
     t.is_external,
     t.updated_at,
+    t.recurring_transaction_id,
+    t.recurring_instance_date,
     -- Embed the source account
     sqlc.embed(source_acct),
     -- Select destination account fields explicitly with aliases
@@ -65,7 +71,10 @@ SELECT
     dest_acct.type AS destination_account_type,
     dest_acct.currency AS destination_account_currency,
     -- Embed the category
-    sqlc.embed(cat)
+    sqlc.embed(cat),
+    -- Include recurring transaction template info
+    rt.auto_post,
+    rt.template_name
 FROM
     transactions AS t
 JOIN
@@ -76,6 +85,9 @@ JOIN
 LEFT JOIN
     accounts AS dest_acct ON t.destination_account_id = dest_acct.id
     AND dest_acct.deleted_at IS NULL
+LEFT JOIN
+    recurring_transactions AS rt ON t.recurring_transaction_id = rt.id
+    AND rt.deleted_at IS NULL
 WHERE
     t.created_by = sqlc.arg('user_id')
     AND t.deleted_at IS NULL
@@ -85,6 +97,12 @@ WHERE
     AND (sqlc.narg('category_id')::uuid IS NULL OR t.category_id = sqlc.narg('category_id'))
     AND (sqlc.narg('currency')::text IS NULL OR t.transaction_currency = sqlc.narg('currency'))
     AND (sqlc.narg('is_external')::boolean IS NULL OR t.is_external = sqlc.narg('is_external'))
+    AND (sqlc.narg('is_recurring')::boolean IS NULL OR
+         (sqlc.narg('is_recurring')::boolean = true AND t.recurring_transaction_id IS NOT NULL) OR
+         (sqlc.narg('is_recurring')::boolean = false AND t.recurring_transaction_id IS NULL))
+    AND (sqlc.narg('is_pending')::boolean IS NULL OR
+         (sqlc.narg('is_pending')::boolean = true AND rt.auto_post = false AND t.recurring_transaction_id IS NOT NULL) OR
+         (sqlc.narg('is_pending')::boolean = false AND (rt.auto_post = true OR t.recurring_transaction_id IS NULL)))
     AND (sqlc.narg('start_date')::timestamptz IS NULL OR t.transaction_datetime >= sqlc.narg('start_date'))
     AND (sqlc.narg('end_date')::timestamptz IS NULL OR t.transaction_datetime <= sqlc.narg('end_date'))
     AND (sqlc.narg('min_amount')::decimal IS NULL OR t.amount >= sqlc.narg('min_amount'))
@@ -118,6 +136,10 @@ LEFT JOIN
     accounts AS dest_acct ON t.destination_account_id = dest_acct.id
     AND dest_acct.deleted_at IS NULL
 
+LEFT JOIN
+    recurring_transactions AS rt ON t.recurring_transaction_id = rt.id
+    AND rt.deleted_at IS NULL
+
 WHERE
     t.created_by = sqlc.arg('user_id')
     AND t.deleted_at IS NULL
@@ -128,6 +150,12 @@ WHERE
     AND (sqlc.narg('category_id')::uuid IS NULL OR t.category_id = sqlc.narg('category_id'))
     AND (sqlc.narg('currency')::text IS NULL OR t.transaction_currency = sqlc.narg('currency'))
     AND (sqlc.narg('is_external')::boolean IS NULL OR t.is_external = sqlc.narg('is_external'))
+    AND (sqlc.narg('is_recurring')::boolean IS NULL OR 
+         (sqlc.narg('is_recurring')::boolean = true AND t.recurring_transaction_id IS NOT NULL) OR
+         (sqlc.narg('is_recurring')::boolean = false AND t.recurring_transaction_id IS NULL))
+    AND (sqlc.narg('is_pending')::boolean IS NULL OR 
+         (sqlc.narg('is_pending')::boolean = true AND rt.auto_post = false AND t.recurring_transaction_id IS NOT NULL) OR
+         (sqlc.narg('is_pending')::boolean = false AND (rt.auto_post = true OR t.recurring_transaction_id IS NULL)))
     AND (sqlc.narg('start_date')::timestamptz IS NULL OR t.transaction_datetime >= sqlc.narg('start_date'))
     AND (sqlc.narg('end_date')::timestamptz IS NULL OR t.transaction_datetime <= sqlc.narg('end_date'))
     AND (sqlc.narg('min_amount')::decimal IS NULL OR t.amount >= sqlc.narg('min_amount'))

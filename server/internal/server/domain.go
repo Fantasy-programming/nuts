@@ -3,13 +3,12 @@ package server
 import (
 	"net/http"
 
-
-	"github.com/Fantasy-Programming/nuts/server/internal/domain/mail"
 	accHandler "github.com/Fantasy-Programming/nuts/server/internal/domain/accounts/handlers"
 	accRepo "github.com/Fantasy-Programming/nuts/server/internal/domain/accounts/repository"
 	athHandler "github.com/Fantasy-Programming/nuts/server/internal/domain/auth/handlers"
 	athRepo "github.com/Fantasy-Programming/nuts/server/internal/domain/auth/repository"
 	athService "github.com/Fantasy-Programming/nuts/server/internal/domain/auth/service"
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/mail"
 
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/meta"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/tags"
@@ -117,7 +116,6 @@ func (s *Server) initWebHooks() {
 	hooksDomain := webhooks.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.logger)
 	s.router.Mount("/webhooks", hooksDomain)
 }
-
 
 func (s *Server) initMail() {
 	MailDomain := mail.RegisterHTTPHandlers(s.db, s.validator, s.jwt, s.mailer, s.logger)

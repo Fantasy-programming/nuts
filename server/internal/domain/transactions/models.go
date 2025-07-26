@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/server/internal/repository"
+	"github.com/Fantasy-Programming/nuts/server/internal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -81,6 +83,7 @@ type Transaction struct {
 	BaseCurrencyAmount      *decimal.Decimal `json:"base_currency_amount,omitempty" db:"base_currency_amount"`
 	LocationData            *LocationData    `json:"location_data,omitempty" db:"location_data"`
 	RecurringTransactionID  *uuid.UUID       `json:"recurring_transaction_id,omitempty" db:"recurring_transaction_id"`
+	RecurringInstanceDate   *time.Time       `json:"recurring_instance_date,omitempty" db:"recurring_instance_date"`
 	ExternalTransactionID   *string          `json:"external_transaction_id,omitempty" db:"external_transaction_id"`
 	ReferenceNumber         *string          `json:"reference_number,omitempty" db:"reference_number"`
 	TaxDeductible           bool             `json:"tax_deductible" db:"tax_deductible"`
@@ -102,10 +105,11 @@ type Transaction struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
 
 	// Related data that can be loaded with joins
-	Merchant    *Merchant          `json:"merchant,omitempty"`
-	Tags        []Tag              `json:"tags,omitempty"`
-	Attachments []Attachment       `json:"attachments,omitempty"`
-	Splits      []TransactionSplit `json:"splits,omitempty"`
+	Merchant          *Merchant             `json:"merchant,omitempty"`
+	Tags              []Tag                 `json:"tags,omitempty"`
+	Attachments       []Attachment          `json:"attachments,omitempty"`
+	Splits            []TransactionSplit    `json:"splits,omitempty"`
+	RecurringTemplate *RecurringTransaction `json:"recurring_template,omitempty"`
 }
 
 // Merchant represents a business or vendor
@@ -215,20 +219,194 @@ type ExchangeRate struct {
 // 	Splits                []CreateTransactionSplit `json:"splits,omitempty"`
 // }
 
+// Request structs for recurring transactions
+type CreateRecurringTransactionRequest struct {
+	AccountID            string          `json:"account_id" validate:"required,uuid"`
+	CategoryID           *string         `json:"category_id,omitempty" validate:"omitempty,uuid"`
+	DestinationAccountID *string         `json:"destination_account_id,omitempty" validate:"omitempty,uuid"`
+	Amount               decimal.Decimal `json:"amount" validate:"required,gt=0"`
+	Type                 string          `json:"type" validate:"required,oneof=income expense transfer"`
+	Description          *string         `json:"description,omitempty"`
+	Details              *dto.Details    `json:"details,omitempty"`
+	Frequency            string          `json:"frequency" validate:"required,oneof=daily weekly biweekly monthly yearly custom"`
+	FrequencyInterval    int             `json:"frequency_interval" validate:"min=1,max=999"`
+	FrequencyData        *FrequencyData  `json:"frequency_data,omitempty"`
+	StartDate            time.Time       `json:"start_date" validate:"required"`
+	EndDate              *time.Time      `json:"end_date,omitempty"`
+	AutoPost             bool            `json:"auto_post"`
+	MaxOccurrences       *int            `json:"max_occurrences,omitempty" validate:"omitempty,min=1"`
+	TemplateName         *string         `json:"template_name,omitempty"`
+	Tags                 *Tags           `json:"tags,omitempty"`
+}
+
+type UpdateRecurringTransactionRequest struct {
+	AccountID            *string          `json:"account_id,omitempty" validate:"omitempty,uuid"`
+	CategoryID           *string          `json:"category_id,omitempty" validate:"omitempty,uuid"`
+	DestinationAccountID *string          `json:"destination_account_id,omitempty" validate:"omitempty,uuid"`
+	Amount               *decimal.Decimal `json:"amount,omitempty" validate:"omitempty,gt=0"`
+	Type                 *string          `json:"type,omitempty" validate:"omitempty,oneof=income expense transfer"`
+	Description          *string          `json:"description,omitempty"`
+	Details              *dto.Details     `json:"details,omitempty"`
+	Frequency            *string          `json:"frequency,omitempty" validate:"omitempty,oneof=daily weekly biweekly monthly yearly custom"`
+	FrequencyInterval    *int             `json:"frequency_interval,omitempty" validate:"omitempty,min=1,max=999"`
+	FrequencyData        *FrequencyData   `json:"frequency_data,omitempty"`
+	StartDate            *time.Time       `json:"start_date,omitempty"`
+	EndDate              *time.Time       `json:"end_date,omitempty"`
+	AutoPost             *bool            `json:"auto_post,omitempty"`
+	IsPaused             *bool            `json:"is_paused,omitempty"`
+	MaxOccurrences       *int             `json:"max_occurrences,omitempty" validate:"omitempty,min=1"`
+	TemplateName         *string          `json:"template_name,omitempty"`
+	Tags                 *Tags            `json:"tags,omitempty"`
+	UpdateMode           string           `json:"update_mode" validate:"oneof=future_only next_only split_series"`
+}
+
+type RecurringTransactionFilters struct {
+	AccountID    *string    `json:"account_id,omitempty" validate:"omitempty,uuid"`
+	CategoryID   *string    `json:"category_id,omitempty" validate:"omitempty,uuid"`
+	Frequency    *string    `json:"frequency,omitempty"`
+	IsPaused     *bool      `json:"is_paused,omitempty"`
+	AutoPost     *bool      `json:"auto_post,omitempty"`
+	TemplateName *string    `json:"template_name,omitempty"`
+	StartDate    *time.Time `json:"start_date,omitempty"`
+	EndDate      *time.Time `json:"end_date,omitempty"`
+}
+
+type GetRecurringInstancesRequest struct {
+	StartDate        time.Time `json:"start_date" validate:"required"`
+	EndDate          time.Time `json:"end_date" validate:"required"`
+	IncludeProjected bool      `json:"include_projected"`
+}
+
+type ProcessRecurringTransactionRequest struct {
+	Action             string                    `json:"action" validate:"required,oneof=post skip modify"`
+	TransactionRequest *CreateTransactionRequest `json:"transaction_request,omitempty"`
+}
+
+// Response structs for recurring transactions
+type RecurringTransactionResponse struct {
+	*RecurringTransaction
+	Account            *repository.Account  `json:"account,omitempty"`
+	Category           *repository.Category `json:"category,omitempty"`
+	DestinationAccount *repository.Account  `json:"destination_account,omitempty"`
+	UpcomingInstances  []RecurringInstance  `json:"upcoming_instances,omitempty"`
+}
+
+type RecurringInstancesResponse struct {
+	Instances []RecurringInstance `json:"instances"`
+	Summary   struct {
+		TotalCount   int             `json:"total_count"`
+		PendingCount int             `json:"pending_count"`
+		PostedCount  int             `json:"posted_count"`
+		SkippedCount int             `json:"skipped_count"`
+		TotalAmount  decimal.Decimal `json:"total_amount"`
+	} `json:"summary"`
+}
+
+// RecurringTransaction represents a template for recurring transactions
 type RecurringTransaction struct {
-	ID                uuid.UUID  `json:"id"`
-	UserID            uuid.UUID  `json:"user_id"`
-	AccountID         uuid.UUID  `json:"account_id"`
-	Description       string     `json:"description"`
-	Amount            float64    `json:"amount"`
-	Type              string     `json:"type"`
-	CategoryID        *uuid.UUID `json:"category_id,omitempty"` // Nullable
-	Frequency         string     `json:"frequency"`
-	StartDate         time.Time  `json:"start_date"`
-	EndDate           *time.Time `json:"end_date,omitempty"`            // Nullable
-	LastGeneratedDate *time.Time `json:"last_generated_date,omitempty"` // Nullable
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	UserID               uuid.UUID  `json:"user_id" db:"user_id"`
+	AccountID            uuid.UUID  `json:"account_id" db:"account_id"`
+	CategoryID           *uuid.UUID `json:"category_id,omitempty" db:"category_id"`
+	DestinationAccountID *uuid.UUID `json:"destination_account_id,omitempty" db:"destination_account_id"`
+
+	// Basic transaction details
+	Amount      decimal.Decimal `json:"amount" db:"amount"`
+	Type        string          `json:"type" db:"type"`
+	Description *string         `json:"description,omitempty" db:"description"`
+	Details     *Details        `json:"details,omitempty" db:"details"`
+
+	// Recurrence pattern
+	Frequency         string         `json:"frequency" db:"frequency"`
+	FrequencyInterval int            `json:"frequency_interval" db:"frequency_interval"`
+	FrequencyData     *FrequencyData `json:"frequency_data,omitempty" db:"frequency_data"`
+
+	// Date management
+	StartDate         time.Time  `json:"start_date" db:"start_date"`
+	EndDate           *time.Time `json:"end_date,omitempty" db:"end_date"`
+	LastGeneratedDate *time.Time `json:"last_generated_date,omitempty" db:"last_generated_date"`
+	NextDueDate       time.Time  `json:"next_due_date" db:"next_due_date"`
+
+	// Configuration
+	AutoPost         bool `json:"auto_post" db:"auto_post"`
+	IsPaused         bool `json:"is_paused" db:"is_paused"`
+	MaxOccurrences   *int `json:"max_occurrences,omitempty" db:"max_occurrences"`
+	OccurrencesCount int  `json:"occurrences_count" db:"occurrences_count"`
+
+	// Template metadata
+	TemplateName *string `json:"template_name,omitempty" db:"template_name"`
+	Tags         *Tags   `json:"tags,omitempty" db:"tags"`
+
+	// Audit fields
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
+
+	// Computed fields for responses
+	NextInstances []RecurringInstance `json:"next_instances,omitempty"`
+	Status        string              `json:"status,omitempty"` // "active", "paused", "completed", "expired"
+}
+
+// FrequencyData holds complex recurrence pattern data
+type FrequencyData struct {
+	DayOfWeek     *int    `json:"day_of_week,omitempty"`    // 0=Sunday, 1=Monday, etc.
+	DayOfMonth    *int    `json:"day_of_month,omitempty"`   // 1-31
+	WeekOfMonth   *int    `json:"week_of_month,omitempty"`  // 1=first, 2=second, -1=last
+	MonthOfYear   *int    `json:"month_of_year,omitempty"`  // 1-12
+	WeekDays      []int   `json:"week_days,omitempty"`      // For patterns like "weekdays only"
+	SpecificDates []int   `json:"specific_dates,omitempty"` // For patterns like "1st and 15th"
+	Pattern       *string `json:"pattern,omitempty"`        // Natural language pattern
+}
+
+// Tags for categorizing recurring transactions
+type Tags []string
+
+// RecurringInstance represents a projected or actual instance of a recurring transaction
+type RecurringInstance struct {
+	DueDate       time.Time       `json:"due_date"`
+	Amount        decimal.Decimal `json:"amount"`
+	Description   *string         `json:"description,omitempty"`
+	TransactionID *uuid.UUID      `json:"transaction_id,omitempty"` // If already posted
+	Status        string          `json:"status"`                   // "pending", "posted", "skipped", "failed"
+	IsProjected   bool            `json:"is_projected"`             // True if not yet saved to DB
+	CanModify     bool            `json:"can_modify"`               // Whether this instance can be modified
+}
+
+// RecurringTransactionStats holds statistics about recurring transactions
+type RecurringTransactionStats struct {
+	TotalCount  int `json:"total_count"`
+	ActiveCount int `json:"active_count"`
+	PausedCount int `json:"paused_count"`
+	DueCount    int `json:"due_count"`
+}
+
+// Implement database interfaces for custom types
+func (fd FrequencyData) Value() (driver.Value, error) {
+	return json.Marshal(fd)
+}
+
+func (fd *FrequencyData) Scan(value any) error {
+	if value == nil {
+		return nil
+	}
+	if bytes, ok := value.([]byte); ok {
+		return json.Unmarshal(bytes, fd)
+	}
+	return nil
+}
+
+func (t Tags) Value() (driver.Value, error) {
+	return json.Marshal(t)
+}
+
+func (t *Tags) Scan(value any) error {
+	if value == nil {
+		return nil
+	}
+	if bytes, ok := value.([]byte); ok {
+		return json.Unmarshal(bytes, t)
+	}
+	return nil
 }
 
 /// RULES

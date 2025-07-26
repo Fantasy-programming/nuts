@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"time"
 
 	accRepo "github.com/Fantasy-Programming/nuts/server/internal/domain/accounts/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions"
@@ -44,8 +45,19 @@ type Transactions interface {
 	ToggleRuleActive(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*transactions.TransactionRule, error)
 	ApplyRulesToTransaction(ctx context.Context, transactionID uuid.UUID, userID uuid.UUID) ([]transactions.RuleMatch, error)
 
-	// AI
+	// Recurring
+	CreateRecurringTransaction(ctx context.Context, req transactions.CreateRecurringTransactionRequest, userID uuid.UUID) (*transactions.RecurringTransaction, error)
+	GetRecurringTransactionByID(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*transactions.RecurringTransaction, error)
+	ListRecurringTransactions(ctx context.Context, userID uuid.UUID, filters transactions.RecurringTransactionFilters) ([]transactions.RecurringTransaction, error)
+	UpdateRecurringTransaction(ctx context.Context, id uuid.UUID, req transactions.UpdateRecurringTransactionRequest, userID uuid.UUID) (*transactions.RecurringTransaction, error)
+	DeleteRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
+	PauseRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID, isPaused bool) (*transactions.RecurringTransaction, error)
+	GetDueRecurringTransactions(ctx context.Context, dueDate time.Time) ([]transactions.RecurringTransaction, error)
+	GetRecurringTransactionStats(ctx context.Context, userID uuid.UUID) (*transactions.RecurringTransactionStats, error)
+	GetUpcomingRecurringTransactions(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) ([]transactions.RecurringTransaction, error)
+	GetRecurringTransactionInstances(ctx context.Context, userID uuid.UUID, recurringID uuid.UUID) ([]repository.Transaction, error)
 
+	// AI
 	ParseTransactions(ctx context.Context, req llm.NeuralInputRequest) (*llm.NeuralInputResponse, error)
 }
 

@@ -24,6 +24,7 @@ import { useBrandImage } from "@/features/accounts/hooks/useBrand"
 import { config } from "@/lib/env"
 import { Account } from "@/features/accounts/services/account.types"
 import { toast } from "sonner"
+import { RecurringSelect } from "./recurring-select"
 import {
   Tooltip,
   TooltipContent,
@@ -54,6 +55,7 @@ export default function EditTransactionSheet({
 }: EditTransactionSheetProps) {
   const [transactionNature, setTransactionNature] = useState<"expense" | "income">("expense");
   const [showCreateRuleDialog, setShowCreateRuleDialog] = useState(false);
+  const [recurringType, setRecurringType] = useState<string>("one-time");
   const queryClient = useQueryClient();
 
   const {
@@ -408,26 +410,44 @@ export default function EditTransactionSheet({
                   Create Rule from Transaction
                 </Button>
               </div>
-            </TooltipProvider>
-          </form>
-        </Form>
+              {/* Recurring Transaction Option - Only show for non-synced transactions */}
+              {!isSyncedTransaction && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Recurrence
+                  </label>
+                  <RecurringSelect
+                    value={recurringType}
+                    onChange={setRecurringType}
+                    onCustomSave={(data) => {
+                      console.log("Custom recurring data:", data);
+                      // Handle custom recurring data
+                    }}
+                  />
+                </div>
+              )}
+            </TooltipProvider >
+          </form >
+        </Form >
 
         {/* Create Rule Dialog */}
-        {transaction && (
-          <CreateEditRuleDialog
-            open={showCreateRuleDialog}
-            onOpenChange={setShowCreateRuleDialog}
-            rule={null}
-            prefillData={{
-              description: transaction.description,
-              amount: transaction.amount,
-              account_id: transaction.account_id?.toString(),
-              category_id: transaction.category_id || undefined,
-            }}
-          />
-        )}
-      </SheetContent>
-    </Sheet>
+        {
+          transaction && (
+            <CreateEditRuleDialog
+              open={showCreateRuleDialog}
+              onOpenChange={setShowCreateRuleDialog}
+              rule={null}
+              prefillData={{
+                description: transaction.description,
+                amount: transaction.amount,
+                account_id: transaction.account_id?.toString(),
+                category_id: transaction.category_id || undefined,
+              }}
+            />
+          )
+        }
+      </SheetContent >
+    </Sheet >
   )
 }
 

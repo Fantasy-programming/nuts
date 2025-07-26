@@ -16,19 +16,99 @@ import (
 )
 
 type BatchCreateTransactionParams struct {
-	Amount                decimal.Decimal    `json:"amount"`
-	Type                  string             `json:"type"`
-	AccountID             uuid.UUID          `json:"account_id"`
-	DestinationAccountID  *uuid.UUID         `json:"destination_account_id"`
-	CategoryID            *uuid.UUID         `json:"category_id"`
-	Description           *string            `json:"description"`
-	TransactionDatetime   pgtype.Timestamptz `json:"transaction_datetime"`
-	TransactionCurrency   string             `json:"transaction_currency"`
-	OriginalAmount        decimal.Decimal    `json:"original_amount"`
-	Details               *dto.Details       `json:"details"`
-	ProviderTransactionID *string            `json:"provider_transaction_id"`
-	IsExternal            *bool              `json:"is_external"`
-	CreatedBy             *uuid.UUID         `json:"created_by"`
+	Amount                 decimal.Decimal    `json:"amount"`
+	Type                   string             `json:"type"`
+	AccountID              uuid.UUID          `json:"account_id"`
+	DestinationAccountID   *uuid.UUID         `json:"destination_account_id"`
+	CategoryID             *uuid.UUID         `json:"category_id"`
+	Description            *string            `json:"description"`
+	TransactionDatetime    pgtype.Timestamptz `json:"transaction_datetime"`
+	TransactionCurrency    string             `json:"transaction_currency"`
+	OriginalAmount         decimal.Decimal    `json:"original_amount"`
+	Details                *dto.Details       `json:"details"`
+	ProviderTransactionID  *string            `json:"provider_transaction_id"`
+	IsExternal             *bool              `json:"is_external"`
+	CreatedBy              *uuid.UUID         `json:"created_by"`
+	RecurringTransactionID *uuid.UUID         `json:"recurring_transaction_id"`
+	RecurringInstanceDate  pgtype.Timestamptz `json:"recurring_instance_date"`
+}
+
+const bulkDeleteTransactions = `-- name: BulkDeleteTransactions :exec
+UPDATE transactions
+SET deleted_at = current_timestamp
+WHERE id = ANY($1::uuid[])
+    AND created_by = $2
+`
+
+type BulkDeleteTransactionsParams struct {
+	Ids    []uuid.UUID `json:"ids"`
+	UserID *uuid.UUID  `json:"user_id"`
+}
+
+func (q *Queries) BulkDeleteTransactions(ctx context.Context, arg BulkDeleteTransactionsParams) error {
+	_, err := q.db.Exec(ctx, bulkDeleteTransactions, arg.Ids, arg.UserID)
+	return err
+}
+
+const bulkUpdateManualTransactions = `-- name: BulkUpdateManualTransactions :exec
+UPDATE transactions
+SET 
+    category_id = coalesce($1, category_id),
+    account_id = coalesce($2, account_id),
+    transaction_datetime = coalesce($3, transaction_datetime),
+    updated_by = $4
+WHERE id = ANY($5::uuid[])
+    AND created_by = $6
+    AND is_external = false
+    AND deleted_at IS NULL
+`
+
+type BulkUpdateManualTransactionsParams struct {
+	CategoryID          *uuid.UUID         `json:"category_id"`
+	AccountID           *uuid.UUID         `json:"account_id"`
+	TransactionDatetime pgtype.Timestamptz `json:"transaction_datetime"`
+	UpdatedBy           *uuid.UUID         `json:"updated_by"`
+	Ids                 []uuid.UUID        `json:"ids"`
+	UserID              *uuid.UUID         `json:"user_id"`
+}
+
+func (q *Queries) BulkUpdateManualTransactions(ctx context.Context, arg BulkUpdateManualTransactionsParams) error {
+	_, err := q.db.Exec(ctx, bulkUpdateManualTransactions,
+		arg.CategoryID,
+		arg.AccountID,
+		arg.TransactionDatetime,
+		arg.UpdatedBy,
+		arg.Ids,
+		arg.UserID,
+	)
+	return err
+}
+
+const bulkUpdateTransactionCategories = `-- name: BulkUpdateTransactionCategories :exec
+UPDATE transactions
+SET 
+    category_id = $1,
+    updated_by = $2
+WHERE id = ANY($3::uuid[])
+    AND created_by = $4
+    AND deleted_at IS NULL
+`
+
+type BulkUpdateTransactionCategoriesParams struct {
+	CategoryID *uuid.UUID  `json:"category_id"`
+	UpdatedBy  *uuid.UUID  `json:"updated_by"`
+	Ids        []uuid.UUID `json:"ids"`
+	UserID     *uuid.UUID  `json:"user_id"`
+}
+
+func (q *Queries) BulkUpdateTransactionCategories(ctx context.Context, arg BulkUpdateTransactionCategoriesParams) error {
+	_, err := q.db.Exec(ctx, bulkUpdateTransactionCategories,
+		arg.CategoryID,
+		arg.UpdatedBy,
+		arg.Ids,
+		arg.UserID,
+	)
+	return err
 }
 
 const bulkDeleteTransactions = `-- name: BulkDeleteTransactions :exec
@@ -195,26 +275,30 @@ INSERT INTO transactions (
     details,
     provider_transaction_id,
     is_external,
-    created_by
+    created_by,
+    recurring_transaction_id,
+    recurring_instance_date
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
-) RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+) RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id, recurring_transaction_id, recurring_instance_date
 `
 
 type CreateTransactionParams struct {
-	Amount                decimal.Decimal    `json:"amount"`
-	Type                  string             `json:"type"`
-	AccountID             uuid.UUID          `json:"account_id"`
-	DestinationAccountID  *uuid.UUID         `json:"destination_account_id"`
-	CategoryID            *uuid.UUID         `json:"category_id"`
-	Description           *string            `json:"description"`
-	TransactionDatetime   pgtype.Timestamptz `json:"transaction_datetime"`
-	TransactionCurrency   string             `json:"transaction_currency"`
-	OriginalAmount        decimal.Decimal    `json:"original_amount"`
-	Details               *dto.Details       `json:"details"`
-	ProviderTransactionID *string            `json:"provider_transaction_id"`
-	IsExternal            *bool              `json:"is_external"`
-	CreatedBy             *uuid.UUID         `json:"created_by"`
+	Amount                 decimal.Decimal    `json:"amount"`
+	Type                   string             `json:"type"`
+	AccountID              uuid.UUID          `json:"account_id"`
+	DestinationAccountID   *uuid.UUID         `json:"destination_account_id"`
+	CategoryID             *uuid.UUID         `json:"category_id"`
+	Description            *string            `json:"description"`
+	TransactionDatetime    pgtype.Timestamptz `json:"transaction_datetime"`
+	TransactionCurrency    string             `json:"transaction_currency"`
+	OriginalAmount         decimal.Decimal    `json:"original_amount"`
+	Details                *dto.Details       `json:"details"`
+	ProviderTransactionID  *string            `json:"provider_transaction_id"`
+	IsExternal             *bool              `json:"is_external"`
+	CreatedBy              *uuid.UUID         `json:"created_by"`
+	RecurringTransactionID *uuid.UUID         `json:"recurring_transaction_id"`
+	RecurringInstanceDate  pgtype.Timestamptz `json:"recurring_instance_date"`
 }
 
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
@@ -232,6 +316,8 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.ProviderTransactionID,
 		arg.IsExternal,
 		arg.CreatedBy,
+		arg.RecurringTransactionID,
+		arg.RecurringInstanceDate,
 	)
 	var i Transaction
 	err := row.Scan(
@@ -257,6 +343,8 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		&i.ExchangeRateDate,
 		&i.IsCategorized,
 		&i.SharedFinanceID,
+		&i.RecurringTransactionID,
+		&i.RecurringInstanceDate,
 	)
 	return i, err
 }
@@ -265,7 +353,7 @@ const deleteTransaction = `-- name: DeleteTransaction :exec
 UPDATE transactions
 SET deleted_at = current_timestamp
 WHERE id = $1
-RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id, recurring_transaction_id, recurring_instance_date
 `
 
 func (q *Queries) DeleteTransaction(ctx context.Context, id uuid.UUID) error {
@@ -323,7 +411,7 @@ func (q *Queries) GetCategorySpending(ctx context.Context, arg GetCategorySpendi
 }
 
 const getTransactionById = `-- name: GetTransactionById :one
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id, recurring_transaction_id, recurring_instance_date
 FROM transactions
 WHERE
     id = $1
@@ -357,6 +445,8 @@ func (q *Queries) GetTransactionById(ctx context.Context, id uuid.UUID) (Transac
 		&i.ExchangeRateDate,
 		&i.IsCategorized,
 		&i.SharedFinanceID,
+		&i.RecurringTransactionID,
+		&i.RecurringInstanceDate,
 	)
 	return i, err
 }
@@ -579,7 +669,7 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 const listTransactionsByAccount = `-- name: ListTransactionsByAccount :many
 
 
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id, recurring_transaction_id, recurring_instance_date
 FROM transactions
 WHERE
     account_id = $1
@@ -630,6 +720,8 @@ func (q *Queries) ListTransactionsByAccount(ctx context.Context, accountID uuid.
 			&i.ExchangeRateDate,
 			&i.IsCategorized,
 			&i.SharedFinanceID,
+			&i.RecurringTransactionID,
+			&i.RecurringInstanceDate,
 		); err != nil {
 			return nil, err
 		}
@@ -642,7 +734,7 @@ func (q *Queries) ListTransactionsByAccount(ctx context.Context, accountID uuid.
 }
 
 const listTransactionsByCategory = `-- name: ListTransactionsByCategory :many
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id, recurring_transaction_id, recurring_instance_date
 FROM transactions
 WHERE
     category_id = $1
@@ -682,6 +774,8 @@ func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID *uu
 			&i.ExchangeRateDate,
 			&i.IsCategorized,
 			&i.SharedFinanceID,
+			&i.RecurringTransactionID,
+			&i.RecurringInstanceDate,
 		); err != nil {
 			return nil, err
 		}
@@ -694,7 +788,7 @@ func (q *Queries) ListTransactionsByCategory(ctx context.Context, categoryID *uu
 }
 
 const listTransactionsByDateRange = `-- name: ListTransactionsByDateRange :many
-SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+SELECT id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id, recurring_transaction_id, recurring_instance_date
 FROM transactions
 WHERE
     created_by = $1::uuid
@@ -741,6 +835,8 @@ func (q *Queries) ListTransactionsByDateRange(ctx context.Context, arg ListTrans
 			&i.ExchangeRateDate,
 			&i.IsCategorized,
 			&i.SharedFinanceID,
+			&i.RecurringTransactionID,
+			&i.RecurringInstanceDate,
 		); err != nil {
 			return nil, err
 		}
@@ -766,7 +862,7 @@ SET
 WHERE
     id = $9
     AND deleted_at IS NULL
-RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id
+RETURNING id, amount, type, account_id, category_id, destination_account_id, transaction_datetime, description, details, created_by, updated_by, created_at, updated_at, deleted_at, is_external, provider_transaction_id, transaction_currency, original_amount, exchange_rate, exchange_rate_date, is_categorized, shared_finance_id, recurring_transaction_id, recurring_instance_date
 `
 
 type UpdateTransactionParams struct {
@@ -817,6 +913,8 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		&i.ExchangeRateDate,
 		&i.IsCategorized,
 		&i.SharedFinanceID,
+		&i.RecurringTransactionID,
+		&i.RecurringInstanceDate,
 	)
 	return i, err
 }

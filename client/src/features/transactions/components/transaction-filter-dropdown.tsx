@@ -18,6 +18,8 @@ export interface TransactionFilterState {
   start_date?: Date
   end_date?: Date
   currency?: string
+  is_recurring?: boolean
+  is_pending?: boolean
 }
 
 interface TransactionFilterDropdownProps {
@@ -31,6 +33,12 @@ const TRANSACTION_TYPES = [
   { value: "expense", label: "Expense" },
   { value: "transfer", label: "Transfer" },
 ]
+
+// const STATUS_TYPES = [
+//   { value: "recurring", label: "Recurring Transactions" },
+//   { value: "pending", label: "Pending Approval" },
+//   { value: "auto_posted", label: "Auto-posted" },
+// ]
 
 const CURRENCIES = [
   { value: "USD", label: "USD" },
@@ -108,6 +116,10 @@ export function TransactionFilterDropdown({
         return TRANSACTION_TYPES.find(opt => opt.value === value)?.label || 'Type'
       case 'currency':
         return CURRENCIES.find(opt => opt.value === value)?.label || 'Currency'
+      case 'is_recurring':
+        return value ? 'Recurring Only' : 'Non-recurring Only'
+      case 'is_pending':
+        return value ? 'Pending Approval' : 'Auto-posted'
       case 'start_date':
         return `From: ${format(value as Date, "MMM dd, yyyy")}`
       case 'end_date':
@@ -135,6 +147,12 @@ export function TransactionFilterDropdown({
       key: 'type',
       label: 'Transaction Type',
       icon: '🔄',
+      hasSubmenu: true,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      icon: '🔔',
       hasSubmenu: true,
     },
     {
@@ -236,6 +254,61 @@ export function TransactionFilterDropdown({
                     {type.label}
                   </CommandItem>
                 ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        )
+
+      case 'status':
+        return (
+          <Command>
+            <CommandList>
+              <CommandGroup>
+                <CommandItem
+                  value="recurring"
+                  onSelect={() => {
+                    updateFilter('is_recurring', true)
+                    setActiveSubmenu(null)
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      filters.is_recurring === true ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  Recurring Transactions
+                </CommandItem>
+                <CommandItem
+                  value="pending"
+                  onSelect={() => {
+                    updateFilter('is_pending', true)
+                    setActiveSubmenu(null)
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      filters.is_pending === true ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  Pending Approval
+                </CommandItem>
+                <CommandItem
+                  value="auto_posted"
+                  onSelect={() => {
+                    updateFilter('is_pending', false)
+                    setActiveSubmenu(null)
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      filters.is_pending === false ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  Auto-posted
+                </CommandItem>
               </CommandGroup>
             </CommandList>
           </Command>

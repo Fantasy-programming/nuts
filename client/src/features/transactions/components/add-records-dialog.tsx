@@ -21,6 +21,7 @@ import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, Resp
 import { createTransaction } from "@/features/transactions/services/transaction"
 import { useMutation } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
+import { RecurringSelect } from "./recurring-select";
 
 
 export function RecordsDialog({ children }: React.PropsWithChildren) {
@@ -63,6 +64,8 @@ export function RecordsDialog({ children }: React.PropsWithChildren) {
 
 export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
   const [transactionType, setTransactionType] = useState<"expense" | "income" | "transfer">("expense");
+  const [recurringType, setRecurringType] = useState<string>("one-time");
+  const [recurringConfig, setRecurringConfig] = useState<any>(null);
 
   const form = useForm<RecordCreateSchema>({
     resolver: zodResolver(recordCreateSchema),
@@ -100,11 +103,88 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
 
   const handleSubmit = useCallback(
     (values: RecordCreateSchema) => {
-      onSubmit(values);
+      // Add recurring configuration if it's not a one-time transaction
+      const submitValues = {
+        ...values,
+        is_recurring: recurringType !== "one-time",
+        recurring_config: recurringType !== "one-time" ? {
+          frequency: getFrequencyFromRecurringType(recurringType),
+          frequency_interval: getIntervalFromRecurringType(recurringType),
+          frequency_data: getFrequencyDataFromRecurringType(recurringType, recurringConfig),
+          start_date: values.transaction_datetime,
+          auto_post: true, // Default to auto-posting
+          template_name: `${values.description} (recurring)`,
+          ...(recurringConfig || {}) // Only spread recurringConfig if it exists
+        } : undefined,
+      };
+      
+      onSubmit(submitValues);
       form.reset();
     },
-    [onSubmit, form]
+    [onSubmit, form, recurringType, recurringConfig]
   );
+
+  // Helper functions to convert recurring type to config
+  const getFrequencyFromRecurringType = (type: string) => {
+    if (type.startsWith("weekly-")) return "weekly";
+    if (type.startsWith("monthly-")) return "monthly";
+    if (type === "daily") return "daily";
+    if (type === "weekdays") return "weekly";
+    if (type === "yearly-birthday") return "yearly";
+    return "custom";
+  };
+
+  const getIntervalFromRecurringType = (_type: string) => {
+    // Most recurring types have interval 1, except for custom
+    return 1;
+  };
+
+  const getFrequencyDataFromRecurringType = (type: string, customConfig: any) => {
+    if (customConfig) {
+      return customConfig.frequency_data || {};
+    }
+
+    // Convert predefined types to frequency data
+    const dayMap: { [key: string]: number } = {
+      "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, 
+      "friday": 5, "saturday": 6, "sunday": 0
+    };
+
+    if (type.startsWith("weekly-")) {
+      const day = type.split("weekly-")[1];
+      return { day_of_week: dayMap[day] };
+    }
+
+    if (type === "monthly-1st") {
+      return { day_of_month: 1 };
+    }
+
+    if (type === "monthly-15th") {
+      return { day_of_month: 15 };
+    }
+
+    if (type === "monthly-last") {
+      return { day_of_month: -1 };
+    }
+
+    if (type === "monthly-first-monday") {
+      return { day_of_week: 1, week_of_month: 1 };
+    }
+
+    if (type === "monthly-third-friday") {
+      return { day_of_week: 5, week_of_month: 3 };
+    }
+
+    if (type === "weekdays") {
+      return { week_days: [1, 2, 3, 4, 5] };
+    }
+
+    if (type === "yearly-birthday") {
+      return { month_of_year: 7, day_of_month: 18 };
+    }
+
+    return {};
+  };
 
   const handleTabChange = useCallback(
     (value: string) => {
@@ -259,8 +339,23 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
               )}
             />
 
+            {/* Recurring Transaction Option */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Recurrence
+              </label>
+              <RecurringSelect
+                value={recurringType}
+                onChange={setRecurringType}
+                onCustomSave={(data) => {
+                  console.log("Custom recurring data:", data);
+                  setRecurringConfig(data);
+                }}
+              />
+            </div>
+
             <Button type="submit" className="w-full">
-              Create Expense
+              Create {recurringType !== "one-time" ? "Recurring " : ""}Expense
             </Button>
           </form>
         </Form>
@@ -362,8 +457,23 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
               )}
             />
 
+            {/* Recurring Transaction Option */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Recurrence
+              </label>
+              <RecurringSelect
+                value={recurringType}
+                onChange={setRecurringType}
+                onCustomSave={(data) => {
+                  console.log("Custom recurring data:", data);
+                  setRecurringConfig(data);
+                }}
+              />
+            </div>
+
             <Button type="submit" className="w-full">
-              Create Income
+              Create {recurringType !== "one-time" ? "Recurring " : ""}Income
             </Button>
           </form>
         </Form>
@@ -467,8 +577,23 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
               )}
             />
 
+            {/* Recurring Transaction Option */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Recurrence
+              </label>
+              <RecurringSelect
+                value={recurringType}
+                onChange={setRecurringType}
+                onCustomSave={(data) => {
+                  console.log("Custom recurring data:", data);
+                  setRecurringConfig(data);
+                }}
+              />
+            </div>
+
             <Button type="submit" className="w-full">
-              Create Transfer
+              Create {recurringType !== "one-time" ? "Recurring " : ""}Transfer
             </Button>
           </form>
         </Form>

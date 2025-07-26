@@ -13,6 +13,7 @@ import { categoryService } from "@/features/categories/services/category";
 import { bulkUpdateCategories } from "../services/transaction";
 import { toast } from "sonner";
 import { useMemo } from "react";
+import { getTransactionStatus, getTransactionStyles } from "../utils/transaction-status";
 
 type TransactionRowData = TableRecordSchema & {
   groupId?: string;
@@ -31,30 +32,47 @@ const TransactionCell = memo(({
 }: {
   transaction: TableRecordSchema;
   onEdit: (transaction: TableRecordSchema) => void;
-}) => (
-  <div className="flex items-center space-x-3">
-    <Avatar className="h-8 w-8">
-      <AvatarFallback className="bg-[#595959] text-background">
-        {transaction.account.name.slice(0, 2).toUpperCase()}
-      </AvatarFallback>
-    </Avatar>
-    <div className="flex flex-col gap-0.5">
-      <button
-        onClick={() => { onEdit(transaction) }}
-        className="text-left hover:underline font-medium"
-      >
-        {transaction.description}
-      </button>
-      <Link
-        to="/dashboard/accounts/$id"
-        params={{ id: transaction.account.id }}
-        className="text-xs text-muted-foreground hover:underline"
-      >
-        {transaction.account.name}
-      </Link>
+}) => {
+  const status = getTransactionStatus(transaction);
+  const styles = getTransactionStyles(transaction);
+
+  return (
+    <div className={`flex items-center space-x-3 ${styles.containerClass}`}>
+      <Avatar className="h-8 w-8">
+        <AvatarFallback className="bg-[#595959] text-background">
+          {transaction.account.name.slice(0, 2).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { onEdit(transaction) }}
+            className={`text-left hover:underline font-medium ${styles.textClass}`}
+          >
+            {transaction.description}
+          </button>
+          {status.statusLabel && (
+            <Badge variant={status.badgeVariant} className="text-xs">
+              {status.statusLabel}
+            </Badge>
+          )}
+        </div>
+        <Link
+          to="/dashboard/accounts/$id"
+          params={{ id: transaction.account.id }}
+          className={`text-xs hover:underline ${styles.textClass || "text-muted-foreground"}`}
+        >
+          {transaction.account.name}
+        </Link>
+        {transaction.template_name && (
+          <span className="text-xs text-muted-foreground">
+            Template: {transaction.template_name}
+          </span>
+        )}
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 const CategoryCell = memo(({ transaction }: { transaction: TableRecordSchema }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -102,8 +120,8 @@ const CategoryCell = memo(({ transaction }: { transaction: TableRecordSchema }) 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Badge 
-          variant="outline" 
+        <Badge
+          variant="outline"
           className="rounded-full text-md px-2 py-1 [&>svg]:size-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           {renderIcon(transaction.category?.icon || "")} {transaction.category?.name || "No category"}
