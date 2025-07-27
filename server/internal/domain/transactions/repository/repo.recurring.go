@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/types"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 )
 
@@ -22,22 +22,7 @@ func convertIntToInt32Ptr(i *int) *int32 {
 	return &val
 }
 
-// RecurringTransactionRepo implements the RecurringTransactionRepository interface
-type RecurringTransactionRepo struct {
-	db      *pgxpool.Pool
-	queries *repository.Queries
-}
-
-// NewRecurringTransactionRepository creates a new recurring transaction repository
-func NewRecurringTransactionRepository(db *pgxpool.Pool, queries *repository.Queries) RecurringTransactionRepository {
-	return &RecurringTransactionRepo{
-		db:      db,
-		queries: queries,
-	}
-}
-
-// CreateRecurringTransaction creates a new recurring transaction template
-func (r *RecurringTransactionRepo) CreateRecurringTransaction(ctx context.Context, req CreateRecurringTransactionRequest, userID uuid.UUID) (*RecurringTransaction, error) {
+func (r *repo) CreateRecurringTransaction(ctx context.Context, req transactions.CreateRecurringTransactionRequest, userID uuid.UUID) (*transactions.RecurringTransaction, error) {
 	// Parse the account ID
 	accountID, err := uuid.Parse(req.AccountID)
 	if err != nil {
@@ -88,7 +73,7 @@ func (r *RecurringTransactionRepo) CreateRecurringTransaction(ctx context.Contex
 	}
 
 	// Create the recurring transaction
-	dbRecurring, err := r.queries.CreateRecurringTransaction(ctx, repository.CreateRecurringTransactionParams{
+	dbRecurring, err := r.Queries.CreateRecurringTransaction(ctx, repository.CreateRecurringTransactionParams{
 		UserID:               userID,
 		AccountID:            accountID,
 		CategoryID:           categoryID,
@@ -116,9 +101,8 @@ func (r *RecurringTransactionRepo) CreateRecurringTransaction(ctx context.Contex
 	return convertDBRecurringToModel(dbRecurring), nil
 }
 
-// GetRecurringTransactionByID retrieves a recurring transaction by ID
-func (r *RecurringTransactionRepo) GetRecurringTransactionByID(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*RecurringTransaction, error) {
-	dbRecurring, err := r.queries.GetRecurringTransactionById(ctx, repository.GetRecurringTransactionByIdParams{
+func (r *repo) GetRecurringTransactionByID(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*transactions.RecurringTransaction, error) {
+	dbRecurring, err := r.Queries.GetRecurringTransactionById(ctx, repository.GetRecurringTransactionByIdParams{
 		ID:     id,
 		UserID: userID,
 	})
@@ -129,8 +113,7 @@ func (r *RecurringTransactionRepo) GetRecurringTransactionByID(ctx context.Conte
 	return convertDBRecurringToModel(dbRecurring), nil
 }
 
-// ListRecurringTransactions retrieves all recurring transactions for a user with filters
-func (r *RecurringTransactionRepo) ListRecurringTransactions(ctx context.Context, userID uuid.UUID, filters RecurringTransactionFilters) ([]RecurringTransaction, error) {
+func (r *repo) ListRecurringTransactions(ctx context.Context, userID uuid.UUID, filters transactions.RecurringTransactionFilters) ([]transactions.RecurringTransaction, error) {
 	// Parse filter UUIDs
 	var accountID *uuid.UUID
 	if filters.AccountID != nil {
@@ -150,7 +133,7 @@ func (r *RecurringTransactionRepo) ListRecurringTransactions(ctx context.Context
 		categoryID = &parsed
 	}
 
-	dbRecurrings, err := r.queries.ListRecurringTransactionsWithFilters(ctx, repository.ListRecurringTransactionsWithFiltersParams{
+	dbRecurrings, err := r.Queries.ListRecurringTransactionsWithFilters(ctx, repository.ListRecurringTransactionsWithFiltersParams{
 		UserID:       userID,
 		AccountID:    accountID,
 		CategoryID:   categoryID,
@@ -165,7 +148,7 @@ func (r *RecurringTransactionRepo) ListRecurringTransactions(ctx context.Context
 		return nil, err
 	}
 
-	var result []RecurringTransaction
+	var result []transactions.RecurringTransaction
 	for _, dbRecurring := range dbRecurrings {
 		result = append(result, *convertDBRecurringToModel(dbRecurring))
 	}
@@ -174,7 +157,7 @@ func (r *RecurringTransactionRepo) ListRecurringTransactions(ctx context.Context
 }
 
 // UpdateRecurringTransaction updates a recurring transaction
-func (r *RecurringTransactionRepo) UpdateRecurringTransaction(ctx context.Context, id uuid.UUID, req UpdateRecurringTransactionRequest, userID uuid.UUID) (*RecurringTransaction, error) {
+func (r *repo) UpdateRecurringTransaction(ctx context.Context, id uuid.UUID, req transactions.UpdateRecurringTransactionRequest, userID uuid.UUID) (*transactions.RecurringTransaction, error) {
 	// Parse account ID if provided
 	var accountID *uuid.UUID
 	if req.AccountID != nil {
@@ -238,7 +221,7 @@ func (r *RecurringTransactionRepo) UpdateRecurringTransaction(ctx context.Contex
 	amount := decimal.NewNullDecimal(*req.Amount)
 
 	// Update the recurring transaction
-	dbRecurring, err := r.queries.UpdateRecurringTransaction(ctx, repository.UpdateRecurringTransactionParams{
+	dbRecurring, err := r.Queries.UpdateRecurringTransaction(ctx, repository.UpdateRecurringTransactionParams{
 		ID:                   id,
 		UserID:               userID,
 		AccountID:            accountID,
@@ -267,17 +250,15 @@ func (r *RecurringTransactionRepo) UpdateRecurringTransaction(ctx context.Contex
 	return convertDBRecurringToModel(dbRecurring), nil
 }
 
-// DeleteRecurringTransaction soft deletes a recurring transaction
-func (r *RecurringTransactionRepo) DeleteRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
-	return r.queries.DeleteRecurringTransaction(ctx, repository.DeleteRecurringTransactionParams{
+func (r *repo) DeleteRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+	return r.Queries.DeleteRecurringTransaction(ctx, repository.DeleteRecurringTransactionParams{
 		ID:     id,
 		UserID: userID,
 	})
 }
 
-// PauseRecurringTransaction pauses or resumes a recurring transaction
-func (r *RecurringTransactionRepo) PauseRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID, isPaused bool) (*RecurringTransaction, error) {
-	dbRecurring, err := r.queries.PauseRecurringTransaction(ctx, repository.PauseRecurringTransactionParams{
+func (r *repo) PauseRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID, isPaused bool) (*transactions.RecurringTransaction, error) {
+	dbRecurring, err := r.Queries.PauseRecurringTransaction(ctx, repository.PauseRecurringTransactionParams{
 		ID:       id,
 		IsPaused: isPaused,
 		UserID:   userID,
@@ -289,14 +270,13 @@ func (r *RecurringTransactionRepo) PauseRecurringTransaction(ctx context.Context
 	return convertDBRecurringToModel(dbRecurring), nil
 }
 
-// GetDueRecurringTransactions retrieves all due recurring transactions
-func (r *RecurringTransactionRepo) GetDueRecurringTransactions(ctx context.Context, dueDate time.Time) ([]RecurringTransaction, error) {
-	dbRecurrings, err := r.queries.GetDueRecurringTransactions(ctx, pgtype.Timestamptz{Valid: true, Time: dueDate})
+func (r *repo) GetDueRecurringTransactions(ctx context.Context, dueDate time.Time) ([]transactions.RecurringTransaction, error) {
+	dbRecurrings, err := r.Queries.GetDueRecurringTransactions(ctx, pgtype.Timestamptz{Valid: true, Time: dueDate})
 	if err != nil {
 		return nil, err
 	}
 
-	var result []RecurringTransaction
+	var result []transactions.RecurringTransaction
 	for _, dbRecurring := range dbRecurrings {
 		result = append(result, *convertDBRecurringToModel(dbRecurring))
 	}
@@ -304,14 +284,13 @@ func (r *RecurringTransactionRepo) GetDueRecurringTransactions(ctx context.Conte
 	return result, nil
 }
 
-// GetRecurringTransactionStats retrieves statistics for recurring transactions
-func (r *RecurringTransactionRepo) GetRecurringTransactionStats(ctx context.Context, userID uuid.UUID) (*RecurringTransactionStats, error) {
-	stats, err := r.queries.GetRecurringTransactionStats(ctx, userID)
+func (r *repo) GetRecurringTransactionStats(ctx context.Context, userID uuid.UUID) (*transactions.RecurringTransactionStats, error) {
+	stats, err := r.Queries.GetRecurringTransactionStats(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &RecurringTransactionStats{
+	return &transactions.RecurringTransactionStats{
 		TotalCount:  int(stats.TotalCount),
 		ActiveCount: int(stats.ActiveCount),
 		PausedCount: int(stats.PausedCount),
@@ -319,9 +298,8 @@ func (r *RecurringTransactionRepo) GetRecurringTransactionStats(ctx context.Cont
 	}, nil
 }
 
-// GetUpcomingRecurringTransactions retrieves upcoming recurring transactions within a date range
-func (r *RecurringTransactionRepo) GetUpcomingRecurringTransactions(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) ([]RecurringTransaction, error) {
-	dbRecurrings, err := r.queries.GetUpcomingRecurringTransactions(ctx, repository.GetUpcomingRecurringTransactionsParams{
+func (r *repo) GetUpcomingRecurringTransactions(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) ([]transactions.RecurringTransaction, error) {
+	dbRecurrings, err := r.Queries.GetUpcomingRecurringTransactions(ctx, repository.GetUpcomingRecurringTransactionsParams{
 		UserID:        userID,
 		NextDueDate:   pgtype.Timestamptz{Valid: true, Time: startDate},
 		NextDueDate_2: pgtype.Timestamptz{Valid: true, Time: endDate},
@@ -330,7 +308,7 @@ func (r *RecurringTransactionRepo) GetUpcomingRecurringTransactions(ctx context.
 		return nil, err
 	}
 
-	var result []RecurringTransaction
+	var result []transactions.RecurringTransaction
 	for _, dbRecurring := range dbRecurrings {
 		result = append(result, *convertDBRecurringToModel(dbRecurring))
 	}
@@ -338,9 +316,8 @@ func (r *RecurringTransactionRepo) GetUpcomingRecurringTransactions(ctx context.
 	return result, nil
 }
 
-// GetRecurringTransactionInstances retrieves all instances of a recurring transaction
-func (r *RecurringTransactionRepo) GetRecurringTransactionInstances(ctx context.Context, userID uuid.UUID, recurringID uuid.UUID) ([]repository.Transaction, error) {
-	rows, err := r.queries.GetRecurringTransactionInstances(ctx, repository.GetRecurringTransactionInstancesParams{
+func (r *repo) GetRecurringTransactionInstances(ctx context.Context, userID uuid.UUID, recurringID uuid.UUID) ([]repository.Transaction, error) {
+	rows, err := r.Queries.GetRecurringTransactionInstances(ctx, repository.GetRecurringTransactionInstancesParams{
 		UserID: userID,
 		ID:     recurringID,
 	})
@@ -348,7 +325,6 @@ func (r *RecurringTransactionRepo) GetRecurringTransactionInstances(ctx context.
 		return nil, err
 	}
 
-	// Convert from GetRecurringTransactionInstancesRow to Transaction
 	var transactions []repository.Transaction
 	for _, row := range rows {
 		transaction := repository.Transaction{
@@ -384,8 +360,8 @@ func (r *RecurringTransactionRepo) GetRecurringTransactionInstances(ctx context.
 }
 
 // convertDBRecurringToModel converts a database recurring transaction to the domain model
-func convertDBRecurringToModel(dbRecurring repository.RecurringTransaction) *RecurringTransaction {
-	rt := &RecurringTransaction{
+func convertDBRecurringToModel(dbRecurring repository.RecurringTransaction) *transactions.RecurringTransaction {
+	rt := &transactions.RecurringTransaction{
 		ID:                   dbRecurring.ID,
 		UserID:               dbRecurring.UserID,
 		AccountID:            dbRecurring.AccountID,
@@ -418,7 +394,7 @@ func convertDBRecurringToModel(dbRecurring repository.RecurringTransaction) *Rec
 
 	// Parse frequency data
 	if dbRecurring.FrequencyData != nil {
-		var frequencyData FrequencyData
+		var frequencyData transactions.FrequencyData
 		if err := json.Unmarshal(dbRecurring.FrequencyData, &frequencyData); err == nil {
 			rt.FrequencyData = &frequencyData
 		}
@@ -426,7 +402,7 @@ func convertDBRecurringToModel(dbRecurring repository.RecurringTransaction) *Rec
 
 	// Parse tags
 	if dbRecurring.Tags != nil {
-		var tags Tags
+		var tags transactions.Tags
 		if err := json.Unmarshal(dbRecurring.Tags, &tags); err == nil {
 			rt.Tags = &tags
 		}

@@ -376,6 +376,20 @@ type Transaction struct {
 	RecurringInstanceDate  *time.Time     `json:"recurring_instance_date"`
 }
 
+type TransactionRule struct {
+	ID         uuid.UUID  `json:"id"`
+	Name       string     `json:"name"`
+	IsActive   *bool      `json:"is_active"`
+	Priority   *int32     `json:"priority"`
+	Conditions []byte     `json:"conditions"`
+	Actions    []byte     `json:"actions"`
+	CreatedBy  uuid.UUID  `json:"created_by"`
+	UpdatedBy  *uuid.UUID `json:"updated_by"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	DeletedAt  *time.Time `json:"deleted_at"`
+}
+
 type User struct {
 	ID            uuid.UUID  `json:"id"`
 	Email         string     `json:"email"`

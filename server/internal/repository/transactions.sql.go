@@ -111,84 +111,6 @@ func (q *Queries) BulkUpdateTransactionCategories(ctx context.Context, arg BulkU
 	return err
 }
 
-const bulkDeleteTransactions = `-- name: BulkDeleteTransactions :exec
-UPDATE transactions
-SET deleted_at = current_timestamp
-WHERE id = ANY($1::uuid[])
-    AND created_by = $2
-`
-
-type BulkDeleteTransactionsParams struct {
-	Ids    []uuid.UUID `json:"ids"`
-	UserID *uuid.UUID  `json:"user_id"`
-}
-
-func (q *Queries) BulkDeleteTransactions(ctx context.Context, arg BulkDeleteTransactionsParams) error {
-	_, err := q.db.Exec(ctx, bulkDeleteTransactions, arg.Ids, arg.UserID)
-	return err
-}
-
-const bulkUpdateManualTransactions = `-- name: BulkUpdateManualTransactions :exec
-UPDATE transactions
-SET 
-    category_id = coalesce($1, category_id),
-    account_id = coalesce($2, account_id),
-    transaction_datetime = coalesce($3, transaction_datetime),
-    updated_by = $4
-WHERE id = ANY($5::uuid[])
-    AND created_by = $6
-    AND is_external = false
-    AND deleted_at IS NULL
-`
-
-type BulkUpdateManualTransactionsParams struct {
-	CategoryID          *uuid.UUID         `json:"category_id"`
-	AccountID           *uuid.UUID         `json:"account_id"`
-	TransactionDatetime pgtype.Timestamptz `json:"transaction_datetime"`
-	UpdatedBy           *uuid.UUID         `json:"updated_by"`
-	Ids                 []uuid.UUID        `json:"ids"`
-	UserID              *uuid.UUID         `json:"user_id"`
-}
-
-func (q *Queries) BulkUpdateManualTransactions(ctx context.Context, arg BulkUpdateManualTransactionsParams) error {
-	_, err := q.db.Exec(ctx, bulkUpdateManualTransactions,
-		arg.CategoryID,
-		arg.AccountID,
-		arg.TransactionDatetime,
-		arg.UpdatedBy,
-		arg.Ids,
-		arg.UserID,
-	)
-	return err
-}
-
-const bulkUpdateTransactionCategories = `-- name: BulkUpdateTransactionCategories :exec
-UPDATE transactions
-SET 
-    category_id = $1,
-    updated_by = $2
-WHERE id = ANY($3::uuid[])
-    AND created_by = $4
-    AND deleted_at IS NULL
-`
-
-type BulkUpdateTransactionCategoriesParams struct {
-	CategoryID *uuid.UUID  `json:"category_id"`
-	UpdatedBy  *uuid.UUID  `json:"updated_by"`
-	Ids        []uuid.UUID `json:"ids"`
-	UserID     *uuid.UUID  `json:"user_id"`
-}
-
-func (q *Queries) BulkUpdateTransactionCategories(ctx context.Context, arg BulkUpdateTransactionCategoriesParams) error {
-	_, err := q.db.Exec(ctx, bulkUpdateTransactionCategories,
-		arg.CategoryID,
-		arg.UpdatedBy,
-		arg.Ids,
-		arg.UserID,
-	)
-	return err
-}
-
 const countTransactions = `-- name: CountTransactions :one
 SELECT count(*)
 FROM
@@ -201,6 +123,10 @@ LEFT JOIN
     accounts AS dest_acct ON t.destination_account_id = dest_acct.id
     AND dest_acct.deleted_at IS NULL
 
+LEFT JOIN
+    recurring_transactions AS rt ON t.recurring_transaction_id = rt.id
+    AND rt.deleted_at IS NULL
+
 WHERE
     t.created_by = $1
     AND t.deleted_at IS NULL
@@ -211,34 +137,42 @@ WHERE
     AND ($4::uuid IS NULL OR t.category_id = $4)
     AND ($5::text IS NULL OR t.transaction_currency = $5)
     AND ($6::boolean IS NULL OR t.is_external = $6)
-    AND ($7::timestamptz IS NULL OR t.transaction_datetime >= $7)
-    AND ($8::timestamptz IS NULL OR t.transaction_datetime <= $8)
-    AND ($9::decimal IS NULL OR t.amount >= $9)
-    AND ($10::decimal IS NULL OR t.amount <= $10)
-    AND ($11::text IS NULL OR t.description ILIKE '%' || $11::text || '%')
+    AND ($7::boolean IS NULL OR 
+         ($7::boolean = true AND t.recurring_transaction_id IS NOT NULL) OR
+         ($7::boolean = false AND t.recurring_transaction_id IS NULL))
+    AND ($8::boolean IS NULL OR 
+         ($8::boolean = true AND rt.auto_post = false AND t.recurring_transaction_id IS NOT NULL) OR
+         ($8::boolean = false AND (rt.auto_post = true OR t.recurring_transaction_id IS NULL)))
+    AND ($9::timestamptz IS NULL OR t.transaction_datetime >= $9)
+    AND ($10::timestamptz IS NULL OR t.transaction_datetime <= $10)
+    AND ($11::decimal IS NULL OR t.amount >= $11)
+    AND ($12::decimal IS NULL OR t.amount <= $12)
+    AND ($13::text IS NULL OR t.description ILIKE '%' || $13::text || '%')
     -- Tags filter
-    AND ($12::text[] IS NULL OR 
+    AND ($14::text[] IS NULL OR 
          EXISTS (
              SELECT 1 
-             FROM unnest($12::text[]) AS tag
+             FROM unnest($14::text[]) AS tag
              WHERE t.details ? tag OR t.details->>'note' ILIKE '%' || tag || '%'
          )
     )
 `
 
 type CountTransactionsParams struct {
-	UserID     *uuid.UUID     `json:"user_id"`
-	Type       *string        `json:"type"`
-	AccountID  *uuid.UUID     `json:"account_id"`
-	CategoryID *uuid.UUID     `json:"category_id"`
-	Currency   *string        `json:"currency"`
-	IsExternal *bool          `json:"is_external"`
-	StartDate  *time.Time     `json:"start_date"`
-	EndDate    *time.Time     `json:"end_date"`
-	MinAmount  pgtype.Numeric `json:"min_amount"`
-	MaxAmount  pgtype.Numeric `json:"max_amount"`
-	Search     *string        `json:"search"`
-	Tags       []string       `json:"tags"`
+	UserID      *uuid.UUID     `json:"user_id"`
+	Type        *string        `json:"type"`
+	AccountID   *uuid.UUID     `json:"account_id"`
+	CategoryID  *uuid.UUID     `json:"category_id"`
+	Currency    *string        `json:"currency"`
+	IsExternal  *bool          `json:"is_external"`
+	IsRecurring *bool          `json:"is_recurring"`
+	IsPending   *bool          `json:"is_pending"`
+	StartDate   *time.Time     `json:"start_date"`
+	EndDate     *time.Time     `json:"end_date"`
+	MinAmount   pgtype.Numeric `json:"min_amount"`
+	MaxAmount   pgtype.Numeric `json:"max_amount"`
+	Search      *string        `json:"search"`
+	Tags        []string       `json:"tags"`
 }
 
 func (q *Queries) CountTransactions(ctx context.Context, arg CountTransactionsParams) (int64, error) {
@@ -249,6 +183,8 @@ func (q *Queries) CountTransactions(ctx context.Context, arg CountTransactionsPa
 		arg.CategoryID,
 		arg.Currency,
 		arg.IsExternal,
+		arg.IsRecurring,
+		arg.IsPending,
 		arg.StartDate,
 		arg.EndDate,
 		arg.MinAmount,
@@ -500,6 +436,8 @@ SELECT
     t.details,
     t.is_external,
     t.updated_at,
+    t.recurring_transaction_id,
+    t.recurring_instance_date,
     -- Embed the source account
     source_acct.id, source_acct.name, source_acct.type, source_acct.balance, source_acct.currency, source_acct.meta, source_acct.created_by, source_acct.updated_by, source_acct.created_at, source_acct.updated_at, source_acct.deleted_at, source_acct.is_external, source_acct.provider_account_id, source_acct.provider_name, source_acct.sync_status, source_acct.last_synced_at, source_acct.connection_id, source_acct.subtype, source_acct.shared_finance_id,
     -- Select destination account fields explicitly with aliases
@@ -509,7 +447,10 @@ SELECT
     dest_acct.type AS destination_account_type,
     dest_acct.currency AS destination_account_currency,
     -- Embed the category
-    cat.id, cat.name, cat.parent_id, cat.is_default, cat.created_by, cat.updated_by, cat.created_at, cat.updated_at, cat.deleted_at, cat.type, cat.color, cat.icon
+    cat.id, cat.name, cat.parent_id, cat.is_default, cat.created_by, cat.updated_by, cat.created_at, cat.updated_at, cat.deleted_at, cat.type, cat.color, cat.icon,
+    -- Include recurring transaction template info
+    rt.auto_post,
+    rt.template_name
 FROM
     transactions AS t
 JOIN
@@ -520,6 +461,9 @@ JOIN
 LEFT JOIN
     accounts AS dest_acct ON t.destination_account_id = dest_acct.id
     AND dest_acct.deleted_at IS NULL
+LEFT JOIN
+    recurring_transactions AS rt ON t.recurring_transaction_id = rt.id
+    AND rt.deleted_at IS NULL
 WHERE
     t.created_by = $1
     AND t.deleted_at IS NULL
@@ -529,43 +473,51 @@ WHERE
     AND ($4::uuid IS NULL OR t.category_id = $4)
     AND ($5::text IS NULL OR t.transaction_currency = $5)
     AND ($6::boolean IS NULL OR t.is_external = $6)
-    AND ($7::timestamptz IS NULL OR t.transaction_datetime >= $7)
-    AND ($8::timestamptz IS NULL OR t.transaction_datetime <= $8)
-    AND ($9::decimal IS NULL OR t.amount >= $9)
-    AND ($10::decimal IS NULL OR t.amount <= $10)
+    AND ($7::boolean IS NULL OR
+         ($7::boolean = true AND t.recurring_transaction_id IS NOT NULL) OR
+         ($7::boolean = false AND t.recurring_transaction_id IS NULL))
+    AND ($8::boolean IS NULL OR
+         ($8::boolean = true AND rt.auto_post = false AND t.recurring_transaction_id IS NOT NULL) OR
+         ($8::boolean = false AND (rt.auto_post = true OR t.recurring_transaction_id IS NULL)))
+    AND ($9::timestamptz IS NULL OR t.transaction_datetime >= $9)
+    AND ($10::timestamptz IS NULL OR t.transaction_datetime <= $10)
+    AND ($11::decimal IS NULL OR t.amount >= $11)
+    AND ($12::decimal IS NULL OR t.amount <= $12)
     -- Search filter (case-insensitive)
-    AND ($11::text IS NULL OR t.description ILIKE '%' || $11::text || '%')
+    AND ($13::text IS NULL OR t.description ILIKE '%' || $13::text || '%')
     -- Tags filter (assuming tags are stored in the details JSONB field)
-    AND ($12::text[] IS NULL OR 
+    AND ($14::text[] IS NULL OR 
          EXISTS (
              SELECT 1 
-             FROM unnest($12::text[]) AS tag
+             FROM unnest($14::text[]) AS tag
              WHERE t.details ? tag OR t.details->>'note' ILIKE '%' || tag || '%'
          )
     )
 ORDER BY
     t.transaction_datetime DESC
 LIMIT
-    $14
+    $16
 OFFSET
-    $13
+    $15
 `
 
 type ListTransactionsParams struct {
-	UserID     *uuid.UUID     `json:"user_id"`
-	Type       *string        `json:"type"`
-	AccountID  *uuid.UUID     `json:"account_id"`
-	CategoryID *uuid.UUID     `json:"category_id"`
-	Currency   *string        `json:"currency"`
-	IsExternal *bool          `json:"is_external"`
-	StartDate  *time.Time     `json:"start_date"`
-	EndDate    *time.Time     `json:"end_date"`
-	MinAmount  pgtype.Numeric `json:"min_amount"`
-	MaxAmount  pgtype.Numeric `json:"max_amount"`
-	Search     *string        `json:"search"`
-	Tags       []string       `json:"tags"`
-	Offset     int64          `json:"offset"`
-	Limit      int64          `json:"limit"`
+	UserID      *uuid.UUID     `json:"user_id"`
+	Type        *string        `json:"type"`
+	AccountID   *uuid.UUID     `json:"account_id"`
+	CategoryID  *uuid.UUID     `json:"category_id"`
+	Currency    *string        `json:"currency"`
+	IsExternal  *bool          `json:"is_external"`
+	IsRecurring *bool          `json:"is_recurring"`
+	IsPending   *bool          `json:"is_pending"`
+	StartDate   *time.Time     `json:"start_date"`
+	EndDate     *time.Time     `json:"end_date"`
+	MinAmount   pgtype.Numeric `json:"min_amount"`
+	MaxAmount   pgtype.Numeric `json:"max_amount"`
+	Search      *string        `json:"search"`
+	Tags        []string       `json:"tags"`
+	Offset      int64          `json:"offset"`
+	Limit       int64          `json:"limit"`
 }
 
 type ListTransactionsRow struct {
@@ -578,12 +530,16 @@ type ListTransactionsRow struct {
 	Details                    *dto.Details    `json:"details"`
 	IsExternal                 *bool           `json:"is_external"`
 	UpdatedAt                  time.Time       `json:"updated_at"`
+	RecurringTransactionID     *uuid.UUID      `json:"recurring_transaction_id"`
+	RecurringInstanceDate      *time.Time      `json:"recurring_instance_date"`
 	Account                    Account         `json:"account"`
 	DestinationAccountIDAlias  *uuid.UUID      `json:"destination_account_id_alias"`
 	DestinationAccountName     *string         `json:"destination_account_name"`
 	DestinationAccountType     NullACCOUNTTYPE `json:"destination_account_type"`
 	DestinationAccountCurrency *string         `json:"destination_account_currency"`
 	Category                   Category        `json:"category"`
+	AutoPost                   *bool           `json:"auto_post"`
+	TemplateName               *string         `json:"template_name"`
 }
 
 func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]ListTransactionsRow, error) {
@@ -594,6 +550,8 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 		arg.CategoryID,
 		arg.Currency,
 		arg.IsExternal,
+		arg.IsRecurring,
+		arg.IsPending,
 		arg.StartDate,
 		arg.EndDate,
 		arg.MinAmount,
@@ -620,6 +578,8 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Details,
 			&i.IsExternal,
 			&i.UpdatedAt,
+			&i.RecurringTransactionID,
+			&i.RecurringInstanceDate,
 			&i.Account.ID,
 			&i.Account.Name,
 			&i.Account.Type,
@@ -655,6 +615,8 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 			&i.Category.Type,
 			&i.Category.Color,
 			&i.Category.Icon,
+			&i.AutoPost,
+			&i.TemplateName,
 		); err != nil {
 			return nil, err
 		}

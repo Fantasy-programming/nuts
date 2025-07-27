@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"time"
 
 	accRepo "github.com/Fantasy-Programming/nuts/server/internal/domain/accounts/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions"
@@ -13,6 +12,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/domain/transactions/rules"
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/types"
+	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
 	"github.com/Fantasy-Programming/nuts/server/pkg/llm"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -47,15 +47,15 @@ type Transactions interface {
 
 	// Recurring
 	CreateRecurringTransaction(ctx context.Context, req transactions.CreateRecurringTransactionRequest, userID uuid.UUID) (*transactions.RecurringTransaction, error)
-	GetRecurringTransactionByID(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*transactions.RecurringTransaction, error)
-	ListRecurringTransactions(ctx context.Context, userID uuid.UUID, filters transactions.RecurringTransactionFilters) ([]transactions.RecurringTransaction, error)
-	UpdateRecurringTransaction(ctx context.Context, id uuid.UUID, req transactions.UpdateRecurringTransactionRequest, userID uuid.UUID) (*transactions.RecurringTransaction, error)
-	DeleteRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
-	PauseRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID, isPaused bool) (*transactions.RecurringTransaction, error)
-	GetDueRecurringTransactions(ctx context.Context, dueDate time.Time) ([]transactions.RecurringTransaction, error)
-	GetRecurringTransactionStats(ctx context.Context, userID uuid.UUID) (*transactions.RecurringTransactionStats, error)
-	GetUpcomingRecurringTransactions(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) ([]transactions.RecurringTransaction, error)
-	GetRecurringTransactionInstances(ctx context.Context, userID uuid.UUID, recurringID uuid.UUID) ([]repository.Transaction, error)
+	// GetRecurringTransactionByID(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*transactions.RecurringTransaction, error)
+	// ListRecurringTransactions(ctx context.Context, userID uuid.UUID, filters transactions.RecurringTransactionFilters) ([]transactions.RecurringTransaction, error)
+	// UpdateRecurringTransaction(ctx context.Context, id uuid.UUID, req transactions.UpdateRecurringTransactionRequest, userID uuid.UUID) (*transactions.RecurringTransaction, error)
+	// DeleteRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
+	// PauseRecurringTransaction(ctx context.Context, id uuid.UUID, userID uuid.UUID, isPaused bool) (*transactions.RecurringTransaction, error)
+	// GetDueRecurringTransactions(ctx context.Context, dueDate time.Time) ([]transactions.RecurringTransaction, error)
+	// GetRecurringTransactionStats(ctx context.Context, userID uuid.UUID) (*transactions.RecurringTransactionStats, error)
+	// GetUpcomingRecurringTransactions(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) ([]transactions.RecurringTransaction, error)
+	// GetRecurringTransactionInstances(ctx context.Context, userID uuid.UUID, recurringID uuid.UUID) ([]repository.Transaction, error)
 
 	// AI
 	ParseTransactions(ctx context.Context, req llm.NeuralInputRequest) (*llm.NeuralInputResponse, error)
@@ -65,16 +65,18 @@ type TransactionService struct {
 	trscRepo   trscRepo.Transactions
 	accRepo    accRepo.Account
 	llmService llm.Service
+	jobs       *jobs.Service
 	db         *pgxpool.Pool
 	evaluator  *rules.RuleEvaluator
 	logger     *zerolog.Logger
 }
 
-func New(db *pgxpool.Pool, trscRepo trscRepo.Transactions, accRepo accRepo.Account, llm llm.Service, logger *zerolog.Logger) *TransactionService {
+func New(db *pgxpool.Pool, trscRepo trscRepo.Transactions, accRepo accRepo.Account, llm llm.Service, jobs *jobs.Service, logger *zerolog.Logger) *TransactionService {
 	return &TransactionService{
 		trscRepo:   trscRepo,
 		accRepo:    accRepo,
 		llmService: llm,
+		jobs:       jobs,
 		db:         db,
 		evaluator:  rules.NewRuleEvaluator(),
 		logger:     logger,
@@ -224,6 +226,72 @@ func (t *TransactionService) CreateTransaction(ctx context.Context, params repos
 	// 	}
 	// }
 
+	// // If this is a recurring transaction, create the recurring template and enqueue job
+	// if req.IsRecurring != nil && *req.IsRecurring && req.RecurringConfig != nil {
+	// 	recurringReq := transactions.CreateRecurringTransactionRequest{
+	// 		AccountID:         req.AccountID,
+	// 		CategoryID:        &req.CategoryID,
+	// 		Amount:            amount,
+	// 		Type:              req.Type,
+	// 		Description:       req.Description,
+	// 		Details:           &req.Details,
+	// 		Frequency:         req.RecurringConfig.Frequency,
+	// 		FrequencyInterval: req.RecurringConfig.FrequencyInterval,
+	// 		FrequencyData:     req.RecurringConfig.FrequencyData,
+	// 		StartDate:         req.RecurringConfig.StartDate,
+	// 		EndDate:           req.RecurringConfig.EndDate,
+	// 		AutoPost:          req.RecurringConfig.AutoPost,
+	// 		MaxOccurrences:    req.RecurringConfig.MaxOccurrences,
+	// 		TemplateName:      req.RecurringConfig.TemplateName,
+	// 		Tags:              req.RecurringConfig.Tags,
+	// 	}
+	//
+	// 	// Validate the recurring transaction
+	// 	if err := h.recurringService.ValidateRecurringTransaction(recurringReq); err != nil {
+	// 		respond.Error(respond.ErrorOptions{
+	// 			W:          w,
+	// 			R:          r,
+	// 			StatusCode: http.StatusBadRequest,
+	// 			ClientErr:  message.ErrValidation,
+	// 			ActualErr:  err,
+	// 			Logger:     h.logger,
+	// 			Details:    recurringReq,
+	// 		})
+	// 		return
+	// 	}
+	//
+	// 	// Create the recurring transaction template
+	// 	recurringTransaction, err := h.recurringService.CreateRecurringTransaction(ctx, userID, recurringReq)
+	// 	if err != nil {
+	// 		respond.Error(respond.ErrorOptions{
+	// 			W:          w,
+	// 			R:          r,
+	// 			StatusCode: http.StatusInternalServerError,
+	// 			ClientErr:  message.ErrInternalError,
+	// 			ActualErr:  err,
+	// 			Logger:     h.logger,
+	// 			Details:    recurringReq,
+	// 		})
+	// 		return
+	// 	}
+	//
+	// 	// Calculate the next due date after the start date
+	// 	nextDueDate := h.calculateNextDueDate(req.RecurringConfig.Frequency, req.RecurringConfig.FrequencyInterval, req.RecurringConfig.StartDate)
+	//
+	// 	// Enqueue job for the next occurrence
+	// 	if h.jobService != nil {
+	// 		if err := h.jobService.EnqueueRecurringTransaction(ctx, userID, recurringTransaction.ID, nextDueDate); err != nil {
+	// 			h.logger.Error().Err(err).Msg("Failed to enqueue recurring transaction job")
+	// 			// Don't return error since the main transaction and template were created successfully
+	// 		} else {
+	// 			h.logger.Info().
+	// 				Any("recurring_id", recurringTransaction.ID).
+	// 				Time("next_due", nextDueDate).
+	// 				Msg("Enqueued recurring transaction job")
+	// 		}
+	// 	}
+	// }
+
 	return transaction, nil
 }
 
@@ -308,6 +376,70 @@ func (t *TransactionService) UpdateTransaction(ctx context.Context, params repos
 		}
 	}
 
+	// // Handle recurring transaction conversion
+	// if req.IsRecurring != nil {
+	// 	if *req.IsRecurring && req.RecurringConfig != nil {
+	// 		// Convert transaction to recurring - create recurring template
+	// 		amount := decimal.NewFromFloat(*req.Amount)
+	// 		if req.Amount == nil {
+	// 			// Get the current amount from the updated transaction
+	// 			amount = types.PgtypeNumericToDecimal(transaction.Amount)
+	// 		}
+	//
+	// 		categoryIDStr := transaction.CategoryID.String()
+	// 		recurringReq := CreateRecurringTransactionRequest{
+	// 			AccountID:         transaction.AccountID.String(),
+	// 			CategoryID:        &categoryIDStr,
+	// 			Amount:            amount,
+	// 			Type:              transaction.Type,
+	// 			Description:       transaction.Description,
+	// 			Details:           transaction.Details,
+	// 			Frequency:         req.RecurringConfig.Frequency,
+	// 			FrequencyInterval: req.RecurringConfig.FrequencyInterval,
+	// 			FrequencyData:     req.RecurringConfig.FrequencyData,
+	// 			StartDate:         req.RecurringConfig.StartDate,
+	// 			EndDate:           req.RecurringConfig.EndDate,
+	// 			AutoPost:          req.RecurringConfig.AutoPost,
+	// 			MaxOccurrences:    req.RecurringConfig.MaxOccurrences,
+	// 			TemplateName:      req.RecurringConfig.TemplateName,
+	// 			Tags:              req.RecurringConfig.Tags,
+	// 		}
+	//
+	// 		// Validate the recurring transaction
+	// 		if err := h.recurringService.ValidateRecurringTransaction(recurringReq); err != nil {
+	// 			h.logger.Error().Err(err).Msg("Failed to validate recurring transaction in update")
+	// 			// Don't return error since the main transaction was updated successfully
+	// 		} else {
+	// 			// Create the recurring transaction template
+	// 			recurringTransaction, err := h.recurringService.CreateRecurringTransaction(ctx, userID, recurringReq)
+	// 			if err != nil {
+	// 				h.logger.Error().Err(err).Msg("Failed to create recurring transaction template in update")
+	// 				// Don't return error since the main transaction was updated successfully
+	// 			} else {
+	// 				// Calculate the next due date after the start date
+	// 				nextDueDate := h.calculateNextDueDate(req.RecurringConfig.Frequency, req.RecurringConfig.FrequencyInterval, req.RecurringConfig.StartDate)
+	//
+	// 				// Enqueue job for the next occurrence
+	// 				if h.jobService != nil {
+	// 					if err := h.jobService.EnqueueRecurringTransaction(ctx, userID, recurringTransaction.ID, nextDueDate); err != nil {
+	// 						h.logger.Error().Err(err).Msg("Failed to enqueue recurring transaction job in update")
+	// 						// Don't return error since the main transaction and template were created successfully
+	// 					} else {
+	// 						h.logger.Info().
+	// 							Any("recurring_id", recurringTransaction.ID).
+	// 							Time("next_due", nextDueDate).
+	// 							Msg("Enqueued recurring transaction job from update")
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	} else if !*req.IsRecurring {
+	// 		// Convert from recurring to one-time - would need additional logic to remove recurring template
+	// 		// This is more complex and might require additional considerations
+	// 		h.logger.Info().Msg("Converting from recurring to one-time transaction - feature not yet implemented")
+	// 	}
+	// }
+
 	if err := tx.Commit(ctx); err != nil {
 		return repository.Transaction{}, err
 	}
@@ -389,6 +521,15 @@ func (t *TransactionService) CreateTransfertTransaction(ctx context.Context, par
 	if err = tx.Commit(ctx); err != nil {
 		return repository.Transaction{}, err
 	}
+
+	// // Apply rules to the newly created transaction
+	// if h.rulesService != nil {
+	// 	err = h.rulesService.AutoApplyRulesToNewTransaction(ctx, transaction.ID, userID)
+	// 	if err != nil {
+	// 		// Log the error but don't fail the transaction creation
+	// 		h.logger.Error().Err(err).Str("transaction_id", transaction.ID.String()).Msg("Failed to apply rules to transaction")
+	// 	}
+	// }
 
 	return transaction, nil
 }

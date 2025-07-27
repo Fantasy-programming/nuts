@@ -844,7 +844,7 @@ func (w *DailyRecurringProcessorWorker) Work(ctx context.Context, job *river.Job
 	logger.Info().Msg("Starting daily recurring transaction processor")
 
 	// Get all active recurring transactions that are due for processing
-	recurringTransactions, err := w.deps.Queries.GetActiveRecurringTransactions(ctx, job.Args.ProcessDate)
+	recurringTransactions, err := w.deps.Queries.GetActiveRecurringTransactions(ctx, pgtype.Timestamptz{Valid: true, Time: job.Args.ProcessDate})
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to get active recurring transactions")
 		return fmt.Errorf("failed to get active recurring transactions: %w", err)
@@ -864,8 +864,9 @@ func (w *DailyRecurringProcessorWorker) Work(ctx context.Context, job *river.Job
 		// Check if we already processed this for today
 		existingTx, err := w.deps.Queries.GetTransactionByRecurringAndDate(ctx, repository.GetTransactionByRecurringAndDateParams{
 			RecurringTransactionID: &recurringTx.ID,
-			TransactionDate:        job.Args.ProcessDate,
+			Date:                   pgtype.Timestamptz{Valid: true, Time: job.Args.ProcessDate},
 		})
+
 		if err == nil && existingTx.ID != uuid.Nil {
 			logger.Debug().
 				Any("recurring_id", recurringTx.ID).
@@ -923,7 +924,7 @@ func (w *DailyRecurringProcessorWorker) Work(ctx context.Context, job *river.Job
 }
 
 // calculateNextDueDate calculates the next due date based on frequency
-func (w *DailyRecurringProcessorWorker) calculateNextDueDate(rt repository.GetActiveRecurringTransactionsRow, currentDate time.Time) time.Time {
+func (w *DailyRecurringProcessorWorker) calculateNextDueDate(rt repository.RecurringTransaction, currentDate time.Time) time.Time {
 	switch rt.Frequency {
 	case "daily":
 		return currentDate.AddDate(0, 0, int(rt.FrequencyInterval))

@@ -95,7 +95,7 @@ func (s *Server) initTransaction() {
 		s.logger.Panic().Err(err).Msg("Failed to setup llm service")
 	}
 
-	transactionsService := trcService.New(s.db, transactionsRepo, accountsRepo, llmService, s.logger)
+	transactionsService := trcService.New(s.db, transactionsRepo, accountsRepo, llmService, s.jobsManager, s.logger)
 	TransactionDomain := trcHandler.RegisterHTTPHandlers(transactionsService, s.jwt, s.validator, s.logger)
 	s.router.Mount("/transactions", TransactionDomain)
 }

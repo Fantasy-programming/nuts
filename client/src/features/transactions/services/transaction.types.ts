@@ -66,13 +66,13 @@ const baseExtendedRecordSchema = z.object({
   transaction_currency: z.string(),
   original_amount: z.number(),
   // Optional recurring fields
-  is_recurring: z.boolean().optional(),
-  recurring_config: recurringConfigSchema.optional(),
+  is_recurring: z.boolean().optional().nullable(),
+  recurring_config: recurringConfigSchema.optional().nullable(),
   // Additional recurring status fields
-  recurring_transaction_id: z.string().optional(),
-  recurring_instance_date: z.coerce.date().optional(),
-  auto_post: z.boolean().optional(),
-  template_name: z.string().optional(),
+  recurring_transaction_id: z.string().optional().nullable(),
+  recurring_instance_date: z.coerce.date().optional().nullable(),
+  auto_post: z.boolean().optional().nullable(),
+  template_name: z.string().optional().nullable(),
 });
 
 const recordStandardSchema = baseRecordSchema.extend({

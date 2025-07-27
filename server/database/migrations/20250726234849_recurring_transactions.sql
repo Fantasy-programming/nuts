@@ -17,23 +17,23 @@ CREATE TABLE recurring_transactions (
     frequency VARCHAR(20) NOT NULL CHECK (frequency IN ('daily', 'weekly', 'biweekly', 'monthly', 'yearly', 'custom')),
     frequency_interval INTEGER NOT NULL DEFAULT 1, -- Every X days/weeks/months
     frequency_data JSONB, -- For complex patterns like "first Monday", "last weekday"
-    
+ 
     -- Date management
     start_date TIMESTAMPTZ NOT NULL,
     end_date TIMESTAMPTZ,
     last_generated_date TIMESTAMPTZ,
     next_due_date TIMESTAMPTZ NOT NULL,
-    
+
     -- Configuration
     auto_post BOOLEAN NOT NULL DEFAULT FALSE, -- Auto-post vs manual confirmation
     is_paused BOOLEAN NOT NULL DEFAULT FALSE,
     max_occurrences INTEGER, -- Limit number of occurrences
     occurrences_count INTEGER NOT NULL DEFAULT 0,
-    
+
     -- Template metadata
     template_name VARCHAR(255),
     tags JSONB,
-    
+
     -- Audit fields
     created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
