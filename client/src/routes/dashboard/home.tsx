@@ -12,10 +12,7 @@ import { SidebarTrigger } from "@/core/components/ui/sidebar";
 import { Button } from "@/core/components/ui/button";
 import { LayoutDashboard, PlusCircle } from "lucide-react";
 import { EmptyStateGuide } from "@/core/components/EmptyStateGuide";
-
-// Import the loader and necessary types
-// Optional: ErrorBoundary
-// import { ErrorBoundary } from "react-error-boundary";
+import { ErrorBoundary } from "@/core/components/error-boundary";
 
 export const Route = createFileRoute("/dashboard/home")({
   component: RouteComponent,
@@ -92,17 +89,18 @@ function RouteComponent() {
                     if (!ChartToRender) return <ChartLoadingSkeleton key={chartId} size={layout.size} />;
 
                     return (
-                      // Optional: ErrorBoundary
-                      // <ErrorBoundary key={chartId} FallbackComponent={(props) => <ChartErrorFallback chartId={chartId} error={props.error} />}>
-                      <Suspense key={chartId} fallback={<ChartLoadingSkeleton key={chartId} size={layout.size} />}>
-                        <ChartToRender
-                          key={chartId}
-                          id={layout.id}
-                          size={layout.size}
-                          isLocked={layout.isLocked}
-                        />
-                      </Suspense>
-                      // </ErrorBoundary>
+                      <ErrorBoundary 
+                        key={chartId} 
+                        fallback={(props) => <ChartErrorFallback chartId={chartId} error={props.error} />}
+                      >
+                        <Suspense fallback={<ChartLoadingSkeleton size={layout.size} />}>
+                          <ChartToRender
+                            id={layout.id}
+                            size={layout.size}
+                            isLocked={layout.isLocked}
+                          />
+                        </Suspense>
+                      </ErrorBoundary>
                     );
                   }))}
               </DashboardGrid>
