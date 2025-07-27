@@ -460,18 +460,19 @@ S3_SECRET_KEY=your_secret_key
 We welcome contributions! Here's how you can help:
 
 ### Ways to Contribute
-- 🐛 **Bug Reports**: Submit detailed bug reports
+- 🐛 **Bug Reports**: Submit detailed bug reports with reproduction steps
 - 💡 **Feature Requests**: Suggest new features or improvements
 - 📝 **Documentation**: Improve docs, add examples, fix typos
 - 🔧 **Code**: Submit pull requests for bug fixes or features
 - 🌍 **Translations**: Help translate the app to other languages
 
-### Getting Started
-1. Check [existing issues](https://github.com/Fantasy-Programming/nuts/issues) for ways to contribute
-2. Fork the repository and create your feature branch
-3. Make your changes following our code standards
-4. Add tests for new functionality
-5. Submit a pull request with a clear description
+### Quick Start for Contributors
+1. Fork the repository and clone your fork
+2. Set up the development environment (see [Getting Started](./docs/GETTING_STARTED.md#manual-development-setup))
+3. Create a feature branch for your changes
+4. Make your changes following our [coding standards](./CONTRIBUTING.md#code-style)
+5. Add tests for new functionality
+6. Submit a pull request with a clear description
 
 ### Development Guidelines
 - **Write Tests**: All new features should include tests
@@ -480,10 +481,12 @@ We welcome contributions! Here's how you can help:
 - **Security**: Never commit secrets or sensitive data
 - **Accessibility**: Ensure UI changes are accessible
 
+For detailed contribution guidelines, development setup, and coding standards, see our **[Contributing Guide](./CONTRIBUTING.md)**.
+
 ### Community
-- **Discord**: Join our community for discussions
-- **GitHub Discussions**: Ask questions and share ideas
-- **Issues**: Report bugs and request features
+- **Discord**: [Join our community](https://discord.gg/nuts) for discussions
+- **GitHub Discussions**: [Ask questions and share ideas](https://github.com/Fantasy-Programming/nuts/discussions)
+- **Issues**: [Report bugs and request features](https://github.com/Fantasy-Programming/nuts/issues)
 
 ## 📄 License
 
