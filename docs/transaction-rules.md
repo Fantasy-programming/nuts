@@ -2,7 +2,7 @@
 
 The transaction rules feature allows you to automatically categorize and organize your transactions based on custom rules. This helps maintain consistency and saves time when managing your finances.
 
-## Features
+## 🔧 Features
 
 ### Rule Conditions
 Rules can be triggered based on the following conditions:
@@ -30,12 +30,12 @@ When conditions are met, rules can perform these actions:
 - Only the first matching rule is applied to each transaction
 - Rules can be enabled/disabled without deletion
 
-## Usage
+## 📋 Usage
 
 ### Creating Rules
 
-1. Navigate to Settings → Rules
-2. Click "Create Rule"
+1. Navigate to **Settings** → **Rules**
+2. Click **"Create Rule"**
 3. Define rule conditions:
    - Select condition type (description, amount, etc.)
    - Choose operator (equals, contains, etc.)
@@ -52,19 +52,83 @@ When conditions are met, rules can perform these actions:
 - **Delete**: Remove rules permanently
 - **Reorder**: Use priority settings to control execution order
 
-### Examples
+### Rule Examples
 
 **Example 1: Grocery Store Auto-Categorization**
-- Condition: Description contains "grocery" OR "supermarket"
-- Action: Set category to "Groceries"
+```json
+{
+  "name": "Auto-categorize Groceries",
+  "conditions": {
+    "operator": "OR",
+    "rules": [
+      {
+        "field": "description",
+        "operator": "contains",
+        "value": "grocery"
+      },
+      {
+        "field": "description", 
+        "operator": "contains",
+        "value": "supermarket"
+      }
+    ]
+  },
+  "actions": {
+    "set_category": "groceries"
+  }
+}
+```
 
 **Example 2: Large Expense Flagging**
-- Condition: Amount greater than 500 AND Type equals "expense"
-- Action: Set note to "Large expense - review needed"
+```json
+{
+  "name": "Flag Large Expenses",
+  "conditions": {
+    "operator": "AND",
+    "rules": [
+      {
+        "field": "amount",
+        "operator": "greater_than",
+        "value": 500
+      },
+      {
+        "field": "type",
+        "operator": "equals", 
+        "value": "expense"
+      }
+    ]
+  },
+  "actions": {
+    "set_note": "Large expense - review needed",
+    "set_tags": ["review-needed", "large-expense"]
+  }
+}
+```
 
 **Example 3: Income Categorization**
-- Condition: Type equals "income" AND Account equals "Checking"
-- Action: Set category to "Salary"
+```json
+{
+  "name": "Categorize Salary",
+  "conditions": {
+    "operator": "AND",
+    "rules": [
+      {
+        "field": "type",
+        "operator": "equals",
+        "value": "income"
+      },
+      {
+        "field": "account",
+        "operator": "equals",
+        "value": "Checking Account"
+      }
+    ]
+  },
+  "actions": {
+    "set_category": "salary"
+  }
+}
+```
 
 ## API Endpoints
 
