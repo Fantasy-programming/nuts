@@ -111,8 +111,8 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
 
   const sizeClasses = useMemo(() => ({
     1: "col-span-1",
-    2: "col-span-1 md:col-span-2",
-    3: "col-span-1 md:col-span-2 lg:col-span-3",
+    2: "col-span-2", 
+    3: "col-span-2",
   }), []);
 
   return (
