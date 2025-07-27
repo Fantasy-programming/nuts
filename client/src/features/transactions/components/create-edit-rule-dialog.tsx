@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/core/components/ui/dialog";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
-import { Label } from "@/core/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/core/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
@@ -162,7 +161,7 @@ export function CreateEditRuleDialog({ open, onOpenChange, rule, prefillData }: 
     actionsArray.append({ type: "set_category", value: "" });
   };
 
-  const getValueInput = (type: ConditionType, fieldName: string, value: any, onChange: (value: any) => void) => {
+  const getValueInput = (type: ConditionType, _fieldName: string, value: any, onChange: (value: any) => void) => {
     switch (type) {
       case "amount":
         return (
