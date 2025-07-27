@@ -1,5 +1,6 @@
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { Suspense } from "react";
 
 import { accountService } from "@/features/accounts/services/account";
 import { DraggableAccountGroups } from "@/features/accounts/components/account";
@@ -14,6 +15,7 @@ import { groupAccountsByType } from "@/features/accounts/components/account.util
 import { SidebarTrigger } from "@/core/components/ui/sidebar";
 import { getAllAccountsWithTrends } from "@/features/accounts/services/account.queries";
 import { EmptyStateGuide } from "@/core/components/EmptyStateGuide";
+import { ErrorBoundary } from "@/core/components/error-boundary";
 
 export const Route = createFileRoute("/dashboard/accounts")({
   component: RouteComponent,
@@ -92,7 +94,6 @@ function RouteComponent() {
               Add Account
             </Button>
           </AddAccountModal>
-
         </EmptyStateGuide>
       )}
       <div className="border-b border-b-bg-nuts-500/20 py-1 flex gap-2 items-center md:hidden -mx-4 px-3">
@@ -118,20 +119,26 @@ function RouteComponent() {
       </header>
       <div className="flex flex-1">
         <div className="h-full w-full space-y-8  py-2">
-          <NetWorthCard cashTotal={cashTotal} />
+          <ErrorBoundary>
+            <NetWorthCard cashTotal={cashTotal} />
+          </ErrorBoundary>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <DraggableAccountGroups
-                initialAccounts={grouppedAccounts}
-                period={"1 month change"}
-                onEdit={onUpdate}
-                onDelete={onDelete}
-              />
+              <ErrorBoundary>
+                <DraggableAccountGroups
+                  initialAccounts={grouppedAccounts}
+                  period={"1 month change"}
+                  onEdit={onUpdate}
+                  onDelete={onDelete}
+                />
+              </ErrorBoundary>
             </div>
             <div className="lg:col-span-1">
               <div className="sticky top-8">
-                <SummaryCard accounts={data} />
+                <ErrorBoundary>
+                  <SummaryCard accounts={data} />
+                </ErrorBoundary>
               </div>
             </div>
           </div>
