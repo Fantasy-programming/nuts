@@ -12,6 +12,7 @@ export function withLazyLoading<P extends object>(
 ) {
   const LazyComponent = lazy(importFn);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const WrappedComponent = React.forwardRef<any, P>((props, ref) => {
     const LoadingFallback = fallback || (() => <InlineLoader text="Loading component..." />);
     
@@ -138,21 +139,25 @@ export function createHoverPreloadComponent<P extends object>(
   importFn: () => Promise<{ default: ComponentType<P> }>,
   fallback?: React.ComponentType
 ) {
-  let preloadPromise: Promise<any> | null = null;
+  let preloadPromise: Promise<{ default: ComponentType<P> }> | null = null;
   
   const LazyComponent = withLazyLoading(importFn, fallback);
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const PreloadableComponent = React.forwardRef<any, P & { onMouseEnter?: () => void }>((props, ref) => {
+    const { onMouseEnter, ...restProps } = props;
+    
     const handleMouseEnter = React.useCallback(() => {
       if (!preloadPromise) {
         preloadPromise = importFn();
       }
-      props.onMouseEnter?.();
-    }, [props.onMouseEnter]);
+      onMouseEnter?.();
+    }, [onMouseEnter]);
 
     return (
       <div onMouseEnter={handleMouseEnter}>
-        <LazyComponent {...props} ref={ref} />
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <LazyComponent {...(restProps as any)} ref={ref} />
       </div>
     );
   });
