@@ -71,7 +71,7 @@ function RouteComponent() {
             <div className="space-y-8">
               <DashboardGrid>
                 {chartOrder.length === 0 ? (
-                  <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 flex flex-col justify-center items-center text-muted-foreground">
+                  <div className="col-span-2 text-center py-12 flex flex-col justify-center items-center text-muted-foreground">
                     <img src="/nuts_empty.png" className="md:w-60 w-50 grayscale" />
                     Your dashboard is empty. Add some charts using the button above!
                   </div>
