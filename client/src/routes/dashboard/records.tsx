@@ -4,7 +4,7 @@ import { RecordsTable } from "@/features/transactions/components/records-table";
 import { CalendarView } from "@/features/transactions/components/calendar-view";
 import { Spinner } from "@/core/components/ui/spinner";
 import { Button } from "@/core/components/ui/button";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 
 import { RecordsDialog } from "@/features/transactions/components/add-records-dialog";
 import { NeuralRecordsDialog } from "@/features/transactions/components/neural-records-dialog";
@@ -16,6 +16,8 @@ import { LayoutDashboard, Plus, Sparkles, List, Calendar, BarChart3, ChevronDown
 import { SidebarTrigger } from "@/core/components/ui/sidebar";
 import { EmptyStateGuide } from "@/core/components/EmptyStateGuide";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/core/components/ui/dropdown-menu";
+import { ErrorBoundary } from "@/core/components/error-boundary";
+import { TableLoader } from "@/core/components/loading";
 
 const transactionFilterSchema = z.object({
   page: z.number().catch(1),
@@ -93,16 +95,22 @@ function RouteComponent() {
     switch (currentView) {
       case "list":
         return (
-          <RecordsTable
-            initialPage={page}
-            onPageChange={updatePage}
-          />
+          <ErrorBoundary>
+            <Suspense fallback={<TableLoader />}>
+              <RecordsTable
+                initialPage={page}
+                onPageChange={updatePage}
+              />
+            </Suspense>
+          </ErrorBoundary>
         );
       case "calendar":
         return (
-          <CalendarView
-            initialPage={page}
-          />
+          <ErrorBoundary>
+            <CalendarView
+              initialPage={page}
+            />
+          </ErrorBoundary>
         );
       case "analytics":
         return (

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/features/preferences/contexts/theme.provider";
 import type { QueryClient } from "@tanstack/react-query";
 import { AuthInterceptor } from "@/features/auth/components/auth-interceptor";
 import { PreferencesProvider } from "@/features/preferences/components/preferences-provider";
+import { ErrorBoundary, RouteErrorFallback } from "@/core/components/error-boundary";
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -20,7 +21,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   return (
-    <>
+    <ErrorBoundary fallback={RouteErrorFallback}>
       <ThemeProvider defaultTheme="light" storageKey="finance-theme">
         <AuthInterceptor>
           <PreferencesProvider>
@@ -31,6 +32,6 @@ function RootComponent() {
       </ThemeProvider>
       <ReactQueryDevtools buttonPosition="bottom-left" />
       <TanStackRouterDevtools position="bottom-right" />
-    </>
+    </ErrorBoundary>
   );
 }

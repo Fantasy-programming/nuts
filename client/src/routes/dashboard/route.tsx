@@ -64,6 +64,7 @@ import { Theme } from "@/features/preferences/contexts/theme.context";
 import { Spinner } from "@/core/components/ui/spinner";
 import { useLogout } from "@/features/auth/services/auth.mutations";
 import { getAllAccounts } from "@/features/accounts/services/account.queries";
+import { ErrorBoundary, ComponentErrorFallback } from "@/core/components/error-boundary";
 
 export type ValidRoutes = keyof FileRoutesByTo;
 
@@ -205,13 +206,17 @@ function DashboardWrapper() {
           <SideBarPluginsLinks />
         </SidebarContent>
         <SidebarFooter>
-          <Suspense fallback={<Spinner />}>
-            <SideBarFooterMenu />
-          </Suspense>
+          <ErrorBoundary fallback={ComponentErrorFallback}>
+            <Suspense fallback={<Spinner />}>
+              <SideBarFooterMenu />
+            </Suspense>
+          </ErrorBoundary>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="overflow-hidden px-4 md:px-6 py-2 md:py-4">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </SidebarInset>
     </SidebarProvider>
   );

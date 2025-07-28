@@ -20,4 +20,21 @@ export default defineConfig({
     tailwindcss(),
     tsConfigPaths(),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate vendor chunks for better caching
+          'react-vendor': ['react', 'react-dom'],
+          'query-vendor': ['@tanstack/react-query', '@tanstack/react-router'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs'],
+          'chart-vendor': ['recharts'],
+          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'utils-vendor': ['date-fns', 'clsx', 'tailwind-merge'],
+        },
+      },
+    },
+    // Increase chunk size warning limit since we're optimizing
+    chunkSizeWarningLimit: 1000,
+  },
 });
