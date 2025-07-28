@@ -110,9 +110,9 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
   }), [transform, transition]);
 
   const sizeClasses = useMemo(() => ({
-    1: "col-span-1",
-    2: "col-span-1 md:col-span-2",
-    3: "col-span-1 md:col-span-2 lg:col-span-3",
+    1: "col-span-2",
+    2: "col-span-2",
+    3: "col-span-2",
   }), []);
 
   return (
@@ -120,7 +120,7 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
       <Card
         ref={setNodeRef}
         style={style}
-        className={cn("group relative w-full h-full",
+        className={cn("group relative w-full h-fit",
           "transition-shadow duration-200",
           isDragging && "opacity-50 z-10 shadow-2xl",
           sizeClasses[size],
