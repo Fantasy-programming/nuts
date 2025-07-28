@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Settings, Trash2, Edit2, Power, PowerOff } from "lucide-react";
+import { Plus, Settings, Trash2, Edit2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/core/components/ui/dialog";
 import { Button } from "@/core/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
@@ -31,7 +31,6 @@ export function RulesDialog({ children }: RulesDialogProps) {
   const [open, setOpen] = useState(false);
   const [createRuleOpen, setCreateRuleOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TransactionRule | null>(null);
-  const [deletingRule, setDeletingRule] = useState<TransactionRule | null>(null);
 
   const { data: rules, isLoading, error } = useRules();
   const deleteRule = useDeleteRule();
@@ -41,8 +40,7 @@ export function RulesDialog({ children }: RulesDialogProps) {
     try {
       await deleteRule.mutateAsync(rule.id);
       toast.success(`Rule "${rule.name}" deleted successfully`);
-      setDeletingRule(null);
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete rule");
     }
   };
@@ -51,7 +49,7 @@ export function RulesDialog({ children }: RulesDialogProps) {
     try {
       await toggleRule.mutateAsync(rule.id);
       toast.success(`Rule "${rule.name}" ${rule.is_active ? 'disabled' : 'enabled'}`);
-    } catch (error) {
+    } catch {
       toast.error("Failed to toggle rule");
     }
   };

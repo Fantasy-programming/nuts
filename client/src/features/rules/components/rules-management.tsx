@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2, Power, PowerOff, Move } from "lucide-react";
+import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useRules, useDeleteRule, useToggleRule } from "../services/rule.service";
 import { TransactionRule } from "../services/rule.types";
 import { Button } from "@/core/components/ui/button";
@@ -15,7 +15,7 @@ import {
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle, 
-  AlertDialogTrigger 
+ 
 } from "@/core/components/ui/alert-dialog";
 import { 
   DropdownMenu, 

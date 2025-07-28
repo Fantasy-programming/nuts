@@ -22,16 +22,46 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
   return (
     <ErrorBoundary fallback={RouteErrorFallback}>
+      {/* Skip links for accessibility */}
+      <div className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 bg-primary text-primary-foreground p-2 z-50">
+        <a 
+          href="#main-content" 
+          className="underline"
+          onClick={() => {
+            const mainContent = document.getElementById('main-content');
+            mainContent?.focus();
+          }}
+        >
+          Skip to main content
+        </a>
+      </div>
+      
       <ThemeProvider defaultTheme="light" storageKey="finance-theme">
         <AuthInterceptor>
           <PreferencesProvider>
-            <Outlet />
+            {/* Main content wrapper with semantic structure */}
+            <div id="main-content" tabIndex={-1} className="focus:outline-none">
+              <Outlet />
+            </div>
           </PreferencesProvider>
         </AuthInterceptor>
-        <Toaster />
+        
+        {/* Toast notifications with accessibility */}
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+          }}
+        />
       </ThemeProvider>
-      <ReactQueryDevtools buttonPosition="bottom-left" />
-      <TanStackRouterDevtools position="bottom-right" />
+      
+      {/* Development tools - only show in development */}
+      {import.meta.env.DEV && (
+        <>
+          <ReactQueryDevtools buttonPosition="bottom-left" />
+          <TanStackRouterDevtools position="bottom-right" />
+        </>
+      )}
     </ErrorBoundary>
   );
 }
