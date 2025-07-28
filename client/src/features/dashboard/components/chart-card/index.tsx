@@ -8,13 +8,10 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/core/components/ui/context-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/core/components/ui/dialog";
-import { GripVertical, Lock, Maximize2, Pencil, Trash, Unlock } from "lucide-react";
+import { GripVertical, Lock, Pencil, Trash, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "@/features/dashboard/stores/dashboard.store";
 import { DraggableAttributes } from "@dnd-kit/core";
@@ -43,7 +40,6 @@ type ChartCardContextValue = {
   setNodeRef: (node: HTMLElement | null) => void;
   handleRename: (newTitle: string) => void;
   handleRemove: () => void;
-  handleResize: (size: ChartSize) => void;
   handleToggleLock: () => void;
 };
 
@@ -76,7 +72,6 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
   // Select actions
   const removeChart = useDashboardStore(state => state.removeChart);
   // const updateChartTitle = useDashboardStore(state => state.updateChartTitle);
-  const updateChartSize = useDashboardStore(state => state.updateChartSize);
   const toggleChartLock = useDashboardStore(state => state.toggleChartLock);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: isLocked });
@@ -84,7 +79,6 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
   // Handler functions
   const handleRename = useCallback((newTitle: string) => console.log(newTitle), []);
   const handleRemove = useCallback(() => removeChart(id), [id, removeChart]);
-  const handleResize = useCallback((newSize: ChartSize) => updateChartSize(id, newSize), [id, updateChartSize]);
   const handleToggleLock = useCallback(() => toggleChartLock(id), [id, toggleChartLock]);
 
   const contextValue = useMemo<ChartCardContextValue>(() => ({
@@ -97,11 +91,10 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
     setNodeRef,
     handleRename,
     handleRemove,
-    handleResize,
     handleToggleLock,
   }), [
     id, size, isLocked, isDragging, attributes, listeners, setNodeRef,
-    handleRename, handleRemove, handleResize, handleToggleLock
+    handleRename, handleRemove, handleToggleLock
   ]);
 
   const style = useMemo(() => ({
@@ -110,9 +103,9 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
   }), [transform, transition]);
 
   const sizeClasses = useMemo(() => ({
-    1: "col-span-1",
-    2: "col-span-1 md:col-span-2",
-    3: "col-span-1 md:col-span-2 lg:col-span-3",
+    1: "col-span-2",
+    2: "col-span-2",
+    3: "col-span-2",
   }), []);
 
   return (
@@ -120,7 +113,7 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
       <Card
         ref={setNodeRef}
         style={style}
-        className={cn("group relative w-full h-full",
+        className={cn("group relative w-full h-fit overflow-hidden",
           "transition-shadow duration-200",
           isDragging && "opacity-50 z-10 shadow-2xl",
           sizeClasses[size],
@@ -130,6 +123,7 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
         onDragEnd={onDragEnd}
         {...props}
       >
+        <ChartCardHandle />
         {children}
       </Card>
     </ChartCardContext.Provider>
@@ -146,7 +140,7 @@ export const ChartCardHeader = memo(({ children, className, ref }: ChartCardHead
 
   return (
     <CardHeader className={cn(
-      "flex flex-row items-center gap-2 space-y-0 py-3 px-4 border-b",
+      "flex flex-row items-center gap-2 space-y-0 py-3 px-4 pt-8 border-b",
       isDragging && "cursor-grabbing",
       className
     )} ref={ref}>
@@ -170,15 +164,15 @@ export const ChartCardContent = memo(({ className, children, ...props }: React.H
   // Adjust padding based on chart size
   const sizeClasses = useMemo(() => ({
     1: "p-2 sm:p-3",
-    2: "p-3 sm:p-4",
-    3: "p-4 sm:p-5",
+    2: "p-2 sm:p-3",
+    3: "p-3 sm:p-4",
   }), []);
 
-  // Add minimum height classes based on size
+  // Add minimum height classes based on size - made more compact
   const heightClasses = useMemo(() => ({
-    1: "min-h-[200px] sm:min-h-[240px]",
-    2: "min-h-[200px] sm:min-h-[240px]",
-    3: "min-h-[200px] sm:min-h-[280px]",
+    1: "min-h-[150px] sm:min-h-[180px]",
+    2: "min-h-[150px] sm:min-h-[180px]",
+    3: "min-h-[180px] sm:min-h-[220px]",
   }), []);
 
 
@@ -203,17 +197,21 @@ export const ChartCardHandle = memo(() => {
 
   if (isLocked)
     return (
-      <Button variant="ghost" size="icon" className="cursor-not-allowed opacity-50" disabled>
-        <Lock className="h-4 w-4" />
-        <span className="sr-only">Chart Locked</span>
-      </Button>
+      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+        <Button variant="ghost" size="icon" className="cursor-not-allowed opacity-50 h-6 w-6 bg-background border border-border shadow-sm" disabled>
+          <Lock className="h-3 w-3" />
+          <span className="sr-only">Chart Locked</span>
+        </Button>
+      </div>
     );
 
   return (
-    <Button variant="ghost" size="icon" className="cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
-      <GripVertical className="h-4 w-4" />
-      <span className="sr-only">Drag to reorder chart</span>
-    </Button>
+    <div className="absolute top-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+      <Button variant="ghost" size="icon" className="cursor-grab active:cursor-grabbing h-6 w-6 bg-background border border-border shadow-sm hover:bg-accent" {...attributes} {...listeners}>
+        <GripVertical className="h-3 w-3 rotate-90" />
+        <span className="sr-only">Drag to reorder chart</span>
+      </Button>
+    </div>
   );
 })
 
@@ -226,7 +224,7 @@ interface ChartCardMenuProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const ChartCardMenu = memo(({ children, ref, hasContext = true }: ChartCardMenuProps) => {
-  const { isLocked, handleRename, handleRemove, handleResize, handleToggleLock } = useChartCard();
+  const { isLocked, handleRename, handleRemove, handleToggleLock } = useChartCard();
 
   const [newTitle, setNewTitle] = useState("");
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -242,7 +240,6 @@ export const ChartCardMenu = memo(({ children, ref, hasContext = true }: ChartCa
     setNewTitle(""); // Reset input
   }, [handleRename, newTitle]);
 
-  const resizeFn = useCallback((size: ChartSize) => () => handleResize(size), [handleResize]);
   const toggleLockFn = useCallback(() => handleToggleLock(), [handleToggleLock]);
   const removeFn = useCallback(() => handleRemove(), [handleRemove]);
 
@@ -252,17 +249,6 @@ export const ChartCardMenu = memo(({ children, ref, hasContext = true }: ChartCa
         <Pencil className="mr-2 h-4 w-4" />
         Rename
       </ContextMenuItem>
-      <ContextMenuSub>
-        <ContextMenuSubTrigger>
-          <Maximize2 className="mr-2 h-4 w-4" />
-          Resize
-        </ContextMenuSubTrigger>
-        <ContextMenuSubContent>
-          <ContextMenuItem onSelect={resizeFn(1)}>Normal</ContextMenuItem>
-          <ContextMenuItem onSelect={resizeFn(2)}>Wide</ContextMenuItem>
-          <ContextMenuItem onSelect={resizeFn(3)}>Full Width</ContextMenuItem>
-        </ContextMenuSubContent>
-      </ContextMenuSub>
       <ContextMenuItem onSelect={toggleLockFn}>
         {isLocked ? <><Unlock className="mr-2 h-4 w-4" />Unlock</> : <><Lock className="mr-2 h-4 w-4" />Lock</>}
       </ContextMenuItem>

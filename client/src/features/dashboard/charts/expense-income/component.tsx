@@ -8,8 +8,7 @@ import {
   ChartCardHeader,
   ChartCardTitle,
   ChartCardContent,
-  ChartCardMenu,
-  ChartCardHandle
+  ChartCardMenu
 } from '@/features/dashboard/components/chart-card';
 
 import { Chart } from '@/features/dashboard/components/chart-card/chart-renderer';
@@ -69,11 +68,10 @@ function ExpenseIncomeChartComponent({ id, size, isLocked }: DashboardChartCompo
           <ChartCardHeader>
             <div className='flex-1'>
               <ChartCardTitle className='text-muted-foreground'>{config.title}</ChartCardTitle>
-              <h2 className="text-3xl font-bold mt-2">$1,278.45</h2>
+              <h2 className="text-2xl font-bold mt-1">$1,278.45</h2>
             </div>
-            <ChartCardHandle />
           </ChartCardHeader>
-          <ChartCardContent className=" mt-1">
+          <ChartCardContent className="mt-2">
             {chartData ? (
               <Chart
                 size={size}

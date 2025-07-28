@@ -72,6 +72,7 @@
     "react-hook-form": "^7.58.1",
     "react-hotkeys-hook": "^4.6.2",
     "react-i18next": "^15.5.3",
+    "react-masonry-css": "^1.0.16",
     "react-plaid-link": "^4.0.1",
     "recharts": "^2.15.4",
     "sonner": "^2.0.5",

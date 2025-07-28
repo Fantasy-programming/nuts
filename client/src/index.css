@@ -260,4 +260,22 @@
     box-shadow: 0 0 0 1000px hsl(var(--background)) inset !important;
     -webkit-text-fill-color: hsl(var(--foreground)) !important;
   }
+
+  .nuts-grid {
+  display: -webkit-box; /* Not needed if autoprefixing */
+  display: -ms-flexbox; /* Not needed if autoprefixing */
+  display: flex;
+  margin-left: -15px; /* gutter size offset */
+  width: auto;
+}
+.nuts-grid_column {
+  padding-left: 15px; /* gutter size */
+  background-clip: padding-box;
+}
+
+/* Style your items */
+.nuts-grid_column > div { /* change div to reference your elements you put in <Masonry> */
+  margin-bottom: 15px;
+}
+
 }
