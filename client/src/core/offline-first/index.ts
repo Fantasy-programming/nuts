@@ -6,29 +6,71 @@
 
 // Core services
 export { crdtService } from './services/crdt.service';
-export { sqliteIndexService } from './services/sqlite-index.service';
+export { sqliteIndexService } from './services/sqlite-index.service'; // Keep for backward compatibility
+export { drizzleQueryService } from './services/drizzle-query.service';
 export { featureFlagsService } from './services/feature-flags.service';
+
+// Database module
+export { localDb, schema } from '../database';
 export { syncService } from './services/sync.service';
 export { offlineFirstInitService } from './services/offline-first-init.service';
+export { connectivityService } from './services/connectivity.service';
+export { offlineAuthService } from './services/offline-auth.service';
+export { offlinePreferencesService } from './services/offline-preferences.service';
 
 // Adaptive services
 export { adaptiveTransactionService } from './services/adaptive-transaction.service';
+export { adaptiveAccountService } from './services/adaptive-account.service';
+export { adaptiveCategoryService } from './services/adaptive-category.service';
+export { adaptivePreferencesService } from './services/adaptive-preferences.service';
 export { offlineFirstTransactionService } from './services/offline-transaction.service';
+export { offlineFirstAccountService } from './services/offline-account.service';
+export { offlineFirstCategoryService } from './services/offline-category.service';
+
+// Auth services
+export {
+  useAdaptiveAuthQuery,
+  useOfflineFirstAuth,
+  useOfflineFirstAuthStatus,
+  AdaptiveAuthAPI,
+  useAdaptiveAPI
+} from './services/adaptive-auth.service';
 
 // Hooks
-export { useOfflineFirst, useAdaptiveTransactions } from './hooks/useOfflineFirst';
+export { useOfflineFirst, useAdaptiveTransactions, useAdaptiveAccounts, useAdaptiveCategories } from './hooks/useOfflineFirst';
+export {
+  useOfflineFirstAuthenticatedQuery,
+  useOfflineFirstAuthenticatedSuspenseQuery,
+  // useOfflineFirstAuth,
+  createOfflineFirstQueryOptions
+} from './hooks/useOfflineFirstAuth';
 
 // Test utilities
 export { testOfflineFirstInfrastructure } from './test/infrastructure.test';
 export { validatePhase2Implementation } from './test/phase2-validation.test';
+export { testOfflineFirstPhase3, validatePhase3Implementation } from './test/phase3-validation.test';
+export {
+  testOfflineFunctionality,
+  simulateOfflineMode,
+  restoreOnlineMode,
+  testOfflineAuth,
+  validateOfflineFeatures
+} from './test/offline-validation.test';
+export { validateDrizzleIntegration } from './test/drizzle-validation.test';
 
 // Components
 export { FeatureFlagsDeveloperPanel } from './components/FeatureFlagsDeveloperPanel';
 export { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
 export { OfflineFirstInitializer } from './components/OfflineFirstInitializer';
+export { ConflictResolutionIndicator, ConflictResolutionDialog } from './components/ConflictResolutionUI';
+export { AdaptiveAuthWrapper } from './components/AdaptiveAuthWrapper';
+export { AdaptivePreferencesWrapper } from './components/AdaptivePreferencesWrapper';
+export { AdaptivePreferencesProvider } from './components/AdaptivePreferencesProvider';
+export { OfflineFirstAuthInterceptor } from './components/OfflineFirstAuthInterceptor';
+export { OfflineFirstPreferencesProvider } from './components/OfflineFirstPreferencesProvider';
 
 // Types
-export type { 
+export type {
   CRDTDocument,
   CRDTTransaction,
   CRDTAccount,
@@ -38,3 +80,5 @@ export type {
 
 export type { FeatureFlag } from './services/feature-flags.service';
 export type { SyncStatus, SyncState, SyncConflict } from './services/sync.service';
+export type { ConnectivityStatus, ConnectivityState } from './services/connectivity.service';
+export type { CachedAuthState } from './services/offline-auth.service';

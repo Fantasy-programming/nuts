@@ -18,6 +18,7 @@ func RegisterHTTPHandlers(service service.Account, validator *validation.Validat
 	router.Use(middleware.Verify)
 
 	router.Get("/", h.List)
+	router.Get("/sync", h.Sync)
 	router.Get("/{id}", h.Get)
 	router.Post("/", h.Create)
 	router.Put("/{id}", h.Update)

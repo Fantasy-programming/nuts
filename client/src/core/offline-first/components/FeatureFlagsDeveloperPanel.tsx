@@ -30,6 +30,11 @@ const FEATURE_FLAGS: Array<{ key: FeatureFlag; label: string; description: strin
     description: 'Use CRDT-based category management'
   },
   {
+    key: 'offline-first-preferences',
+    label: 'Offline-First Preferences',
+    description: 'Use offline-first preferences with cache fallback'
+  },
+  {
     key: 'offline-first-analytics',
     label: 'Offline-First Analytics',
     description: 'Use local SQLite for analytics and reporting'
@@ -38,6 +43,11 @@ const FEATURE_FLAGS: Array<{ key: FeatureFlag; label: string; description: strin
     key: 'offline-first-sync',
     label: 'Offline-First Sync',
     description: 'Enable background sync with server'
+  },
+  {
+    key: 'fully-offline-mode',
+    label: 'Fully Offline Mode',
+    description: 'Force app to work completely offline (no network calls)'
   }
 ];
 

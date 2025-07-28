@@ -7,7 +7,7 @@
  */
 
 import { crdtService } from './crdt.service';
-import { sqliteIndexService } from './sqlite-index.service';
+import { drizzleQueryService } from './drizzle-query.service';
 import { CRDTTransaction } from '../types/crdt-schema';
 import { RecordCreateSchema, RecordUpdateSchema, RecordSchema, TransactionsResponse } from '@/features/transactions/services/transaction.types';
 import type { GetTransactionsParams } from '@/features/transactions/services/transaction';
@@ -15,39 +15,39 @@ import { v4 as uuidv4 } from 'uuid';
 
 class OfflineFirstTransactionService {
   private isInitialized = false;
-  
+
   /**
    * Initialize the offline-first transaction service
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
-    
+
     try {
       await crdtService.initialize();
-      await sqliteIndexService.initialize();
-      
-      // Rebuild SQLite indices from CRDT data
+      await drizzleQueryService.initialize();
+
+      // Rebuild database from CRDT data
       const transactions = crdtService.getTransactions();
       const accounts = crdtService.getAccounts();
       const categories = crdtService.getCategories();
-      
-      await sqliteIndexService.rebuildIndices(transactions, accounts, categories);
-      
+
+      await drizzleQueryService.rebuildFromCRDT(transactions, accounts, categories);
+
       this.isInitialized = true;
-      console.log('Offline-first transaction service initialized');
+      console.log('Offline-first transaction service initialized with Drizzle');
     } catch (error) {
       console.error('Failed to initialize offline-first transaction service:', error);
       throw error;
     }
   }
-  
+
   /**
    * Get transactions with filtering and pagination
    * Mirrors the API of the server-based getTransactions function
    */
   async getTransactions(params: GetTransactionsParams): Promise<TransactionsResponse> {
     await this.ensureInitialized();
-    
+
     try {
       const {
         page = 1,
@@ -60,26 +60,26 @@ class OfflineFirstTransactionService {
         end_date: endDate,
         currency
       } = params;
-      
-      // Query SQLite index for efficient filtering
-      const result = sqliteIndexService.queryTransactions({
+
+      // Query Drizzle database for efficient filtering
+      const result = await drizzleQueryService.queryTransactions({
         page,
         limit,
         search,
-        accountId,
-        categoryId,
+        account_id: accountId,
+        category_id: categoryId,
         type,
-        startDate,
-        endDate,
+        start_date: startDate,
+        end_date: endDate,
         currency
-      });
-      
+      } as GetTransactionsParams);
+
       // Group transactions by date
       const groupedData: Record<string, any> = {};
-      
-      result.transactions.forEach(tx => {
+
+      result.data.forEach((tx) => {
         const date = tx.date_only || tx.transaction_datetime.split('T')[0];
-        
+
         if (!groupedData[date]) {
           groupedData[date] = {
             id: date,
@@ -88,23 +88,25 @@ class OfflineFirstTransactionService {
             transactions: []
           };
         }
-        
+
         // Convert back to expected format
         const transaction = this.convertFromCRDTFormat(tx);
         groupedData[date].transactions.push(transaction);
         groupedData[date].total += transaction.amount;
       });
-      
+
       // Convert to array and sort by date
-      const data = Object.values(groupedData).sort((a: any, b: any) => 
+      const data = Object.values(groupedData).sort((a: any, b: any) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-      
+
+      console.log(data)
+
       return {
         data,
         pagination: {
-          total_items: result.totalCount,
-          total_pages: result.totalPages,
+          total_items: result.pagination.total,
+          total_pages: result.pagination.totalPages,
           page,
           limit
         }
@@ -114,27 +116,27 @@ class OfflineFirstTransactionService {
       throw error;
     }
   }
-  
+
   /**
    * Get a single transaction by ID
    */
   async getTransaction(id: string): Promise<RecordSchema> {
     await this.ensureInitialized();
-    
+
     const transaction = crdtService.getTransaction(id);
     if (!transaction) {
       throw new Error(`Transaction with ID ${id} not found`);
     }
-    
+
     return this.convertFromCRDTFormat(transaction);
   }
-  
+
   /**
    * Create a new transaction
    */
   async createTransaction(transaction: RecordCreateSchema): Promise<RecordSchema[]> {
     await this.ensureInitialized();
-    
+
     try {
       const id = uuidv4();
       const crdtTransaction = this.convertToCRDTFormat({
@@ -144,12 +146,12 @@ class OfflineFirstTransactionService {
         transaction_currency: 'USD', // Default currency since it's not in RecordCreateSchema
         original_amount: Math.abs(transaction.amount)
       });
-      
+
       await crdtService.createTransaction(crdtTransaction as any);
-      
-      // Update SQLite indices
-      await this.rebuildIndices();
-      
+
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
+
       const created = await this.getTransaction(id);
       return [created];
     } catch (error) {
@@ -157,74 +159,74 @@ class OfflineFirstTransactionService {
       throw error;
     }
   }
-  
+
   /**
    * Update an existing transaction
    */
   async updateTransaction(id: string, updates: RecordUpdateSchema): Promise<RecordSchema> {
     await this.ensureInitialized();
-    
+
     try {
       const crdtUpdates = this.convertToCRDTFormat(updates);
       await crdtService.updateTransaction(id, crdtUpdates);
-      
-      // Update SQLite indices
-      await this.rebuildIndices();
-      
+
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
+
       return await this.getTransaction(id);
     } catch (error) {
       console.error('Failed to update transaction:', error);
       throw error;
     }
   }
-  
+
   /**
    * Delete transactions
    */
   async deleteTransactions(ids: string[] | string): Promise<void> {
     await this.ensureInitialized();
-    
+
     try {
       const transactionIds = Array.isArray(ids) ? ids : [ids];
-      
+
       for (const id of transactionIds) {
         await crdtService.deleteTransaction(id);
       }
-      
-      // Update SQLite indices
-      await this.rebuildIndices();
+
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
     } catch (error) {
       console.error('Failed to delete transactions:', error);
       throw error;
     }
   }
-  
+
   /**
    * Bulk delete transactions
    */
   async bulkDeleteTransactions(transactionIds: string[]): Promise<void> {
     return this.deleteTransactions(transactionIds);
   }
-  
+
   /**
    * Bulk update categories
    */
   async bulkUpdateCategories(transactionIds: string[], categoryId: string): Promise<void> {
     await this.ensureInitialized();
-    
+
     try {
       for (const id of transactionIds) {
         await crdtService.updateTransaction(id, { category_id: categoryId });
       }
-      
-      // Update SQLite indices
-      await this.rebuildIndices();
+
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
     } catch (error) {
       console.error('Failed to bulk update categories:', error);
       throw error;
     }
   }
-  
+
   /**
    * Bulk update manual transactions
    */
@@ -235,28 +237,28 @@ class OfflineFirstTransactionService {
     transactionDatetime?: Date;
   }): Promise<void> {
     await this.ensureInitialized();
-    
+
     try {
       const updates: Partial<CRDTTransaction> = {};
-      
+
       if (params.categoryId) updates.category_id = params.categoryId;
       if (params.accountId) updates.account_id = params.accountId;
       if (params.transactionDatetime) {
         updates.transaction_datetime = params.transactionDatetime.toISOString();
       }
-      
+
       for (const id of params.transactionIds) {
         await crdtService.updateTransaction(id, updates);
       }
-      
-      // Update SQLite indices
-      await this.rebuildIndices();
+
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
     } catch (error) {
       console.error('Failed to bulk update manual transactions:', error);
       throw error;
     }
   }
-  
+
   /**
    * Convert CRDT transaction format to expected API format
    */
@@ -292,7 +294,7 @@ class OfflineFirstTransactionService {
       })
     } as RecordSchema;
   }
-  
+
   /**
    * Convert API format to CRDT transaction format
    */
@@ -300,7 +302,7 @@ class OfflineFirstTransactionService {
     return {
       id: tx.id,
       amount: tx.amount,
-      transaction_datetime: tx.transaction_datetime instanceof Date 
+      transaction_datetime: tx.transaction_datetime instanceof Date
         ? tx.transaction_datetime.toISOString()
         : tx.transaction_datetime,
       description: tx.description,
@@ -314,18 +316,18 @@ class OfflineFirstTransactionService {
       is_external: tx.is_external,
     };
   }
-  
+
   /**
-   * Rebuild SQLite indices from CRDT data
+   * Rebuild Drizzle database from CRDT data
    */
-  private async rebuildIndices(): Promise<void> {
+  private async rebuildFromCRDT(): Promise<void> {
     const transactions = crdtService.getTransactions();
     const accounts = crdtService.getAccounts();
     const categories = crdtService.getCategories();
-    
-    await sqliteIndexService.rebuildIndices(transactions, accounts, categories);
+
+    await drizzleQueryService.rebuildFromCRDT(transactions, accounts, categories);
   }
-  
+
   /**
    * Ensure the service is initialized
    */

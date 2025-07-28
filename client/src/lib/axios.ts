@@ -3,6 +3,9 @@ import { authService } from "@/features/auth/services/auth";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { config } from "./env"
 import { userService } from "@/features/preferences/services/user";
+import { connectivityService } from "@/core/offline-first/services/connectivity.service";
+import { offlineAuthService } from "@/core/offline-first/services/offline-auth.service";
+import { featureFlagsService } from "@/core/offline-first/services/feature-flags.service";
 
 export const api = axios.create({
   baseURL: config.VITE_API_BASE_URL,
@@ -29,6 +32,10 @@ api.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
     const requestUrl = originalRequest?.url || '';
 
+    // If we're in fully offline mode, reject all network requests immediately
+    if (featureFlagsService.isFullyOfflineModeEnabled() || !connectivityService.hasServerAccess()) {
+      return Promise.reject(new Error('Request blocked: App is in offline mode'));
+    }
 
     // Only attempt refresh if conditions are met
     if (
@@ -50,12 +57,17 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await authService.refresh();
-        const user = await userService.getMe();
-
-        // Update store
-        useAuthStore.getState().setUser(user);
-        useAuthStore.getState().setAuthenticated(true);
+        // Try offline-first auth refresh if available
+        if (featureFlagsService.isEnabled('offline-first-enabled')) {
+          await offlineAuthService.refresh();
+        } else {
+          await authService.refresh();
+          const user = await userService.getMe();
+          
+          // Update store
+          useAuthStore.getState().setUser(user);
+          useAuthStore.getState().setAuthenticated(true);
+        }
 
         onRefreshed('refreshed'); // Token is handled by httpOnly cookie
         isRefreshing = false;
@@ -63,10 +75,19 @@ api.interceptors.response.use(
         return axios(originalRequest);
       } catch (refreshError) {
         isRefreshing = false;
-        useAuthStore.getState().resetState();
+        
+        // Clear auth state using offline-first service if available
+        if (featureFlagsService.isEnabled('offline-first-enabled')) {
+          await offlineAuthService.logout();
+        } else {
+          useAuthStore.getState().resetState();
+        }
 
-        // Redirect to login or handle auth failure
-        window.location.href = '/login';
+        // Only redirect if we have connectivity
+        if (connectivityService.hasServerAccess()) {
+          window.location.href = '/login';
+        }
+        
         return Promise.reject(refreshError);
       }
     }

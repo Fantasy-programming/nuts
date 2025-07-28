@@ -1,5 +1,5 @@
 import { userService } from '@/features/preferences/services/user';
-import { useAuthenticatedQuery } from '@/lib/authed-query';
+import { useOfflineFirstAuthenticatedQuery } from '@/core/offline-first/hooks/useOfflineFirstAuth';
 
 
 export const userQueryOptions = () => ({
@@ -9,18 +9,5 @@ export const userQueryOptions = () => ({
 });
 
 export const useUserQuery = () => {
-  return useAuthenticatedQuery(userQueryOptions());
+  return useOfflineFirstAuthenticatedQuery(userQueryOptions());
 };
-
-
-// export const useUserQuery = () => {
-//   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-//
-//   return useQuery({
-//     queryKey: ['user'],
-//     queryFn: userService.getMe,
-//     enabled: isAuthenticated,
-//     staleTime: 5 * 60 * 1000, // 5 minutes
-//     retry: false,
-//   });
-// };

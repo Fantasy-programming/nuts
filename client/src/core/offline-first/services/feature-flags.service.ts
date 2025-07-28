@@ -10,8 +10,10 @@ type FeatureFlag =
   | 'offline-first-transactions'
   | 'offline-first-accounts'
   | 'offline-first-categories'
+  | 'offline-first-preferences'
   | 'offline-first-analytics'
-  | 'offline-first-sync';
+  | 'offline-first-sync'
+  | 'fully-offline-mode';
 
 interface FeatureFlagConfig {
   [key: string]: boolean;
@@ -26,8 +28,12 @@ class FeatureFlagsService {
     'offline-first-transactions': false,
     'offline-first-accounts': false,
     'offline-first-categories': false,
+    'offline-first-preferences': false,
     'offline-first-analytics': false,
     'offline-first-sync': false,
+    
+    // Fully offline mode (no network calls at all)
+    'fully-offline-mode': false,
   };
   
   private storageKey = 'nuts-feature-flags';
@@ -155,6 +161,13 @@ class FeatureFlagsService {
   }
   
   /**
+   * Check if offline-first is enabled for preferences
+   */
+  useOfflineFirstPreferences(): boolean {
+    return this.isEnabled('offline-first-enabled') && this.isEnabled('offline-first-preferences');
+  }
+
+  /**
    * Check if offline-first analytics is enabled
    */
   useOfflineFirstAnalytics(): boolean {
@@ -169,6 +182,13 @@ class FeatureFlagsService {
   }
   
   /**
+   * Check if fully offline mode is enabled
+   */
+  isFullyOfflineModeEnabled(): boolean {
+    return this.isEnabled('fully-offline-mode');
+  }
+  
+  /**
    * Enable offline-first mode for development/testing
    */
   enableDevelopmentMode(): void {
@@ -177,6 +197,7 @@ class FeatureFlagsService {
       'offline-first-transactions': true,
       'offline-first-accounts': true,
       'offline-first-categories': true,
+      'offline-first-preferences': true,
       'offline-first-analytics': false, // Keep analytics server-based for now
       'offline-first-sync': false, // Keep sync disabled initially
     });
@@ -191,6 +212,7 @@ class FeatureFlagsService {
       'offline-first-transactions': false,
       'offline-first-accounts': false,
       'offline-first-categories': false,
+      'offline-first-preferences': false,
       'offline-first-analytics': false,
       'offline-first-sync': false,
     });
@@ -206,8 +228,10 @@ class FeatureFlagsService {
       'offline-first-transactions': false,
       'offline-first-accounts': false,
       'offline-first-categories': false,
+      'offline-first-preferences': false,
       'offline-first-analytics': false,
       'offline-first-sync': false,
+      'fully-offline-mode': false,
     };
     console.log('Feature flags reset to defaults');
   }

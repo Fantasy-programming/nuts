@@ -10,8 +10,7 @@ import { Badge } from "@/core/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useQuery } from "@tanstack/react-query"
-import { accountService } from "@/features/accounts/services/account"
-import { categoryService } from "@/features/categories/services/category"
+import { adaptiveAccountService, adaptiveCategoryService } from "@/core/offline-first"
 
 export interface TransactionFilterState {
   account_id?: string
@@ -52,12 +51,12 @@ export function TransactionFilters({
   // Fetch accounts and categories
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts"],
-    queryFn: accountService.getAccounts,
+    queryFn: adaptiveAccountService.getAccounts,
   })
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
-    queryFn: categoryService.getCategories,
+    queryFn: adaptiveCategoryService.getCategories,
   })
 
   // Transform data for SearchableSelect

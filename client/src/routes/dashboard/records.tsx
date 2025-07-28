@@ -7,9 +7,7 @@ import { Button } from "@/core/components/ui/button";
 import { RecordsDialog } from "@/features/transactions/components/add-records-dialog";
 import { NeuralRecordsDialog } from "@/features/transactions/components/neural-records-dialog";
 import { RulesDialog } from "@/features/transactions/components/rules-dialog";
-import { getTransactions } from "@/features/transactions/services/transaction"
-import { categoryService } from "@/features/categories/services/category"
-import { accountService } from "@/features/accounts/services/account";
+import { adaptiveTransactionService, adaptiveAccountService, adaptiveCategoryService } from "@/core/offline-first"
 import { LayoutDashboard, Plus, Sparkles, Settings } from "lucide-react";
 import { SidebarTrigger } from "@/core/components/ui/sidebar";
 import { EmptyStateGuide } from "@/core/components/EmptyStateGuide";
@@ -30,17 +28,17 @@ export const Route = createFileRoute("/dashboard/records")({
 
     queryClient.prefetchQuery({
       queryKey: ["transactions", defaultParams],
-      queryFn: () => getTransactions(defaultParams),
+      queryFn: () => adaptiveTransactionService.getTransactions(defaultParams),
     });
 
     queryClient.prefetchQuery({
       queryKey: ["categories"],
-      queryFn: categoryService.getCategories,
+      queryFn: adaptiveCategoryService.getCategories,
     });
 
     queryClient.prefetchQuery({
       queryKey: ["accounts"],
-      queryFn: accountService.getAccounts,
+      queryFn: adaptiveAccountService.getAccounts,
     });
   },
   errorComponent: ({ error }) => <div>Error loading transactions: {error.message}</div>,

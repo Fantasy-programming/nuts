@@ -9,7 +9,8 @@ import {
   featureFlagsService,
   syncService,
   crdtService,
-  sqliteIndexService
+  sqliteIndexService,
+  drizzleQueryService
 } from '../index';
 
 export async function validatePhase2Implementation() {
