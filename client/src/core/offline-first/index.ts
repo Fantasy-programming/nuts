@@ -56,6 +56,7 @@ export {
   testOfflineAuth,
   validateOfflineFeatures
 } from './test/offline-validation.test';
+export { validateDrizzleIntegration } from './test/drizzle-validation.test';
 
 // Components
 export { FeatureFlagsDeveloperPanel } from './components/FeatureFlagsDeveloperPanel';

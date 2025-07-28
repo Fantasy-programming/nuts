@@ -66,13 +66,13 @@ class OfflineFirstTransactionService {
         page,
         limit,
         search,
-        accountId,
-        categoryId,
+        account_id: accountId,
+        category_id: categoryId,
         type,
-        startDate,
-        endDate,
+        start_date: startDate,
+        end_date: endDate,
         currency
-      });
+      } as GetTransactionsParams);
 
       // Group transactions by date
       const groupedData: Record<string, any> = {};

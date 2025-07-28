@@ -9,7 +9,6 @@ import { eq, and, like, gte, lte, desc, asc, count, isNull } from 'drizzle-orm';
 import { localDb, schema } from '../../database';
 import { CRDTTransaction, CRDTAccount, CRDTCategory } from '../types/crdt-schema';
 import type { GetTransactionsParams } from '@/features/transactions/services/transaction';
-import type { TransactionsResponse } from '@/features/transactions/services/transaction.types';
 
 class DrizzleQueryService {
   private isInitialized = false;
@@ -50,69 +49,75 @@ class DrizzleQueryService {
 
       // Insert accounts
       if (Object.keys(accounts).length > 0) {
-        const accountsData = Object.values(accounts).map(acc => ({
-          id: acc.id,
-          name: acc.name,
-          type: acc.type as any,
-          balance: acc.balance || 0,
-          currency: acc.currency || 'USD',
-          color: ('blue') as any, // Default color since CRDT doesn't have this field yet
-          meta: null, // CRDT doesn't have meta field yet
-          isExternal: false, // CRDT doesn't have external fields yet
-          providerAccountId: null,
-          providerName: null,
-          syncStatus: null,
-          lastSyncedAt: null,
-          connectionId: null,
-          createdBy: null, // CRDT doesn't have audit fields yet
-          updatedBy: null,
-          createdAt: new Date(acc.created_at),
-          updatedAt: new Date(acc.updated_at),
-          deletedAt: acc.deleted_at ? new Date(acc.deleted_at) : null,
-        }));
+        const accountsData = Object.values(accounts)
+          .filter(acc => acc.id && acc.name) // Ensure required fields exist
+          .map(acc => ({
+            id: acc.id,
+            name: acc.name,
+            type: (acc.type as 'cash' | 'momo' | 'credit' | 'investment' | 'checking' | 'savings' | 'loan' | 'other') || 'other',
+            balance: acc.balance || 0,
+            currency: acc.currency || 'USD',
+            color: ('blue' as 'red' | 'green' | 'blue'), // Default color since CRDT doesn't have this field yet
+            meta: null, // CRDT doesn't have meta field yet
+            isExternal: false, // CRDT doesn't have external fields yet
+            providerAccountId: null,
+            providerName: null,
+            syncStatus: null,
+            lastSyncedAt: null,
+            connectionId: null,
+            createdBy: null, // CRDT doesn't have audit fields yet
+            updatedBy: null,
+            createdAt: new Date(acc.created_at),
+            updatedAt: new Date(acc.updated_at),
+            deletedAt: acc.deleted_at ? new Date(acc.deleted_at) : null,
+          }));
 
         await db.insert(schema.accounts).values(accountsData);
       }
 
       // Insert categories
       if (Object.keys(categories).length > 0) {
-        const categoriesData = Object.values(categories).map(cat => ({
-          id: cat.id,
-          name: cat.name,
-          parentId: cat.parent_id || null,
-          isDefault: false, // CRDT doesn't have is_default field yet
-          color: cat.color || null,
-          icon: cat.icon || 'Box',
-          createdBy: 'system', // CRDT doesn't have audit fields yet
-          updatedBy: null,
-          createdAt: new Date(cat.created_at),
-          updatedAt: new Date(cat.updated_at),
-          deletedAt: cat.deleted_at ? new Date(cat.deleted_at) : null,
-        }));
+        const categoriesData = Object.values(categories)
+          .filter(cat => cat.id && cat.name) // Ensure required fields exist
+          .map(cat => ({
+            id: cat.id,
+            name: cat.name,
+            parentId: cat.parent_id || null,
+            isDefault: false, // CRDT doesn't have is_default field yet
+            color: cat.color || null,
+            icon: cat.icon || 'Box',
+            createdBy: 'system', // CRDT doesn't have audit fields yet
+            updatedBy: null,
+            createdAt: new Date(cat.created_at),
+            updatedAt: new Date(cat.updated_at),
+            deletedAt: cat.deleted_at ? new Date(cat.deleted_at) : null,
+          }));
 
         await db.insert(schema.categories).values(categoriesData);
       }
 
       // Insert transactions
       if (Object.keys(transactions).length > 0) {
-        const transactionsData = Object.values(transactions).map(tx => ({
-          id: tx.id,
-          amount: tx.amount || 0,
-          type: tx.type as any,
-          accountId: tx.account_id,
-          categoryId: tx.category_id,
-          destinationAccountId: tx.destination_account_id || null,
-          transactionDatetime: new Date(tx.transaction_datetime),
-          description: tx.description || null,
-          details: tx.details ? JSON.stringify(tx.details) : null,
-          isExternal: tx.is_external || false,
-          providerTransactionId: null, // CRDT doesn't have provider fields yet
-          createdBy: null, // CRDT doesn't have audit fields yet
-          updatedBy: null,
-          createdAt: new Date(tx.created_at),
-          updatedAt: new Date(tx.updated_at),
-          deletedAt: tx.deleted_at ? new Date(tx.deleted_at) : null,
-        }));
+        const transactionsData = Object.values(transactions)
+          .filter(tx => tx.id && tx.account_id && tx.category_id) // Ensure required fields exist
+          .map(tx => ({
+            id: tx.id,
+            amount: tx.amount || 0,
+            type: (tx.type as 'expense' | 'income' | 'transfer') || 'expense',
+            accountId: tx.account_id,
+            categoryId: tx.category_id!,
+            destinationAccountId: tx.destination_account_id || null,
+            transactionDatetime: new Date(tx.transaction_datetime),
+            description: tx.description || null,
+            details: tx.details ? JSON.stringify(tx.details) : null,
+            isExternal: tx.is_external || false,
+            providerTransactionId: null, // CRDT doesn't have provider fields yet
+            createdBy: null, // CRDT doesn't have audit fields yet
+            updatedBy: null,
+            createdAt: new Date(tx.created_at),
+            updatedAt: new Date(tx.updated_at),
+            deletedAt: tx.deleted_at ? new Date(tx.deleted_at) : null,
+          }));
 
         await db.insert(schema.transactions).values(transactionsData);
       }
@@ -128,8 +133,12 @@ class DrizzleQueryService {
 
   /**
    * Query transactions with filtering and pagination using Drizzle
+   * Returns raw transaction data for processing by the offline service
    */
-  async queryTransactions(params: GetTransactionsParams): Promise<TransactionsResponse> {
+  async queryTransactions(params: GetTransactionsParams): Promise<{
+    data: any[];
+    pagination: { total: number; totalPages: number; };
+  }> {
     await this.ensureInitialized();
 
     try {
@@ -137,13 +146,13 @@ class DrizzleQueryService {
       const {
         page = 1,
         limit = 50,
-        search,
-        accountId,
-        categoryId,
+        q: search,
+        account_id: accountId,
+        category_id: categoryId,
         type,
-        startDate,
-        endDate,
-        currency
+        start_date: startDate,
+        end_date: endDate
+        // currency - not used in current filtering
       } = params;
 
       const offset = (page - 1) * limit;
@@ -219,7 +228,7 @@ class DrizzleQueryService {
         .limit(limit)
         .offset(offset);
 
-      // Transform to expected format
+      // Transform to expected format for the offline transaction service
       const transformedTransactions = transactions.map(tx => ({
         id: tx.id,
         amount: tx.amount,
@@ -229,33 +238,27 @@ class DrizzleQueryService {
         destination_account_id: tx.destinationAccountId,
         transaction_datetime: tx.transactionDatetime.toISOString(),
         description: tx.description,
-        details: tx.details ? JSON.parse(tx.details) : null,
+        details: tx.details ? JSON.parse(tx.details as string) : {},
         is_external: tx.isExternal,
         provider_transaction_id: tx.providerTransactionId,
         created_at: tx.createdAt.toISOString(),
         updated_at: tx.updatedAt.toISOString(),
         
-        // Joined fields
-        account: tx.accountName ? {
-          id: tx.accountId,
-          name: tx.accountName,
-          type: tx.accountType,
-          currency: tx.accountCurrency,
-        } : null,
+        // Add derived fields for grouping
+        date_only: tx.transactionDatetime.toISOString().split('T')[0],
         
-        category: tx.categoryName ? {
-          id: tx.categoryId,
-          name: tx.categoryName,
-          icon: tx.categoryIcon,
-          color: tx.categoryColor,
-        } : null,
+        // Joined fields for display
+        account_name: tx.accountName,
+        account_type: tx.accountType,
+        account_currency: tx.accountCurrency,
+        category_name: tx.categoryName,
+        category_icon: tx.categoryIcon,
+        category_color: tx.categoryColor,
       }));
 
       return {
         data: transformedTransactions,
         pagination: {
-          page,
-          limit,
           total: totalCount,
           totalPages: Math.ceil(totalCount / limit),
         },
@@ -288,7 +291,7 @@ class DrizzleQueryService {
         balance: acc.balance,
         currency: acc.currency,
         color: acc.color,
-        meta: acc.meta ? JSON.parse(acc.meta) : null,
+        meta: acc.meta ? JSON.parse(acc.meta as string) : null,
         is_external: acc.isExternal,
         provider_account_id: acc.providerAccountId,
         provider_name: acc.providerName,

@@ -154,7 +154,7 @@ class OfflineFirstInitService {
       
       await Promise.all([
         crdtService.clear(),
-        sqliteIndexService.clear(),
+        drizzleQueryService.close(),
         syncService.clear(),
         offlineAuthService.clear()
       ]);
