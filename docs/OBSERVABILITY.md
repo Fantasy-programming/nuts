@@ -50,20 +50,24 @@ Then visit http://localhost:16686 to view traces in Jaeger UI.
 ## Features
 
 ### HTTP Request Tracing
-- Every HTTP request creates a trace span
+- Every HTTP request creates a trace span when `OTEL_ENABLED=true`
 - Includes request method, URL, response status, and duration
 - Automatic trace context propagation
+- Can be disabled by setting `OTEL_ENABLED=false`
 
 ### Database Query Tracing
-- All PostgreSQL queries are traced
+- All PostgreSQL queries are traced using [otelpgx](https://github.com/exaring/otelpgx)
 - Includes SQL statement, execution time, and affected rows
 - Error tracking for failed queries
+- Configurable via `OTEL_ENABLED` setting
+- Zero overhead when telemetry is disabled
 
 ### Enhanced Logging
 - Structured JSON logging in production
 - Console-friendly logging in development
-- Automatic trace_id and span_id injection
+- Automatic trace_id and span_id injection when telemetry is enabled
 - Contextual information (request_id, user_id, etc.)
+- Works with or without OpenTelemetry enabled
 
 ### Example Log Output
 
@@ -80,6 +84,21 @@ Then visit http://localhost:16686 to view traces in Jaeger UI.
   "email": "user@example.com"
 }
 ```
+
+### Disabling Telemetry
+
+To completely disable OpenTelemetry tracing:
+
+```bash
+export OTEL_ENABLED=false
+```
+
+When disabled:
+- No HTTP tracing middleware is added
+- No database query tracing is configured  
+- Logging continues to work without trace context
+- Zero performance impact from telemetry
+- All existing functionality remains intact
 
 ## Production Considerations
 

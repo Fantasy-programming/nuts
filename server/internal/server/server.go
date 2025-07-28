@@ -52,9 +52,10 @@ type Server struct {
 
 	openfinance *finance.ProviderManager
 
-	httpServer       *http.Server
+	httpServer        *http.Server
 	telemetryShutdown func(context.Context) error
-	tracer           trace.Tracer
+	telemetryConfig   telemetry.Config
+	tracer            trace.Tracer
 }
 
 type Options func(opts *Server) error
@@ -141,19 +142,22 @@ func (s *Server) NewLogger() {
 }
 
 func (s *Server) SetupTelemetry() {
-	telemetryConfig := telemetry.DefaultConfig()
-	telemetryConfig.ServiceVersion = s.Version
+	s.telemetryConfig = telemetry.DefaultConfig()
+	s.telemetryConfig.ServiceVersion = s.Version
 
 	ctx := context.Background()
-	shutdown, err := telemetry.Setup(ctx, telemetryConfig, s.logger)
+	shutdown, err := telemetry.Setup(ctx, s.telemetryConfig, s.logger)
 	if err != nil {
 		s.logger.Fatal().Err(err).Msg("Failed to setup telemetry")
 	}
 
 	s.telemetryShutdown = shutdown
-	s.tracer = otel.Tracer("nuts-backend")
+	
+	if s.telemetryConfig.Enabled {
+		s.tracer = otel.Tracer("nuts-backend")
+	}
 
-	s.logger.Info().Msg("Telemetry setup completed")
+	s.logger.Info().Bool("enabled", s.telemetryConfig.Enabled).Msg("Telemetry setup completed")
 }
 
 func (s *Server) NewTokenService() {
@@ -258,8 +262,8 @@ func (s *Server) NewDatabase() {
 		s.logger.Fatal().Err(err).Msg("Failed to parse database configuration")
 	}
 
-	// Configure tracing
-	database.ConfigurePoolWithTracing(config, s.logger)
+	// Configure tracing based on telemetry settings
+	database.ConfigurePoolWithTracing(config, s.logger, s.telemetryConfig.Enabled)
 
 	conn, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
@@ -323,12 +327,17 @@ func (s *Server) setGlobalMiddleware() {
 	s.router.Use(chiMiddleware.Timeout(60 * time.Second))
 	s.router.Use(i18n.I18nMiddleware(s.i18n, nil))
 
-	// Add OpenTelemetry HTTP instrumentation
-	s.router.Use(func(next http.Handler) http.Handler {
-		return otelhttp.NewHandler(next, "nuts-backend",
-			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
-		)
-	})
+	// Add OpenTelemetry HTTP instrumentation only if telemetry is enabled
+	if s.telemetryConfig.Enabled {
+		s.router.Use(func(next http.Handler) http.Handler {
+			return otelhttp.NewHandler(next, "nuts-backend",
+				otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+			)
+		})
+		s.logger.Debug().Msg("HTTP tracing middleware enabled")
+	} else {
+		s.logger.Debug().Msg("HTTP tracing middleware disabled")
+	}
 
 	if s.cfg.RequestLog {
 		s.setRequestLogger()
