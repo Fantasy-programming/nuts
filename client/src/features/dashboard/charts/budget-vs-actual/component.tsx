@@ -8,8 +8,7 @@ import {
   ChartCardHeader,
   ChartCardTitle,
   ChartCardContent,
-  ChartCardMenu,
-  ChartCardHandle
+  ChartCardMenu
 } from '@/features/dashboard/components/chart-card';
 
 import { Chart } from '@/features/dashboard/components/chart-card/chart-renderer';
@@ -150,7 +149,7 @@ function BudgetVsActualComponent({ id, size, isLocked }: DashboardChartComponent
           <ChartCardHeader>
             <div className='flex-1'>
               <ChartCardTitle className='text-muted-foreground'>{config.title}</ChartCardTitle>
-              <h2 className="text-3xl font-bold mt-2">{formatCurrency(totalActual)}</h2>
+              <h2 className="text-2xl font-bold mt-1">{formatCurrency(totalActual)}</h2>
               <div className="flex items-center mt-1 text-sm">
                 <span className={`font-medium ${totalVariance <= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                   {totalVariance >= 0 ? '+' : ''}{formatCurrency(totalVariance)}
@@ -159,14 +158,13 @@ function BudgetVsActualComponent({ id, size, isLocked }: DashboardChartComponent
                   ({totalVariancePercentage >= 0 ? '+' : ''}{totalVariancePercentage.toFixed(1)}%) vs budget
                 </span>
               </div>
-              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+              <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
                 <span>{overBudgetCount} over budget</span>
                 <span>{underBudgetCount} under budget</span>
               </div>
             </div>
-            <ChartCardHandle />
           </ChartCardHeader>
-          <ChartCardContent className="mt-4">
+          <ChartCardContent className="mt-2">
             {chartData ? (
               <Chart size={size} config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">

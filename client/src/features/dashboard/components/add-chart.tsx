@@ -50,33 +50,38 @@ export function AddChartDialog({ onAddChart, children }: AddChartDialogProps) {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>Add Chart to Dashboard</DialogTitle>
           <DialogDescription>
             Select a chart widget to add to your current view.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
+        <div className="py-6">
           {isLoading ? (
             <div className="text-center p-4">Loading available charts...</div>
           ) : availableCharts.length > 0 ? (
-            <ScrollArea className="h-[300px] pr-4"> {/* Added padding-right */}
-              <div className="space-y-2">
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {availableCharts.map((config) => (
                   <Button
                     key={config.id}
                     variant="ghost"
-                    className="w-full justify-start text-left h-auto py-2"
+                    className="w-full h-auto p-4 border border-border hover:border-primary/50 rounded-lg transition-colors"
                     onClick={() => handleSelectChart(config)}
                   >
-                    <div>
-                      <div className="font-medium">{config.title}</div>
-                      {config.description && (
-                        <p className="text-xs text-muted-foreground">
-                          {config.description}
-                        </p>
-                      )}
+                    <div className="flex flex-col items-start gap-3 w-full">
+                      <div className="w-full h-32 bg-muted rounded-md flex items-center justify-center">
+                        <div className="text-muted-foreground text-sm">Chart Preview</div>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium text-base">{config.title}</div>
+                        {config.description && (
+                          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                            {config.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </Button>
                 ))}

@@ -8,8 +8,7 @@ import {
   ChartCardHeader,
   ChartCardTitle,
   ChartCardContent,
-  ChartCardMenu,
-  ChartCardHandle
+  ChartCardMenu
 } from '@/features/dashboard/components/chart-card';
 
 import { Chart } from '@/features/dashboard/components/chart-card/chart-renderer';
@@ -126,7 +125,7 @@ function AccountBalanceTrendsComponent({ id, size, isLocked }: DashboardChartCom
           <ChartCardHeader>
             <div className='flex-1'>
               <ChartCardTitle className='text-muted-foreground'>{config.title}</ChartCardTitle>
-              <h2 className="text-3xl font-bold mt-2">{formatCurrency(currentBalance)}</h2>
+              <h2 className="text-2xl font-bold mt-1">{formatCurrency(currentBalance)}</h2>
               <div className="flex items-center mt-1 text-sm">
                 <span className={`font-medium ${growth >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                   {growth >= 0 ? '+' : ''}{formatCurrency(growth)}
@@ -136,9 +135,8 @@ function AccountBalanceTrendsComponent({ id, size, isLocked }: DashboardChartCom
                 </span>
               </div>
             </div>
-            <ChartCardHandle />
           </ChartCardHeader>
-          <ChartCardContent className="mt-4">
+          <ChartCardContent className="mt-2">
             {chartData ? (
               <Chart size={size} config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">

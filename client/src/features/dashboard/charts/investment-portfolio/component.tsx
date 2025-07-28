@@ -8,8 +8,7 @@ import {
   ChartCardHeader,
   ChartCardTitle,
   ChartCardContent,
-  ChartCardMenu,
-  ChartCardHandle
+  ChartCardMenu
 } from '@/features/dashboard/components/chart-card';
 
 import { Chart } from '@/features/dashboard/components/chart-card/chart-renderer';
@@ -176,7 +175,7 @@ function InvestmentPortfolioComponent({ id, size, isLocked }: DashboardChartComp
           <ChartCardHeader>
             <div className='flex-1'>
               <ChartCardTitle className='text-muted-foreground'>{config.title}</ChartCardTitle>
-              <h2 className="text-3xl font-bold mt-2">{formatCurrency(currentValue)}</h2>
+              <h2 className="text-2xl font-bold mt-1">{formatCurrency(currentValue)}</h2>
               <div className="flex items-center mt-1 text-sm">
                 <span className={`font-medium ${currentReturn >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                   {currentReturn >= 0 ? '+' : ''}{formatCurrency(currentReturn)}
@@ -194,9 +193,8 @@ function InvestmentPortfolioComponent({ id, size, isLocked }: DashboardChartComp
                 </span>
               </div>
             </div>
-            <ChartCardHandle />
           </ChartCardHeader>
-          <ChartCardContent className="mt-4">
+          <ChartCardContent className="mt-2">
             {portfolioData ? (
               <div className="space-y-4">
                 {/* Performance Chart */}

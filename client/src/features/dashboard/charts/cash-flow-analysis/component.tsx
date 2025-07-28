@@ -8,8 +8,7 @@ import {
   ChartCardHeader,
   ChartCardTitle,
   ChartCardContent,
-  ChartCardMenu,
-  ChartCardHandle
+  ChartCardMenu
 } from '@/features/dashboard/components/chart-card';
 
 import { Chart } from '@/features/dashboard/components/chart-card/chart-renderer';
@@ -191,7 +190,7 @@ function CashFlowAnalysisComponent({ id, size, isLocked }: DashboardChartCompone
           <ChartCardHeader>
             <div className='flex-1'>
               <ChartCardTitle className='text-muted-foreground'>{config.title}</ChartCardTitle>
-              <h2 className="text-3xl font-bold mt-2">{formatCurrency(currentNetCashFlow)}</h2>
+              <h2 className="text-2xl font-bold mt-1">{formatCurrency(currentNetCashFlow)}</h2>
               <div className="flex items-center mt-1 text-sm">
                 <span className={`font-medium ${cashFlowChange >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                   {cashFlowChange >= 0 ? '+' : ''}{formatCurrency(cashFlowChange)}
@@ -200,14 +199,13 @@ function CashFlowAnalysisComponent({ id, size, isLocked }: DashboardChartCompone
                   ({cashFlowChangePercentage >= 0 ? '+' : ''}{cashFlowChangePercentage.toFixed(1)}%) vs last month
                 </span>
               </div>
-              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+              <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
                 <span>Avg: {formatCurrency(avgNetFlow)}/mo</span>
                 <span>Total Saved: {formatCurrency(currentMonth?.cumulative_cash_flow || 0)}</span>
               </div>
             </div>
-            <ChartCardHandle />
           </ChartCardHeader>
-          <ChartCardContent className="mt-4">
+          <ChartCardContent className="mt-2">
             {chartData ? (
               <Chart size={size} config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">
