@@ -113,7 +113,7 @@ export function ChartCard({ id, onDragStart, onDragEnd, size, isLocked, classNam
       <Card
         ref={setNodeRef}
         style={style}
-        className={cn("group relative w-full h-fit",
+        className={cn("group relative w-full h-fit overflow-hidden",
           "transition-shadow duration-200",
           isDragging && "opacity-50 z-10 shadow-2xl",
           sizeClasses[size],
@@ -140,7 +140,7 @@ export const ChartCardHeader = memo(({ children, className, ref }: ChartCardHead
 
   return (
     <CardHeader className={cn(
-      "flex flex-row items-center gap-2 space-y-0 py-3 px-4 border-b",
+      "flex flex-row items-center gap-2 space-y-0 py-3 px-4 pt-8 border-b",
       isDragging && "cursor-grabbing",
       className
     )} ref={ref}>
@@ -197,7 +197,7 @@ export const ChartCardHandle = memo(() => {
 
   if (isLocked)
     return (
-      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
         <Button variant="ghost" size="icon" className="cursor-not-allowed opacity-50 h-6 w-6 bg-background border border-border shadow-sm" disabled>
           <Lock className="h-3 w-3" />
           <span className="sr-only">Chart Locked</span>
@@ -206,9 +206,9 @@ export const ChartCardHandle = memo(() => {
     );
 
   return (
-    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+    <div className="absolute top-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
       <Button variant="ghost" size="icon" className="cursor-grab active:cursor-grabbing h-6 w-6 bg-background border border-border shadow-sm hover:bg-accent" {...attributes} {...listeners}>
-        <GripVertical className="h-3 w-3" />
+        <GripVertical className="h-3 w-3 rotate-90" />
         <span className="sr-only">Drag to reorder chart</span>
       </Button>
     </div>

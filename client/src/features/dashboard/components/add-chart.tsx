@@ -8,7 +8,6 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/core/components/ui/dialog";
-import { ScrollArea } from "@/core/components/ui/scroll-area";
 import { getAvailableChartConfigs } from '@/features/dashboard/charts/loader';
 import type { DashboardChartModuleConfig } from '@/features/dashboard/charts/types';
 
@@ -61,7 +60,7 @@ export function AddChartDialog({ onAddChart, children }: AddChartDialogProps) {
           {isLoading ? (
             <div className="text-center p-4">Loading available charts...</div>
           ) : availableCharts.length > 0 ? (
-            <ScrollArea className="h-[400px] pr-4">
+            <div className="max-h-[400px] overflow-y-auto pr-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {availableCharts.map((config) => (
                   <Button
@@ -74,10 +73,10 @@ export function AddChartDialog({ onAddChart, children }: AddChartDialogProps) {
                       <div className="w-full h-32 bg-muted rounded-md flex items-center justify-center">
                         <div className="text-muted-foreground text-sm">Chart Preview</div>
                       </div>
-                      <div className="text-left">
+                      <div className="text-left w-full">
                         <div className="font-medium text-base">{config.title}</div>
                         {config.description && (
-                          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                          <p className="text-sm text-muted-foreground mt-1 leading-relaxed whitespace-normal break-words">
                             {config.description}
                           </p>
                         )}
@@ -86,7 +85,7 @@ export function AddChartDialog({ onAddChart, children }: AddChartDialogProps) {
                   </Button>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           ) : (
             <div className="text-center p-4 text-muted-foreground">No charts available to add.</div>
           )}
