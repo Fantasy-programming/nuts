@@ -15,23 +15,30 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/repository"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/i18n"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
+	"github.com/Fantasy-Programming/nuts/server/pkg/database"
 	"github.com/Fantasy-Programming/nuts/server/pkg/finance"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jobs"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/logging"
 	"github.com/Fantasy-Programming/nuts/server/pkg/mailer"
 	"github.com/Fantasy-Programming/nuts/server/pkg/router"
 	"github.com/Fantasy-Programming/nuts/server/pkg/storage"
+	"github.com/Fantasy-Programming/nuts/server/pkg/telemetry"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Server struct {
 	Version string
 	cfg     *config.Config
 	logger  *zerolog.Logger
-	jwt     *jwt.Service
+
+	jwt *jwt.Service
 
 	db      *pgxpool.Pool
 	storage storage.Storage
@@ -45,7 +52,9 @@ type Server struct {
 
 	openfinance *finance.ProviderManager
 
-	httpServer *http.Server
+	httpServer       *http.Server
+	telemetryShutdown func(context.Context) error
+	tracer           trace.Tracer
 }
 
 type Options func(opts *Server) error
@@ -80,6 +89,7 @@ func defaultServer() *Server {
 func (s *Server) Init() {
 	s.setCors()
 	s.NewLogger()
+	s.SetupTelemetry()
 	s.NewDatabase()
 	s.NewStorage()
 	s.NewMailer()
@@ -99,37 +109,51 @@ func (s *Server) setRequestLogger() {
 	s.router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			logger := s.logger.With().
+			
+			// Get trace context from OpenTelemetry
+			ctx := r.Context()
+			logger := logging.LoggerWithTraceCtx(ctx, s.logger)
+			
+			// Get request ID from chi middleware if available
+			requestID := chiMiddleware.GetReqID(ctx)
+			if requestID != "" {
+				logger = logging.ContextMiddleware(logger, requestID, "")
+			}
+
+			logger.Info().
 				Str("method", r.Method).
 				Str("url", r.URL.String()).
 				Str("remote_addr", r.RemoteAddr).
-				Logger()
+				Str("user_agent", r.UserAgent()).
+				Msg("Request started")
 
-			logger.Info().Msg("Request started")
 			next.ServeHTTP(w, r)
-			logger.Info().Dur("duration", time.Since(start)).Msg("Request completed")
+			
+			logger.Info().
+				Dur("duration", time.Since(start)).
+				Msg("Request completed")
 		})
 	})
 }
 
 func (s *Server) NewLogger() {
-	logLevel := zerolog.TraceLevel // will be changed to info
+	s.logger = logging.NewLogger()
+}
 
-	env := os.Getenv("ENVIRONMENT")
+func (s *Server) SetupTelemetry() {
+	telemetryConfig := telemetry.DefaultConfig()
+	telemetryConfig.ServiceVersion = s.Version
 
-	if env == "test" {
-		logLevel = zerolog.Disabled
+	ctx := context.Background()
+	shutdown, err := telemetry.Setup(ctx, telemetryConfig, s.logger)
+	if err != nil {
+		s.logger.Fatal().Err(err).Msg("Failed to setup telemetry")
 	}
 
-	zerolog.SetGlobalLevel(logLevel)
+	s.telemetryShutdown = shutdown
+	s.tracer = otel.Tracer("nuts-backend")
 
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-
-	if true {
-		logger = logger.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	}
-
-	s.logger = &logger
+	s.logger.Info().Msg("Telemetry setup completed")
 }
 
 func (s *Server) NewTokenService() {
@@ -220,16 +244,33 @@ func (s *Server) NewDatabase() {
 		s.cfg.DB.Pass,
 	)
 
-	conn, err := pgxpool.New(context.Background(), dsn)
+	s.logger.Info().
+		Str("host", s.cfg.DB.Host).
+		Uint16("port", s.cfg.DB.Port).
+		Str("database", s.cfg.DB.Name).
+		Str("user", s.cfg.DB.User).
+		Str("ssl_mode", s.cfg.SslMode).
+		Msg("Connecting to database")
+
+	// Parse configuration and add tracing
+	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-		s.logger.Fatal().Err(err).Msg("Failed to connect to the db")
+		s.logger.Fatal().Err(err).Msg("Failed to parse database configuration")
+	}
+
+	// Configure tracing
+	database.ConfigurePoolWithTracing(config, s.logger)
+
+	conn, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		s.logger.Fatal().Err(err).Msg("Failed to connect to the database")
 	}
 
 	if err := conn.Ping(context.Background()); err != nil {
-		s.logger.Fatal().Err(err).Msg("Failed to ping the db")
+		s.logger.Fatal().Err(err).Msg("Failed to ping the database")
 	}
 
-	s.logger.Info().Msg("Connected to the database")
+	s.logger.Info().Msg("Successfully connected to the database")
 
 	s.db = conn
 }
@@ -281,6 +322,13 @@ func (s *Server) setGlobalMiddleware() {
 	s.router.Use(chiMiddleware.Recoverer)
 	s.router.Use(chiMiddleware.Timeout(60 * time.Second))
 	s.router.Use(i18n.I18nMiddleware(s.i18n, nil))
+
+	// Add OpenTelemetry HTTP instrumentation
+	s.router.Use(func(next http.Handler) http.Handler {
+		return otelhttp.NewHandler(next, "nuts-backend",
+			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+		)
+	})
 
 	if s.cfg.RequestLog {
 		s.setRequestLogger()
@@ -374,11 +422,27 @@ func (s *Server) closeResources() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	s.logger.Info().Msg("Starting graceful shutdown of resources")
+
+	// Stop job processor
 	if err := s.jobsManager.Stop(ctx); err != nil {
 		s.logger.Error().Err(err).Msg("Error stopping job processor")
+	} else {
+		s.logger.Info().Msg("Job processor stopped successfully")
 	}
 
+	// Shutdown telemetry
+	if s.telemetryShutdown != nil {
+		if err := s.telemetryShutdown(ctx); err != nil {
+			s.logger.Error().Err(err).Msg("Error shutting down telemetry")
+		} else {
+			s.logger.Info().Msg("Telemetry shutdown successfully")
+		}
+	}
+
+	// Close database connection
 	s.db.Close()
+	s.logger.Info().Msg("Database connection closed")
 }
 
 func start(s *Server) {

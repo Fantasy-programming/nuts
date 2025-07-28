@@ -16,6 +16,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/ua"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/logging"
 	"github.com/markbates/goth"
 	"github.com/rs/zerolog"
 )
@@ -44,8 +45,18 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req auth.LoginRequest
 	ctx := r.Context()
 
+	// Enhanced logging with trace context
+	logger := logging.LoggerWithTraceCtx(ctx, h.logger)
+	logger.Info().
+		Str("handler", "auth.Login").
+		Str("remote_addr", r.RemoteAddr).
+		Msg("Login attempt started")
+
 	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
 	if err != nil {
+		logger.Error().
+			Err(err).
+			Msg("Failed to parse login request")
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -59,6 +70,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if valErr != nil {
+		logger.Warn().
+			Err(valErr).
+			Str("email", req.Email).
+			Msg("Login request validation failed")
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -81,10 +96,20 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		Location:  "TODO",
 	}
 
+	logger.Info().
+		Str("email", req.Email).
+		Str("browser", uaInfo.Browser).
+		Str("device", uaInfo.Device).
+		Str("os", uaInfo.OS).
+		Msg("Processing login request")
+
 	tokens, err := h.service.Login(ctx, req, uaInfo)
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrWrongCred):
+			logger.Warn().
+				Str("email", req.Email).
+				Msg("Login failed: wrong credentials")
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
@@ -97,10 +122,16 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			return
 
 		case errors.Is(err, auth.ErrMissing2FACode):
+			logger.Info().
+				Str("email", req.Email).
+				Msg("Login requires 2FA verification")
 			respond.Json(w, http.StatusAccepted, auth.LoginResponse{TwoFARequired: true}, h.logger)
 			return
 
 		case errors.Is(err, auth.ErrWrong2FA):
+			logger.Warn().
+				Str("email", req.Email).
+				Msg("Login failed: wrong 2FA code")
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
@@ -113,6 +144,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			return
 
 		default:
+			logger.Error().
+				Err(err).
+				Str("email", req.Email).
+				Msg("Login failed: internal error")
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
@@ -125,6 +160,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	logger.Info().
+		Str("email", req.Email).
+		Msg("Login successful")
 
 	secure := os.Getenv("ENVIRONMENT") == "production"
 
