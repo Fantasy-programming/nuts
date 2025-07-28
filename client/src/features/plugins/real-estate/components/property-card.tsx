@@ -20,6 +20,7 @@ import {
   Square,
 } from 'lucide-react';
 import { Property } from '../types';
+import { PropertyImage } from '@/core/components/ui/optimized-image';
 
 interface PropertyCardProps {
   property: Property;
@@ -31,10 +32,11 @@ export const PropertyCard = React.memo(({ property }: PropertyCardProps) => {
   return (
     <Card className="overflow-hidden">
       <div className="relative h-48 w-full">
-        <img
+        <PropertyImage
           src={property.image}
           alt={property.address}
-          className="h-full w-full object-cover"
+          className="h-full w-full"
+          aspectRatio="wide"
         />
         <Badge
           className="absolute left-2 top-2"
@@ -64,10 +66,11 @@ export const PropertyCard = React.memo(({ property }: PropertyCardProps) => {
                 </TabsList>
                 <TabsContent value="details" className="space-y-4 pt-4">
                   <div className="aspect-video overflow-hidden rounded-lg">
-                    <img
+                    <PropertyImage
                       src={property.image}
                       alt={property.address}
-                      className="h-full w-full object-cover"
+                      aspectRatio="video"
+                      className="rounded-lg"
                     />
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">

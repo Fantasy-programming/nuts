@@ -156,50 +156,102 @@ export const Route = createFileRoute("/dashboard")({
 function DashboardWrapper() {
   const navigate = useNavigate();
 
-
+  // Enhanced keyboard shortcuts with accessibility announcements
   useHotkeys(
     "g+d",
     () => {
       navigate({ to: "/dashboard/home" });
+      // Announce navigation for screen readers
+      const announcement = document.createElement('div');
+      announcement.setAttribute('aria-live', 'polite');
+      announcement.setAttribute('aria-atomic', 'true');
+      announcement.className = 'sr-only';
+      announcement.textContent = 'Navigated to Dashboard';
+      document.body.appendChild(announcement);
+      setTimeout(() => document.body.removeChild(announcement), 1000);
     },
-    []
+    { description: "Navigate to Dashboard (g+d)" }
   );
 
   useHotkeys(
     "g+c",
     () => {
       navigate({ to: "/dashboard/accounts" });
+      const announcement = document.createElement('div');
+      announcement.setAttribute('aria-live', 'polite');
+      announcement.className = 'sr-only';
+      announcement.textContent = 'Navigated to Accounts';
+      document.body.appendChild(announcement);
+      setTimeout(() => document.body.removeChild(announcement), 1000);
     },
-    []
+    { description: "Navigate to Accounts (g+c)" }
   );
 
   useHotkeys(
     "g+t",
     () => {
       navigate({ to: "/dashboard/records" });
+      const announcement = document.createElement('div');
+      announcement.setAttribute('aria-live', 'polite');
+      announcement.className = 'sr-only';
+      announcement.textContent = 'Navigated to Transactions';
+      document.body.appendChild(announcement);
+      setTimeout(() => document.body.removeChild(announcement), 1000);
     },
-    []
+    { description: "Navigate to Transactions (g+t)" }
   );
 
   useHotkeys('g+a', () => {
-    navigate({ to: "/dashboard/analytics" })
-  }, [])
+    navigate({ to: "/dashboard/analytics" });
+    const announcement = document.createElement('div');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.className = 'sr-only';
+    announcement.textContent = 'Navigated to Analytics';
+    document.body.appendChild(announcement);
+    setTimeout(() => document.body.removeChild(announcement), 1000);
+  }, { description: "Navigate to Analytics (g+a)" });
 
   useHotkeys(
     "g+s",
     () => {
       navigate({ to: "/dashboard/settings/profile" });
+      const announcement = document.createElement('div');
+      announcement.setAttribute('aria-live', 'polite');
+      announcement.className = 'sr-only';
+      announcement.textContent = 'Navigated to Settings';
+      document.body.appendChild(announcement);
+      setTimeout(() => document.body.removeChild(announcement), 1000);
     },
-    []
+    { description: "Navigate to Settings (g+s)" }
   );
 
-  // useHotkeys('c', () => {
-  //   setIsOpen(!isOpen)
-  // }, [isOpen])
+  // Add escape key to focus main content
+  useHotkeys('escape', () => {
+    const mainContent = document.getElementById('main-content');
+    mainContent?.focus();
+  }, { description: "Focus main content (Escape)" });
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
+      {/* Hidden keyboard shortcuts help */}
+      <div className="sr-only" id="keyboard-shortcuts" aria-label="Available keyboard shortcuts">
+        <h2>Keyboard Shortcuts</h2>
+        <ul>
+          <li>g+d: Navigate to Dashboard</li>
+          <li>g+c: Navigate to Accounts</li>
+          <li>g+t: Navigate to Transactions</li>
+          <li>g+a: Navigate to Analytics</li>
+          <li>g+s: Navigate to Settings</li>
+          <li>Escape: Focus main content</li>
+        </ul>
+      </div>
+
+      <Sidebar 
+        collapsible="icon" 
+        className="group-data-[side=left]:border-r-0"
+        role="navigation"
+        aria-label="Main navigation"
+      >
         <SideBarHeader />
         <SidebarContent className="-mt-2">
           <SideBarMainLinks />
@@ -213,9 +265,18 @@ function DashboardWrapper() {
           </ErrorBoundary>
         </SidebarFooter>
       </Sidebar>
+      
       <SidebarInset className="overflow-hidden px-4 md:px-6 py-2 md:py-4">
         <ErrorBoundary>
-          <Outlet />
+          <main 
+            id="main-content" 
+            tabIndex={-1} 
+            className="focus:outline-none"
+            role="main"
+            aria-label="Main content"
+          >
+            <Outlet />
+          </main>
         </ErrorBoundary>
       </SidebarInset>
     </SidebarProvider>
@@ -341,22 +402,35 @@ const SideBarMainLinks = memo(() => {
               <SidebarMenuButton
                 asChild
                 tooltip={item.title}
-                className="group/menu-button  font-medium gap-3 h-9 rounded-md text-[#757575] hover:text-secondary-900/45 hover:bg-neutral-200/40 [&>svg]:size-auto"
+                className="group/menu-button font-medium gap-3 h-9 rounded-md text-[#757575] hover:text-secondary-900/45 hover:bg-neutral-200/40 [&>svg]:size-auto focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
-                <Link to={item.url} activeProps={{ className: "bg-sidebar-accent shadow-sm hover:bg-sidebar-accent" }}
+                <Link 
+                  to={item.url} 
+                  activeProps={{ className: "bg-sidebar-accent shadow-sm hover:bg-sidebar-accent" }}
+                  tabIndex={0}
+                  role="menuitem"
+                  aria-label={`Navigate to ${t(item.title)}`}
                 >{({ isActive }: { isActive: boolean }) => (
                   <>
                     {isActive ? (
-                      <item.activeIcon size={16} aria-hidden="true" className="text-secondary-900/80" />
+                      <item.activeIcon 
+                        size={16} 
+                        aria-hidden="true" 
+                        className="text-secondary-900/80" 
+                      />
                     ) : (
-                      <item.icon size={16} aria-hidden="true" className="text-muted-foreground/60" />
-                    )
-                    }
+                      <item.icon 
+                        size={16} 
+                        aria-hidden="true" 
+                        className="text-muted-foreground/60" 
+                      />
+                    )}
 
-                    <span className={isActive ? `text-sidebar-accent-foreground` : ""}>{t(item.title)}</span>
+                    <span className={isActive ? `text-sidebar-accent-foreground` : ""}>
+                      {t(item.title)}
+                    </span>
                   </>
-                )
-                  }
+                )}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

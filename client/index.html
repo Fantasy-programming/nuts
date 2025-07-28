@@ -7,6 +7,32 @@
     <meta name="theme-color" content="#6bb87e" />
     <meta name="description" content="Your personal finance OS - Manage your money with ease" />
     
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Apple PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Nuts Finance" />
+    <link rel="apple-touch-icon" href="/icon-192x192.png" />
+    
+    <!-- Microsoft PWA Support -->
+    <meta name="msapplication-TileColor" content="#6bb87e" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Nuts Finance" />
+    <meta property="og:description" content="Your personal finance OS - Manage your money with ease" />
+    <meta property="og:url" content="https://nuts.ridyrich.engineer" />
+    <meta property="og:image" content="/og-image.png" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Nuts Finance" />
+    <meta name="twitter:description" content="Your personal finance OS - Manage your money with ease" />
+    <meta name="twitter:image" content="/og-image.png" />
+    
     <!-- Preconnect to external domains for faster loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,6 +53,11 @@
     
     <!-- Prefetch DNS for potential external API calls -->
     <link rel="dns-prefetch" href="//api.nuts.com" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
     
     <title>Nuts Finance</title>
   </head>
