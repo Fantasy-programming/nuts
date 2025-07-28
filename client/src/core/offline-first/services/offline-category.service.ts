@@ -7,7 +7,7 @@
  */
 
 import { crdtService } from './crdt.service';
-import { sqliteIndexService } from './sqlite-index.service';
+import { drizzleQueryService } from './drizzle-query.service';
 import { CRDTCategory } from '../types/crdt-schema';
 import { Category, CategoryCreate } from '@/features/categories/services/category.types';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,10 +23,10 @@ class OfflineFirstCategoryService {
     
     try {
       await crdtService.initialize();
-      await sqliteIndexService.initialize();
+      await drizzleQueryService.initialize();
       
       this.isInitialized = true;
-      console.log('Offline-first category service initialized');
+      console.log('Offline-first category service initialized with Drizzle');
     } catch (error) {
       console.error('Failed to initialize offline-first category service:', error);
       throw error;

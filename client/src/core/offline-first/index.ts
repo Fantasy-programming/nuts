@@ -6,8 +6,12 @@
 
 // Core services
 export { crdtService } from './services/crdt.service';
-export { sqliteIndexService } from './services/sqlite-index.service';
+export { sqliteIndexService } from './services/sqlite-index.service'; // Keep for backward compatibility
+export { drizzleQueryService } from './services/drizzle-query.service';
 export { featureFlagsService } from './services/feature-flags.service';
+
+// Database module
+export { localDb, schema } from '../database';
 export { syncService } from './services/sync.service';
 export { offlineFirstInitService } from './services/offline-first-init.service';
 export { connectivityService } from './services/connectivity.service';

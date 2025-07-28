@@ -5,7 +5,7 @@
  */
 
 import { crdtService } from './crdt.service';
-import { sqliteIndexService } from './sqlite-index.service';
+import { drizzleQueryService } from './drizzle-query.service';
 import { syncService } from './sync.service';
 import { featureFlagsService } from './feature-flags.service';
 import { connectivityService } from './connectivity.service';
@@ -52,8 +52,8 @@ class OfflineFirstInitService {
       console.log('3. Initializing CRDT service...');
       await crdtService.initialize();
 
-      console.log('4. Initializing SQLite index service...');
-      await sqliteIndexService.initialize();
+      console.log('4. Initializing Drizzle query service...');
+      await drizzleQueryService.initialize();
 
       // Initialize adaptive services
       console.log('5. Initializing adaptive transaction service...');
@@ -86,8 +86,8 @@ class OfflineFirstInitService {
         const categories = crdtService.getCategories();
 
         if (Object.keys(transactions).length > 0 || Object.keys(accounts).length > 0 || Object.keys(categories).length > 0) {
-          console.log('🔄 Rebuilding SQLite indices from existing CRDT data...');
-          await sqliteIndexService.rebuildIndices(transactions, accounts, categories);
+          console.log('🔄 Rebuilding Drizzle database from existing CRDT data...');
+          await drizzleQueryService.rebuildFromCRDT(transactions, accounts, categories);
         }
       }
 

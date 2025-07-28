@@ -7,7 +7,7 @@
  */
 
 import { crdtService } from './crdt.service';
-import { sqliteIndexService } from './sqlite-index.service';
+import { drizzleQueryService } from './drizzle-query.service';
 import { CRDTAccount } from '../types/crdt-schema';
 import { Account, AccountCreate, AccountWTrend, AccountBalanceTimeline } from '@/features/accounts/services/account.types';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,10 +23,10 @@ class OfflineFirstAccountService {
     
     try {
       await crdtService.initialize();
-      await sqliteIndexService.initialize();
+      await drizzleQueryService.initialize();
       
       this.isInitialized = true;
-      console.log('Offline-first account service initialized');
+      console.log('Offline-first account service initialized with Drizzle');
     } catch (error) {
       console.error('Failed to initialize offline-first account service:', error);
       throw error;

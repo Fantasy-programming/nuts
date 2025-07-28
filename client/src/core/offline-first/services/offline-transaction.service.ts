@@ -7,7 +7,7 @@
  */
 
 import { crdtService } from './crdt.service';
-import { sqliteIndexService } from './sqlite-index.service';
+import { drizzleQueryService } from './drizzle-query.service';
 import { CRDTTransaction } from '../types/crdt-schema';
 import { RecordCreateSchema, RecordUpdateSchema, RecordSchema, TransactionsResponse } from '@/features/transactions/services/transaction.types';
 import type { GetTransactionsParams } from '@/features/transactions/services/transaction';
@@ -24,17 +24,17 @@ class OfflineFirstTransactionService {
 
     try {
       await crdtService.initialize();
-      await sqliteIndexService.initialize();
+      await drizzleQueryService.initialize();
 
-      // Rebuild SQLite indices from CRDT data
+      // Rebuild database from CRDT data
       const transactions = crdtService.getTransactions();
       const accounts = crdtService.getAccounts();
       const categories = crdtService.getCategories();
 
-      await sqliteIndexService.rebuildIndices(transactions, accounts, categories);
+      await drizzleQueryService.rebuildFromCRDT(transactions, accounts, categories);
 
       this.isInitialized = true;
-      console.log('Offline-first transaction service initialized');
+      console.log('Offline-first transaction service initialized with Drizzle');
     } catch (error) {
       console.error('Failed to initialize offline-first transaction service:', error);
       throw error;
@@ -61,8 +61,8 @@ class OfflineFirstTransactionService {
         currency
       } = params;
 
-      // Query SQLite index for efficient filtering
-      const result = sqliteIndexService.queryTransactions({
+      // Query Drizzle database for efficient filtering
+      const result = await drizzleQueryService.queryTransactions({
         page,
         limit,
         search,
@@ -77,7 +77,7 @@ class OfflineFirstTransactionService {
       // Group transactions by date
       const groupedData: Record<string, any> = {};
 
-      result.transactions.forEach((tx) => {
+      result.data.forEach((tx) => {
         const date = tx.date_only || tx.transaction_datetime.split('T')[0];
 
         if (!groupedData[date]) {
@@ -105,8 +105,8 @@ class OfflineFirstTransactionService {
       return {
         data,
         pagination: {
-          total_items: result.totalCount,
-          total_pages: result.totalPages,
+          total_items: result.pagination.total,
+          total_pages: result.pagination.totalPages,
           page,
           limit
         }
@@ -149,8 +149,8 @@ class OfflineFirstTransactionService {
 
       await crdtService.createTransaction(crdtTransaction as any);
 
-      // Update SQLite indices
-      await this.rebuildIndices();
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
 
       const created = await this.getTransaction(id);
       return [created];
@@ -170,8 +170,8 @@ class OfflineFirstTransactionService {
       const crdtUpdates = this.convertToCRDTFormat(updates);
       await crdtService.updateTransaction(id, crdtUpdates);
 
-      // Update SQLite indices
-      await this.rebuildIndices();
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
 
       return await this.getTransaction(id);
     } catch (error) {
@@ -193,8 +193,8 @@ class OfflineFirstTransactionService {
         await crdtService.deleteTransaction(id);
       }
 
-      // Update SQLite indices
-      await this.rebuildIndices();
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
     } catch (error) {
       console.error('Failed to delete transactions:', error);
       throw error;
@@ -219,8 +219,8 @@ class OfflineFirstTransactionService {
         await crdtService.updateTransaction(id, { category_id: categoryId });
       }
 
-      // Update SQLite indices
-      await this.rebuildIndices();
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
     } catch (error) {
       console.error('Failed to bulk update categories:', error);
       throw error;
@@ -251,8 +251,8 @@ class OfflineFirstTransactionService {
         await crdtService.updateTransaction(id, updates);
       }
 
-      // Update SQLite indices
-      await this.rebuildIndices();
+      // Update Drizzle database
+      await this.rebuildFromCRDT();
     } catch (error) {
       console.error('Failed to bulk update manual transactions:', error);
       throw error;
@@ -318,14 +318,14 @@ class OfflineFirstTransactionService {
   }
 
   /**
-   * Rebuild SQLite indices from CRDT data
+   * Rebuild Drizzle database from CRDT data
    */
-  private async rebuildIndices(): Promise<void> {
+  private async rebuildFromCRDT(): Promise<void> {
     const transactions = crdtService.getTransactions();
     const accounts = crdtService.getAccounts();
     const categories = crdtService.getCategories();
 
-    await sqliteIndexService.rebuildIndices(transactions, accounts, categories);
+    await drizzleQueryService.rebuildFromCRDT(transactions, accounts, categories);
   }
 
   /**
