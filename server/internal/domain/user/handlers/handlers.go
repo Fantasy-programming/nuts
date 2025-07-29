@@ -10,6 +10,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/telemetry"
 	"github.com/rs/zerolog"
 )
 
@@ -27,7 +28,15 @@ func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	id, err := jwt.GetUserID(r)
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "user.GetInfo")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	if err != nil {
+		telemetry.RecordError(ctx, "no_user_id", "user.GetInfo")
+		metrics.End(http.StatusInternalServerError)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -61,7 +70,15 @@ func (h *Handler) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	id, err := jwt.GetUserID(r)
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "user.UpdateInfo")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	if err != nil {
+		telemetry.RecordError(ctx, "no_user_id", "user.UpdateInfo")
+		metrics.End(http.StatusInternalServerError)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -78,6 +95,8 @@ func (h *Handler) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 
 	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
 	if err != nil {
+		telemetry.RecordError(ctx, "validation_parse_error", "user.UpdateInfo")
+		metrics.End(http.StatusBadRequest)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,

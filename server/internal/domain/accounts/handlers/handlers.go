@@ -13,6 +13,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/respond"
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
+	"github.com/Fantasy-Programming/nuts/server/pkg/telemetry"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
 	"github.com/shopspring/decimal"
@@ -130,10 +131,18 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "accounts.Create")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	var req accounts.CreateAccountRequest
 
 	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
 	if err != nil {
+		telemetry.RecordError(ctx, "validation_parse_error", "accounts.Create")
+		metrics.End(http.StatusBadRequest)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -147,6 +156,9 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if valErr != nil {
+		telemetry.RecordError(ctx, "validation_error", "accounts.Create")
+		telemetry.RecordBusinessEvent(ctx, "account_create", "failure")
+		metrics.End(http.StatusBadRequest)
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,

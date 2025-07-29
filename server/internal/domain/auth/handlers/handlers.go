@@ -17,6 +17,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/server/pkg/logging"
+	"github.com/Fantasy-Programming/nuts/server/pkg/telemetry"
 	"github.com/markbates/goth"
 	"github.com/rs/zerolog"
 )
@@ -45,6 +46,12 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req auth.LoginRequest
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "auth.Login")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	// Enhanced logging with trace context
 	logger := logging.LoggerWithTraceCtx(ctx, h.logger)
 	logger.Info().
@@ -57,6 +64,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		logger.Error().
 			Err(err).
 			Msg("Failed to parse login request")
+		telemetry.RecordError(ctx, "validation_parse_error", "auth.Login")
+		metrics.End(http.StatusBadRequest)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -74,6 +83,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			Err(valErr).
 			Str("email", req.Email).
 			Msg("Login request validation failed")
+		telemetry.RecordError(ctx, "validation_error", "auth.Login")
+		telemetry.RecordAuthEvent(ctx, "login", false)
+		metrics.End(http.StatusBadRequest)
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -110,6 +122,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			logger.Warn().
 				Str("email", req.Email).
 				Msg("Login failed: wrong credentials")
+			telemetry.RecordError(ctx, "wrong_credentials", "auth.Login")
+			telemetry.RecordAuthEvent(ctx, "login", false)
+			metrics.End(http.StatusUnauthorized)
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
@@ -125,6 +140,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			logger.Info().
 				Str("email", req.Email).
 				Msg("Login requires 2FA verification")
+			telemetry.RecordAuthEvent(ctx, "login_2fa_required", true)
+			metrics.End(http.StatusAccepted)
 			respond.Json(w, http.StatusAccepted, auth.LoginResponse{TwoFARequired: true}, h.logger)
 			return
 
@@ -132,6 +149,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			logger.Warn().
 				Str("email", req.Email).
 				Msg("Login failed: wrong 2FA code")
+			telemetry.RecordError(ctx, "wrong_2fa", "auth.Login")
+			telemetry.RecordAuthEvent(ctx, "login", false)
+			metrics.End(http.StatusUnauthorized)
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
@@ -148,6 +168,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 				Err(err).
 				Str("email", req.Email).
 				Msg("Login failed: internal error")
+			telemetry.RecordError(ctx, "internal_error", "auth.Login")
+			telemetry.RecordAuthEvent(ctx, "login", false)
+			metrics.End(http.StatusInternalServerError)
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
@@ -164,6 +187,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	logger.Info().
 		Str("email", req.Email).
 		Msg("Login successful")
+
+	// Record successful login
+	telemetry.RecordAuthEvent(ctx, "login", true)
 
 	secure := os.Getenv("ENVIRONMENT") == "production"
 
@@ -194,8 +220,16 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 	var req auth.SignupRequest
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "auth.Signup")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
 	if err != nil {
+		telemetry.RecordError(ctx, "validation_parse_error", "auth.Signup")
+		metrics.End(http.StatusBadRequest)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -209,6 +243,9 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if valErr != nil {
+		telemetry.RecordError(ctx, "validation_error", "auth.Signup")
+		telemetry.RecordAuthEvent(ctx, "signup", false)
+		metrics.End(http.StatusBadRequest)
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -225,6 +262,9 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrExistingUser):
+			telemetry.RecordError(ctx, "existing_user", "auth.Signup")
+			telemetry.RecordAuthEvent(ctx, "signup", false)
+			metrics.End(http.StatusConflict)
 			respond.Error(respond.ErrorOptions{
 				R:          r,
 				W:          w,
@@ -236,6 +276,9 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 			return
 
 		default:
+			telemetry.RecordError(ctx, "internal_error", "auth.Signup")
+			telemetry.RecordAuthEvent(ctx, "signup", false)
+			metrics.End(http.StatusInternalServerError)
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
@@ -249,14 +292,26 @@ func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Record successful signup
+	telemetry.RecordAuthEvent(ctx, "signup", true)
+	metrics.End(http.StatusCreated)
 	respond.Json(w, http.StatusCreated, nil, h.logger)
 }
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "auth.Refresh")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	cookie, err := r.Cookie(refresh_token_name)
 	if err != nil {
+		telemetry.RecordError(ctx, "no_refresh_token", "auth.Refresh")
+		telemetry.RecordAuthEvent(ctx, "token_refresh", false)
+		metrics.End(http.StatusUnauthorized)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -281,11 +336,16 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	tokens, err := h.service.RefreshTokens(ctx, cookie.Value, uaInfo)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
+		errorType := "internal_error"
 
 		if errors.Is(err, jwt.ErrUnauthorized) || errors.Is(err, jwt.ErrInvalidToken) {
 			statusCode = http.StatusUnauthorized
+			errorType = "invalid_token"
 		}
 
+		telemetry.RecordError(ctx, errorType, "auth.Refresh")
+		telemetry.RecordAuthEvent(ctx, "token_refresh", false)
+		metrics.End(statusCode)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -296,6 +356,9 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	// Record successful token refresh
+	telemetry.RecordAuthEvent(ctx, "token_refresh", true)
 
 	secure := os.Getenv("ENVIRONMENT") == "production"
 
@@ -326,6 +389,12 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "auth.Logout")
+	defer func() {
+		metrics.End(http.StatusOK)
+	}()
+
 	cookie, err := r.Cookie(refresh_token_name)
 	if err != nil {
 		h.logger.Warn().Err(err).Msg("Refresh token cookie not found during logout")
@@ -337,9 +406,13 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		err = h.service.RevokeToken(ctx, userID, cookie.Value)
 		if err != nil {
 			h.logger.Error().Err(err).Str("userID", userID.String()).Msg("Failed to revoke refresh token on server during logout")
+			telemetry.RecordError(ctx, "token_revoke_error", "auth.Logout")
 		} else {
 			h.logger.Info().Str("userID", userID.String()).Msg("Successfully revoked refresh token on server during logout")
+			telemetry.RecordAuthEvent(ctx, "logout", true)
 		}
+	} else {
+		telemetry.RecordAuthEvent(ctx, "logout", true)
 	}
 
 	secure := os.Getenv("ENVIRONMENT") == "production"
@@ -520,8 +593,16 @@ func (h *Handler) GoogleCallbackHandler(w http.ResponseWriter, r *http.Request) 
 func (h *Handler) InitiateMfaSetup(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "auth.InitiateMfaSetup")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	userID, err := jwt.GetUserID(r)
 	if err != nil {
+		telemetry.RecordError(ctx, "no_user_id", "auth.InitiateMfaSetup")
+		metrics.End(http.StatusInternalServerError)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -538,6 +619,9 @@ func (h *Handler) InitiateMfaSetup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrMissingUser):
+			telemetry.RecordError(ctx, "missing_user", "auth.InitiateMfaSetup")
+			telemetry.RecordAuthEvent(ctx, "mfa_setup_initiate", false)
+			metrics.End(http.StatusUnauthorized)
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
@@ -548,6 +632,9 @@ func (h *Handler) InitiateMfaSetup(w http.ResponseWriter, r *http.Request) {
 				Details:    userID,
 			})
 		default:
+			telemetry.RecordError(ctx, "internal_error", "auth.InitiateMfaSetup")
+			telemetry.RecordAuthEvent(ctx, "mfa_setup_initiate", false)
+			metrics.End(http.StatusInternalServerError)
 			respond.Error(respond.ErrorOptions{
 				W:          w,
 				R:          r,
@@ -561,6 +648,7 @@ func (h *Handler) InitiateMfaSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	telemetry.RecordAuthEvent(ctx, "mfa_setup_initiate", true)
 	respond.Json(w, http.StatusOK, response, h.logger)
 }
 

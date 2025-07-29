@@ -154,6 +154,14 @@ func (s *Server) SetupTelemetry() {
 
 	if s.cfg.Otel.Enabled {
 		s.tracer = otel.Tracer("nuts-backend")
+		
+		// Initialize metrics instruments
+		err = telemetry.InitializeMetrics()
+		if err != nil {
+			s.logger.Error().Err(err).Msg("Failed to initialize metrics instruments")
+		} else {
+			s.logger.Info().Msg("Metrics instruments initialized")
+		}
 	}
 
 	s.logger.Info().Bool("enabled", s.cfg.Otel.Enabled).Msg("Telemetry setup completed")

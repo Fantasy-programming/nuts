@@ -5,10 +5,12 @@ This document explains the OpenTelemetry and logging setup for the nuts backend.
 ## Overview
 
 The nuts backend now includes comprehensive observability through:
-- **OpenTelemetry** for distributed tracing
+- **OpenTelemetry** for distributed tracing and metrics collection
 - **Enhanced logging** with trace context integration
 - **Database query tracing** for PostgreSQL operations
 - **HTTP request instrumentation** for all API endpoints
+- **Business metrics** for tracking key application events
+- **Error tracking** with detailed error classification
 
 ## Configuration
 
@@ -61,6 +63,32 @@ Then visit http://localhost:16686 to view traces in Jaeger UI.
 - Error tracking for failed queries
 - Configurable via `OTEL_ENABLED` setting
 - Zero overhead when telemetry is disabled
+
+### Metrics Collection
+- **HTTP Request Metrics**: Request count, duration histograms by handler and status code
+- **Error Metrics**: Error counts categorized by type and handler
+- **Business Metrics**: Key application events (logins, signups, transactions, etc.)
+- **Authentication Events**: Login success/failure, token refresh, MFA operations
+- **Transaction Events**: Creation, deletion, updates with success/failure tracking
+- **User Events**: Profile updates, account operations
+- All metrics respect the `OTEL_ENABLED` configuration for complete control
+
+#### Available Metrics
+- `http_requests_total`: Counter of HTTP requests by method, handler, and status
+- `http_request_duration_seconds`: Histogram of HTTP request durations
+- `errors_total`: Counter of errors by error type and handler
+- `business_events_total`: Counter of business events by event type and outcome
+
+#### Business Event Examples
+- `auth_login` (success/failure)
+- `auth_signup` (success/failure)
+- `auth_token_refresh` (success/failure)
+- `auth_logout` (success/failure)
+- `auth_mfa_setup_initiate` (success/failure)
+- `transaction_create` (success/failure)
+- `transaction_delete` (success/failure)
+- `account_create` (success/failure)
+- `user_update` (success/failure)
 
 ### Enhanced Logging
 - Structured JSON logging in production
