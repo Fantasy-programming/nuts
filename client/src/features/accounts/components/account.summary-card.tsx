@@ -138,9 +138,8 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
     <Card>
       <CardHeader className="pb-4">
         <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="summary">{t('analytics.overview')}</TabsTrigger>
-            <TabsTrigger value="totals">{t('analytics.totals')}</TabsTrigger>
             <TabsTrigger value="percent">{t('analytics.percent')}</TabsTrigger>
           </TabsList>
 
@@ -231,23 +230,6 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                   </div>
                 </div>
               )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="totals" className="mt-6">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium">{t('analytics.totalAssets')}</span>
-                <span className="font-mono font-semibold text-green-600">
-                  {formatCurrency(summaryData.totalAssets, appCurrency)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium">{t('analytics.totalLiabilities')}</span>
-                <span className="font-mono font-semibold text-red-600">
-                  {formatCurrency(summaryData.totalLiabilities, appCurrency)}
-                </span>
-              </div>
             </div>
           </TabsContent>
 
