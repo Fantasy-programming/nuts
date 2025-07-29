@@ -18,6 +18,7 @@ import (
 	"github.com/Fantasy-Programming/nuts/server/internal/utils/validation"
 	"github.com/Fantasy-Programming/nuts/server/pkg/jwt"
 	"github.com/Fantasy-Programming/nuts/server/pkg/llm"
+	"github.com/Fantasy-Programming/nuts/server/pkg/telemetry"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog"
@@ -38,7 +39,15 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	userID, err := jwt.GetUserID(r)
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "transactions.List")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	if err != nil {
+		telemetry.RecordError(ctx, "no_user_id", "transactions.List")
+		metrics.End(http.StatusInternalServerError)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -208,8 +217,16 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var req transactions.CreateTransactionRequest
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "transactions.Create")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	valErr, err := h.validator.ParseAndValidate(ctx, r, &req)
 	if err != nil {
+		telemetry.RecordError(ctx, "validation_parse_error", "transactions.Create")
+		metrics.End(http.StatusBadRequest)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -223,6 +240,9 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if valErr != nil {
+		telemetry.RecordError(ctx, "validation_error", "transactions.Create")
+		telemetry.RecordTransactionEvent(ctx, "create", false)
+		metrics.End(http.StatusBadRequest)
 		respond.Errors(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -296,6 +316,9 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		CreatedBy:           &userID,
 	})
 	if err != nil {
+		telemetry.RecordError(ctx, "create_transaction_error", "transactions.Create")
+		telemetry.RecordTransactionEvent(ctx, "create", false)
+		metrics.End(http.StatusInternalServerError)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -308,6 +331,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Record successful transaction creation
+	telemetry.RecordTransactionEvent(ctx, "create", true)
 	respond.Json(w, http.StatusOK, transaction, h.logger)
 }
 
@@ -582,8 +607,16 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	// Start metrics measurement
+	metrics := telemetry.NewRequestMetrics(ctx, r.Method, "transactions.Delete")
+	defer func() {
+		metrics.End(http.StatusOK) // Default status, will be overridden if there's an error
+	}()
+
 	trscID, err := request.ParseUUID(r, "id")
 	if err != nil {
+		telemetry.RecordError(ctx, "invalid_transaction_id", "transactions.Delete")
+		metrics.End(http.StatusBadRequest)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -597,6 +630,9 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.service.DeleteTransaction(ctx, trscID); err != nil {
+		telemetry.RecordError(ctx, "delete_transaction_error", "transactions.Delete")
+		telemetry.RecordTransactionEvent(ctx, "delete", false)
+		metrics.End(http.StatusInternalServerError)
 		respond.Error(respond.ErrorOptions{
 			W:          w,
 			R:          r,
@@ -607,9 +643,10 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 			Details:    trscID,
 		})
 		return
-
 	}
 
+	// Record successful transaction deletion
+	telemetry.RecordTransactionEvent(ctx, "delete", true)
 	respond.Status(w, http.StatusOK)
 }
 

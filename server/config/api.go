@@ -13,7 +13,8 @@ type Api struct {
 	ReadHeaderTimeout time.Duration `split_words:"true" default:"60s"`
 	GracefulTimeout   time.Duration `split_words:"true" default:"8s"`
 
-	RequestLog bool `split_words:"true" default:"false"`
+	RequestLog bool   `split_words:"true" default:"false"`
+	LogLevel   string `split_words:"true" default:"info"`
 }
 
 func API() Api {
