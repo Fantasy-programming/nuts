@@ -22,6 +22,12 @@ The nuts backend now includes comprehensive observability through:
 | `OTEL_SERVICE_NAME` | `nuts-backend` | Service name for traces |
 | `OTEL_SERVICE_VERSION` | `unknown` | Service version for traces |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | (empty) | OTLP HTTP endpoint for trace export |
+| `OTEL_EXPORTER_OTLP_HEADERS` | (empty) | HTTP headers for OTLP requests (format: key1=value1,key2=value2) |
+| `OTEL_EXPORTER_OTLP_COMPRESSION` | `gzip` | Compression for OTLP data (gzip or none) |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | Protocol for OTLP exports |
+| `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` | `delta` | Metrics temporality (delta or cumulative) |
+| `OTEL_RESOURCE_ATTRIBUTES` | (empty) | Additional resource attributes (format: key1=value1,key2=value2) |
+| `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` | `4095` | Maximum length for attribute values |
 | `LOG_LEVEL` | `info` | Log level (trace, debug, info, warn, error, fatal, panic) |
 | `ENVIRONMENT` | `development` | Environment (affects log format and defaults) |
 
@@ -131,10 +137,43 @@ When disabled:
 ## Production Considerations
 
 ### OTLP Exporter Endpoints
+
+#### Basic Configuration
 - **Jaeger**: `http://jaeger:4318`
-- **Honeycomb**: `https://api.honeycomb.io/v1/traces`
-- **Grafana Cloud**: `https://traces-prod-{region}.grafana.net/tempo`
-- **New Relic**: `https://otlp.nr-data.net/v1/traces`
+- **Local OTEL Collector**: `http://localhost:4318`
+
+#### Cloud Providers with Authentication
+- **Honeycomb**: 
+  ```bash
+  OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
+  OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=your_api_key
+  ```
+- **Grafana Cloud**: 
+  ```bash
+  OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-us-central-0.grafana.net/otlp
+  OTEL_EXPORTER_OTLP_HEADERS=authorization=Basic base64(instanceId:token)
+  ```
+- **New Relic**: 
+  ```bash
+  OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.nr-data.net
+  OTEL_EXPORTER_OTLP_HEADERS=api-key=your_license_key
+  ```
+- **Datadog** (requires Datadog Agent with OTLP enabled): 
+  ```bash
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+  ```
+
+#### Advanced Configuration
+```bash
+# Optimize for bandwidth with compression
+OTEL_EXPORTER_OTLP_COMPRESSION=gzip
+
+# Add custom resource attributes for better filtering
+OTEL_RESOURCE_ATTRIBUTES=environment=production,datacenter=us-east-1,version=1.2.3
+
+# Use cumulative metrics for some monitoring systems
+OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
+```
 
 ### Security
 - Never log sensitive information (passwords, tokens, etc.)
