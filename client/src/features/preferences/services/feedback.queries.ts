@@ -8,7 +8,7 @@ export const useFeedbackMutation = () => {
     onSuccess: () => {
       toast.success("Feedback submitted successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to submit feedback. Please try again.");
     },
   });

@@ -10,12 +10,13 @@ import IconPicker from "@/core/components/icon-picker";
 import { renderIcon } from "@/core/components/icon-picker/index.helper";
 import { MoreHorizontal, Pencil, Trash, AlertCircle } from "lucide-react";
 import { useTagsQuery, useUpdateTagMutation, useDeleteTagMutation } from "@/features/preferences/services/settings.queries";
+import { logger } from "@/lib/logger";
 
 export function TagList() {
   const { data: tags, isLoading, error } = useTagsQuery();
   const updateTagMutation = useUpdateTagMutation();
   const deleteTagMutation = useDeleteTagMutation();
-  
+
   const [editingTag, setEditingTag] = useState<{
     id: string;
     name: string;
@@ -34,7 +35,7 @@ export function TagList() {
         });
         setEditingTag(null);
       } catch (error) {
-        // Error is handled by the mutation
+        logger.error(error)
       }
     }
   };
@@ -43,7 +44,7 @@ export function TagList() {
     try {
       await deleteTagMutation.mutateAsync(tagId);
     } catch (error) {
-      // Error is handled by the mutation
+      logger.error(error)
     }
   };
 
@@ -121,8 +122,8 @@ export function TagList() {
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-red-600" 
+                      <DropdownMenuItem
+                        className="text-red-600"
                         onClick={() => handleDelete(tag.id)}
                         disabled={deleteTagMutation.isPending}
                       >
@@ -160,13 +161,13 @@ export function TagList() {
             </div>
             <div className="space-y-2">
               <Label>Icon</Label>
-              <IconPicker 
-                value={editingTag?.icon ?? ""} 
-                onChange={(icon) => setEditingTag(editingTag ? { ...editingTag, icon } : null)} 
+              <IconPicker
+                value={editingTag?.icon ?? ""}
+                onChange={(icon) => setEditingTag(editingTag ? { ...editingTag, icon } : null)}
               />
             </div>
-            <Button 
-              onClick={handleUpdate} 
+            <Button
+              onClick={handleUpdate}
               className="w-full"
               disabled={!editingTag?.name || !editingTag?.icon || updateTagMutation.isPending}
             >

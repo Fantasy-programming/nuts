@@ -28,14 +28,14 @@ export const useTagsQuery = () => {
 
 export const useCreateTagMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: tagsService.createTag,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tags });
       toast.success("Tag created successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to create tag");
     },
   });
@@ -43,7 +43,7 @@ export const useCreateTagMutation = () => {
 
 export const useUpdateTagMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTagRequest }) =>
       tagsService.updateTag(id, data),
@@ -51,7 +51,7 @@ export const useUpdateTagMutation = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tags });
       toast.success("Tag updated successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to update tag");
     },
   });
@@ -59,14 +59,14 @@ export const useUpdateTagMutation = () => {
 
 export const useDeleteTagMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: tagsService.deleteTag,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tags });
       toast.success("Tag deleted successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to delete tag");
     },
   });
@@ -84,14 +84,14 @@ export const useCategoriesQuery = () => {
 
 export const useCreateCategoryMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: categoriesService.createCategory,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.categories });
       toast.success("Category created successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to create category");
     },
   });
@@ -99,7 +99,7 @@ export const useCreateCategoryMutation = () => {
 
 export const useUpdateCategoryMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateCategoryRequest }) =>
       categoriesService.updateCategory(id, data),
@@ -107,7 +107,7 @@ export const useUpdateCategoryMutation = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.categories });
       toast.success("Category updated successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to update category");
     },
   });
@@ -115,14 +115,14 @@ export const useUpdateCategoryMutation = () => {
 
 export const useDeleteCategoryMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: categoriesService.deleteCategory,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.categories });
       toast.success("Category deleted successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to delete category");
     },
   });
@@ -130,7 +130,7 @@ export const useDeleteCategoryMutation = () => {
 
 export const useCreateSubcategoryMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ categoryId, data }: { categoryId: string; data: CreateSubcategoryRequest }) =>
       categoriesService.createSubcategory(categoryId, data),
@@ -138,7 +138,7 @@ export const useCreateSubcategoryMutation = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.categories });
       toast.success("Subcategory created successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to create subcategory");
     },
   });
@@ -146,7 +146,7 @@ export const useCreateSubcategoryMutation = () => {
 
 export const useUpdateSubcategoryMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ categoryId, subcategoryId, data }: { categoryId: string; subcategoryId: string; data: CreateSubcategoryRequest }) =>
       categoriesService.updateSubcategory(categoryId, subcategoryId, data),
@@ -154,7 +154,7 @@ export const useUpdateSubcategoryMutation = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.categories });
       toast.success("Subcategory updated successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to update subcategory");
     },
   });
@@ -162,7 +162,7 @@ export const useUpdateSubcategoryMutation = () => {
 
 export const useDeleteSubcategoryMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ categoryId, subcategoryId }: { categoryId: string; subcategoryId: string }) =>
       categoriesService.deleteSubcategory(categoryId, subcategoryId),
@@ -170,7 +170,7 @@ export const useDeleteSubcategoryMutation = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.categories });
       toast.success("Subcategory deleted successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to delete subcategory");
     },
   });
@@ -188,14 +188,14 @@ export const useMerchantsQuery = () => {
 
 export const useCreateMerchantMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: merchantsService.createMerchant,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.merchants });
       toast.success("Merchant created successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to create merchant");
     },
   });
@@ -203,7 +203,7 @@ export const useCreateMerchantMutation = () => {
 
 export const useUpdateMerchantMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateMerchantRequest }) =>
       merchantsService.updateMerchant(id, data),
@@ -211,7 +211,7 @@ export const useUpdateMerchantMutation = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.merchants });
       toast.success("Merchant updated successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to update merchant");
     },
   });
@@ -219,14 +219,14 @@ export const useUpdateMerchantMutation = () => {
 
 export const useDeleteMerchantMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: merchantsService.deleteMerchant,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.merchants });
       toast.success("Merchant deleted successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to delete merchant");
     },
   });
@@ -244,14 +244,14 @@ export const useWebhooksQuery = () => {
 
 export const useCreateWebhookMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: webhooksService.createWebhook,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.webhooks });
       toast.success("Webhook created successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to create webhook");
     },
   });
@@ -259,7 +259,7 @@ export const useCreateWebhookMutation = () => {
 
 export const useUpdateWebhookMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateWebhookRequest }) =>
       webhooksService.updateWebhook(id, data),
@@ -267,7 +267,7 @@ export const useUpdateWebhookMutation = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.webhooks });
       toast.success("Webhook updated successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to update webhook");
     },
   });
@@ -275,14 +275,14 @@ export const useUpdateWebhookMutation = () => {
 
 export const useDeleteWebhookMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: webhooksService.deleteWebhook,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.webhooks });
       toast.success("Webhook deleted successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to delete webhook");
     },
   });

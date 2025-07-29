@@ -65,7 +65,7 @@ export function RecordsDialog({ children }: React.PropsWithChildren) {
 export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
   const [transactionType, setTransactionType] = useState<"expense" | "income" | "transfer">("expense");
   const [recurringType, setRecurringType] = useState<string>("one-time");
-  const [recurringConfig, setRecurringConfig] = useState<any>(null);
+  const [recurringConfig, setRecurringConfig] = useState<unknown>(null);
 
   const form = useForm<RecordCreateSchema>({
     resolver: zodResolver(recordCreateSchema),
@@ -109,7 +109,7 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
         is_recurring: recurringType !== "one-time",
         recurring_config: recurringType !== "one-time" ? {
           frequency: getFrequencyFromRecurringType(recurringType),
-          frequency_interval: getIntervalFromRecurringType(recurringType),
+          frequency_interval: getIntervalFromRecurringType(),
           frequency_data: getFrequencyDataFromRecurringType(recurringType, recurringConfig),
           start_date: values.transaction_datetime,
           auto_post: true, // Default to auto-posting
@@ -117,7 +117,7 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
           ...(recurringConfig || {}) // Only spread recurringConfig if it exists
         } : undefined,
       };
-      
+
       onSubmit(submitValues);
       form.reset();
     },
@@ -134,19 +134,19 @@ export function RecordsForm({ onSubmit }: { onSubmit: RecordsSubmit }) {
     return "custom";
   };
 
-  const getIntervalFromRecurringType = (_type: string) => {
+  const getIntervalFromRecurringType = () => {
     // Most recurring types have interval 1, except for custom
     return 1;
   };
 
-  const getFrequencyDataFromRecurringType = (type: string, customConfig: any) => {
+  const getFrequencyDataFromRecurringType = (type: string, customConfig: unknown) => {
     if (customConfig) {
       return customConfig.frequency_data || {};
     }
 
     // Convert predefined types to frequency data
     const dayMap: { [key: string]: number } = {
-      "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, 
+      "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4,
       "friday": 5, "saturday": 6, "sunday": 0
     };
 

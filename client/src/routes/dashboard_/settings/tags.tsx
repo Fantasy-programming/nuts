@@ -8,6 +8,7 @@ import { Label } from "@/core/components/ui/label";
 import IconPicker from "@/core/components/icon-picker";
 import { TagList } from "@/routes/dashboard_/settings/-components/tag-list";
 import { useCreateTagMutation } from "@/features/preferences/services/settings.queries";
+import { logger } from "@/lib/logger";
 
 export const Route = createFileRoute("/dashboard_/settings/tags")({
   component: RouteComponent,
@@ -26,7 +27,7 @@ function RouteComponent() {
         setNewTag({ name: "", icon: "" });
         setIsOpen(false);
       } catch (error) {
-        // Error is handled by the mutation
+        logger.error(error)
       }
     }
   };
@@ -49,23 +50,23 @@ function RouteComponent() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
-                <Input 
-                  id="name" 
-                  value={newTag.name} 
-                  onChange={(e) => setNewTag({ ...newTag, name: e.target.value })} 
+                <Input
+                  id="name"
+                  value={newTag.name}
+                  onChange={(e) => setNewTag({ ...newTag, name: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label>Icon</Label>
-                <IconPicker 
-                  value={newTag.icon} 
-                  onChange={(icon) => setNewTag({ ...newTag, icon })} 
+                <IconPicker
+                  value={newTag.icon}
+                  onChange={(icon) => setNewTag({ ...newTag, icon })}
                 />
               </div>
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={!newTag.name || !newTag.icon || createTagMutation.isPending}
               >
                 {createTagMutation.isPending ? "Creating..." : "Create Tag"}

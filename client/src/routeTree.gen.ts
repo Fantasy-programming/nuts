@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as ImportDemoRouteImport } from './routes/import-demo'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as OnboardingRouteRouteImport } from './routes/onboarding/route'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
@@ -54,11 +53,6 @@ const SignupRoute = SignupRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ImportDemoRoute = ImportDemoRouteImport.update({
-  id: '/import-demo',
-  path: '/import-demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -243,7 +237,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/onboarding': typeof OnboardingRouteRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
-  '/import-demo': typeof ImportDemoRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
@@ -279,7 +272,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/import-demo': typeof ImportDemoRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/dashboard/$': typeof DashboardSplatRoute
@@ -317,7 +309,6 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/onboarding': typeof OnboardingRouteRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
-  '/import-demo': typeof ImportDemoRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/dashboard_/settings': typeof DashboardSettingsRouteRouteWithChildren
@@ -357,7 +348,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/onboarding'
     | '/forgot-password'
-    | '/import-demo'
     | '/login'
     | '/signup'
     | '/dashboard/settings'
@@ -393,7 +383,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/forgot-password'
-    | '/import-demo'
     | '/login'
     | '/signup'
     | '/dashboard/$'
@@ -430,7 +419,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/onboarding'
     | '/forgot-password'
-    | '/import-demo'
     | '/login'
     | '/signup'
     | '/dashboard_/settings'
@@ -469,7 +457,6 @@ export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   OnboardingRouteRoute: typeof OnboardingRouteRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  ImportDemoRoute: typeof ImportDemoRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren
@@ -489,13 +476,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/import-demo': {
-      id: '/import-demo'
-      path: '/import-demo'
-      fullPath: '/import-demo'
-      preLoaderRoute: typeof ImportDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -834,7 +814,6 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   OnboardingRouteRoute: OnboardingRouteRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  ImportDemoRoute: ImportDemoRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   DashboardSettingsRouteRoute: DashboardSettingsRouteRouteWithChildren,

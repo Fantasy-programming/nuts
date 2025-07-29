@@ -10,6 +10,13 @@ import { usePreferencesStore } from "@/features/preferences/stores/preferences.s
 interface SummaryCardProps {
   accounts: AccountWTrend[];
 }
+interface ChartConfigItem {
+  label: string;
+  color: string;
+}
+
+type ChartConfig = Record<string, ChartConfigItem>;
+
 
 interface CategoryBreakdown {
   name: string;
@@ -125,7 +132,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
       color: item.color,
     };
     return acc;
-  }, {} as any);
+  }, {} as ChartConfig);
 
   return (
     <Card>
@@ -136,7 +143,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
             <TabsTrigger value="totals">{t('analytics.totals')}</TabsTrigger>
             <TabsTrigger value="percent">{t('analytics.percent')}</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="summary" className="mt-6">
             <div className="space-y-6">
               {/* Assets Section */}
@@ -147,7 +154,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                     {formatCurrency(summaryData.totalAssets, appCurrency)}
                   </span>
                 </div>
-                
+
                 {/* Assets Progress Bar */}
                 <div className="mb-4 h-3 bg-muted rounded-full overflow-hidden flex">
                   {summaryData.assets.map((asset) => {
@@ -170,7 +177,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                   {summaryData.assets.map((category) => (
                     <div key={category.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div 
+                        <div
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: category.color }}
                         />
@@ -193,7 +200,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                       {formatCurrency(summaryData.totalLiabilities, appCurrency)}
                     </span>
                   </div>
-                  
+
                   {/* Liabilities Progress Bar */}
                   <div className="mb-4 h-3 bg-muted rounded-full overflow-hidden">
                     <div
@@ -210,7 +217,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                     {summaryData.liabilities.map((category) => (
                       <div key={category.name} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div 
+                          <div
                             className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: category.color }}
                           />
@@ -267,7 +274,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                   </PieChart>
                 </ChartContainer>
               </div>
-              
+
               {/* Percentage Breakdown */}
               <div className="space-y-2 w-full">
                 <div className="flex justify-between items-center">
@@ -282,7 +289,7 @@ export const SummaryCard = ({ accounts }: SummaryCardProps) => {
                     </div>
                   </div>
                 </div>
-                
+
                 {summaryData.liabilities.length > 0 && (
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">

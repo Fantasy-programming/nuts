@@ -22,7 +22,7 @@ export function OptimizedImage({
   alt,
   fallbackSrc,
   lazy = true,
-  quality = 85,
+  // quality = 85,
   width,
   height,
   className,
@@ -122,12 +122,12 @@ interface AvatarImageProps {
   className?: string;
 }
 
-export function AvatarImage({ 
-  src, 
-  alt, 
-  size = 'md', 
-  fallback, 
-  className 
+export function AvatarImage({
+  src,
+  alt,
+  size = 'md',
+  fallback,
+  className
 }: AvatarImageProps) {
   const sizeClasses = {
     sm: 'w-8 h-8',
@@ -180,11 +180,11 @@ interface PropertyImageProps {
   className?: string;
 }
 
-export function PropertyImage({ 
-  src, 
-  alt, 
-  aspectRatio = 'video', 
-  className 
+export function PropertyImage({
+  src,
+  alt,
+  aspectRatio = 'video',
+  className
 }: PropertyImageProps) {
   const aspectClasses = {
     square: 'aspect-square',

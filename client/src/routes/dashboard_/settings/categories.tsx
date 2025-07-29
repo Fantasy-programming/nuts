@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, Trash, AlertCircle } from "lucide-react";
 import { renderIcon } from "@/core/components/icon-picker/index.helper";
 import { useCategoriesQuery, useCreateCategoryMutation, useDeleteCategoryMutation, useCreateSubcategoryMutation, useDeleteSubcategoryMutation } from "@/features/preferences/services/settings.queries";
+import { logger } from "@/lib/logger";
 
 export const Route = createFileRoute("/dashboard_/settings/categories")({
   component: RouteComponent,
@@ -24,7 +25,7 @@ function RouteComponent() {
   const deleteCategoryMutation = useDeleteCategoryMutation();
   const createSubcategoryMutation = useCreateSubcategoryMutation();
   const deleteSubcategoryMutation = useDeleteSubcategoryMutation();
-  
+
   const [isOpen, setIsOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: "", icon: "", color: "" });
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
@@ -38,6 +39,7 @@ function RouteComponent() {
         setNewCategory({ name: "", icon: "", color: "" });
         setIsOpen(false);
       } catch (error) {
+        logger.error(error)
         // Error handled by mutation
       }
     }
@@ -47,7 +49,7 @@ function RouteComponent() {
     try {
       await deleteCategoryMutation.mutateAsync(categoryId);
     } catch (error) {
-      // Error handled by mutation
+      logger.error(error)
     }
   };
 
@@ -61,7 +63,7 @@ function RouteComponent() {
         setNewSubcategoryName("");
         setAddingSubcategoryFor(null);
       } catch (error) {
-        // Error handled by mutation
+        logger.error(error)
       }
     }
   };
@@ -70,7 +72,7 @@ function RouteComponent() {
     try {
       await deleteSubcategoryMutation.mutateAsync({ categoryId, subcategoryId });
     } catch (error) {
-      // Error handled by mutation
+      logger.error(error)
     }
   };
 
@@ -149,13 +151,13 @@ function RouteComponent() {
               </div>
               <div className="space-y-2">
                 <Label>Color</Label>
-                <ColorPicker 
-                  value={newCategory.color} 
-                  onChange={(color) => setNewCategory({ ...newCategory, color })} 
+                <ColorPicker
+                  value={newCategory.color}
+                  onChange={(color) => setNewCategory({ ...newCategory, color })}
                 />
               </div>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full"
                 disabled={!newCategory.name || !newCategory.icon || createCategoryMutation.isPending}
               >
@@ -200,8 +202,8 @@ function RouteComponent() {
                           <Plus className="mr-2 h-4 w-4" />
                           Add Subcategory
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-red-600" 
+                        <DropdownMenuItem
+                          className="text-red-600"
                           onClick={() => handleDeleteCategory(category.id)}
                           disabled={deleteCategoryMutation.isPending}
                         >
@@ -245,7 +247,7 @@ function RouteComponent() {
                         onKeyPress={(e) => e.key === 'Enter' && handleAddSubcategory(category.id)}
                         className="flex-1"
                       />
-                      <Button 
+                      <Button
                         size="sm"
                         onClick={() => handleAddSubcategory(category.id)}
                         disabled={!newSubcategoryName.trim() || createSubcategoryMutation.isPending}

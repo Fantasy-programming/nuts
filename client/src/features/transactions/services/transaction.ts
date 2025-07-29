@@ -38,7 +38,7 @@ export const getTransactions = async (params: GetTransactionsParams): Promise<Tr
   const cleanParams = Object.fromEntries(
     Object.entries(params).filter(([, value]) => value !== undefined && value !== "")
   );
-  
+
   const url = buildUrlWithParams(`${BASEURI}/`, { limit: 25, ...cleanParams });
 
   const { data } = await axios.get<TransactionsResponse>(url);
@@ -88,11 +88,11 @@ export const bulkUpdateManualTransactions = async (params: {
   const body: Record<string, any> = {
     transaction_ids: params.transactionIds,
   };
-  
+
   if (params.categoryId) body.category_id = params.categoryId;
   if (params.accountId) body.account_id = params.accountId;
   if (params.transactionDatetime) body.transaction_datetime = params.transactionDatetime.toISOString();
-  
+
   await axios.put(`${BASEURI}/bulk/manual`, body);
 };
 
@@ -104,6 +104,6 @@ export const bulkCreateTransactions = async (params: {
     account_id: params.accountId,
     transactions: params.transactions,
   });
-  
+
   return data;
 };

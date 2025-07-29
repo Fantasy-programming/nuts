@@ -22,7 +22,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         locale: 'en-US',
         currency: 'USD',
-      } as any);
+      } as never);
 
       const result = formatCurrency(1234.56);
       expect(result).toBe('$1,234.56');
@@ -32,7 +32,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         locale: 'en-US',
         currency: 'EUR',
-      } as any);
+      } as never);
 
       const result = formatCurrency(1234.56, 'EUR');
       expect(result).toBe('€1,234.56');
@@ -42,7 +42,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         locale: 'fr-FR',
         currency: 'EUR',
-      } as any);
+      } as never);
 
       const result = formatCurrency(1234.56);
       // French formatting uses different separators
@@ -60,7 +60,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         date_format: 'dd/mm/yyyy',
         locale: 'en-US',
-      } as any);
+      } as never);
 
       const result = formatDate(testDate);
       expect(result).toBe('15/03/2024');
@@ -70,7 +70,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         date_format: 'mm/dd/yyyy',
         locale: 'en-US',
-      } as any);
+      } as never);
 
       const result = formatDate(testDate);
       expect(result).toBe('03/15/2024');
@@ -80,7 +80,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         date_format: 'yyyy-mm-dd',
         locale: 'en-US',
-      } as any);
+      } as never);
 
       const result = formatDate(testDate);
       expect(result).toBe('2024-03-15');
@@ -94,7 +94,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         time_format: '12h',
         locale: 'en-US',
-      } as any);
+      } as never);
 
       const result = formatTime(testDate);
       expect(result).toContain('3:30');
@@ -105,7 +105,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         time_format: '24h',
         locale: 'en-US',
-      } as any);
+      } as never);
 
       const result = formatTime(testDate);
       expect(result).toContain('15:30');
@@ -121,7 +121,7 @@ describe('Formatting utilities', () => {
         date_format: 'dd/mm/yyyy',
         time_format: '24h',
         locale: 'en-US',
-      } as any);
+      } as never);
 
       const result = formatDateTime(testDate);
       expect(result).toContain('15/03/2024');
@@ -134,7 +134,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         locale: 'invalid-locale',
         currency: 'INVALID',
-      } as any);
+      } as never);
 
       const result = formatCurrency(100, 'INVALID');
       // Should fallback to symbol + amount
@@ -146,7 +146,7 @@ describe('Formatting utilities', () => {
       mockGetState.mockReturnValue({
         date_format: 'invalid-format',
         locale: 'en-US',
-      } as any);
+      } as never);
 
       const result = formatDate(new Date('2024-03-15'));
       // Should fallback to default locale formatting

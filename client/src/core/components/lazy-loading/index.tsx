@@ -15,14 +15,14 @@ export function withLazyLoading<P extends object>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const WrappedComponent = React.forwardRef<any, P>((props, ref) => {
     const LoadingFallback = fallback || (() => <InlineLoader text="Loading component..." />);
-    
+
     const ErrorFallback = errorFallback || (({ error, resetErrorBoundary }) => (
       <div className="p-4 text-center border border-destructive/20 rounded-lg bg-destructive/5">
         <h3 className="font-medium text-destructive mb-2">Component failed to load</h3>
         <p className="text-sm text-muted-foreground mb-3">
           {error.message || 'An error occurred while loading this component'}
         </p>
-        <button 
+        <button
           onClick={resetErrorBoundary}
           className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
         >
@@ -41,7 +41,7 @@ export function withLazyLoading<P extends object>(
   });
 
   WrappedComponent.displayName = `LazyLoaded(Component)`;
-  
+
   return WrappedComponent;
 }
 
@@ -117,7 +117,7 @@ export function IntersectionLazyLoad({
 /**
  * Code splitting utilities for route-level chunks
  */
-export const createLazyRoute = <T extends Record<string, any>>(
+export const createLazyRoute = <T extends Record<string, unknown>>(
   importFn: () => Promise<{ default: ComponentType<T> }>
 ) => {
   return lazy(importFn);
@@ -140,13 +140,13 @@ export function createHoverPreloadComponent<P extends object>(
   fallback?: React.ComponentType
 ) {
   let preloadPromise: Promise<{ default: ComponentType<P> }> | null = null;
-  
+
   const LazyComponent = withLazyLoading(importFn, fallback);
-  
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const PreloadableComponent = React.forwardRef<any, P & { onMouseEnter?: () => void }>((props, ref) => {
     const { onMouseEnter, ...restProps } = props;
-    
+
     const handleMouseEnter = React.useCallback(() => {
       if (!preloadPromise) {
         preloadPromise = importFn();
@@ -163,6 +163,6 @@ export function createHoverPreloadComponent<P extends object>(
   });
 
   PreloadableComponent.displayName = `HoverPreloadable(LazyComponent)`;
-  
+
   return PreloadableComponent;
 }

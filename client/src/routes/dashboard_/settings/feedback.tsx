@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useFeedbackMutation } from "@/features/preferences/services/feedback.queries";
+import { logger } from "@/lib/logger";
 
 export const Route = createFileRoute("/dashboard_/settings/feedback")({
   component: RouteComponent,
@@ -28,7 +29,7 @@ function RouteComponent() {
         setFeedback("");
         setFeedbackType("general");
       } catch (error) {
-        // Error is handled by the mutation
+        logger.error(error)
       }
     }
   };
