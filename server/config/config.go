@@ -12,6 +12,7 @@ type Config struct {
 	Integrations
 	SMTP
 	LLM llm.Config
+	Otel
 }
 
 func New() *Config {
@@ -25,5 +26,6 @@ func New() *Config {
 		Integrations: INTEGRATIONS(),
 		SMTP:         NewSMTP(),
 		LLM:          llm.NewConfig(),
+		Otel:         OTEL(),
 	}
 }

@@ -52,9 +52,9 @@ type Server struct {
 
 	openfinance *finance.ProviderManager
 
-	httpServer        *http.Server
+	httpServer *http.Server
+
 	telemetryShutdown func(context.Context) error
-	telemetryConfig   telemetry.Config
 	tracer            trace.Tracer
 }
 
@@ -110,11 +110,11 @@ func (s *Server) setRequestLogger() {
 	s.router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			
+
 			// Get trace context from OpenTelemetry
 			ctx := r.Context()
 			logger := logging.LoggerWithTraceCtx(ctx, s.logger)
-			
+
 			// Get request ID from chi middleware if available
 			requestID := chiMiddleware.GetReqID(ctx)
 			if requestID != "" {
@@ -129,7 +129,7 @@ func (s *Server) setRequestLogger() {
 				Msg("Request started")
 
 			next.ServeHTTP(w, r)
-			
+
 			logger.Info().
 				Dur("duration", time.Since(start)).
 				Msg("Request completed")
@@ -138,26 +138,25 @@ func (s *Server) setRequestLogger() {
 }
 
 func (s *Server) NewLogger() {
-	s.logger = logging.NewLogger()
+	s.logger = logging.NewLogger(s.cfg.Api.LogLevel)
 }
 
 func (s *Server) SetupTelemetry() {
-	s.telemetryConfig = telemetry.DefaultConfig()
-	s.telemetryConfig.ServiceVersion = s.Version
+	s.cfg.OtlpServiceVersion = s.Version
 
 	ctx := context.Background()
-	shutdown, err := telemetry.Setup(ctx, s.telemetryConfig, s.logger)
+	shutdown, err := telemetry.Setup(ctx, s.cfg.Otel, s.logger)
 	if err != nil {
 		s.logger.Fatal().Err(err).Msg("Failed to setup telemetry")
 	}
 
 	s.telemetryShutdown = shutdown
-	
-	if s.telemetryConfig.Enabled {
+
+	if s.cfg.Otel.Enabled {
 		s.tracer = otel.Tracer("nuts-backend")
 	}
 
-	s.logger.Info().Bool("enabled", s.telemetryConfig.Enabled).Msg("Telemetry setup completed")
+	s.logger.Info().Bool("enabled", s.cfg.Otel.Enabled).Msg("Telemetry setup completed")
 }
 
 func (s *Server) NewTokenService() {
@@ -263,7 +262,7 @@ func (s *Server) NewDatabase() {
 	}
 
 	// Configure tracing based on telemetry settings
-	database.ConfigurePoolWithTracing(config, s.logger, s.telemetryConfig.Enabled)
+	database.ConfigurePoolWithTracing(config, s.logger, s.cfg.Otel.Enabled)
 
 	conn, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
@@ -328,7 +327,7 @@ func (s *Server) setGlobalMiddleware() {
 	s.router.Use(i18n.I18nMiddleware(s.i18n, nil))
 
 	// Add OpenTelemetry HTTP instrumentation only if telemetry is enabled
-	if s.telemetryConfig.Enabled {
+	if s.cfg.Otel.Enabled {
 		s.router.Use(func(next http.Handler) http.Handler {
 			return otelhttp.NewHandler(next, "nuts-backend",
 				otelhttp.WithTracerProvider(otel.GetTracerProvider()),
@@ -363,15 +362,15 @@ func (s *Server) NewJobService() {
 
 func (s *Server) NewMailer() {
 	mailerConfig := mailer.Config{
-		Host:      s.cfg.SMTP.Host,
-		Port:      s.cfg.SMTP.Port,
-		Username:  s.cfg.SMTP.Username,
-		Password:  s.cfg.SMTP.Password,
-		FromEmail: s.cfg.SMTP.FromEmail,
-		FromName:  s.cfg.SMTP.FromName,
+		Host:             s.cfg.SMTP.Host,
+		Port:             s.cfg.SMTP.Port,
+		Username:         s.cfg.SMTP.Username,
+		Password:         s.cfg.SMTP.Password,
+		FromEmail:        s.cfg.SMTP.FromEmail,
+		FromName:         s.cfg.SMTP.FromName,
 		MailGeneratorURL: "http://localhost:3001", // TODO: Make this configurable
 	}
-	
+
 	s.mailer = mailer.NewService(mailerConfig)
 	s.logger.Info().Msg("Mailer service initialized")
 }

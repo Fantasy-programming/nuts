@@ -16,6 +16,7 @@ func LoggerWithTraceCtx(ctx context.Context, logger *zerolog.Logger) *zerolog.Lo
 	}
 
 	spanCtx := span.SpanContext()
+
 	contextLogger := logger.With().
 		Str("trace_id", spanCtx.TraceID().String()).
 		Str("span_id", spanCtx.SpanID().String()).
@@ -25,10 +26,11 @@ func LoggerWithTraceCtx(ctx context.Context, logger *zerolog.Logger) *zerolog.Lo
 }
 
 // NewLogger creates an enhanced logger with better configuration
-func NewLogger() *zerolog.Logger {
-	logLevel := getLogLevel()
-	
+func NewLogger(logLevelStr string) *zerolog.Logger {
+	logLevel := getLogLevel(logLevelStr)
+
 	env := os.Getenv("ENVIRONMENT")
+
 	if env == "test" {
 		logLevel = zerolog.Disabled
 	}
@@ -49,13 +51,8 @@ func NewLogger() *zerolog.Logger {
 }
 
 // getLogLevel returns the appropriate log level based on environment
-func getLogLevel() zerolog.Level {
-	levelStr := os.Getenv("LOG_LEVEL")
-	if levelStr == "" {
-		levelStr = "info"
-	}
-
-	switch levelStr {
+func getLogLevel(loglevelStr string) zerolog.Level {
+	switch loglevelStr {
 	case "trace":
 		return zerolog.TraceLevel
 	case "debug":
@@ -78,15 +75,16 @@ func getLogLevel() zerolog.Level {
 // ContextMiddleware adds common context information to logs
 func ContextMiddleware(logger *zerolog.Logger, requestID, userID string) *zerolog.Logger {
 	contextLogger := logger.With()
-	
+
 	if requestID != "" {
 		contextLogger = contextLogger.Str("request_id", requestID)
 	}
-	
+
 	if userID != "" {
 		contextLogger = contextLogger.Str("user_id", userID)
 	}
-	
+
 	result := contextLogger.Logger()
 	return &result
 }
+

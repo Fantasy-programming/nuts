@@ -2,9 +2,9 @@ package telemetry
 
 import (
 	"context"
-	"os"
 	"time"
 
+	"github.com/Fantasy-Programming/nuts/server/config"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -14,17 +14,8 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 )
 
-// Config holds the telemetry configuration
-type Config struct {
-	ServiceName    string
-	ServiceVersion string
-	Environment    string
-	OTLPEndpoint   string
-	Enabled        bool
-}
-
 // Setup initializes OpenTelemetry tracing
-func Setup(ctx context.Context, cfg Config, logger *zerolog.Logger) (func(context.Context) error, error) {
+func Setup(ctx context.Context, cfg config.Otel, logger *zerolog.Logger) (func(context.Context) error, error) {
 	if !cfg.Enabled {
 		logger.Info().Msg("OpenTelemetry disabled")
 		return func(ctx context.Context) error { return nil }, nil
@@ -33,9 +24,9 @@ func Setup(ctx context.Context, cfg Config, logger *zerolog.Logger) (func(contex
 	// Create resource
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
-			semconv.ServiceName(cfg.ServiceName),
-			semconv.ServiceVersion(cfg.ServiceVersion),
-			semconv.DeploymentEnvironment(cfg.Environment),
+			semconv.ServiceName(cfg.OtlpServiceName),
+			semconv.ServiceVersion(cfg.OtlpServiceVersion),
+			semconv.DeploymentEnvironment(cfg.OtlpEnvironment),
 		),
 	)
 	if err != nil {
@@ -44,15 +35,15 @@ func Setup(ctx context.Context, cfg Config, logger *zerolog.Logger) (func(contex
 
 	// Create OTLP trace exporter
 	var exporter trace.SpanExporter
-	if cfg.OTLPEndpoint != "" {
+	if cfg.OtlpEndpoint != "" {
 		exporter, err = otlptracehttp.New(ctx,
-			otlptracehttp.WithEndpoint(cfg.OTLPEndpoint),
+			otlptracehttp.WithEndpoint(cfg.OtlpEndpoint),
 			otlptracehttp.WithTimeout(time.Second*10),
 		)
 		if err != nil {
 			return nil, err
 		}
-		logger.Info().Str("endpoint", cfg.OTLPEndpoint).Msg("Using OTLP HTTP exporter")
+		logger.Info().Str("endpoint", cfg.OtlpEndpoint).Msg("Using OTLP HTTP exporter")
 	} else {
 		// If no endpoint is provided, use a no-op exporter but still create spans for logging
 		exporter = &noopExporter{}
@@ -76,30 +67,12 @@ func Setup(ctx context.Context, cfg Config, logger *zerolog.Logger) (func(contex
 	))
 
 	logger.Info().
-		Str("service", cfg.ServiceName).
-		Str("version", cfg.ServiceVersion).
-		Str("environment", cfg.Environment).
+		Str("service", cfg.OtlpServiceName).
+		Str("version", cfg.OtlpServiceVersion).
+		Str("environment", cfg.OtlpEnvironment).
 		Msg("OpenTelemetry tracing initialized")
 
 	return tp.Shutdown, nil
-}
-
-// DefaultConfig returns a default telemetry configuration
-func DefaultConfig() Config {
-	return Config{
-		ServiceName:    getEnvOrDefault("OTEL_SERVICE_NAME", "nuts-backend"),
-		ServiceVersion: getEnvOrDefault("OTEL_SERVICE_VERSION", "unknown"),
-		Environment:    getEnvOrDefault("ENVIRONMENT", "development"),
-		OTLPEndpoint:   os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
-		Enabled:        getEnvOrDefault("OTEL_ENABLED", "true") == "true",
-	}
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
 
 // noopExporter is a simple no-op exporter for when OTLP endpoint is not configured
@@ -112,3 +85,4 @@ func (e *noopExporter) ExportSpans(ctx context.Context, spans []trace.ReadOnlySp
 func (e *noopExporter) Shutdown(ctx context.Context) error {
 	return nil
 }
+
