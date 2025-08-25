@@ -69,7 +69,7 @@ function RouteComponent() {
       toast.success("Welcome to your account 👋");
 
       await router.invalidate();
-      
+
       // Check if onboarding is required
       try {
         const user = await userService.getMe();
@@ -81,7 +81,7 @@ function RouteComponent() {
       } catch (error) {
         logger.error("Failed to check onboarding status", { error });
       }
-      
+
       await navigate({ to: search.redirect || "/dashboard/home" })
 
     } catch (error) {

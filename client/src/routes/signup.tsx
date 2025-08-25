@@ -209,7 +209,7 @@ function RouteComponent() {
               </motion.div>
 
 
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="text-muted-foreground  text-sm">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="text-muted-foreground text-sm">
                 Already have an account?{" "}
                 <Link to="/login" className="text-emerald-700 transition-colors hover:text-emerald-600">
                   Log in
