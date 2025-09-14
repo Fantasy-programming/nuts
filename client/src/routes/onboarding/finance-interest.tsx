@@ -11,7 +11,7 @@ export const Route = createFileRoute("/onboarding/finance-interest")({
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const { setBetterFinance, setStep } = useOnboardingStore();
+  const { setBetterFinance, setStep, completeOnboarding } = useOnboardingStore();
 
   const handleYes = async () => {
     setBetterFinance(true);
@@ -27,6 +27,8 @@ function RouteComponent() {
 
   const handleSkip = async () => {
     setBetterFinance(null);
+
+    completeOnboarding();
     // Skip to dashboard - they don't want to learn about finances
     await navigate({ to: "/dashboard/home" });
   };

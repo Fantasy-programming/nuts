@@ -113,14 +113,14 @@ export const Route = createFileRoute("/dashboard")({
     }
 
     const queryClient = context.queryClient;
-    
+
     // Check if user needs onboarding
     try {
       const user = await queryClient.fetchQuery({
         queryKey: ["user"],
         queryFn: userService.getMe,
       });
-      
+
       if (isOnboardingRequired(user)) {
         const entryPoint = getOnboardingEntryPoint(user);
         throw redirect({
@@ -135,7 +135,7 @@ export const Route = createFileRoute("/dashboard")({
       // If we can't fetch user data, let them through and handle it later
       console.error("Failed to check onboarding status:", redirectError);
     }
-    
+
     const accounts = await queryClient.fetchQuery(getAllAccounts())
 
     return {
@@ -246,8 +246,8 @@ function DashboardWrapper() {
         </ul>
       </div>
 
-      <Sidebar 
-        collapsible="icon" 
+      <Sidebar
+        collapsible="icon"
         className="group-data-[side=left]:border-r-0"
         role="navigation"
         aria-label="Main navigation"
@@ -265,12 +265,12 @@ function DashboardWrapper() {
           </ErrorBoundary>
         </SidebarFooter>
       </Sidebar>
-      
+
       <SidebarInset className="overflow-hidden px-4 md:px-6 py-2 md:py-4">
         <ErrorBoundary>
-          <main 
-            id="main-content" 
-            tabIndex={-1} 
+          <main
+            id="main-content"
+            tabIndex={-1}
             className="focus:outline-none"
             role="main"
             aria-label="Main content"
@@ -402,10 +402,10 @@ const SideBarMainLinks = memo(() => {
               <SidebarMenuButton
                 asChild
                 tooltip={item.title}
-                className="group/menu-button font-medium gap-3 h-9 rounded-md text-[#757575] hover:text-secondary-900/45 hover:bg-neutral-200/40 [&>svg]:size-auto focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                className="duration-200 will-change-transform active:scale-95 active:translate-y-0.5 group/menu-button font-medium gap-3 h-9 rounded-md text-[#757575] hover:text-secondary-900/45 hover:bg-neutral-200/40 [&>svg]:size-auto focus:outline-none "
               >
-                <Link 
-                  to={item.url} 
+                <Link
+                  to={item.url}
                   activeProps={{ className: "bg-sidebar-accent shadow-sm hover:bg-sidebar-accent" }}
                   tabIndex={0}
                   role="menuitem"
@@ -413,16 +413,16 @@ const SideBarMainLinks = memo(() => {
                 >{({ isActive }: { isActive: boolean }) => (
                   <>
                     {isActive ? (
-                      <item.activeIcon 
-                        size={16} 
-                        aria-hidden="true" 
-                        className="text-secondary-900/80" 
+                      <item.activeIcon
+                        size={16}
+                        aria-hidden="true"
+                        className="text-secondary-900/80 dark:text-secondary-50"
                       />
                     ) : (
-                      <item.icon 
-                        size={16} 
-                        aria-hidden="true" 
-                        className="text-muted-foreground/60" 
+                      <item.icon
+                        size={16}
+                        aria-hidden="true"
+                        className="text-muted-foreground/60"
                       />
                     )}
 

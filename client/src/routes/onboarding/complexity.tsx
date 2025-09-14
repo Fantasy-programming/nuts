@@ -24,7 +24,7 @@ function RouteComponent() {
   const handleAnswer = async (feelsComplex: boolean) => {
     try {
       setComplexFinance(feelsComplex);
-      
+
       // Update user's name in the backend if it's different
       if (user.first_name !== firstName || user.last_name !== lastName) {
         await userService.updateMe({
@@ -32,14 +32,14 @@ function RouteComponent() {
           last_name: lastName,
         });
       }
-      
+
       // Mark onboarding as complete
       completeOnboarding();
-      
+
       toast.success("Welcome to Nuts Finance! 🎉", {
         description: "Your account has been set up successfully.",
       });
-      
+
       // Navigate to dashboard with replace to prevent back navigation to onboarding
       try {
         await navigate({ to: "/dashboard/home", replace: true });

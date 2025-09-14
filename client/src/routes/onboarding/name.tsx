@@ -27,8 +27,13 @@ export const Route = createFileRoute("/onboarding/name")({
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const { firstName, lastName, setName, setStep } = useOnboardingStore();
-  
+
+  const firstName = useOnboardingStore((state) => state.firstName)
+  const lastName = useOnboardingStore((state) => state.lastName)
+  const setName = useOnboardingStore((state) => state.setName)
+  const setStep = useOnboardingStore((state) => state.setStep)
+
+
   const { data: user } = useQuery({
     queryKey: ["user"],
     queryFn: userService.getMe,
@@ -77,9 +82,9 @@ function RouteComponent() {
       </div>
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }} 
-          animate={{ opacity: 1, y: 0 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="space-y-2"
         >
@@ -96,9 +101,9 @@ function RouteComponent() {
           )}
         </motion.div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }} 
-          animate={{ opacity: 1, y: 0 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="space-y-2"
         >
@@ -115,9 +120,9 @@ function RouteComponent() {
           )}
         </motion.div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }} 
-          animate={{ opacity: 1, y: 0 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="pt-4"
         >

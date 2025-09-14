@@ -4,17 +4,17 @@ import { devtools, persist } from 'zustand/middleware';
 export interface OnboardingState {
   // Current step (0-6)
   currentStep: number;
-  
+
   // User responses
   firstName: string;
   lastName: string;
   wantsBetterFinance: boolean | null;
   selectedGoals: string[];
   feelsComplexFinance: boolean | null;
-  
+
   // State management
   isCompleted: boolean;
-  
+
   // Actions
   setStep: (step: number) => void;
   setName: (firstName: string, lastName: string) => void;
@@ -40,25 +40,25 @@ export const useOnboardingStore = create<OnboardingState>()(
     persist(
       (set) => ({
         ...initialState,
-        
+
         setStep: (step) => set({ currentStep: step }, false, 'onboarding/setStep'),
-        
-        setName: (firstName, lastName) => 
+
+        setName: (firstName, lastName) =>
           set({ firstName, lastName }, false, 'onboarding/setName'),
-        
-        setBetterFinance: (wantsBetterFinance) => 
+
+        setBetterFinance: (wantsBetterFinance) =>
           set({ wantsBetterFinance }, false, 'onboarding/setBetterFinance'),
-        
-        setGoals: (selectedGoals) => 
+
+        setGoals: (selectedGoals) =>
           set({ selectedGoals }, false, 'onboarding/setGoals'),
-        
-        setComplexFinance: (feelsComplexFinance) => 
+
+        setComplexFinance: (feelsComplexFinance) =>
           set({ feelsComplexFinance }, false, 'onboarding/setComplexFinance'),
-        
-        completeOnboarding: () => 
+
+        completeOnboarding: () =>
           set({ isCompleted: true }, false, 'onboarding/complete'),
-        
-        resetOnboarding: () => 
+
+        resetOnboarding: () =>
           set({ ...initialState }, false, 'onboarding/reset'),
       }),
       {

@@ -2,10 +2,13 @@ type: workspace
 model: workspace
 id: wk_BbcoeNtmFM
 createdAt: 2025-05-24T00:53:44.550811719
-updatedAt: 2025-05-24T00:53:50.811060752
-name: Nuts
+updatedAt: 2025-08-30T16:58:21.020018236
+authentication: {}
+authenticationType: null
 description: ''
-encryptionKeyChallenge: eUE0azNuQwH1uBhjy3MNxWA4Hr2YbIcoposzOsSwZYrkX2uIoW3DWFiv8fSoAYFbkbo1DQ0SM3E9/hHWiLrM2rhkXdXakuW/HLKeBNpJnhaIESOXI8ggfs3QhnD5L7BvTcE=
+headers: []
+name: Nuts
+encryptionKeyChallenge: eUE0azNuQwFaVG6qbszgXWeEitsBh5aNdvTH+7UCmtl1ISg9FSj80PW96xtGTiBCbzaChYl/1zLTBQ+k1e2aMuUNFUEnmmoYJH5qFlJ9OoVG8IKDISnZj+Y2jpjHlI2Kc9U=
 settingValidateCertificates: true
 settingFollowRedirects: true
 settingRequestTimeout: 0
